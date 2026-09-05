@@ -31,7 +31,7 @@ nmt.in.ua — тренажер підготовки до НМТ з матема�
 - `npm install && npm run dev` → <http://localhost:3000>
 - Залогінься як `demo-student` / `demo-teacher` / `demo-admin` (пароль `demo123`).
 - Пройди happy-path: старт тесту → відповідь → фініш → `/results` → `/sessions`.
-- Прочитай цей файл, `README.md` і `.cursor/rules/design-system.mdc` (перед будь-якою версткою).
+- Прочитай цей файл, `README.md`, `docs/deploy.md` і `.cursor/rules/design-system.mdc` (перед будь-якою версткою).
 - Візьми задачу з відкритого беклогу (§11), заведи feature-гілку від свіжого `dev`.
 
 Без живої MySQL тести модулів з БД і сам тренажер не заведуться. Локальний Next без `.env.local` відкриє лендінг, але кабінет впаде на запитах до бази.
@@ -91,7 +91,11 @@ git pull origin dev
 git checkout -b feature/коротка-назва
 ```
 
-Далі: коміти → push → Pull Request `feature/…` → `dev`. Реліз на прод: `dev` → `main`. З `main` Vercel збирається сам, хостинг nmt.in.ua — теж сам (CI збирає, переписує шляхи runner у `.next`, сервер лише міняє реліз). Розробнику на хостинг ходити не треба. Деталі: [`docs/deploy.md`](./deploy.md).
+Далі: коміти → push → Pull Request `feature/…` → `dev`. Реліз на прод: `dev` → `main`.
+
+Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.github/workflows/deploy-hosting.yml): Actions збирає Next, переписує шляхи runner у `.next`, кладе tar на хостинг. Сервер лише ставить `npm install` у `releases/<sha>` і міняє `www`. На хості `npm run build` не запускаємо (старий glibc). Vercel збирає `main` окремо; домен дивиться на хостинг.
+
+Розробнику на хостинг ходити не треба і **не деплоїти самостійно**. Деталі, секрети, відкат: [`docs/deploy.md`](./deploy.md).
 
 ### 4.2. Правило шарів у коді
 
@@ -141,6 +145,12 @@ git checkout -b feature/коротка-назва
 | `messages/uk.json`, `en.json`, `de.json` | Тексти інтерфейсу |
 | `src/app/globals.css` | Дизайн-токени. Новий колір — сюди, не в компонент |
 | `.cursor/rules/design-system.mdc` | Правила верстки. Читати перед CSS |
+| `.cursor/rules/deploy-hosting.mdc` | Короткі правила релізу. Повна пам’ятка — `docs/deploy.md` |
+| `.github/workflows/deploy-hosting.yml` | CI: merge в `main` → збірка → swap `www` |
+| `scripts/deploy-hosting.sh` | Єдиний скрипт релізу (локально або з CI) |
+| `scripts/rewrite-next-build-paths.sh` | Шляхи GitHub runner у `.next` → шлях хоста |
+| `scripts/rollback-hosting.sh` | Повернути попередній `www` |
+| `docs/deploy.md` | Як зміни потрапляють на nmt.in.ua |
 | `docs/mentor-tasks.md` | Старий розклад задач. Частина статусів застаріла |
 
 ## 6. Як влаштований продукт у коді
@@ -189,7 +199,7 @@ git checkout -b feature/коротка-назва
 | `/session/[id]` | Власник сесії | Готово |
 | `/results`, `/sessions`, `/simulator` | Учень+ | Готово |
 | `/settings` | Лише admin | Готово |
-| `/materials` | Учень+ | Готово на `main`/проді; у `dev` може бути заглушка |
+| `/materials` | Учень+ | Готово |
 | `/problems`, `/consultations` | Учень+ | Заглушка `NavStubPage` — вільні задачі |
 
 ## 7. Як додавати фічу (шаблон)
@@ -253,6 +263,7 @@ git checkout -b feature/коротка-назва
 ## 12. Як здати роботу
 
 - PR у `dev`, не в `main`. Назва: `feat: …` / `fix: …` / `docs: …`
+- У `main` мерджити лише реліз. Це одразу деплоїть хостинг.
 - У тілі PR: що змінилось для користувача, як перевірити, чи потрібна міграція БД (зазвичай ні).
 - Не коміть `.env`, ключі, великі бінарники без потреби.
 - UI: перевір порожній стан, помилку, вузький екран. Не здавай лише «у мене на 1440 ок».
