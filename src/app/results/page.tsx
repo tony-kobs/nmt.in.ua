@@ -1,3 +1,4 @@
+import { PostTestFeedbackPrompt } from "@/components/feedback/FeedbackDialog";
 import { RecommendedActionsPanel } from "@/components/dashboard/RecommendedActionsPanel";
 import { TopicResultsTable } from "@/components/dashboard/TopicResultsTable";
 import { getNavItem } from "@/constants/navigation";
@@ -15,9 +16,24 @@ export const metadata = createPageMetadata({
   path: item.href,
 });
 
-export default async function ResultsPage() {
+type ResultsPageProps = {
+  searchParams: Promise<{ sessionId?: string | string[] }>;
+};
+
+function readSessionId(
+  raw: string | string[] | undefined,
+): number | null {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  const id = Number(value);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  return id;
+}
+
+export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   const userId = await requireUserId();
   const t = await getTranslations("Recommendations");
+  const params = await searchParams;
+  const finishedSessionId = readSessionId(params.sessionId);
 
   const [rows, topicStats] = await Promise.all([
     getTopicResults(userId),
@@ -30,6 +46,9 @@ export default async function ResultsPage() {
     <>
       <TopicResultsTable rows={rows} />
       <RecommendedActionsPanel actions={actions} />
+      {finishedSessionId ? (
+        <PostTestFeedbackPrompt sessionId={finishedSessionId} />
+      ) : null}
     </>
   );
 }

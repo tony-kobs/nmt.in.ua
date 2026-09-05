@@ -38,6 +38,7 @@
 
 .top,
 .nav,
+.bottom,
 .footerCard {
   position: relative;
   z-index: 1;
@@ -167,10 +168,15 @@
   text-transform: uppercase;
 }
 
+.bottom {
+  display: grid;
+  gap: var(--space-sm);
+  margin-top: auto;
+}
+
 .footerCard {
   display: grid;
   gap: var(--space-2xs);
-  margin-top: auto;
   padding: var(--space-sm) var(--space-md);
   border: 1px dashed rgb(31 143 69 / 35%);
   border-radius: var(--radius-md);

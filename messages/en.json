@@ -466,6 +466,48 @@
       "json": "One JSON file"
     }
   },
+  "Feedback": {
+    "leaveReview": "Leave feedback",
+    "kicker": "Feedback",
+    "title": "How is the site working?",
+    "lead": "Please rate the platform.",
+    "scoreLabel": "Site rating",
+    "scoreAria": "Site rating from 1 to 10",
+    "scoreHint": "Choose a rating from 1 to 10.",
+    "scoreValue": "{score}",
+    "messageRequired": "Help us improve — please tell us why you chose this rating. Your opinion matters to us",
+    "emailLabel": "Email",
+    "emailHint": "Leave it if you would like a reply.",
+    "submit": "Send",
+    "sending": "Sending…",
+    "later": "Later",
+    "close": "Close",
+    "thanksTitle": "Thank you for the feedback",
+    "thanksLead": "We will read your suggestion. It helps us improve NMT preparation.",
+    "errors": {
+      "invalid_input": "Check the rating and text, then try again.",
+      "message_required": "For ratings below 5, please tell us why you chose this score.",
+      "invalid_email": "Enter a valid email or leave the field empty.",
+      "generic": "Could not send feedback. Please try again later."
+    }
+  },
+  "FeedbackAdmin": {
+    "title": "Site feedback",
+    "lead": "Visible to admins only. Students cannot see other people’s reviews.",
+    "empty": "No feedback yet.",
+    "date": "Date",
+    "score": "Rating",
+    "user": "User",
+    "guest": "Guest",
+    "email": "Email",
+    "source": "Source",
+    "session": "Session",
+    "message": "Suggestion",
+    "sources": {
+      "footer": "Footer",
+      "post_test": "After a test"
+    }
+  },
   "Metadata": {
     "welcome": {
       "title": "NMT math preparation",

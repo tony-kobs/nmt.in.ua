@@ -1,0 +1,245 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: end center;
+  padding: var(--space-md);
+  background: rgb(58 44 18 / 38%);
+  backdrop-filter: blur(8px);
+}
+
+.dialog {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+  width: 100%;
+  max-width: 36rem;
+  max-height: min(90dvh, 40rem);
+  overflow: auto;
+  padding: var(--space-lg);
+  border: 1px solid rgb(253 251 244 / 72%);
+  border-radius: var(--radius-lg);
+  background: var(--grad-glass);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(14px);
+}
+
+@supports not (backdrop-filter: blur(4px)) {
+  .overlay {
+    background: rgb(58 44 18 / 52%);
+  }
+
+  .dialog {
+    background: rgb(253 251 244 / 96%);
+  }
+}
+
+.kicker {
+  margin: 0;
+  color: var(--green-dark);
+  font-size: var(--fs-kicker);
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.lead {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+}
+
+.field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.scoreWrap :global([role="tablist"]) {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+
+.scoreWrap :global(button) {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 2px;
+  justify-content: center;
+}
+
+.label {
+  font-size: var(--fs-small);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.prompt {
+  font-size: var(--fs-small);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.hint {
+  margin: 0;
+  color: var(--subtle);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink-deep);
+  font: inherit;
+  transition:
+    border-color var(--t) var(--ease),
+    box-shadow var(--t) var(--ease);
+}
+
+.input {
+  min-height: 48px;
+}
+
+.textarea {
+  min-height: 7.5rem;
+  resize: vertical;
+}
+
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: var(--ring);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.submit,
+.later {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 10px 18px;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.submit {
+  border: 0;
+  background: var(--grad-brand);
+  color: #fdfbf4;
+  box-shadow: 0 12px 26px rgb(17 83 42 / 28%);
+}
+
+.submit:disabled,
+.later:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.later {
+  border: 1px solid var(--line-soft);
+  background: rgb(253 251 244 / 78%);
+  color: var(--ink);
+}
+
+.alert {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.alertError {
+  border: 1px solid rgb(200 30 60 / 35%);
+  background: rgb(200 30 60 / 8%);
+  color: #b3213f;
+}
+
+.success {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sidebarTrigger {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 10px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  background: rgb(253 251 244 / 78%);
+  color: var(--green-dark);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
+.sidebarTrigger:hover,
+.sidebarTrigger:focus-visible {
+  border-color: rgb(31 143 69 / 40%);
+  background: var(--green-hover);
+}
+
+@media (min-width: 768px) {
+  .overlay {
+    place-items: center;
+  }
+
+  .dialog {
+    padding: var(--space-xl);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .dialog {
+    transition: none;
+  }
+}

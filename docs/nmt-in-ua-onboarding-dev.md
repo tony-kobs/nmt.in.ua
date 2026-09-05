@@ -176,7 +176,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `theme_connections` | Граф «наступна тема» | `vertex_start` → `vertex_finish` |
 | `quiz_tasks` | Банк завдань | `right_answer_n` (1–4) лише на сервері |
 | `task_sessions` | Спроба учня | `session_type` 1 user / 2 auto / 3 mentor / 4 NMT; status 1 done / 2 created / 3 planned |
-| `tasks2session` | Завдання в сесії | `status` 0 не відповіли / 1 вірно / -1 невірно |
+| `site_feedback` | відгук про сайт (6.2) | `user_id`/`session_id` nullable, `score` 1–10, `message` (обов’язкове якщо score < 5), `email`, `source` footer/post_test |
 
 **`right_answer_n` і `comments` не віддавай клієнту**, поки відповідь не перевірена або сесія не завершена. Перевірка завжди на сервері.
 
@@ -256,7 +256,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | 6.8 Варіанти НМТ | `startNmtSimulator`, `/simulator`, нові таблиці | Середня | Не RAND по всій базі — випадковий *варіант* |
 | 6.6 Задачник | `src/app/problems`, стилі TopicTrainer | Середня | Практика без ключа в DOM; друк через `window.print` |
 | 6.3–6.4 Діагностика | `/diagnostic`, `Hero`, `TopicTestStart`, `TopicResultsTable` | Велика | Guest-cookie → claim при реєстрації |
-| 6.2 Відгук про сайт | новий `src/modules/feedback`, футер, модалка після finish | Мала | Не хедер; не плутати з `/consultations` |
+| 6.2 Відгук про сайт | `src/modules/feedback`, футер, модалка після finish | Мала | ✅ зроблено; оцінка 1–10, коментар лише якщо < 5; не хедер; не `/consultations` |
 
 Поза першим релізом (не хапати «бо цікаво»): групи викладача, ДЗ, PDF, Google-логін, AI-перевірка, типи завдань окрім вибору з 4 варіантів, повноцінний PWA. Це версія 2 — питайте PM.
 
