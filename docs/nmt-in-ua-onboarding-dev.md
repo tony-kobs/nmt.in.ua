@@ -91,7 +91,7 @@ git pull origin dev
 git checkout -b feature/коротка-назва
 ```
 
-Далі: коміти → push → Pull Request `feature/…` → `dev`. Реліз на прод: `dev` → `main`. Vercel підхоплює `main` сам. Хостинг nmt.in.ua оновлює team lead вручну (`scripts/manual-deploy-hosting.sh`).
+Далі: коміти → push → Pull Request `feature/…` → `dev`. Реліз на прод: `dev` → `main`. З `main` Vercel збирається сам, хостинг nmt.in.ua — теж сам (CI збирає, сервер лише міняє реліз). Розробнику на хостинг ходити не треба. Деталі: [`docs/deploy.md`](./deploy.md).
 
 ### 4.2. Правило шарів у коді
 

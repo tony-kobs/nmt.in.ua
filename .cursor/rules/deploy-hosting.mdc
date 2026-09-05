@@ -1,0 +1,35 @@
+---
+description: Реліз nmt.in.ua — CI з main, хостинг лише міняє www; не збирати Next на сервері
+alwaysApply: true
+---
+
+# Деплой nmt.in.ua
+
+Повна пам’ятка: `docs/deploy.md`.
+
+## Процес релізу
+
+1. Розробники: PR → `dev`. Lead перевіряє і мерджить.
+2. Lead котить `dev` → `main`.
+3. GitHub Actions `.github/workflows/deploy-hosting.yml` на `main`: `npm ci` / test / lint / `npm run build` (нормальний glibc).
+4. Тонкий tar їде **SSH-pipe** (`cat > file`), не SCP і не appleboy.
+5. На хості нова папка в `releases/<id>`, `npm install --omit=dev` **поки старий www живий**.
+6. `www` міняється директорією (не symlink). Рестарт лише PID цього `server.js`, не `killall -9 node`.
+7. Healthcheck `http://127.1.10.37:3000/`. Провал → назад `releases/previous`.
+
+Vercel теж збирає `main`. Домен дивиться на ukraine.com.ua.
+
+## Залізно не робити
+
+- `npm run build` на хостингу (старий glibc).
+- Повертати кореневий `deploy.sh`, appleboy/SCP, `killall -9 node`.
+- Деплоїти на прод, поки користувач не сказав явно.
+- Комітити `.env.production` / приватний SSH-ключ.
+
+## Секрет і скрипти
+
+- GitHub secret `HOSTING_SSH_KEY` = PEM приватного ключа для `levelhst@levelhst.ftp.tools`.
+- Локально той самий файл: `~/.ssh/id_rsa` (дефолт `scripts/deploy-hosting.sh`).
+- Ручний той самий шлях: `bash scripts/deploy-hosting.sh`.
+- Відкат: `bash scripts/rollback-hosting.sh --yes`.
+- Env на сервері: `/home/levelhst/nmt.in.ua/www/.env.production` + копія `/home/levelhst/nmt.in.ua/.env.production`.
