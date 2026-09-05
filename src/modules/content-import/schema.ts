@@ -22,12 +22,13 @@ export const QUIZ_TASKS_COLUMNS = [
   "answer_4",
   "right_answer_n",
   "comments",
+  "difficulty",
 ] as const;
 
 /** varchar(100) columns: themes.name, quiz_tasks.name */
 export const MAX_LEN_VARCHAR_100 = 100;
-/** varchar(50) columns: quiz_tasks.answer_1..4 */
-export const MAX_LEN_VARCHAR_50 = 50;
+/** varchar(255) columns: quiz_tasks.answer_1..4 */
+export const MAX_LEN_VARCHAR_255 = 255;
 /** varchar(100) column: quiz_tasks.comments */
 export const MAX_LEN_COMMENTS = 100;
 /**
@@ -39,6 +40,9 @@ export const MAX_LEN_TEXT = 20000;
 
 export const MIN_RIGHT_ANSWER = 1;
 export const MAX_RIGHT_ANSWER = 4;
+
+export const MIN_DIFFICULTY = 1;
+export const MAX_DIFFICULTY = 3;
 
 /**
  * Signed MySQL `INT` bounds. Every `int` column in the verified schema
