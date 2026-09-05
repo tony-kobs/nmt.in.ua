@@ -26,8 +26,15 @@ SSH=(
   -o ConnectTimeout=30
 )
 
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+LIB="$ROOT/scripts/hosting-remote-lib.sh"
+
 if [ ! -f "$SSH_KEY" ]; then
   echo "SSH key not found: $SSH_KEY" >&2
+  exit 1
+fi
+if [ ! -f "$LIB" ]; then
+  echo "Missing $LIB" >&2
   exit 1
 fi
 
@@ -35,7 +42,10 @@ REMOTE_APPLY="$(printf \
   'export SITE=%q HOST=%q PORT=%q; exec bash -s' \
   "$REMOTE_SITE" "$REMOTE_HOST_IP" "$REMOTE_PORT")"
 
-"${SSH[@]}" "${REMOTE_USER}@${REMOTE_HOST}" "$REMOTE_APPLY" <<'REMOTE'
+{
+  cat "$LIB"
+  cat <<'REMOTE'
+
 set -euo pipefail
 export PATH="/usr/local/node24/bin:/usr/local/bin:/usr/bin:${PATH}"
 
@@ -43,8 +53,11 @@ SITE="${SITE:?}"
 HOST="${HOST:?}"
 PORT="${PORT:?}"
 APP_ROOT="$(dirname "$SITE")"
+cd "$APP_ROOT"
+
 PREVIOUS="${APP_ROOT}/releases/previous"
 FAILED="${APP_ROOT}/releases/failed"
+STAGE=""
 PIDFILE="${APP_ROOT}/nmt.pid"
 LOG="/home/levelhst/.system/nodejs/logs/www.nmt.in.ua.log"
 
@@ -53,66 +66,22 @@ if [ ! -d "$PREVIOUS" ]; then
   exit 1
 fi
 
-pids_on_port() {
-  if command -v lsof >/dev/null 2>&1; then
-    lsof -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null || true
-    return
-  fi
-  if command -v fuser >/dev/null 2>&1; then
-    fuser "${PORT}/tcp" 2>/dev/null | tr -cs '0-9' '\n' | grep -E '^[0-9]+$' || true
-    return
-  fi
-  ps -u "$(id -un)" -o pid=,args= 2>/dev/null | awk '/[n]ode server\.js/ { print $1 }' || true
-}
-
-stop_site_node() {
-  local pid=""
-  if [ -f "$PIDFILE" ]; then
-    pid="$(tr -cd '0-9' < "$PIDFILE" || true)"
-    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-      kill "$pid" 2>/dev/null || true
-      sleep 2
-      kill -9 "$pid" 2>/dev/null || true
-    fi
-    rm -f "$PIDFILE"
-  fi
-  local extra
-  extra="$(pids_on_port | tr '\n' ' ')"
-  if [ -n "${extra// /}" ]; then
-    # shellcheck disable=SC2086
-    kill $extra 2>/dev/null || true
-    sleep 2
-    # shellcheck disable=SC2086
-    kill -9 $extra 2>/dev/null || true
-  fi
-}
-
 stop_site_node
+wait_nmt_port_free
+
 rm -rf "$FAILED"
 if [ -d "$SITE" ]; then
   mv "$SITE" "$FAILED"
 fi
 mv "$PREVIOUS" "$SITE"
 
-cd "$SITE"
-export NODE_ENV=production PORT HOST
-mkdir -p "$(dirname "$LOG")"
-nohup node server.js >>"$LOG" 2>&1 &
-echo $! > "$PIDFILE"
+start_site_node
 
-ok=0
-for i in 1 2 3 4 5 6 7 8 9 10; do
-  if curl -sf --max-time 10 "http://${HOST}:${PORT}/" >/dev/null; then
-    ok=1
-    break
-  fi
-  sleep 2
-done
-
-if [ "$ok" -ne 1 ]; then
+if ! wait_health; then
   echo "Restored previous files, but healthcheck failed." >&2
   exit 1
 fi
 
 echo "OK: rolled back (BUILD_ID=$(cat "${SITE}/.next/BUILD_ID"))"
 REMOTE
+} | "${SSH[@]}" "${REMOTE_USER}@${REMOTE_HOST}" "$REMOTE_APPLY"

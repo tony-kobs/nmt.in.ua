@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Build Next on a modern glibc machine, upload a thin artifact over SSH pipe,
-# prepare a new release beside the live site, then swap directories.
+# Build Next on a modern glibc machine, rewrite CI absolute paths, upload over
+# SSH pipe, prepare a new release beside the live site, then swap directories.
 #
-# The live site stays up during upload + npm install. Node restarts only after
-# the new release is ready. If the healthcheck fails, the previous www is moved back.
+# The live site stays up during upload + npm install. Node is fully stopped
+# before any mv (otherwise the process follows the directory inode).
 #
 # Usage (from repo root, Git Bash / Linux / macOS):
 #   bash scripts/deploy-hosting.sh
@@ -12,7 +12,7 @@
 # Env:
 #   REMOTE_USER REMOTE_HOST REMOTE_SITE SSH_KEY REMOTE_HOST_IP REMOTE_PORT RELEASE_ID
 #
-# Do not use SCP / appleboy — this host blocks it. Do not run npm run build on the server.
+# Do not use SCP / appleboy. Do not run npm run build on the server.
 
 set -euo pipefail
 
@@ -62,6 +62,8 @@ SSH=(
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+LIB="$ROOT/scripts/hosting-remote-lib.sh"
+REWRITE="$ROOT/scripts/rewrite-next-build-paths.sh"
 
 if [ ! -f "$SSH_KEY" ]; then
   echo "SSH key not found: $SSH_KEY" >&2
@@ -69,9 +71,13 @@ if [ ! -f "$SSH_KEY" ]; then
   echo "CI: write secret HOSTING_SSH_KEY to that path and set SSH_KEY." >&2
   exit 1
 fi
+if [ ! -f "$LIB" ] || [ ! -f "$REWRITE" ]; then
+  echo "Missing $LIB or $REWRITE" >&2
+  exit 1
+fi
 
 if [ "$SKIP_BUILD" -eq 0 ]; then
-  echo "==> Building locally (do not build on the hosting)..."
+  echo "==> Building (do not build on the hosting)..."
   npm ci
   npm run build
 fi
@@ -80,6 +86,8 @@ if [ ! -f .next/BUILD_ID ]; then
   echo "Missing .next/BUILD_ID. Run npm run build or drop --skip-build." >&2
   exit 1
 fi
+
+bash "$REWRITE" "$REMOTE_SITE"
 
 PACK_PATHS=(
   .next
@@ -90,7 +98,7 @@ PACK_PATHS=(
   package-lock.json
   next.config.ts
   messages
-  src/i18n
+  src
   tsconfig.json
 )
 
@@ -106,11 +114,12 @@ REMOTE_ARCHIVE="/home/${REMOTE_USER}/nmt-release-${RELEASE_ID}.tar.gz"
 cleanup_local() { rm -f "$ARCHIVE"; }
 trap cleanup_local EXIT
 
-echo "==> Packing thin release ${RELEASE_ID}..."
+echo "==> Packing release ${RELEASE_ID} (full src, rewritten .next)..."
 tar \
   --exclude='.next/cache' \
   --exclude='**/*.test.ts' \
   --exclude='**/*.test.js' \
+  --exclude='**/*.test.tsx' \
   -czf "$ARCHIVE" \
   "${PACK_PATHS[@]}"
 
@@ -123,7 +132,11 @@ echo "==> Preparing release on server, then swapping www..."
 REMOTE_APPLY="$(printf \
   'export RELEASE_ID=%q SITE=%q REMOTE_ARCHIVE=%q HOST=%q PORT=%q; exec bash -s' \
   "$RELEASE_ID" "$REMOTE_SITE" "$REMOTE_ARCHIVE" "$REMOTE_HOST_IP" "$REMOTE_PORT")"
-"${SSH[@]}" "${REMOTE_USER}@${REMOTE_HOST}" "$REMOTE_APPLY" <<'REMOTE'
+
+{
+  cat "$LIB"
+  cat <<'REMOTE'
+
 set -euo pipefail
 export PATH="/usr/local/node24/bin:/usr/local/bin:/usr/bin:${PATH}"
 
@@ -141,9 +154,12 @@ FAILED="${RELEASES}/failed"
 ENV_STORE="${APP_ROOT}/.env.production"
 ENV_BAK="${HOME}/nmt.env.production.bak"
 PIDFILE="${APP_ROOT}/nmt.pid"
-LOCKDIR="${APP_ROOT}/.deploy.lock"
 LOG="/home/levelhst/.system/nodejs/logs/www.nmt.in.ua.log"
 
+# Stay out of SITE/STAGE so this shell does not follow a later mv.
+cd "$APP_ROOT"
+
+LOCKDIR="${APP_ROOT}/.deploy.lock"
 if ! mkdir "$LOCKDIR" 2>/dev/null; then
   echo "Another deploy is already running (${LOCKDIR})." >&2
   rm -f "$REMOTE_ARCHIVE"
@@ -182,71 +198,18 @@ ensure_env() {
   fi
 }
 
-pids_on_port() {
-  if command -v lsof >/dev/null 2>&1; then
-    lsof -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null || true
-    return
-  fi
-  if command -v fuser >/dev/null 2>&1; then
-    fuser "${PORT}/tcp" 2>/dev/null | tr -cs '0-9' '\n' | grep -E '^[0-9]+$' || true
-    return
-  fi
-  if command -v ss >/dev/null 2>&1; then
-    ss -lptn "sport = :${PORT}" 2>/dev/null | sed -n 's/.*pid=\([0-9]\+\).*/\1/p' || true
-    return
-  fi
-  ps -u "$(id -un)" -o pid=,args= 2>/dev/null | awk '/[n]ode server\.js/ { print $1 }' || true
-}
-
-stop_site_node() {
-  local pid=""
-  if [ -f "$PIDFILE" ]; then
-    pid="$(tr -cd '0-9' < "$PIDFILE" || true)"
-    if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-      kill "$pid" 2>/dev/null || true
-      sleep 2
-      kill -9 "$pid" 2>/dev/null || true
-    fi
-    rm -f "$PIDFILE"
-  fi
-
-  local extra
-  extra="$(pids_on_port | tr '\n' ' ')"
-  if [ -n "${extra// /}" ]; then
-    # shellcheck disable=SC2086
-    kill $extra 2>/dev/null || true
-    sleep 2
-    # shellcheck disable=SC2086
-    kill -9 $extra 2>/dev/null || true
-  fi
-}
-
-start_site_node() {
-  cd "$SITE"
-  export NODE_ENV=production
-  export PORT
-  export HOST
-  nohup node server.js >>"$LOG" 2>&1 &
-  echo $! > "$PIDFILE"
-}
-
-wait_health() {
-  local i
-  for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
-    if curl -sf --max-time 10 "http://${HOST}:${PORT}/" >/dev/null; then
-      return 0
-    fi
-    sleep 2
-  done
-  return 1
-}
-
 echo "==> Extract ${RELEASE_ID} (live site still running)..."
 tar -xzf "$REMOTE_ARCHIVE" -C "$STAGE"
 rm -f "$REMOTE_ARCHIVE"
 
 if [ ! -f "${STAGE}/.next/BUILD_ID" ]; then
   echo "Release archive has no .next/BUILD_ID" >&2
+  rm -rf "$STAGE"
+  exit 1
+fi
+
+if grep -R --binary-files=without-match -F -q -- "/home/runner/work/" "${STAGE}/.next" 2>/dev/null; then
+  echo "Refusing to install: .next still contains /home/runner/work paths." >&2
   rm -rf "$STAGE"
   exit 1
 fi
@@ -259,8 +222,11 @@ if [ -f "$SITE/.env.production" ]; then
 fi
 
 echo "==> npm install --omit=dev in staging..."
-cd "$STAGE"
-npm install --omit=dev --no-audit --no-fund --prefer-offline
+# Subshell: do not cd this script into STAGE.
+(
+  cd "$STAGE"
+  npm_config_ignore_scripts=false npm install --omit=dev --no-audit --no-fund --prefer-offline
+)
 
 if [ ! -d "${STAGE}/node_modules/next" ]; then
   echo "Staging install did not produce node_modules/next" >&2
@@ -268,9 +234,9 @@ if [ ! -d "${STAGE}/node_modules/next" ]; then
   exit 1
 fi
 
-echo "==> Swap www (short restart window)..."
+echo "==> Stop nmt Node, then swap www..."
 stop_site_node
-sleep 1
+wait_nmt_port_free
 
 if [ -d "$SITE" ]; then
   rm -rf "$PREVIOUS"
@@ -286,12 +252,12 @@ if ! mv "$STAGE" "$SITE"; then
   exit 1
 fi
 
-# Keep www as a real directory so the hosting panel still sees it.
 start_site_node
 
 if ! wait_health; then
   echo "Healthcheck failed; rolling back to previous release." >&2
   stop_site_node
+  wait_nmt_port_free || true
   rm -rf "$FAILED"
   mv "$SITE" "$FAILED" || true
   if [ -d "$PREVIOUS" ]; then
@@ -306,12 +272,12 @@ if ! wait_health; then
   exit 1
 fi
 
-# One previous release is enough. Drop leftover staging dirs.
 find "$RELEASES" -mindepth 1 -maxdepth 1 -type d \
   ! -path "$PREVIOUS" ! -path "$FAILED" \
   -exec rm -rf {} + 2>/dev/null || true
 
 echo "OK: nmt.in.ua is up (BUILD_ID=$(cat "${SITE}/.next/BUILD_ID") release=${RELEASE_ID})"
 REMOTE
+} | "${SSH[@]}" "${REMOTE_USER}@${REMOTE_HOST}" "$REMOTE_APPLY"
 
 echo "==> Done. Check https://nmt.in.ua/"

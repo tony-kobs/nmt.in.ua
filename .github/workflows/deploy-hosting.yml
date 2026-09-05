@@ -34,6 +34,7 @@ jobs:
           npm test
           npm run lint
           npm run build
+          bash scripts/rewrite-next-build-paths.sh
 
       - name: Write SSH key
         env:
