@@ -173,6 +173,10 @@ trap unlock EXIT
 
 mkdir -p "$RELEASES" "$(dirname "$LOG")"
 rm -rf "$STAGE"
+# leftover staging from aborted deploys (keep previous/failed only)
+find "$RELEASES" -mindepth 1 -maxdepth 1 -type d \
+  ! -path "$PREVIOUS" ! -path "$FAILED" \
+  -exec rm -rf {} + 2>/dev/null || true
 mkdir -p "$STAGE"
 
 ensure_env() {
@@ -229,9 +233,16 @@ if [ -f "$SITE/.env.production" ]; then
 fi
 
 echo "==> npm install --omit=dev in staging..."
-# Subshell: do not cd this script into STAGE.
+# Reuse the live node_modules (glibc 2.28). A fresh npm 11 tree skips SWC
+# postinstall and pulls binaries that need GLIBC 2.29.
+if [ -d "${SITE}/node_modules" ]; then
+  rm -rf "${STAGE}/node_modules"
+  cp -a "${SITE}/node_modules" "${STAGE}/node_modules"
+fi
+# Subshell: do not cd this script into STAGE (mv would take us with it).
 (
   cd "$STAGE"
+  printf 'ignore-scripts=false\n' > .npmrc
   npm_config_ignore_scripts=false npm install --omit=dev --no-audit --no-fund --prefer-offline
 )
 
