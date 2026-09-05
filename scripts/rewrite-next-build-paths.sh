@@ -8,6 +8,7 @@
 #   bash scripts/rewrite-next-build-paths.sh /home/levelhst/nmt.in.ua/www
 #
 # Replaces GITHUB_WORKSPACE and the current repo root with the hosting www path.
+# Ignores .next/trace and diagnostics — those are build telemetry, not runtime.
 
 set -euo pipefail
 
@@ -20,37 +21,52 @@ if [ ! -d .next ]; then
   exit 1
 fi
 
+runtime_files() {
+  find .next -type f \
+    ! -path '.next/cache/*' \
+    ! -path '.next/trace' \
+    ! -path '.next/diagnostics/*' \
+    ! -name 'trace' \
+    \( -name '*.js' -o -name '*.json' -o -name '*.rsc' -o -name '*.meta' \) \
+    -print0
+}
+
 rewrite() {
   local from="$1"
   local to="$2"
   if [ -z "$from" ] || [ "$from" = "$to" ]; then
     return 0
   fi
-  # Skip if this prefix does not appear — common for a local Windows build.
-  if ! grep -R --binary-files=without-match -F -q -- "$from" .next 2>/dev/null; then
+  if ! grep -R --binary-files=without-match -F -q -- "$from" \
+    --exclude-dir=cache --exclude-dir=diagnostics --exclude=trace \
+    .next 2>/dev/null; then
     return 0
   fi
-  echo "==> Rewriting ${from} -> ${to} in .next"
+  echo "==> Rewriting ${from} -> ${to} in .next (runtime files)"
   if ! command -v perl >/dev/null 2>&1; then
     echo "perl is required to rewrite .next paths" >&2
     exit 1
   fi
-  find .next -type f \( \
-    -name '*.js' -o -name '*.json' -o -name '*.rsc' -o -name '*.meta' \
-  \) -print0 | while IFS= read -r -d '' file; do
+  runtime_files | while IFS= read -r -d '' file; do
     perl -0pi -e "s{\Q${from}\E}{${to}}g" "$file"
   done
 }
 
-rewrite "${GITHUB_WORKSPACE:-}" "$SITE"
-rewrite "$ROOT" "$SITE"
-# Actions checkout default, in case GITHUB_WORKSPACE was unset at pack time.
-rewrite "/home/runner/work/nmt.in.ua/nmt.in.ua" "$SITE"
+# Same checkout path can appear three times; rewrite each unique prefix once.
+uniq_from=""
+for candidate in "${GITHUB_WORKSPACE:-}" "$ROOT" "/home/runner/work/nmt.in.ua/nmt.in.ua"; do
+  case " ${uniq_from} " in
+    *" ${candidate} "*) continue ;;
+  esac
+  uniq_from="${uniq_from} ${candidate}"
+  rewrite "$candidate" "$SITE"
+done
 
-if grep -R --binary-files=without-match -F -q -- "/home/runner/work/" .next 2>/dev/null; then
-  echo "Still have /home/runner/work paths in .next after rewrite:" >&2
-  grep -R --binary-files=without-match -F -n -- "/home/runner/work/" .next | head -n 20 >&2
+leftovers="$(runtime_files | xargs -0 -r grep -F -l -- "/home/runner/work/" 2>/dev/null || true)"
+if [ -n "$leftovers" ]; then
+  echo "Still have /home/runner/work paths in runtime .next files:" >&2
+  printf '%s\n' "$leftovers" | head -n 20 >&2
   exit 1
 fi
 
-echo "OK: .next paths are portable for ${SITE}"
+echo "OK: .next runtime paths are portable for ${SITE}"

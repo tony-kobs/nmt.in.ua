@@ -10,7 +10,7 @@ alwaysApply: true
 ## Процес релізу
 
 1. PR → `dev` → lead мерджить. Реліз: `dev` → `main`.
-2. Actions на `main` збирає Next (не на хості). Одразу `scripts/rewrite-next-build-paths.sh` — інакше RSC-маніфест тримає `/home/runner/work/...` і сайт дає 500.
+2. Actions на `main` збирає Next (не на хості). Одразу `scripts/rewrite-next-build-paths.sh` — інакше RSC-маніфест тримає `/home/runner/work/...` і сайт дає 500. Не фейлити через `.next/trace` (телеметрія збірки).
 3. У tar — увесь `src/`, не лише i18n. SSH-pipe, не SCP/appleboy.
 4. На хості install у `releases/<id>`, **поки старий www живий**.
 5. Перед `mv` убивати лише слухача `127.1.10.37:3000` і Node в каталогах nmt. Чекати порожній порт. Інакше процес їде разом із inode в `failed`.
