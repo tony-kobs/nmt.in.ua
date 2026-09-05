@@ -29,8 +29,8 @@ export const QUIZ_TASKS_COLUMNS = [
 export const MAX_LEN_VARCHAR_100 = 100;
 /** varchar(255) columns: quiz_tasks.answer_1..4 */
 export const MAX_LEN_VARCHAR_255 = 255;
-/** varchar(100) column: quiz_tasks.comments */
-export const MAX_LEN_COMMENTS = 100;
+/** text column: quiz_tasks.comments */
+export const MAX_LEN_COMMENTS = 65535;
 /**
  * themes.description and quiz_tasks.task_text are `text` columns (up to
  * 65535 bytes in MySQL). This is a conservative application-level guard
