@@ -17,8 +17,83 @@ test("validateThemesDataset accepts a well-formed row", () => {
   ]);
   assert.deepEqual(result.errors, []);
   assert.deepEqual(result.records, [
-    { id: 1, name: "Algebra", description: "Basics", ord: 1 },
+    { id: 1, code: "T-1", name: "Algebra", description: "Basics", ord: 1 },
   ]);
+});
+
+test("validateThemesDataset accepts an explicit theme code", () => {
+  const result = validateThemesDataset([
+    row("themes row 2", {
+      id: "8",
+      code: "ALG-07-EQ",
+      name: "Рівняння",
+      description: "Basics",
+      ord: "1",
+    }),
+  ]);
+
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.records[0].code, "ALG-07-EQ");
+});
+
+test("validateThemesDataset generates a code when it is empty", () => {
+  const result = validateThemesDataset([
+    row("themes row 2", {
+      id: "8",
+      code: "",
+      name: "Рівняння",
+      description: "Basics",
+      ord: "1",
+    }),
+  ]);
+
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.records[0].code, "T-8");
+});
+
+test("validateThemesDataset rejects an invalid theme code", () => {
+  const result = validateThemesDataset([
+    row("themes row 2", {
+      id: "8",
+      code: "alg equations",
+      name: "Рівняння",
+      description: "Basics",
+      ord: "1",
+    }),
+  ]);
+
+  assert.ok(
+    result.errors.some((error) =>
+      error.includes(
+        "code must contain only uppercase Latin letters, numbers, and hyphens",
+      ),
+    ),
+  );
+});
+
+test("validateThemesDataset rejects duplicate theme codes", () => {
+  const result = validateThemesDataset([
+    row("themes row 2", {
+      id: "8",
+      code: "ALG-07-EQ",
+      name: "Рівняння",
+      description: "Basics",
+      ord: "1",
+    }),
+    row("themes row 3", {
+      id: "11",
+      code: "ALG-07-EQ",
+      name: "Квадратні рівняння",
+      description: "Basics",
+      ord: "2",
+    }),
+  ]);
+
+  assert.ok(
+    result.errors.some((error) =>
+      error.includes("duplicate code ALG-07-EQ"),
+    ),
+  );
 });
 
 test("validateThemesDataset rejects an empty dataset", () => {

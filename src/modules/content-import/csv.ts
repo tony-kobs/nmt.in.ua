@@ -91,44 +91,69 @@ export function parseCsvDataset(
   text: string,
   columns: readonly string[],
   datasetLabel: string,
+  alternativeColumns: readonly (readonly string[])[] = [],
 ): { rows: RawRow[]; errors: string[] } {
   let table: string[][];
+
   try {
     table = parseCsvTable(text);
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    return { rows: [], errors: [`${datasetLabel}: malformed CSV (${reason})`] };
+
+    return {
+      rows: [],
+      errors: [`${datasetLabel}: malformed CSV (${reason})`],
+    };
   }
 
   if (table.length === 0) {
-    return { rows: [], errors: [`${datasetLabel}: empty file`] };
+    return {
+      rows: [],
+      errors: [`${datasetLabel}: empty file`],
+    };
   }
 
   const header = table[0];
-  const headerMatches =
-    header.length === columns.length && header.every((h, i) => h === columns[i]);
-  if (!headerMatches) {
+  const acceptedColumns = [columns, ...alternativeColumns];
+  const matchedColumns = acceptedColumns.find(
+    (candidate) =>
+      header.length === candidate.length &&
+      header.every((value, index) => value === candidate[index]),
+  );
+
+  if (!matchedColumns) {
+    const expectedHeaders = acceptedColumns
+      .map((candidate) => `[${candidate.join(", ")}]`)
+      .join(" or ");
+
     return {
       rows: [],
       errors: [
-        `${datasetLabel}: expected header [${columns.join(", ")}], got [${header.join(", ")}]`,
+        `${datasetLabel}: expected header ${expectedHeaders}, got [${header.join(", ")}]`,
       ],
     };
   }
 
   const errors: string[] = [];
   const rows: RawRow[] = [];
-  for (let i = 1; i < table.length; i += 1) {
-    const cols = table[i];
-    const rowLabel = `${datasetLabel} row ${i + 1}`;
-    if (cols.length !== columns.length) {
-      errors.push(`${rowLabel}: expected ${columns.length} columns, got ${cols.length}`);
+
+  for (let index = 1; index < table.length; index += 1) {
+    const values = table[index];
+    const rowLabel = `${datasetLabel} row ${index + 1}`;
+
+    if (values.length !== matchedColumns.length) {
+      errors.push(
+        `${rowLabel}: expected ${matchedColumns.length} columns, got ${values.length}`,
+      );
       continue;
     }
+
     const raw: Record<string, unknown> = {};
-    columns.forEach((column, ci) => {
-      raw[column] = cols[ci];
+
+    matchedColumns.forEach((column, columnIndex) => {
+      raw[column] = values[columnIndex];
     });
+
     rows.push({ rowLabel, raw });
   }
 

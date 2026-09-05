@@ -25,6 +25,7 @@ type SessionRow = {
   time: number;
   start_time: number;
   session_status: number;
+  theme_code: string;
   theme_name: string;
 };
 
@@ -38,6 +39,7 @@ function makeSession(overrides: Partial<SessionRow> = {}): SessionRow {
     time: 0,
     start_time: 1_700_000_000,
     session_status: SESSION_STATUS_CREATED,
+    theme_code: "GEO-07-ELEM-PLAN",
     theme_name: " Відмінювання ",
     ...overrides,
   };
@@ -146,6 +148,7 @@ test("aggregates correct answers and marks the session completed", async () => {
     percent: 60,
     timeSec: 80,
     themeId: 3,
+    themeCode: "GEO-07-ELEM-PLAN",
     themeName: "Відмінювання",
   });
 
@@ -227,6 +230,7 @@ test("returns the stored summary without UPDATE when already completed", async (
     percent: 80,
     timeSec: 42,
     themeId: 3,
+    themeCode: "GEO-07-ELEM-PLAN",
     themeName: "Відмінювання",
   });
   assert.equal(

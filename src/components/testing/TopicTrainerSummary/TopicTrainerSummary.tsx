@@ -38,9 +38,17 @@ export function TopicTrainerSummary({
           {isUltimate ? t("ultimateTitle") : t("title")}
         </h1>
         <p className={css.lead}>
-          {t("summary", {
+          {t.rich("summary", {
             theme: summary.themeName,
             sessionId: summary.sessionId,
+            themeLink: (children) => (
+              <Link
+                href={`/materials/textbook#topic-${summary.themeCode}`}
+                className={css.themeLink}
+              >
+                {children}
+              </Link>
+            ),
           })}
           {isUltimate ? (
             <>

@@ -5,7 +5,21 @@
  * for every INSERT.
  */
 
-export const THEMES_COLUMNS = ["id", "name", "description", "ord"] as const;
+export const THEMES_REQUIRED_COLUMNS = [
+  "id",
+  "name",
+  "description",
+  "ord",
+] as const;
+
+export const THEMES_COLUMNS = [
+  ...THEMES_REQUIRED_COLUMNS,
+  "code",
+] as const;
+
+export const MAX_LEN_THEME_CODE = 32;
+export const THEME_CODE_PATTERN = /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
+
 export const THEME_CONNECTIONS_COLUMNS = [
   "id",
   "vertex_start",

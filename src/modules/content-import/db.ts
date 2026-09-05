@@ -27,9 +27,9 @@ export type ImportSummary = {
  * the team's MySQL database (see AGENTS.md / task description).
  */
 const SQL_INSERT_THEMES_PREFIX =
-  "INSERT INTO themes (id, name, description, ord) VALUES ";
+  "INSERT INTO themes (id, code, name, description, ord) VALUES ";
 const SQL_UPSERT_THEMES_SUFFIX =
-  " ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description), ord = VALUES(ord)";
+  " ON DUPLICATE KEY UPDATE code = IF(VALUES(code) = CONCAT('T-', id), code, VALUES(code)), name = VALUES(name), description = VALUES(description), ord = VALUES(ord)";
 
 const SQL_INSERT_THEME_CONNECTIONS_PREFIX =
   "INSERT INTO theme_connections (id, vertex_start, vertex_finish) VALUES ";
@@ -79,8 +79,8 @@ async function upsertThemes(
     "themes",
     records.map((r) => r.id),
   );
-  const placeholders = records.map(() => "(?, ?, ?, ?)").join(", ");
-  const params = records.flatMap((r) => [r.id, r.name, r.description, r.ord]);
+  const placeholders = records.map(() => "(?, ?, ?, ?, ?)").join(", ");
+  const params = records.flatMap((r) => [r.id, r.code, r.name, r.description, r.ord]);
   await connection.execute(
     SQL_INSERT_THEMES_PREFIX + placeholders + SQL_UPSERT_THEMES_SUFFIX,
     params,

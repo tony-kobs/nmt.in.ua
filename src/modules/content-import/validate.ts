@@ -1,12 +1,15 @@
 import {
   MAX_LEN_COMMENTS,
   MAX_LEN_TEXT,
+  MAX_LEN_THEME_CODE,
   MAX_LEN_VARCHAR_50,
   MAX_LEN_VARCHAR_100,
   MAX_RIGHT_ANSWER,
   MIN_RIGHT_ANSWER,
   QUIZ_TASKS_COLUMNS,
   THEMES_COLUMNS,
+  THEMES_REQUIRED_COLUMNS,
+  THEME_CODE_PATTERN,
   THEME_CONNECTIONS_COLUMNS,
 } from "./schema";
 import { readInt, readString } from "./normalize";
@@ -16,6 +19,7 @@ export type RawRow = { rowLabel: string; raw: Record<string, unknown> };
 
 export type ThemeRecord = {
   id: number;
+  code: string;
   name: string;
   description: string;
   ord: number;
@@ -42,14 +46,15 @@ export type QuizTaskRecord = {
 
 function checkKeys(
   raw: Record<string, unknown>,
-  columns: readonly string[],
+  requiredColumns: readonly string[],
   rowLabel: string,
   errors: string[],
+  allowedColumns: readonly string[] = requiredColumns,
 ): boolean {
-  const allowed = new Set<string>(columns);
+  const allowed = new Set<string>(allowedColumns);
   const present = Object.keys(raw);
   const unknown = present.filter((key) => !allowed.has(key));
-  const missing = columns.filter((column) => !(column in raw));
+  const missing = requiredColumns.filter((column) => !(column in raw));
   if (unknown.length > 0) {
     errors.push(`${rowLabel}: unknown field(s): ${unknown.join(", ")}`);
   }
@@ -59,9 +64,20 @@ function checkKeys(
   return unknown.length === 0 && missing.length === 0;
 }
 
-function validateThemeRow(row: RawRow): { record?: ThemeRecord; errors: string[] } {
+function validateThemeRow(
+  row: RawRow,
+): { record?: ThemeRecord; errors: string[] } {
   const errors: string[] = [];
-  if (!checkKeys(row.raw, THEMES_COLUMNS, row.rowLabel, errors)) {
+
+  if (
+    !checkKeys(
+      row.raw,
+      THEMES_REQUIRED_COLUMNS,
+      row.rowLabel,
+      errors,
+      THEMES_COLUMNS,
+    )
+  ) {
     return { errors };
   }
 
@@ -70,15 +86,52 @@ function validateThemeRow(row: RawRow): { record?: ThemeRecord; errors: string[]
   const description = readString(row.raw.description, MAX_LEN_TEXT);
   // `ord` is an ordinal position; 0 is a valid first index, only negative values are rejected.
   const ord = readInt(row.raw.ord, "nonNegative");
+  const rawCode = row.raw.code;
+
+  let code: string | undefined;
+
+  if (
+    rawCode === undefined ||
+    (typeof rawCode === "string" && rawCode.trim().length === 0)
+  ) {
+    if (id.value !== undefined) {
+      code = `T-${id.value}`;
+    }
+  } else {
+    const parsedCode = readString(rawCode, MAX_LEN_THEME_CODE);
+
+    if (parsedCode.error) {
+      errors.push(`${row.rowLabel}: code ${parsedCode.error}`);
+    } else {
+      code = parsedCode.value;
+    }
+  }
 
   if (id.error) errors.push(`${row.rowLabel}: id ${id.error}`);
   if (name.error) errors.push(`${row.rowLabel}: name ${name.error}`);
-  if (description.error) errors.push(`${row.rowLabel}: description ${description.error}`);
+  if (description.error) {
+    errors.push(`${row.rowLabel}: description ${description.error}`);
+  }
   if (ord.error) errors.push(`${row.rowLabel}: ord ${ord.error}`);
 
-  if (errors.length > 0) return { errors };
+  if (code && !THEME_CODE_PATTERN.test(code)) {
+    errors.push(
+      `${row.rowLabel}: code must contain only uppercase Latin letters, numbers, and hyphens`,
+    );
+  }
+
+  if (errors.length > 0 || !code) {
+    return { errors };
+  }
+
   return {
-    record: { id: id.value!, name: name.value!, description: description.value!, ord: ord.value! },
+    record: {
+      id: id.value!,
+      code,
+      name: name.value!,
+      description: description.value!,
+      ord: ord.value!,
+    },
     errors: [],
   };
 }
@@ -171,6 +224,29 @@ function findDuplicateIds(ids: number[], datasetLabel: string): string[] {
   return errors;
 }
 
+function findDuplicateCodes(
+  codes: string[],
+  datasetLabel: string,
+): string[] {
+  const counts = new Map<string, number>();
+
+  for (const code of codes) {
+    counts.set(code, (counts.get(code) ?? 0) + 1);
+  }
+
+  const errors: string[] = [];
+
+  for (const [code, count] of counts) {
+    if (count > 1) {
+      errors.push(
+        `${datasetLabel}: duplicate code ${code} (${count} occurrences)`,
+      );
+    }
+  }
+
+  return errors;
+}
+
 export function validateThemesDataset(
   rows: RawRow[],
   datasetLabel = "themes",
@@ -185,6 +261,7 @@ export function validateThemesDataset(
     errors.push(...result.errors);
   }
   errors.push(...findDuplicateIds(records.map((r) => r.id), datasetLabel));
+  errors.push(...findDuplicateCodes(records.map((r) => r.code), datasetLabel));
   return { records, errors };
 }
 

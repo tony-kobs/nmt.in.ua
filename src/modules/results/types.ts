@@ -1,5 +1,6 @@
 export type TopicResultRow = {
   themeId: number;
+  themeCode: string;
   themeName: string;
   displayIndex: number;
   overallPercent: number | null;
@@ -51,6 +52,7 @@ export type SessionRow = {
 
 export type ThemeRow = {
   id: number;
+  code?: string;
   name: string;
   ord: number;
 };
@@ -86,6 +88,7 @@ export function buildTopicResultRows(
 
     return {
       themeId: theme.id,
+      themeCode: theme.code?.trim() || `T-${theme.id}`,
       themeName: theme.name.trim(),
       displayIndex: index + 1,
       overallPercent: average(percents),

@@ -1,5 +1,6 @@
 export type AvailableTopicTheme = {
   id: number;
+  code: string;
   name: string;
   ord: number;
   taskCount: number;
@@ -34,12 +35,16 @@ export type TrainerSessionSummary = {
   percent: number;
   timeSec: number;
   themeId: number;
+  themeCode: string;
   themeName: string;
 };
 
 export type SessionTasksResult = {
   sessionId: number;
   sessionStatus: number;
+  themeId: number;
+  themeCode: string;
+  themeName: string;
   tasks: SessionTask[];
   summary: TrainerSessionSummary | null;
   /** Planned auto/mentor row without task mappings yet — needs `startPlannedSession`. */

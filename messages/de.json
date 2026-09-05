@@ -184,7 +184,7 @@
   "TopicTrainerSummary": {
     "ultimateTitle": "Ultimate — Zusammenfassung",
     "title": "Testzusammenfassung",
-    "summary": "Thema „{theme}“. Sitzung Nr. {sessionId}.",
+    "summary": "Thema „<themeLink>{theme}</themeLink>“. Sitzung Nr. {sessionId}.",
     "timedOut": "Die Zeit ist abgelaufen.",
     "completed": "Test abgeschlossen.",
     "mistakesBelow": "Die Fehleranalyse findest du unten.",

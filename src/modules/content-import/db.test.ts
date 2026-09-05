@@ -49,7 +49,7 @@ function makeConnection(existingIds: Record<string, number[]>) {
 
 function baseDatasets(): ImportDatasets {
   return {
-    themes: [{ id: 1, name: "Theme 1", description: "d", ord: 1 }],
+    themes: [{ id: 1, code: "T-1", name: "Theme 1", description: "d", ord: 1 }],
     themeConnections: [{ id: 1, vertexStart: 1, vertexFinish: 1 }],
     quizTasks: [
       {
@@ -94,9 +94,9 @@ test("importToDatabase commits, upserts in dependency order, and releases the co
   const themesInsert = mock.calls.find((c) => c.sql.startsWith("INSERT INTO themes"))!;
   assert.equal(
     themesInsert.sql,
-    "INSERT INTO themes (id, name, description, ord) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description), ord = VALUES(ord)",
+    "INSERT INTO themes (id, code, name, description, ord) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE code = IF(VALUES(code) = CONCAT('T-', id), code, VALUES(code)), name = VALUES(name), description = VALUES(description), ord = VALUES(ord)",
   );
-  assert.deepEqual(themesInsert.params, [1, "Theme 1", "d", 1]);
+  assert.deepEqual(themesInsert.params, [1, "T-1", "Theme 1", "d", 1]);
 });
 
 test("importToDatabase rolls back and does not commit when a theme reference is invalid, with no partial writes", async () => {

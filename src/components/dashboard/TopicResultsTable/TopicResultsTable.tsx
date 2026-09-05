@@ -1,3 +1,4 @@
+import Link from "next/link";
 import clsx from "clsx";
 import {
   formatPercent,
@@ -51,7 +52,12 @@ export async function TopicResultsTable({ rows }: TopicResultsTableProps) {
             {rows.map((row) => (
               <tr key={row.themeId}>
                 <td className={css.themeCell}>
-                  {row.displayIndex}. {row.themeName}
+                  <Link
+                    href={`/materials/textbook#topic-${row.themeCode}`}
+                    className={css.themeLink}
+                  >
+                    {row.displayIndex}. {row.themeName}
+                  </Link>
                 </td>
                 <td
                   className={clsx(css.metric, metricClass(row.overallPercent))}

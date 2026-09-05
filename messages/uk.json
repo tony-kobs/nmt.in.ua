@@ -184,7 +184,7 @@
   "TopicTrainerSummary": {
     "ultimateTitle": "Ultimate — підсумок",
     "title": "Підсумок тесту",
-    "summary": "Тема «{theme}». Сесія №{sessionId}.",
+    "summary": "Тема «<themeLink>{theme}</themeLink>». Сесія №{sessionId}.",
     "timedOut": "Час вийшов.",
     "completed": "Тест завершено.",
     "mistakesBelow": "Розбір помилок — нижче.",

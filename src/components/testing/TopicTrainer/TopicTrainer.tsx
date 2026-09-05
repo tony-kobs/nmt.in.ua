@@ -33,6 +33,8 @@ import css from "./TopicTrainer.module.css";
 
 type TopicTrainerProps = {
   sessionId: number;
+  themeCode: string;
+  themeName: string;
   tasks: SessionTask[];
   initialSummary?: TrainerSessionSummary | null;
   initialRecommendations?: RecommendedAction[];
@@ -54,6 +56,8 @@ function initialResults(tasks: SessionTask[]): Record<number, CheckResult> {
 
 export function TopicTrainer({
   sessionId,
+  themeCode,
+  themeName,
   tasks,
   initialSummary = null,
   initialRecommendations = [],
@@ -275,7 +279,16 @@ export function TopicTrainer({
           <h1 id="topic-trainer-title" className={css.title}>
             {isUltimate ? t("ultimateTitle") : t("title")}
           </h1>
-          <p className={css.meta}>{t("session", { id: sessionId })}</p>
+          <p className={css.meta}>
+            {t("session", { id: sessionId })}
+            {" · "}
+            <Link
+              href={`/materials/textbook#topic-${themeCode}`}
+              className={css.themeLink}
+            >
+              {themeName}
+            </Link>
+          </p>
         </div>
         <div className={css.badges}>
           {isUltimate ? (

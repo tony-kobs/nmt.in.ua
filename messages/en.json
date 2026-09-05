@@ -184,7 +184,7 @@
   "TopicTrainerSummary": {
     "ultimateTitle": "Ultimate — summary",
     "title": "Test summary",
-    "summary": "Topic “{theme}”. Session #{sessionId}.",
+    "summary": "Topic “<themeLink>{theme}</themeLink>”. Session #{sessionId}.",
     "timedOut": "Time is up.",
     "completed": "Test completed.",
     "mistakesBelow": "Review your mistakes below.",

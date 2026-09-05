@@ -26,8 +26,8 @@ test("formatPercent and formatSpeed render Ukrainian placeholders", () => {
 
 test("buildTopicResultRows aggregates overall, last three, and speed", () => {
   const themes = [
-    { id: 1, name: " Елементарні дії ", ord: 0 },
-    { id: 2, name: "Арифметика", ord: 1 },
+    { id: 1, code: "MATH-05-ELEM-OPS", name: " Елементарні дії ", ord: 0 },
+    { id: 2, code: "MATH-06-ARITH-OPS", name: "Арифметика", ord: 1 },
   ];
 
   const sessions = [
@@ -42,6 +42,7 @@ test("buildTopicResultRows aggregates overall, last three, and speed", () => {
 
   assert.equal(rows.length, 2);
   assert.equal(rows[0]?.themeName, "Елементарні дії");
+  assert.equal(rows[0]?.themeCode, "MATH-05-ELEM-OPS");
   assert.equal(rows[0]?.displayIndex, 1);
   assert.equal(rows[0]?.overallPercent, 65);
   assert.equal(rows[0]?.lastThreePercent, 70);
@@ -54,12 +55,13 @@ test("buildTopicResultRows aggregates overall, last three, and speed", () => {
 
 test("buildTopicResultRows keeps empty metrics for themes without sessions", () => {
   const rows = buildTopicResultRows(
-    [{ id: 8, name: "Рівняння", ord: 0 }],
+    [{ id: 8, code: "ALG-07-EQ", name: "Рівняння", ord: 0 }],
     [],
   );
 
   assert.deepEqual(rows[0], {
     themeId: 8,
+    themeCode: "ALG-07-EQ",
     themeName: "Рівняння",
     displayIndex: 1,
     overallPercent: null,

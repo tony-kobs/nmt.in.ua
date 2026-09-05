@@ -4,10 +4,10 @@ import type { AvailableTopicTheme } from "./types";
 export type { AvailableTopicTheme } from "./types";
 
 const SQL_AVAILABLE_THEMES = `
-  SELECT t.id, t.name, t.ord, COUNT(q.id) AS task_count
+  SELECT t.id, t.code, t.name, t.ord, COUNT(q.id) AS task_count
   FROM themes t
   INNER JOIN quiz_tasks q ON q.theme_id = t.id
-  GROUP BY t.id, t.name, t.ord
+  GROUP BY t.id, t.code, t.name, t.ord
   HAVING task_count >= 1
   ORDER BY t.ord ASC, t.id ASC
 `;
@@ -29,6 +29,7 @@ export async function getAvailableTopicThemes(
   try {
     const rows = await connection.query<{
       id: number;
+      code: string;
       name: string;
       ord: number;
       task_count: number;
@@ -36,6 +37,7 @@ export async function getAvailableTopicThemes(
 
     return rows.map((row) => ({
       id: row.id,
+      code: row.code.trim(),
       name: row.name.trim(),
       ord: row.ord,
       taskCount: Number(row.task_count),

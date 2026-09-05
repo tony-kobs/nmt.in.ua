@@ -60,6 +60,23 @@
   font-weight: 700;
 }
 
+.themeLink {
+  color: currentColor;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.themeLink:hover {
+  text-decoration-color: currentColor;
+}
+
+.themeLink:focus-visible {
+  border-radius: 4px;
+  outline: 3px solid color-mix(in srgb, currentColor 25%, transparent);
+  outline-offset: 3px;
+}
+
 .metric {
   min-width: 5.5rem;
   font-weight: 750;

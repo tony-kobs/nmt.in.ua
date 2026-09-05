@@ -122,6 +122,8 @@ export default async function SessionPage({
   ) : (
     <TopicTrainer
       sessionId={sessionId}
+      themeCode={session.themeCode}
+      themeName={session.themeName}
       tasks={session.tasks}
       initialSummary={session.summary}
       initialRecommendations={initialRecommendations}

@@ -17,6 +17,7 @@ const SQL_SELECT_SESSION = `
     ts.time,
     ts.start_time,
     ts.session_status,
+    t.code AS theme_code,
     t.name AS theme_name
   FROM task_sessions ts
   INNER JOIN themes t ON t.id = ts.theme_id
@@ -84,6 +85,7 @@ type SessionRow = {
   time: number;
   start_time: number;
   session_status: number;
+  theme_code: string;
   theme_name: string;
 };
 
@@ -117,7 +119,7 @@ export function validateFinishTrainerSessionInput(
 export function toTrainerSessionSummary(
   row: Pick<
     SessionRow,
-    "id" | "theme_id" | "theme_name" | "tasks_number" | "right_number" | "time"
+    "id" | "theme_id" | "theme_code" | "theme_name" | "tasks_number" | "right_number" | "time"
   >,
 ): TrainerSessionSummary {
   return {
@@ -127,6 +129,7 @@ export function toTrainerSessionSummary(
     percent: sessionPercent(row.tasks_number, row.right_number) ?? 0,
     timeSec: row.time,
     themeId: row.theme_id,
+    themeCode: row.theme_code.trim(),
     themeName: row.theme_name.trim(),
   };
 }
