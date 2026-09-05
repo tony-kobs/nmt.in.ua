@@ -22,7 +22,7 @@ Vercel і далі збирає `main` окремо. Домен nmt.in.ua див
 
 ## Граблі, які вже були
 
-1. **Шляхи GitHub runner у `.next`.** Next 16 webpack пише в RSC-маніфест `/home/runner/work/nmt.in.ua/nmt.in.ua/...`. На хості цього немає — кожна сторінка 500. Після `npm run build` обов’язково `scripts/rewrite-next-build-paths.sh` (міняє ці префікси на `/home/levelhst/nmt.in.ua/www`). У tar їде **весь `src`**, не лише `src/i18n`.
+1. **Шляхи GitHub runner у `.next`.** Next 16 webpack пише в RSC-маніфест `/home/runner/work/nmt.in.ua/nmt.in.ua/...`. На хості цього немає — кожна сторінка 500. Після `npm run build` обов’язково `scripts/rewrite-next-build-paths.sh` (міняє ці префікси на `/home/levelhst/nmt.in.ua/www`). Перевірка дивиться лише runtime-файли: `.next/trace` лишає шляхи раннера, це телеметрія, не причина 500. У tar їде **весь `src`**, не лише `src/i18n`; `trace` / `cache` / `diagnostics` не пакуємо.
 2. **`mv www`, поки Node живий.** Процес тримає inode каталогу і далі відповідає з `releases/failed`. Перед будь-яким `mv` порт `127.1.10.37:3000` має бути порожній. Не чіпати інші сайти на `:3000` (інший HOST).
 3. **Healthcheck `-f` без коду.** 500 виглядало як «сайт лежить». Тепер у лог пишеться код відповіді і хвіст `www.nmt.in.ua.log`.
 
