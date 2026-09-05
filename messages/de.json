@@ -466,6 +466,48 @@
       "json": "Eine JSON-Datei"
     }
   },
+  "Feedback": {
+    "leaveReview": "Feedback hinterlassen",
+    "kicker": "Feedback",
+    "title": "Wie läuft die Website?",
+    "lead": "Bitte bewerte die Plattform.",
+    "scoreLabel": "Bewertung der Website",
+    "scoreAria": "Bewertung der Website von 1 bis 10",
+    "scoreHint": "Wähle eine Bewertung von 1 bis 10.",
+    "scoreValue": "{score}",
+    "messageRequired": "Hilf uns, besser zu werden — bitte sag uns, warum du genau diese Bewertung gewählt hast. Deine Meinung ist uns wichtig",
+    "emailLabel": "E-Mail",
+    "emailHint": "Falls du eine Antwort möchtest.",
+    "submit": "Senden",
+    "sending": "Wird gesendet…",
+    "later": "Später",
+    "close": "Schließen",
+    "thanksTitle": "Danke für dein Feedback",
+    "thanksLead": "Wir lesen deinen Vorschlag. Das hilft, die NMT-Vorbereitung zu verbessern.",
+    "errors": {
+      "invalid_input": "Prüfe Bewertung und Text und versuche es erneut.",
+      "message_required": "Bei einer Bewertung unter 5 schreibe bitte, warum du sie gewählt hast.",
+      "invalid_email": "Gib eine gültige E-Mail ein oder lass das Feld leer.",
+      "generic": "Feedback konnte nicht gesendet werden. Bitte später erneut versuchen."
+    }
+  },
+  "FeedbackAdmin": {
+    "title": "Website-Feedback",
+    "lead": "Nur für Admins sichtbar. Schüler sehen fremde Rückmeldungen nicht.",
+    "empty": "Noch kein Feedback.",
+    "date": "Datum",
+    "score": "Bewertung",
+    "user": "Nutzer",
+    "guest": "Gast",
+    "email": "E-Mail",
+    "source": "Quelle",
+    "session": "Sitzung",
+    "message": "Vorschlag",
+    "sources": {
+      "footer": "Fußzeile",
+      "post_test": "Nach dem Test"
+    }
+  },
   "Metadata": {
     "welcome": {
       "title": "NMT-Vorbereitung in Mathematik",

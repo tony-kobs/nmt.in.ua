@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { PostTestFeedbackPrompt } from "@/components/feedback/FeedbackDialog";
 import { TopicTrainerMistakeReview } from "@/components/testing/TopicTrainerMistakeReview";
 import type { SessionMistakeItem } from "@/modules/testing/getSessionMistakeReview";
 import type { TopicTestMode } from "@/modules/testing/topicTestMode";
@@ -96,6 +97,8 @@ export function TopicTrainerSummary({
           {t("newTest")}
         </Link>
       </nav>
+
+      <PostTestFeedbackPrompt sessionId={summary.sessionId} />
     </section>
   );
 }

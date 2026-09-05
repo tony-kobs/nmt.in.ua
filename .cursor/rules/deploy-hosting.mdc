@@ -27,7 +27,13 @@ alwaysApply: true
 
 ## Скрипти
 
-- `scripts/deploy-hosting.sh` — єдиний шлях (локально і CI).
+- `scripts/deploy-hosting.sh` — єдиний шлях (локально і CI, `--skip-build`).
 - `scripts/rewrite-next-build-paths.sh` — після кожної збірки перед tar.
+- `scripts/hosting-remote-lib.sh` — стоп / старт / health (`ps`/`awk`).
 - `scripts/rollback-hosting.sh --yes`
-- Секрет `HOSTING_SSH_KEY` = `~/.ssh/id_rsa` для `levelhst@levelhst.ftp.tools`.
+- Секрет `HOSTING_SSH_KEY` = PEM для `levelhst@levelhst.ftp.tools`.
+
+## Env на хості
+
+Не в git. Жива: `/home/levelhst/nmt.in.ua/www/.env.production`. Store: `/home/levelhst/nmt.in.ua/.env.production`.
+Без `SESSION_SECRET` логін і реєстрація на проді падають. Деплой лише копіює store, ключ не генерує.

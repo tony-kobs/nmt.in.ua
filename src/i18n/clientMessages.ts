@@ -21,6 +21,7 @@ export const CLIENT_MESSAGE_NAMESPACES = [
   "ContentImportForm",
   "simulator",
   "nmtTrainer",
+  "Feedback",
 ] as const;
 
 export function pickClientMessages(

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { FeedbackEntry } from "@/components/feedback/FeedbackDialog";
 import { SITE_NAME } from "@/constants/seo";
 import css from "../landing.module.css";
 
@@ -39,6 +40,11 @@ export async function LandingFooter() {
             <Link href="/register" className={css.footerLink}>
               {nav("register")}
             </Link>
+            <FeedbackEntry
+              source="footer"
+              isGuest
+              triggerClassName={css.footerLink}
+            />
           </nav>
         </div>
 

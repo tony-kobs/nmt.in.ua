@@ -139,20 +139,35 @@ git pull origin dev
 git checkout -b feature/коротка-назва
 ```
 
-Після роботи — commit, push, PR `feature/...` → `dev`, потім `dev` → `main` для релізу.
+Після роботи — commit, push, PR `feature/...` → `dev`. Реліз: `dev` → `main`. Merge в `main` одразу деплоїть хостинг.
 
 ## Деплой
 
+Повна памʼятка: [`docs/deploy.md`](docs/deploy.md).
+
 | Середовище | Як оновлюється |
 | --- | --- |
-| **Vercel** | автоматично з push/merge у `main` |
-| **nmt.in.ua (ukraine.com.ua)** | автоматично з merge в `main`: CI збирає, хостинг лише міняє реліз |
+| **nmt.in.ua (ukraine.com.ua)** | merge в `main` → GitHub Actions збирає → хостинг лише міняє `www` |
+| **Vercel** | теж з `main`, окремо; домен дивиться на хостинг, не сюди |
 
-Деталі й секрети — [`docs/deploy.md`](docs/deploy.md). Збірка Next на хості неможлива (старий glibc). Старий `deploy.sh` прибрано.
+На хості Next **не збираємо** (glibc 2.28). Старий кореневий `deploy.sh` прибрано.
 
-Env на shared-хостингу: `/home/levelhst/nmt.in.ua/www/.env.production` (копія також у `/home/levelhst/nmt.in.ua/.env.production`).
+Що робить CI (`.github/workflows/deploy-hosting.yml`):
 
-Обовʼязкові секрети на prod: `DB_*`, `SESSION_SECRET`, `CONTENT_IMPORT_API_KEY`, `ADMIN_API_KEY`, `MAX_BODY_BYTES=8388608`.
+1. `npm ci` / test / lint / `npm run build` на Ubuntu, Node 24.
+2. `scripts/rewrite-next-build-paths.sh` — інакше RSC-маніфест тримає `/home/runner/work/...` і сайт дає 500.
+3. Tar (весь `src/`, без `.next/trace`) → SSH-pipe → `releases/<sha>` поруч із живим `www`.
+4. Копія `node_modules` з живого сайту + `npm install` (поки старий процес ще відповідає).
+5. Стоп лише nmt Node (`127.1.10.37`), swap директорій, старт як панель: `npm run start -- --port=3000 --host=127.1.10.37`.
+6. Healthcheck з HTTP-кодом; 5xx → `releases/previous`.
+
+Локально той самий скрипт: `bash scripts/deploy-hosting.sh`. Відкат: `bash scripts/rollback-hosting.sh --yes`.
+
+Секрет репо: `HOSTING_SSH_KEY` (PEM для `levelhst@levelhst.ftp.tools`).
+
+Env на хостингу (не в git): `/home/levelhst/nmt.in.ua/www/.env.production` і постійна копія `/home/levelhst/nmt.in.ua/.env.production`.
+
+Обовʼязкові на prod: `DB_*`, `SESSION_SECRET`, `CONTENT_IMPORT_API_KEY`, `ADMIN_API_KEY`, `MAX_BODY_BYTES=8388608`. Без `SESSION_SECRET` логін і реєстрація на проді падають.
 
 ## Безпека (без Cloudflare)
 
@@ -189,10 +204,14 @@ src/modules/sessions/             список сесій, createMentorSession
 src/modules/admin/                auth для admin API
 src/middleware.ts                 rate limit + auth + probe paths
 server.js                         hardened запуск на хостингу
-scripts/deploy-hosting.sh         реліз на хостинг (локально або з CI)
+.github/workflows/deploy-hosting.yml  merge в main → збірка + swap www
+scripts/deploy-hosting.sh         єдиний реліз (локально або з CI)
+scripts/rewrite-next-build-paths.sh  шляхи runner у .next → шлях хоста
+scripts/hosting-remote-lib.sh     стоп / старт / health на хості
 scripts/rollback-hosting.sh       аварійно повернути попередній www
 scripts/reset-demo-student.mjs    очистка сесій demo-student
 scripts/sql/                      DDL для app_users, reset demo
+docs/deploy.md                    як потрапляє на nmt.in.ua
 docs/mentor-tasks.md              pending-таски для команди
 ```
 
