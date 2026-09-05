@@ -1,7 +1,11 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { ContentImportError } from "./errors";
 import { logSanitizedError } from "./logging";
-import type { QuizTaskRecord, ThemeConnectionRecord, ThemeRecord } from "./validate";
+import type {
+  QuizTaskRecord,
+  ThemeConnectionRecord,
+  ThemeRecord,
+} from "./validate";
 
 export type ImportDatasets = {
   themes: ThemeRecord[];
@@ -37,9 +41,9 @@ const SQL_UPSERT_THEME_CONNECTIONS_SUFFIX =
   " ON DUPLICATE KEY UPDATE vertex_start = VALUES(vertex_start), vertex_finish = VALUES(vertex_finish)";
 
 const SQL_INSERT_QUIZ_TASKS_PREFIX =
-  "INSERT INTO quiz_tasks (id, name, task_text, theme_id, answer_1, answer_2, answer_3, answer_4, right_answer_n, comments) VALUES ";
+  "INSERT INTO quiz_tasks (id, name, task_text, theme_id, answer_1, answer_2, answer_3, answer_4, right_answer_n, comments, difficulty) VALUES ";
 const SQL_UPSERT_QUIZ_TASKS_SUFFIX =
-  " ON DUPLICATE KEY UPDATE name = VALUES(name), task_text = VALUES(task_text), theme_id = VALUES(theme_id), answer_1 = VALUES(answer_1), answer_2 = VALUES(answer_2), answer_3 = VALUES(answer_3), answer_4 = VALUES(answer_4), right_answer_n = VALUES(right_answer_n), comments = VALUES(comments)";
+  " ON DUPLICATE KEY UPDATE name = VALUES(name), task_text = VALUES(task_text), theme_id = VALUES(theme_id), answer_1 = VALUES(answer_1), answer_2 = VALUES(answer_2), answer_3 = VALUES(answer_3), answer_4 = VALUES(answer_4), right_answer_n = VALUES(right_answer_n), comments = VALUES(comments), difficulty = VALUES(difficulty)";
 
 async function findExistingIds(
   connection: SqlConnection,
@@ -105,7 +109,9 @@ async function upsertThemeConnections(
   const placeholders = records.map(() => "(?, ?, ?)").join(", ");
   const params = records.flatMap((r) => [r.id, r.vertexStart, r.vertexFinish]);
   await connection.execute(
-    SQL_INSERT_THEME_CONNECTIONS_PREFIX + placeholders + SQL_UPSERT_THEME_CONNECTIONS_SUFFIX,
+    SQL_INSERT_THEME_CONNECTIONS_PREFIX +
+      placeholders +
+      SQL_UPSERT_THEME_CONNECTIONS_SUFFIX,
     params,
   );
   return countInsertedUpdated(
@@ -125,7 +131,9 @@ async function upsertQuizTasks(
     "quiz_tasks",
     records.map((r) => r.id),
   );
-  const placeholders = records.map(() => "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", ");
+  const placeholders = records
+    .map(() => "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    .join(", ");
   const params = records.flatMap((r) => [
     r.id,
     r.name,
@@ -137,6 +145,7 @@ async function upsertQuizTasks(
     r.answer4,
     r.rightAnswerN,
     r.comments,
+    r.difficulty,
   ]);
   await connection.execute(
     SQL_INSERT_QUIZ_TASKS_PREFIX + placeholders + SQL_UPSERT_QUIZ_TASKS_SUFFIX,
@@ -163,7 +172,9 @@ async function checkThemeReferences(
   }
   if (referencedIds.size === 0) return;
 
-  const existingIds = await findExistingIds(connection, "themes", [...referencedIds]);
+  const existingIds = await findExistingIds(connection, "themes", [
+    ...referencedIds,
+  ]);
   const missing = [...referencedIds].filter((id) => !existingIds.has(id));
   if (missing.length > 0) {
     throw new ContentImportError("validation", [
@@ -196,7 +207,10 @@ export async function importToDatabase(
     try {
       const themes = await upsertThemes(connection, datasets.themes);
       await checkThemeReferences(connection, datasets);
-      const themeConnections = await upsertThemeConnections(connection, datasets.themeConnections);
+      const themeConnections = await upsertThemeConnections(
+        connection,
+        datasets.themeConnections,
+      );
       const quizTasks = await upsertQuizTasks(connection, datasets.quizTasks);
 
       await connection.commit();
@@ -214,8 +228,10 @@ export async function importToDatabase(
       return {
         inserted,
         updated,
-        totalInserted: inserted.themes + inserted.themeConnections + inserted.quizTasks,
-        totalUpdated: updated.themes + updated.themeConnections + updated.quizTasks,
+        totalInserted:
+          inserted.themes + inserted.themeConnections + inserted.quizTasks,
+        totalUpdated:
+          updated.themes + updated.themeConnections + updated.quizTasks,
       };
     } catch (error) {
       await connection.rollback().catch(() => undefined);
