@@ -13,9 +13,10 @@ alwaysApply: true
 2. Actions на `main` збирає Next (не на хості). Одразу `scripts/rewrite-next-build-paths.sh` — інакше RSC-маніфест тримає `/home/runner/work/...` і сайт дає 500. Не фейлити через `.next/trace` (телеметрія збірки).
 3. У tar — увесь `src/`, не лише i18n. SSH-pipe, не SCP/appleboy.
 4. На хості install у `releases/<id>`, **поки старий www живий**.
-5. Перед `mv` убивати лише слухача `127.1.10.37:3000` і Node в каталогах nmt. Чекати порожній порт. Інакше процес їде разом із inode в `failed`.
-6. Не чіпати інші сайти на `:3000` (інший HOST). Не `killall`, не `fuser 3000/tcp`.
-7. Старт тільки з cwd=`www`. Healthcheck друкує HTTP-код; 5xx → rollback + хвіст лога.
+5. Перед `mv` стоп лише процесів з `127.1.10.37` і `node server.js`/`npm run start`. На хості немає `ss`/`lsof` і немає `/dev/fd` — ніякого `<(…)`.
+6. Старт як панель: `npm run start -- --port=3000 --host=127.1.10.37`. Не `killall`.
+7. `node_modules` копіювати з живого `www` (glibc 2.28), потім `npm install`.
+8. Healthcheck друкує HTTP-код; 5xx → rollback + хвіст лога.
 
 ## Залізно не робити
 

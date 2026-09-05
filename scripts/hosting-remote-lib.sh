@@ -1,51 +1,30 @@
-# Sourced on the hosting box by deploy-hosting.sh / rollback-hosting.sh.
-# Expects: SITE HOST PORT APP_ROOT PREVIOUS FAILED STAGE PIDFILE LOG
+# Sourced on ukraine.com.ua. That bash has no /dev/fd process substitution
+# and no ss/lsof. Other sites on this account are started by the panel:
+#   cd $site && npm run start -- --port=3000 --host=127.x.x.x
+# Expects: SITE HOST PORT PIDFILE LOG
 
-nmt_self_pid() { printf '%s\n' "$$"; }
-
-nmt_listener_pids() {
-  local hp="${HOST}:${PORT}"
-  if command -v ss >/dev/null 2>&1; then
-    ss -lptn 2>/dev/null | awk -v hp="$hp" '
-      index($0, hp) {
-        while (match($0, /pid=[0-9]+/)) {
-          print substr($0, RSTART + 4, RLENGTH - 4)
-          $0 = substr($0, RSTART + RLENGTH)
-        }
-      }'
-  fi
-  if command -v lsof >/dev/null 2>&1; then
-    lsof -nP -iTCP@"${hp}" -sTCP:LISTEN -t 2>/dev/null || true
-  fi
+# Only the nmt.in.ua listener. Do not match our SSH bash (it exports HOST= but
+# is not "node server.js" / "npm run start").
+nmt_pids() {
+  ps -u "$(id -un)" -o pid=,args= 2>/dev/null | awk '
+    /127\.1\.10\.37/ && (/node server\.js/ || /npm run start/) { print $1 }
+  '
+  return 0
 }
 
-nmt_dir_pids() {
-  local pid cwd
-  while read -r pid _; do
+nmt_kill_list() {
+  local pid sig="${2:-}"
+  for pid in $1; do
     [ -n "$pid" ] || continue
     [ "$pid" = "$$" ] && continue
     [ "$pid" = "${PPID:-}" ] && continue
-    cwd="$(readlink "/proc/${pid}/cwd" 2>/dev/null || true)"
-    case "$cwd" in
-      "$SITE" | "$PREVIOUS" | "$FAILED")
-        printf '%s\n' "$pid"
-        ;;
-    esac
-  done < <(ps -u "$(id -un)" -o pid=,args= 2>/dev/null || true)
-}
-
-nmt_unique_pids() {
-  sort -u | grep -E '^[0-9]+$' || true
-}
-
-nmt_kill_pids() {
-  local pid
-  for pid in "$@"; do
-    [ -n "$pid" ] || continue
-    [ "$pid" = "$$" ] && continue
-    [ "$pid" = "${PPID:-}" ] && continue
-    kill "$pid" 2>/dev/null || true
+    if [ -n "$sig" ]; then
+      kill "$sig" "$pid" 2>/dev/null || true
+    else
+      kill "$pid" 2>/dev/null || true
+    fi
   done
+  return 0
 }
 
 stop_site_node() {
@@ -53,64 +32,55 @@ stop_site_node() {
   if [ -f "$PIDFILE" ]; then
     pid="$(tr -cd '0-9' < "$PIDFILE" || true)"
     if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-      echo "stop pidfile $pid cwd=$(readlink "/proc/${pid}/cwd" 2>/dev/null || true)"
+      echo "stop pidfile $pid"
       kill "$pid" 2>/dev/null || true
     fi
     rm -f "$PIDFILE"
   fi
 
-  raw="$( { nmt_listener_pids; nmt_dir_pids; } | nmt_unique_pids | tr '\n' ' ' )"
-  if [ -n "${raw// /}" ]; then
+  raw="$(nmt_pids | tr '\n' ' ')"
+  if [ -n "${raw# }" ]; then
     echo "stop nmt pids ${raw}"
-    # shellcheck disable=SC2086
-    nmt_kill_pids $raw
+    nmt_kill_list "$raw" ""
   fi
-
   sleep 2
-  raw="$( { nmt_listener_pids; nmt_dir_pids; } | nmt_unique_pids | tr '\n' ' ' )"
-  if [ -n "${raw// /}" ]; then
+  raw="$(nmt_pids | tr '\n' ' ')"
+  if [ -n "${raw# }" ]; then
     echo "kill -9 nmt pids ${raw}"
-    # shellcheck disable=SC2086
-    kill -9 $raw 2>/dev/null || true
+    nmt_kill_list "$raw" "-9"
   fi
+  return 0
 }
 
 wait_nmt_port_free() {
   local i raw
   for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
-    raw="$(nmt_listener_pids | nmt_unique_pids | tr '\n' ' ')"
-    if [ -z "${raw// /}" ]; then
+    raw="$(nmt_pids | tr '\n' ' ')"
+    if [ -z "${raw# }" ]; then
       return 0
     fi
-    echo "port ${HOST}:${PORT} still held by ${raw} (wait ${i})"
-    # shellcheck disable=SC2086
-    kill -9 $raw 2>/dev/null || true
+    echo "nmt still running: ${raw} (wait ${i})"
+    nmt_kill_list "$raw" "-9"
     sleep 1
   done
-  echo "Refusing to move www: ${HOST}:${PORT} is still in use. Process would follow mv." >&2
+  echo "Refusing to move www: nmt Node is still running. Process would follow mv." >&2
   return 1
 }
 
+# Same command the hosting panel uses for this site.
 start_site_node() {
   mkdir -p "$(dirname "$LOG")"
   (
     cd "$SITE"
     export NODE_ENV=production PORT HOST
-    nohup node server.js --port="$PORT" --host="$HOST" >>"$LOG" 2>&1 &
+    export PATH="/usr/local/node24/bin:/usr/local/bin:/usr/bin:${PATH}"
+    nohup npm run start -- --port="$PORT" --host="$HOST" >>"$LOG" 2>&1 &
     echo $! > "$PIDFILE"
   )
-  local pid
+  local pid cwd=""
   pid="$(tr -cd '0-9' < "$PIDFILE" || true)"
-  local cwd=""
-  if [ -n "$pid" ]; then
-    cwd="$(readlink "/proc/${pid}/cwd" 2>/dev/null || true)"
-  fi
-  echo "started pid=${pid} cwd=${cwd}"
-  if [ -n "$pid" ] && [ "$cwd" != "$SITE" ]; then
-    echo "Refusing to keep Node whose cwd is '${cwd}', expected '${SITE}'." >&2
-    kill -9 "$pid" 2>/dev/null || true
-    return 1
-  fi
+  echo "started wrapper pid=${pid}"
+  return 0
 }
 
 health_ok() {
@@ -122,7 +92,7 @@ health_ok() {
 
 wait_health() {
   local i code
-  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
     code="$(curl -sS -o /tmp/nmt-health.body -w '%{http_code}' --max-time 10 "http://${HOST}:${PORT}/" || echo 000)"
     echo "health try ${i} -> ${code}"
     if health_ok "$code"; then
