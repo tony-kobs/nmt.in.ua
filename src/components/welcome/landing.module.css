@@ -801,19 +801,34 @@
 .footerNav {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-sm) var(--space-lg);
 }
 
 .footerLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: var(--muted);
   font-size: var(--fs-small);
   font-weight: 600;
+  line-height: 1.2;
   transition: color var(--t) var(--ease);
 }
 
 .footerLink:hover,
 .footerLink:focus-visible {
   color: var(--green-dark);
+}
+
+button.footerLink {
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
 }
 
 .footerBottom {
@@ -944,6 +959,20 @@
 
   .steps .step:last-child::after {
     display: none;
+  }
+
+  .footerInner {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .footerNav {
+    flex-wrap: nowrap;
+    gap: var(--space-sm) var(--space-md);
+  }
+
+  .footerLink {
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 }
 

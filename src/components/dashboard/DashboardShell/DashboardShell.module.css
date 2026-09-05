@@ -63,7 +63,6 @@
 
 .body {
   position: relative;
-  z-index: 1;
   display: flex;
   align-items: flex-start;
   gap: 0;
@@ -80,6 +79,8 @@
 }
 
 .content {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   flex: 1;

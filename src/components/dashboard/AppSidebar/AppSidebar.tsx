@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
+import { FeedbackEntry } from "@/components/feedback/FeedbackDialog";
 import { DASHBOARD_NAV } from "@/constants/navigation";
 import type { UserRole } from "@/modules/auth/client";
 import { canImportContent } from "@/modules/auth/client";
@@ -104,9 +105,18 @@ export function AppSidebar({ open, onNavigate, role }: AppSidebarProps) {
           </ul>
         </nav>
 
-        <div className={css.footerCard} aria-hidden>
-          <span className={css.footerFormula}>a² + b² = c²</span>
-          <span className={css.footerNote}>{t("footer")}</span>
+        <div className={css.bottom}>
+          <FeedbackEntry
+            source="footer"
+            isGuest={false}
+            variant="sidebar"
+            tabIndex={open ? undefined : -1}
+          />
+
+          <div className={css.footerCard} aria-hidden>
+            <span className={css.footerFormula}>a² + b² = c²</span>
+            <span className={css.footerNote}>{t("footer")}</span>
+          </div>
         </div>
       </div>
     </aside>
