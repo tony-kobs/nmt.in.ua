@@ -117,6 +117,8 @@ trap cleanup_local EXIT
 echo "==> Packing release ${RELEASE_ID} (full src, rewritten .next)..."
 tar \
   --exclude='.next/cache' \
+  --exclude='.next/trace' \
+  --exclude='.next/diagnostics' \
   --exclude='**/*.test.ts' \
   --exclude='**/*.test.js' \
   --exclude='**/*.test.tsx' \
@@ -208,8 +210,13 @@ if [ ! -f "${STAGE}/.next/BUILD_ID" ]; then
   exit 1
 fi
 
-if grep -R --binary-files=without-match -F -q -- "/home/runner/work/" "${STAGE}/.next" 2>/dev/null; then
-  echo "Refusing to install: .next still contains /home/runner/work paths." >&2
+if find "${STAGE}/.next" -type f \
+  ! -path '*/cache/*' ! -path '*/diagnostics/*' ! -name 'trace' \
+  \( -name '*.js' -o -name '*.json' -o -name '*.rsc' \) \
+  -print0 2>/dev/null \
+  | xargs -0 -r grep -F -l -- "/home/runner/work/" 2>/dev/null \
+  | grep -q .; then
+  echo "Refusing to install: runtime .next still contains /home/runner/work paths." >&2
   rm -rf "$STAGE"
   exit 1
 fi
