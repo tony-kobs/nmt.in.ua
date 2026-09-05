@@ -146,9 +146,11 @@ git checkout -b feature/коротка-назва
 | Середовище | Як оновлюється |
 | --- | --- |
 | **Vercel** | автоматично з push/merge у `main` |
-| **nmt.in.ua (ukraine.com.ua)** | **вручну** через SSH — `bash scripts/manual-deploy-hosting.sh` |
+| **nmt.in.ua (ukraine.com.ua)** | автоматично з merge в `main`: CI збирає, хостинг лише міняє реліз |
 
-Env на shared-хостингу: `/home/levelhst/nmt.in.ua/www/.env.production`.
+Деталі й секрети — [`docs/deploy.md`](docs/deploy.md). Збірка Next на хості неможлива (старий glibc). Старий `deploy.sh` прибрано.
+
+Env на shared-хостингу: `/home/levelhst/nmt.in.ua/www/.env.production` (копія також у `/home/levelhst/nmt.in.ua/.env.production`).
 
 Обовʼязкові секрети на prod: `DB_*`, `SESSION_SECRET`, `CONTENT_IMPORT_API_KEY`, `ADMIN_API_KEY`, `MAX_BODY_BYTES=8388608`.
 
@@ -187,7 +189,8 @@ src/modules/sessions/             список сесій, createMentorSession
 src/modules/admin/                auth для admin API
 src/middleware.ts                 rate limit + auth + probe paths
 server.js                         hardened запуск на хостингу
-scripts/manual-deploy-hosting.sh  ручний деплой
+scripts/deploy-hosting.sh         реліз на хостинг (локально або з CI)
+scripts/rollback-hosting.sh       аварійно повернути попередній www
 scripts/reset-demo-student.mjs    очистка сесій demo-student
 scripts/sql/                      DDL для app_users, reset demo
 docs/mentor-tasks.md              pending-таски для команди

@@ -1,0 +1,56 @@
+# Merge to main → build here (modern glibc) → hosting only swaps the release.
+# Do not build Next on ukraine.com.ua. Do not use SCP / appleboy.
+name: Deploy hosting
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-hosting
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install, test, lint, build
+        run: |
+          npm ci
+          npm test
+          npm run lint
+          npm run build
+
+      - name: Write SSH key
+        env:
+          HOSTING_SSH_KEY: ${{ secrets.HOSTING_SSH_KEY }}
+        run: |
+          if [ -z "$HOSTING_SSH_KEY" ]; then
+            echo "Add repo secret HOSTING_SSH_KEY (private key for levelhst@levelhst.ftp.tools)." >&2
+            exit 1
+          fi
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$HOSTING_SSH_KEY" > "$HOME/.ssh/hosting_key"
+          chmod 600 "$HOME/.ssh/hosting_key"
+          ssh-keyscan -H levelhst.ftp.tools >> "$HOME/.ssh/known_hosts"
+
+      - name: Upload release and swap www
+        env:
+          RELEASE_ID: ${{ github.sha }}
+        run: |
+          export SSH_KEY="$HOME/.ssh/hosting_key"
+          bash scripts/deploy-hosting.sh --skip-build
