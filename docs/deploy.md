@@ -12,12 +12,19 @@
 
 1. розпаковує нову папку поруч із живим `www`;
 2. ставить `npm install --omit=dev` **поки старий сайт ще відповідає**;
-3. коротко рестартить лише Node цього сайту (не `killall`);
-4. якщо `curl` на `127.1.10.37:3000` не 200 — повертає попередній `www`.
+3. повністю зупиняє лише Node nmt.in.ua (`127.1.10.37:3000`) і **чекає, поки порт вільний** — інакше процес «переїде» разом із `mv`;
+4. міняє директорії, стартує Node вже в новому `www`, перевіряє cwd;
+5. healthcheck друкує HTTP-код; 5xx / timeout → назад `releases/previous` + хвіст лога.
 
 Vercel і далі збирає `main` окремо. Домен nmt.in.ua дивиться на хостинг, не на Vercel.
 
-`.env.production` у git немає. Жива копія: `/home/levelhst/nmt.in.ua/www/.env.production`. Постійна копія поза `www`: `/home/levelhst/nmt.in.ua/.env.production` — щоб swap не затер секрети.
+`.env.production` у git немає. Жива копія: `/home/levelhst/nmt.in.ua/www/.env.production`. Постійна копія поза `www`: `/home/levelhst/nmt.in.ua/.env.production`.
+
+## Граблі, які вже були
+
+1. **Шляхи GitHub runner у `.next`.** Next 16 webpack пише в RSC-маніфест `/home/runner/work/nmt.in.ua/nmt.in.ua/...`. На хості цього немає — кожна сторінка 500. Після `npm run build` обов’язково `scripts/rewrite-next-build-paths.sh` (міняє ці префікси на `/home/levelhst/nmt.in.ua/www`). У tar їде **весь `src`**, не лише `src/i18n`.
+2. **`mv www`, поки Node живий.** Процес тримає inode каталогу і далі відповідає з `releases/failed`. Перед будь-яким `mv` порт `127.1.10.37:3000` має бути порожній. Не чіпати інші сайти на `:3000` (інший HOST).
+3. **Healthcheck `-f` без коду.** 500 виглядало як «сайт лежить». Тепер у лог пишеться код відповіді і хвіст `www.nmt.in.ua.log`.
 
 ## Що потрібно один раз
 
@@ -25,9 +32,7 @@ Vercel і далі збирає `main` окремо. Домен nmt.in.ua див
 
 | Секрет | Що |
 | --- | --- |
-| `HOSTING_SSH_KEY` | Приватний ключ, який уже пускає `levelhst@levelhst.ftp.tools` (весь PEM, разом із `BEGIN` / `END`) |
-
-Публічну частину цього ключа має бути в `~/.ssh/authorized_keys` на хості (вже є для ручного деплою).
+| `HOSTING_SSH_KEY` | Приватний ключ для `levelhst@levelhst.ftp.tools` (весь PEM, разом із `BEGIN` / `END`) |
 
 Поки секрету немає — воркфлоу на `main` впаде **до** SSH, сайт не чіпає.
 
@@ -35,24 +40,22 @@ Vercel і далі збирає `main` окремо. Домен nmt.in.ua див
 
 Воркфлоу [`.github/workflows/deploy-hosting.yml`](../.github/workflows/deploy-hosting.yml):
 
-1. `npm ci` → `npm test` → `npm run lint` → `npm run build` на Ubuntu / Node 24.
-2. Тонкий tar: `.next` (без cache), `public`, `server.js`, `lib`, `package.json` + lock, `next.config.ts`, `messages`, `src/i18n`, `tsconfig.json`.
-3. Архів їде **SSH-pipe** (`cat > file`). SCP / appleboy не використовуємо — на цьому хості ріжеться.
-4. На сервері: `releases/<sha>` → install → `mv www releases/previous` → нова папка стає `www` (реальна директорія, не symlink — панель хостинга так спокійніше).
-5. Рестарт `node server.js`, PID у `/home/levelhst/nmt.in.ua/nmt.pid`.
-6. Healthcheck. Провал → назад `previous`, червоний CI, файли невдачі в `releases/failed`.
+1. `npm ci` → test → lint → `npm run build` → `rewrite-next-build-paths.sh` на Ubuntu / Node 24.
+2. Tar: `.next` (без cache), `public`, `server.js`, `lib`, `package.json` + lock, `next.config.ts`, `messages`, **`src/`**, `tsconfig.json`.
+3. SSH-pipe (`cat > file`). SCP / appleboy не використовуємо.
+4. На сервері: `releases/<sha>` → install (скрипты npm увімкнені) → стоп Node цього сайту → `mv www previous` → нова папка стає `www`.
+5. Старт `node server.js`, PID у `/home/levelhst/nmt.in.ua/nmt.pid`, cwd має бути `www`.
+6. Healthcheck. Провал → `previous`, червоний CI, уривок лога в Actions.
 
-Паралельні деплої: `concurrency` у Actions + `mkdir` lock на сервері.
-
-Ручний той самий шлях (якщо треба не чекати CI):
+Ручний той самий шлях:
 
 ```bash
 bash scripts/deploy-hosting.sh
 ```
 
-Стара назва `scripts/manual-deploy-hosting.sh` лише викликає цей скрипт.
+`scripts/manual-deploy-hosting.sh` лише викликає цей скрипт.
 
-Аварійно повернути попередній реліз, якщо він ще лежить у `releases/previous`:
+Аварійно:
 
 ```bash
 bash scripts/rollback-hosting.sh --yes
@@ -60,23 +63,15 @@ bash scripts/rollback-hosting.sh --yes
 
 ## Чого більше немає
 
-Кореневий `deploy.sh` прибрано. Він на сервері робив `git reset --hard` і чекав архів з мертвого Actions.
-
-Не повертати: збірку Next на хості, appleboy/SCP, `killall -9 node`.
+Кореневий `deploy.sh`. Не повертати: збірку Next на хості, appleboy/SCP, `killall -9 node`, `fuser 3000/tcp` без HOST.
 
 ## Якщо CI червоний, а сайт живий
 
-Так і має бути: зламані тести / збірка / SSH **не** чистять `www`. Дивись лог job «Deploy hosting».
-
-Якщо healthcheck після swap не пройшов — скрипт сам відкотився. Якщо сайт уже новий і кривий, а `previous` ще є: `rollback-hosting.sh --yes`.
+Зламані тести / збірка / SSH **не** чистять `www`. Якщо healthcheck після swap не пройшов — скрипт сам відкотився. Якщо сайт уже новий і кривий, а `previous` ще є: `rollback-hosting.sh --yes`.
 
 ## Перевірка після релізу
 
 - https://nmt.in.ua відповідає 200
-- `/welcome` вантажить hero (статика не під auth-guard)
+- `/welcome` вантажить hero
 - вхід demo / звичайний учень
 - `/wp-admin` і `/.env` — 404
-
-## Пізніше, якщо набридне Node на shared-хості
-
-DNS nmt.in.ua на Vercel, MySQL лишити на ukraine.com.ua (потрібен доступ з IP Vercel). Або окремий VPS. Зараз це не потрібно.

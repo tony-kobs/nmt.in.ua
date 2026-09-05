@@ -9,27 +9,24 @@ alwaysApply: true
 
 ## Процес релізу
 
-1. Розробники: PR → `dev`. Lead перевіряє і мерджить.
-2. Lead котить `dev` → `main`.
-3. GitHub Actions `.github/workflows/deploy-hosting.yml` на `main`: `npm ci` / test / lint / `npm run build` (нормальний glibc).
-4. Тонкий tar їде **SSH-pipe** (`cat > file`), не SCP і не appleboy.
-5. На хості нова папка в `releases/<id>`, `npm install --omit=dev` **поки старий www живий**.
-6. `www` міняється директорією (не symlink). Рестарт лише PID цього `server.js`, не `killall -9 node`.
-7. Healthcheck `http://127.1.10.37:3000/`. Провал → назад `releases/previous`.
-
-Vercel теж збирає `main`. Домен дивиться на ukraine.com.ua.
+1. PR → `dev` → lead мерджить. Реліз: `dev` → `main`.
+2. Actions на `main` збирає Next (не на хості). Одразу `scripts/rewrite-next-build-paths.sh` — інакше RSC-маніфест тримає `/home/runner/work/...` і сайт дає 500.
+3. У tar — увесь `src/`, не лише i18n. SSH-pipe, не SCP/appleboy.
+4. На хості install у `releases/<id>`, **поки старий www живий**.
+5. Перед `mv` убивати лише слухача `127.1.10.37:3000` і Node в каталогах nmt. Чекати порожній порт. Інакше процес їде разом із inode в `failed`.
+6. Не чіпати інші сайти на `:3000` (інший HOST). Не `killall`, не `fuser 3000/tcp`.
+7. Старт тільки з cwd=`www`. Healthcheck друкує HTTP-код; 5xx → rollback + хвіст лога.
 
 ## Залізно не робити
 
 - `npm run build` на хостингу (старий glibc).
-- Повертати кореневий `deploy.sh`, appleboy/SCP, `killall -9 node`.
-- Деплоїти на прод, поки користувач не сказав явно.
+- Деплой на прод, поки користувач не сказав явно.
 - Комітити `.env.production` / приватний SSH-ключ.
+- Повертати `deploy.sh`, appleboy, `killall -9 node`.
 
-## Секрет і скрипти
+## Скрипти
 
-- GitHub secret `HOSTING_SSH_KEY` = PEM приватного ключа для `levelhst@levelhst.ftp.tools`.
-- Локально той самий файл: `~/.ssh/id_rsa` (дефолт `scripts/deploy-hosting.sh`).
-- Ручний той самий шлях: `bash scripts/deploy-hosting.sh`.
-- Відкат: `bash scripts/rollback-hosting.sh --yes`.
-- Env на сервері: `/home/levelhst/nmt.in.ua/www/.env.production` + копія `/home/levelhst/nmt.in.ua/.env.production`.
+- `scripts/deploy-hosting.sh` — єдиний шлях (локально і CI).
+- `scripts/rewrite-next-build-paths.sh` — після кожної збірки перед tar.
+- `scripts/rollback-hosting.sh --yes`
+- Секрет `HOSTING_SSH_KEY` = `~/.ssh/id_rsa` для `levelhst@levelhst.ftp.tools`.
