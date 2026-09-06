@@ -40,7 +40,10 @@ export function PostTestFeedbackPrompt({
     const raw = readRaw();
     if (wasFeedbackPrompted(raw, sessionId)) return;
     writeRaw(appendFeedbackPrompt(raw, sessionId, Date.now()));
-    setOpen(true);
+
+    // Opening in a follow-up task keeps hydration free of a cascading render.
+    const timer = window.setTimeout(() => setOpen(true), 0);
+    return () => window.clearTimeout(timer);
   }, [sessionId]);
 
   const close = useCallback(() => setOpen(false), []);
