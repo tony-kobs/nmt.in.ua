@@ -7,6 +7,8 @@ import { nowUnixSec } from "@/modules/testing/sessionElapsed";
 type UseSessionTimerOptions = {
   sessionId: number;
   enabled: boolean;
+  /** Diagnostic sessions use an owner-aware variant of this action. */
+  markSessionStarted?: typeof markSessionStartedAction;
 };
 
 /**
@@ -16,6 +18,7 @@ type UseSessionTimerOptions = {
 export function useSessionTimer({
   sessionId,
   enabled,
+  markSessionStarted = markSessionStartedAction,
 }: UseSessionTimerOptions): number {
   const [elapsedSec, setElapsedSec] = useState(0);
 
@@ -26,7 +29,7 @@ export function useSessionTimer({
     let intervalId: ReturnType<typeof setInterval> | undefined;
 
     async function startClock() {
-      const result = await markSessionStartedAction({ sessionId });
+      const result = await markSessionStarted({ sessionId });
       if (cancelled) return;
 
       const originSec =
@@ -48,7 +51,7 @@ export function useSessionTimer({
       cancelled = true;
       if (intervalId) clearInterval(intervalId);
     };
-  }, [sessionId, enabled]);
+  }, [sessionId, enabled, markSessionStarted]);
 
   return elapsedSec;
 }

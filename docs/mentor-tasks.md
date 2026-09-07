@@ -146,15 +146,42 @@ user_self_scores (
 
 ### Acceptance
 
-- [ ] З лендінгу гість проходить самооцінку → діагностику → бачить %.
-- [ ] Після реєстрації ті самі цифри на `/results` і в `RecentResults`.
-- [ ] Загальна самооцінка збережена; по темах — після кожного старту.
-- [ ] Таблиця результатів показує колонку самооцінки.
-- [ ] User A не бачить діагностику user B; guest-cookie не працює як універсальний логін.
+- [x] З лендінгу гість проходить самооцінку → діагностику → бачить %.
+- [x] Після реєстрації ті самі цифри на `/results` і в `RecentResults`.
+- [x] Загальна самооцінка збережена; по темах — після кожного старту.
+- [x] Таблиця результатів показує колонку самооцінки.
+- [x] User A не бачить діагностику user B; guest-cookie не працює як універсальний логін.
 
-**Файли:** `src/app/diagnostic/`, `src/modules/testing/startDiagnosticTest.ts`, `src/modules/self-score/`, `src/components/welcome/Hero`, `TopicTestStart`, `TopicResultsTable`, `RegisterForm`, `src/middleware.ts` (або `proxy.ts`).
+**Файли:** `src/app/diagnostic/`, `src/modules/testing/startTopicTest.ts` (pre-topic self-score), `src/modules/diagnostic/`, `src/modules/self-score/`, `src/modules/auth/guestToken.ts`, `src/components/welcome/Hero`, `TopicTestStart`, `TopicTrainer`/`TopicTrainerSummary`, `TopicResultsTable`, `RegisterForm`, `src/proxy.ts`.
 
 **Пріоритет:** Must після 6.5 (черга 5).
+
+### Виконано (`feat/diagnostic-self-score`) — відхилення від пропозиції вище
+
+Реалізовано **не** через тимчасовий рядок в `app_users`, а через підписану cookie
+`nmt_guest` (HttpOnly, `SESSION_SECRET`, окремий домен підпису — `src/modules/auth/guestToken.ts`)
++ nullable `guest_token`/`user_id` на `task_sessions`/`tasks2session` + нову таблицю
+`user_self_scores` (`scripts/sql/006_diagnostic_ownership.sql`,
+`scripts/sql/007_user_self_scores.sql`). Свідоме рішення продукту: службовий
+акаунт довелось би ховати з усіх списків користувачів назавжди й він не має
+природного «застарівання» — підписана cookie цього уникає.
+
+Уся гостьова/діагностична логіка — в окремому `src/modules/diagnostic/`
+(власні owner-aware версії `checkAnswer`/`finishTrainerSession`/`getSessionTasks`/
+`markSessionStarted`), щоб жодного рядка в уже протестованому
+`src/modules/testing/*` (звичайний topic-test) не чіпати. `session_type = 5` —
+одна сесія `task_sessions` на всю діагностичну спробу (`theme_id = NULL`, вона
+охоплює кілька тем одразу), не по одній сесії на тему.
+
+`claimGuestProgress()` (`src/modules/diagnostic/claimGuestProgress.ts`) —
+атомарний UPDATE трьох таблиць за `guest_token`, викликається з
+`registerAction` між `setSessionCookie` і `redirect`; cookie `nmt_guest`
+чиститься лише після успішного переносу.
+
+**Нерозв'язане рішення ментора:** якщо тем із ≥3 завданнями більше 10, зараз
+беруться перші 10 за `themes.ord ASC, id ASC` (порядок навчального плану) —
+детерміновано й тестовано, але саму політику (порядок плану vs. випадкова
+підмножина vs. стратифікація за класом) ще треба узгодити з ментором.
 
 ---
 
@@ -267,7 +294,7 @@ Ctrl+V у симуляторі — як і раніше відкритий пу�
 | --- | --- |
 | 6.1 | `src/content/learningMaterials`, `src/app/materials`, `themes.code` |
 | 6.2 | `src/modules/feedback`, футер лендінгу + кабінету, модалка після finish |
-| 6.3–6.4 | `src/modules/testing` + `self-score`, `/diagnostic`, `Hero`, `TopicTestStart`, `TopicResultsTable` |
+| 6.3–6.4 | `src/modules/diagnostic`, `src/modules/self-score`, `src/modules/auth/guestToken.ts`, `/diagnostic`, `Hero`, `TopicTestStart`, `TopicResultsTable` |
 | 6.5 | імпорт + `docs/content-review/` + (ймовірно) ALTER `answer_*` / `difficulty` |
 | 6.6 | `src/app/problems`, `src/modules/testing/getProblems*` |
 | 6.8 | `nmt_variants*`, `startNmtSimulator`, UI `/simulator` |
@@ -278,9 +305,9 @@ Ctrl+V у симуляторі — як і раніше відкритий пу�
 | --- | --- | --- |
 | `themes` | `id, name, description, ord` | **додати `code`** |
 | `quiz_tasks` | `right_answer_n` лише server | **розглянути `difficulty` і довші `answer_*`** |
-| `task_sessions` | `session_type` 1 user / 2 auto / 3 mentor / 4 NMT | **додати 5 diagnostic; `nmt_variant_id`** |
-| `tasks2session` | `status` 0 / 1 / −1 | без змін |
-| `app_users` | `login, role` | guest лише тимчасовий, не світити в UI |
-| **нова** `user_self_scores` | оцінка 1–10 | 6.3–6.4 |
+| `task_sessions` | `session_type` 1 user / 2 auto / 3 mentor / 4 NMT / **5 diagnostic (зроблено)** | **додати `nmt_variant_id`** (6.8, ще не зроблено); `user_id`/`theme_id` тепер nullable, `guest_token CHAR(36)` nullable (6.3–6.4, зроблено) |
+| `tasks2session` | `status` 0 / 1 / −1 | `user_id` тепер nullable, `guest_token CHAR(36)` nullable (6.3–6.4, зроблено) |
+| `app_users` | `login, role` | guest-акаунт **не** використовується (свідоме відхилення від початкової пропозиції — див. розділ 6.3–6.4 «Виконано») |
+| **нова** `user_self_scores` | оцінка 1–10, `user_id`/`guest_token`/`theme_id` nullable, `source` | 6.3–6.4, зроблено |
 | **нова** `site_feedback` | відгук про сайт | 6.2 |
 | **нові** `nmt_variants`, `nmt_variant_tasks` | офіційні варіанти | 6.8 |

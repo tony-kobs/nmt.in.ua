@@ -10,16 +10,20 @@ export type RecentResultItem = {
   score: number;
 };
 
+/** Shown for a diagnostic attempt (task_sessions.theme_id IS NULL — it spans
+ * many themes, not one) so a claimed guest attempt stays visible here. */
+const DIAGNOSTIC_RECENT_RESULT_LABEL = "Загальна діагностика";
+
 /** MySQL prepared statements do not accept `LIMIT ?` — inline a validated int. */
 function buildRecentResultsSql(limit: number): string {
   return `
   SELECT
     ts.id,
-    t.name AS theme_name,
+    COALESCE(t.name, '${DIAGNOSTIC_RECENT_RESULT_LABEL}') AS theme_name,
     ts.tasks_number,
     ts.right_number
   FROM task_sessions ts
-  INNER JOIN themes t ON t.id = ts.theme_id
+  LEFT JOIN themes t ON t.id = ts.theme_id
   WHERE ts.user_id = ?
     AND ts.session_status = ?
   ORDER BY ts.id DESC

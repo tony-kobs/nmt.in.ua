@@ -7,6 +7,7 @@ import {
 } from "@/modules/recommendations";
 import { getStudentTopicStats } from "@/modules/recommendations/getStudentTopicStats";
 import { requireUserId } from "@/modules/auth/getCurrentUser";
+import { isValidSelfScore } from "@/modules/self-score/types";
 import { revalidatePath } from "next/cache";
 import {
   checkAnswer,
@@ -44,6 +45,7 @@ export type StartTopicTestErrorCode =
   | "insufficientTasks"
   | "alreadyInProgress"
   | "invalidInput"
+  | "invalidSelfScore"
   | "generic";
 
 import { startNmtSimulator, StartNmtSimulatorError } from "./startNmtSimulator";
@@ -85,6 +87,14 @@ export async function startTopicTestAction(
 ): Promise<StartTopicTestActionState> {
   const themeId = Number(formData.get("themeId"));
   const mode = parseTopicTestMode(formData.get("mode"));
+  const rawSelfScore = Number(formData.get("selfScore"));
+
+  // A fresh self-assessment is required before every topic test — validated
+  // here (not just via the disabled Start button) since the client can
+  // never be trusted for this.
+  if (!isValidSelfScore(rawSelfScore)) {
+    return { status: "error", code: "invalidSelfScore" };
+  }
 
   try {
     const userId = await deps.requireUserId();
@@ -92,6 +102,7 @@ export async function startTopicTestAction(
       userId,
       themeId,
       mode,
+      selfScore: rawSelfScore,
     });
     return {
       status: "success",

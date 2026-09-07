@@ -22,6 +22,7 @@ export const CLIENT_MESSAGE_NAMESPACES = [
   "simulator",
   "nmtTrainer",
   "Feedback",
+  "Diagnostic",
 ] as const;
 
 export function pickClientMessages(
