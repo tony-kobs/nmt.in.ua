@@ -51,7 +51,7 @@ const SQL_UPSERT_QUIZ_TASKS_SUFFIX =
 const SQL_INSERT_PROBLEMS_PREFIX = 
   "INSERT INTO problems (id, name, problem_text, theme_id, answer_1, answer_2, answer_3, answer_4, right_answer_n, comments, difficulty) VALUES ";
 const SQL_UPSERT_PROBLEMS_SUFFIX = 
-  "  ON DUPLICATE KEY UPDATE name = VALUES(name), problem_text = VALUES(problem_text), theme_id = VALUES(theme_id), answer_1 = VALUES(answer_1), answer_2 = VALUES(answer_2), answer_3 = VALUES(answer_3), answer_4 = VALUES(answer_4), right_answer_n = VALUES(right_answer_n), comments = VALUES(comments), difficulty = VALUES(difficulty)";
+  " ON DUPLICATE KEY UPDATE name = VALUES(name), problem_text = VALUES(problem_text), theme_id = VALUES(theme_id), answer_1 = VALUES(answer_1), answer_2 = VALUES(answer_2), answer_3 = VALUES(answer_3), answer_4 = VALUES(answer_4), right_answer_n = VALUES(right_answer_n), comments = VALUES(comments), difficulty = VALUES(difficulty)";
 
 async function findExistingIds(
   connection: SqlConnection,
@@ -215,6 +215,9 @@ async function checkThemeReferences(
   for (const t of datasets.quizTasks) {
     referencedIds.add(t.themeId);
   }
+  for (const p of datasets.problems) {
+    referencedIds.add(p.themeId);
+  }
   if (referencedIds.size === 0) return;
 
   const existingIds = await findExistingIds(connection, "themes", [
@@ -238,8 +241,8 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
 }
 
 /**
- * Persists all three datasets in a single transaction, in dependency order
- * (themes, then theme_connections, then quiz_tasks). Any validation or SQL
+ * Persists all four datasets in a single transaction, in dependency order
+ * (themes, then theme_connections, then quiz_tasks, then problems). Any validation or SQL
  * failure rolls back the entire import — no partial writes survive.
  */
 export async function importToDatabase(
@@ -277,9 +280,9 @@ export async function importToDatabase(
         inserted,
         updated,
         totalInserted:
-          inserted.themes + inserted.themeConnections + inserted.quizTasks,
+          inserted.themes + inserted.themeConnections + inserted.quizTasks + inserted.problems,
         totalUpdated:
-          updated.themes + updated.themeConnections + updated.quizTasks,
+          updated.themes + updated.themeConnections + updated.quizTasks + updated.problems,
       };
     } catch (error) {
       await connection.rollback().catch(() => undefined);

@@ -66,3 +66,13 @@ export function readString(raw: unknown, maxLength: number): FieldResult<string>
   }
   return { value: trimmed };
 }
+
+export function readOptionalString(raw: unknown, maxLength: number): FieldResult<string> {
+  if (raw === undefined || raw === null) return { value: "" };
+  if (typeof raw !== "string") return { error: "must be a string" };
+  const trimmed = raw.trim();
+  if (trimmed.length > maxLength) {
+    return { error: `must be at most ${maxLength} characters` };
+  }
+  return { value: trimmed };
+}

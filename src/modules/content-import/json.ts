@@ -28,7 +28,7 @@ function toRawRows(value: unknown, datasetLabel: string, errors: string[]): RawR
 
 /**
  * Parses and structurally validates the single-document JSON import format:
- * `{ "themes": [...], "themeConnections": [...], "quizTasks": [...] }`.
+ * `{ "themes": [...], "themeConnections": [...], "quizTasks": [...], "problems": [...] }`.
  * Per-field validation happens in `validate.ts`.
  */
 export function parseImportJsonDocument(

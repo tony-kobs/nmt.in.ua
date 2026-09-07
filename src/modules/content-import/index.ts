@@ -1,9 +1,9 @@
 /**
  * Module 2 — content import (CSV / JSON -> MySQL).
  *
- * `runContentImport` is the single entry point: it parses either three CSV
- * files or one JSON file into the three datasets (`themes`,
- * `themeConnections`, `quizTasks`), validates and normalizes every record,
+ * `runContentImport` is the single entry point: it parses four CSV
+ * files or one JSON file into the four datasets (`themes`,
+ * `themeConnections`, `quizTasks`, `problems`), validates and normalizes every record,
  * then persists everything in one transaction via `importToDatabase`.
  *
  * HTTP wiring lives in `src/app/api/import/route.ts`.
@@ -28,7 +28,7 @@ import {
 export { ContentImportError } from "./errors";
 export type { ContentImportErrorKind } from "./errors";
 export type { ImportSummary, DatasetCounts, ImportDatasets } from "./db";
-export type { ThemeRecord, ThemeConnectionRecord, QuizTaskRecord } from "./validate";
+export type { ThemeRecord, ThemeConnectionRecord, QuizTaskRecord, ProblemRecord } from "./validate";
 
 export type ImportSource = File | string;
 
@@ -87,6 +87,7 @@ async function buildCsvDatasets(input: {
     ...themes.errors,
     ...themeConnections.errors,
     ...quizTasks.errors,
+    ...problems.errors,
   ];
   if (validationErrors.length > 0) {
     throw new ContentImportError("validation", validationErrors);

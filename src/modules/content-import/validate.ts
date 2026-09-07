@@ -12,7 +12,7 @@ import {
   THEME_CONNECTIONS_COLUMNS,
   PROBLEMS_COLUMNS,
 } from "./schema";
-import { readInt, readString } from "./normalize";
+import { readInt, readString, readOptionalString } from "./normalize";
 
 /** One record's raw field values, plus a human-readable label for error messages. */
 export type RawRow = { rowLabel: string; raw: Record<string, unknown> };
@@ -231,7 +231,7 @@ function validateProblemRow(row: RawRow): {
   const answer3 = readString(row.raw.answer_3, MAX_LEN_VARCHAR_255);
   const answer4 = readString(row.raw.answer_4, MAX_LEN_VARCHAR_255);
   const rightAnswerN = readInt(row.raw.right_answer_n, "positive");
-  const comments = readString(row.raw.comments, MAX_LEN_COMMENTS);
+  const comments = readOptionalString(row.raw.comments, MAX_LEN_COMMENTS);
   const difficulty = readInt(row.raw.difficulty, "positive");
 
   if (id.error) errors.push(`${row.rowLabel}: id ${id.error}`);
