@@ -101,7 +101,7 @@
     "lead": "Wähle ein Thema und einen Modus — und übe im NMT-Format.",
     "leadStandard": "bis zu {count} zufällige Aufgaben mit sofortiger Erklärung.",
     "leadUltimate": "bis zu {count} Aufgaben, 20 Minuten, ohne Hinweise bis zum Ende des Tests.",
-    "noThemes": "Derzeit gibt es keine Themen mit Aufgaben in der Datenbank. Füge Aufgaben über den Import auf der Einstellungsseite hinzu.",
+    "noThemes": "Themen und Aufgaben werden vorbereitet. Das Testen wird bald verfügbar sein.",
     "selectTopic": "Thema auswählen",
     "mode": "Modus",
     "testMode": "Testmodus",
@@ -111,6 +111,9 @@
     "loading": "Wird geladen…",
     "start": "Start",
     "startUltimate": "Ultimate starten",
+    "selfScoreLabel": "Wie schätzt du dieses Thema ein?",
+    "selfScoreAria": "Selbsteinschätzung für dieses Thema, 1 bis 10",
+    "selfScoreHint": "Wähle eine Bewertung von 1 bis 10, um den Test zu starten.",
     "modes": {
       "standard": "Standard",
       "ultimate": "Ultimate"
@@ -119,6 +122,7 @@
       "insufficientTasks": "Für dieses Thema sind noch keine Aufgaben verfügbar.",
       "alreadyInProgress": "Eine Anfrage wird bereits ausgeführt. Bitte warte.",
       "invalidInput": "Wähle ein Thema aus, um den Test zu starten.",
+      "invalidSelfScore": "Wähle eine Selbsteinschätzung von 1 bis 10, um den Test zu starten.",
       "generic": "Der Test konnte nicht gestartet werden. Bitte versuche es erneut."
     }
   },
@@ -143,6 +147,7 @@
     "confirmAbortUltimate": "Ultimate-Test beenden? Unbeantwortete Aufgaben werden als falsch gewertet.",
     "ultimateTitle": "Ultimate — Test zum Thema",
     "title": "Test zum Thema",
+    "diagnosticTitle": "Einstufungstest",
     "session": "Sitzung Nr. {id}",
     "remaining": "Verbleibend",
     "time": "Zeit",
@@ -184,7 +189,9 @@
   "TopicTrainerSummary": {
     "ultimateTitle": "Ultimate — Zusammenfassung",
     "title": "Testzusammenfassung",
+    "diagnosticTitle": "Ergebnis des Einstufungstests",
     "summary": "Thema „{theme}“. Sitzung Nr. {sessionId}.",
+    "diagnosticSummary": "Einstufungstest Nr. {sessionId} abgeschlossen.",
     "timedOut": "Die Zeit ist abgelaufen.",
     "completed": "Test abgeschlossen.",
     "mistakesBelow": "Die Fehleranalyse findest du unten.",
@@ -197,7 +204,8 @@
     "results": "Ergebnisse nach Thema",
     "sessions": "Meine Sitzungen",
     "newTest": "Neuer Test",
-    "mistakeReview": "Fehleranalyse ({count})"
+    "mistakeReview": "Fehleranalyse ({count})",
+    "saveDiagnosticProgress": "Fortschritt speichern — registrieren"
   },
   "TopicResultsTable": {
     "title": "Ergebnisse nach Thema",
@@ -206,7 +214,25 @@
     "overall": "Gesamt",
     "lastThree": "Letzte 3 Tests",
     "speed": "Geschwindigkeit, Sek./Aufgabe",
+    "selfScore": "Selbsteinschätzung",
     "hint": "Leere Felder zeigen Themen ohne abgeschlossene Versuche. Farben: Grün ≥70%, Gelb 40–69%, Rot <40%."
+  },
+  "Diagnostic": {
+    "kicker": "Einstufungstest",
+    "title": "Wie schätzt du deine Mathekenntnisse ein?",
+    "lead": "Wähle eine Bewertung von 1 bis 10 und mache anschließend einen kurzen Test zu allen Themen, um dein tatsächliches Niveau zu sehen.",
+    "selfScoreLabel": "Allgemeine Selbsteinschätzung",
+    "selfScoreAria": "Allgemeine Selbsteinschätzung der Mathekenntnisse, 1 bis 10",
+    "start": "Einstufungstest starten",
+    "loading": "Test wird vorbereitet…",
+    "redirecting": "Test wird geöffnet…",
+    "unavailable": "Themen und Aufgaben werden noch vorbereitet. Der Test wird bald verfügbar sein.",
+    "errors": {
+      "invalidSelfScore": "Wähle eine Bewertung von 1 bis 10, um fortzufahren.",
+      "insufficientTasks": "Für den Einstufungstest gibt es derzeit nicht genügend Aufgaben. Bitte versuche es später erneut.",
+      "alreadyInProgress": "Eine Anfrage wird bereits ausgeführt. Bitte warte.",
+      "generic": "Der Einstufungstest konnte nicht gestartet werden. Bitte versuche es erneut."
+    }
   },
   "LearningSessionsTable": {
     "title": "Lernsitzungen",
@@ -272,6 +298,7 @@
       "lead": "Ein Online-Bereich, der Ihre Schwachstellen zeigt, im Prüfungsformat trainiert und einen klaren Plan für die nächsten Schritte gibt. Ohne verstreute PDFs und zufällige Tests.",
       "ctaPrimary": "Vorbereitung starten",
       "ctaSecondary": "Ich habe ein Konto",
+      "ctaDiagnostic": "Teste dein Wissen",
       "note": "Registrierung in einer Minute — ohne Karte und Zahlung",
       "imageAlt": "Illustration: Funktionsgraph, Fortschrittsdiagramm und geometrische Formen",
       "stats": {
@@ -421,6 +448,7 @@
     "kicker": "Registrierung",
     "title": "Schülerkonto erstellen",
     "lead": "Registriere dich, um Tests zu absolvieren, Ergebnisse zu speichern und Empfehlungen zu erhalten. Lehrkraft- und Admin-Zugang bleiben vorerst über Demo-Login.",
+    "leadFromDiagnostic": "Registriere dich, um dein Einstufungstest-Ergebnis und deine Selbsteinschätzung in deinem Konto zu speichern.",
     "displayName": "Anzeigename",
     "login": "Login",
     "loginHint": "Lateinische Buchstaben, Ziffern, Punkt, _ oder - (mindestens 3 Zeichen).",
@@ -528,6 +556,14 @@
     "session": {
       "title": "Test durchführen",
       "description": "Interaktiver Trainer mit Testaufgaben zum ausgewählten Thema."
+    },
+    "diagnostic": {
+      "title": "Einstufungstest",
+      "description": "Schätze deine Mathekenntnisse ein und mache einen kurzen Einstufungstest zu allen Themen."
+    },
+    "diagnosticSession": {
+      "title": "Einstufungstest",
+      "description": "Durchführung des Einstufungstests."
     },
     "settings": {
       "title": "Einstellungen",

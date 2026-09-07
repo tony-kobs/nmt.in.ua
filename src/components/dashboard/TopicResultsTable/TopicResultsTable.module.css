@@ -71,6 +71,17 @@
   font-weight: 600;
 }
 
+/* Self-assessment is a 1-10 rating, not a percentage — kept visually
+   distinct from the percent metrics with a pill instead of plain text. */
+.metricSelfScore {
+  display: inline-flex;
+  width: fit-content;
+  padding: 3px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-pill);
+  background: var(--paper);
+}
+
 .metricHigh {
   background: var(--green-bg);
   color: var(--green-dark);

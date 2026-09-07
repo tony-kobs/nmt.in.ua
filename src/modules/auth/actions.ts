@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 
 import { safeInternalPath } from "@/lib/safeInternalPath";
+import { claimGuestProgress } from "@/modules/diagnostic/claimGuestProgress";
+import { clearGuestCookie } from "./guestToken";
 import { isDemoAccountLogin, isDemoLoginEnabled } from "./demoLogin";
 import { verifyPassword } from "./password";
 import {
@@ -73,6 +75,7 @@ export async function registerAction(
     return { status: "error", code: validated.code };
   }
 
+  let userId: number;
   try {
     const user = await createUser({
       login: validated.value.login,
@@ -81,12 +84,29 @@ export async function registerAction(
       role: "student",
     });
     await setSessionCookie(user);
+    userId = user.id;
   } catch (error) {
     if (error instanceof CreateUserError && error.code === "login_taken") {
       return { status: "error", code: "loginTaken" };
     }
     console.error("registerAction: unexpected error", error);
     return { status: "error", code: "serverError" };
+  }
+
+  if (formData.get("from") === "diagnostic") {
+    // Best-effort: a failed claim must never block registration, and must
+    // leave the guest's data untouched for a retry — so it's logged, not
+    // surfaced, and the cookie is only cleared once the claim actually
+    // succeeds (claimGuestProgress is a no-op, not an error, when there is
+    // no guest cookie or nothing to claim).
+    try {
+      const result = await claimGuestProgress(userId);
+      if (result.claimed) {
+        await clearGuestCookie();
+      }
+    } catch (error) {
+      console.error("registerAction: claimGuestProgress failed", error);
+    }
   }
 
   redirect(nextPath);

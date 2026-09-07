@@ -1,4 +1,6 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { getLatestSelfScoresForResults } from "@/modules/self-score/getLatestSelfScoresForResults";
+import { resolveDisplaySelfScore, type LatestSelfScores } from "@/modules/self-score/types";
 import { buildTopicResultRows, type TopicResultRow } from "./types";
 
 const SQL_THEMES = `
@@ -23,7 +25,21 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-/** Aggregated progress by theme for a student. */
+/** Attaches the self-score fallback (latest pre_topic, else latest
+ * diagnostic_overall) to each row — a pure post-process step so
+ * `buildTopicResultRows` itself (and its existing tests) stay untouched. */
+export function attachSelfScores(
+  rows: TopicResultRow[],
+  latest: LatestSelfScores,
+): TopicResultRow[] {
+  return rows.map((row) => ({
+    ...row,
+    selfScore: resolveDisplaySelfScore(row.themeId, latest),
+  }));
+}
+
+/** Aggregated progress by theme for a student, including the self-score
+ * column ("Самооцінка" on /results). */
 export async function getTopicResults(
   userId: number,
   deps: GetTopicResultsDeps = { getConnection: loadDefaultConnection },
@@ -44,7 +60,11 @@ export async function getTopicResults(
       time: number;
     }>(SQL_USER_SESSIONS, [userId]);
 
-    return buildTopicResultRows(themes, sessions);
+    const rows = buildTopicResultRows(themes, sessions);
+    const latestSelfScores = await getLatestSelfScoresForResults(userId, {
+      getConnection: deps.getConnection,
+    });
+    return attachSelfScores(rows, latestSelfScores);
   } finally {
     connection.release();
   }

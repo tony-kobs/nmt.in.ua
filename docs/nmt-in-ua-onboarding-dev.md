@@ -166,6 +166,8 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | Тест | `src/modules/testing` | `startTopicTest`, `startNmtSimulator`, `checkAnswer`, `finishTrainerSession` |
 | Рекомендації | `src/modules/recommendations` | `getStudentTopicStats`, `recommendNextActions`, `persistRecommendations` |
 | Сесії | `src/modules/sessions` | `getLearningSessions`, `createMentorSession`, cancel |
+| Самооцінка | `src/modules/self-score` | `recordSelfScore`, `getLatestSelfScoresForResults` — історія 1–10, ніколи не перезаписується |
+| Діагностика (гість) | `src/modules/diagnostic` | `startDiagnosticTest`, owner-aware `checkDiagnosticAnswer`/`finishDiagnosticSession`/`getDiagnosticSessionTasks`/`markDiagnosticSessionStarted`, `claimGuestProgress` — усе окремо від `testing`, щоб не чіпати протестований topic-test код |
 
 ### 6.2. Таблиці MySQL, які чіпаємо
 
@@ -175,10 +177,31 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `themes` | Теми тесту | `id`, `name`, `description`, `ord` |
 | `theme_connections` | Граф «наступна тема» | `vertex_start` → `vertex_finish` |
 | `quiz_tasks` | Банк завдань | `right_answer_n` (1–4) лише на сервері |
-| `task_sessions` | Спроба учня | `session_type` 1 user / 2 auto / 3 mentor / 4 NMT; status 1 done / 2 created / 3 planned |
+| `task_sessions` | Спроба учня | `session_type` 1 user / 2 auto / 3 mentor / 4 NMT / **5 diagnostic**; status 1 done / 2 created / 3 planned. `user_id` і `theme_id` **nullable**, плюс `guest_token CHAR(36)` nullable — діагностична спроба гостя не має `user_id`, а охоплює кілька тем одразу тож не має і `theme_id` |
+| `tasks2session` | Мапінг завдання↔сесія | `status` 0 / 1 / −1. `user_id` **nullable** + `guest_token CHAR(36)` nullable, дзеркалить владельця з `task_sessions` |
 | `site_feedback` | відгук про сайт (6.2) | `user_id`/`session_id` nullable, `score` 1–10, `message` (обов’язкове якщо score < 5), `email`, `source` footer/post_test |
+| `user_self_scores` | Самооцінка (6.3–6.4), **історія, ніколи не перезаписується** | `user_id`/`guest_token` (рівно один із двох), `theme_id` nullable (NULL = загальна оцінка), `score` 1–10, `source` `diagnostic_overall`/`pre_topic`, `created_at` |
 
 **`right_answer_n` і `comments` не віддавай клієнту**, поки відповідь не перевірена або сесія не завершена. Перевірка завжди на сервері.
+
+### Гостьова діагностика: модель власності
+
+Публічний `/diagnostic` не вимагає логіну. Гість ідентифікується підписаною
+cookie `nmt_guest` (`src/modules/auth/guestToken.ts` — HMAC на `SESSION_SECRET`
+з окремим доменом підпису, HttpOnly, `SameSite=lax`, `Secure` у проді), а не
+тимчасовим `app_users`-рядком. `src/modules/diagnostic/sessionOwner.ts`
+визначає `SessionOwner = {userId, guestToken:null} | {userId:null, guestToken}`
+і генерує двогілкову умову `WHERE (user_id=? ...) OR (guest_token=? AND
+user_id IS NULL)` — цей шаблон використовує кожен owner-aware запит у
+`src/modules/diagnostic/*`. Кожен такий запит фільтрує рівно за одним
+власником; жоден не робить широкого «будь-який гість».
+
+При реєстрації з `/register?from=diagnostic` — `claimGuestProgress()`
+(`src/modules/diagnostic/claimGuestProgress.ts`) атомарно переносить
+`task_sessions`/`tasks2session`/`user_self_scores` на нового `userId` одним
+UPDATE-транзакцією за `guest_token`, після чого cookie `nmt_guest` очищається.
+Cookie `nmt_guest` **ніколи** не перевіряється в `src/proxy.ts` — вона не може
+авторизувати нічого, крім явних діагностичних запитів.
 
 ### 6.3. Типи сесій і режимів
 
@@ -189,6 +212,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | Симулятор НМТ | `/simulator` | 22, 60 хв | `session_type = 4` |
 | Авто-сесія | з’являється на `/sessions` | як тест | Створює recommend після фінішу |
 | Ментор-сесія | викладач на `/sessions` | як тест | `session_type = 3`, Старт / × |
+| Діагностика (гість/учень) | `/diagnostic` (публічний) | до 3 завдань з кожної теми з ≥3 завданнями, макс. 10 тем (30 завдань) | `session_type = 5`, `theme_id = NULL`, одна сесія на всю спробу; перед стартом — загальна самооцінка 1–10 |
 
 ### 6.4. Маршрути
 
@@ -196,6 +220,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | --- | --- | --- |
 | `/`, `/welcome` | Усі. `/` — лендінг для гостя, кабінет для учня; `/welcome` завжди лендінг | Готово |
 | `/login`, `/register` | Гість | Готово |
+| `/diagnostic`, `/diagnostic/session/[id]` | Усі (публічно, як `/welcome`) — гість або увійдений учень | Готово |
 | `/session/[id]` | Власник сесії | Готово |
 | `/results`, `/sessions`, `/simulator` | Учень+ | Готово |
 | `/settings` | Лише admin | Готово |
@@ -255,7 +280,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | 6.5 Банк 30–40 / тему | `content-import`, `docs/content-review/` | Контент | Спочатку розширити `varchar(50)` у відповідях |
 | 6.8 Варіанти НМТ | `startNmtSimulator`, `/simulator`, нові таблиці | Середня | Не RAND по всій базі — випадковий *варіант* |
 | 6.6 Задачник | `src/app/problems`, стилі TopicTrainer | Середня | Практика без ключа в DOM; друк через `window.print` |
-| 6.3–6.4 Діагностика | `/diagnostic`, `Hero`, `TopicTestStart`, `TopicResultsTable` | Велика | Guest-cookie → claim при реєстрації |
+| 6.3–6.4 Діагностика | `/diagnostic`, `Hero`, `TopicTestStart`, `TopicResultsTable` | Велика | ✅ зроблено (`feat/diagnostic-self-score`); guest-cookie `nmt_guest` (не тимчасовий `app_users`) → `claimGuestProgress()` при реєстрації. Відкрито: політика вибору тем при >10 eligible (зараз — порядок `ord`) |
 | 6.2 Відгук про сайт | `src/modules/feedback`, футер, модалка після finish | Мала | ✅ зроблено; оцінка 1–10, коментар лише якщо < 5; не хедер; не `/consultations` |
 
 Поза першим релізом (не хапати «бо цікаво»): групи викладача, ДЗ, PDF, Google-логін, AI-перевірка, типи завдань окрім вибору з 4 варіантів, повноцінний PWA. Це версія 2 — питайте PM.

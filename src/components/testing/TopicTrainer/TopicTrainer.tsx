@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   checkAnswerAction,
   finishTrainerSessionAction,
   getSessionMistakeReviewAction,
+  markSessionStartedAction,
   skipTaskAnswerAction,
 } from "@/modules/testing/actions";
 import type { SessionMistakeItem } from "@/modules/testing/getSessionMistakeReview";
@@ -14,13 +15,13 @@ import { formatElapsedClock } from "@/modules/testing/sessionElapsed";
 import {
   ULTIMATE_DURATION_SEC,
   ULTIMATE_TIMER_WARNING_SEC,
-  type TopicTestMode,
 } from "@/modules/testing/topicTestMode";
 import {
   TASK_STATUS_CORRECT,
   TASK_STATUS_INCORRECT,
   type SessionTask,
   type SessionTaskAnswer,
+  type TrainerMode,
   type TrainerSessionSummary,
 } from "@/modules/testing/types";
 import type { RecommendedAction } from "@/modules/recommendations";
@@ -31,12 +32,25 @@ import { useSessionTimer } from "./useSessionTimer";
 import { useLocale, useTranslations } from "next-intl";
 import css from "./TopicTrainer.module.css";
 
+/** Lets the diagnostic session page swap in its own owner-aware Server
+ * Actions without forking this component. Defaults to the standard
+ * topic-test actions for every existing caller. */
+type TopicTrainerActionOverrides = {
+  checkAnswer: typeof checkAnswerAction;
+  finishTrainerSession: typeof finishTrainerSessionAction;
+  markSessionStarted: typeof markSessionStartedAction;
+};
+
 type TopicTrainerProps = {
   sessionId: number;
   tasks: SessionTask[];
   initialSummary?: TrainerSessionSummary | null;
   initialRecommendations?: RecommendedAction[];
-  mode?: TopicTestMode;
+  mode?: TrainerMode;
+  /** Guest-owned diagnostic session — shown a "save progress" CTA in the
+   * summary instead of the usual results/sessions links. */
+  isGuest?: boolean;
+  actions?: Partial<TopicTrainerActionOverrides>;
 };
 
 type CheckResult = { correct: boolean };
@@ -58,8 +72,19 @@ export function TopicTrainer({
   initialSummary = null,
   initialRecommendations = [],
   mode = "standard",
+  isGuest = false,
+  actions,
 }: TopicTrainerProps) {
   const isUltimate = mode === "ultimate";
+  const resolvedActions: TopicTrainerActionOverrides = useMemo(
+    () => ({
+      checkAnswer: actions?.checkAnswer ?? checkAnswerAction,
+      finishTrainerSession:
+        actions?.finishTrainerSession ?? finishTrainerSessionAction,
+      markSessionStarted: actions?.markSessionStarted ?? markSessionStartedAction,
+    }),
+    [actions?.checkAnswer, actions?.finishTrainerSession, actions?.markSessionStarted],
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedByMappingId, setSelectedByMappingId] = useState<
     Record<number, SessionTaskAnswer["number"]>
@@ -85,6 +110,7 @@ export function TopicTrainer({
   const elapsedSec = useSessionTimer({
     sessionId,
     enabled: !isUltimate && summary == null,
+    markSessionStarted: resolvedActions.markSessionStarted,
   });
 
   const finishUltimate = useCallback(
@@ -95,7 +121,7 @@ export function TopicTrainer({
       setErrorMessage(null);
       if (options.timedOut) setTimedOut(true);
 
-      const result = await finishTrainerSessionAction({
+      const result = await resolvedActions.finishTrainerSession({
         sessionId,
         locale,
         markUnansweredAsIncorrect: true,
@@ -114,7 +140,7 @@ export function TopicTrainer({
       setSummary(result.summary);
       setRecommendations(result.recommendations);
     },
-    [sessionId, summary, locale, t],
+    [sessionId, summary, locale, t, resolvedActions],
   );
 
   const handleTimeExpired = useCallback(() => {
@@ -151,6 +177,7 @@ export function TopicTrainer({
         mode={mode}
         timedOut={timedOut}
         mistakes={mistakes}
+        isGuest={isGuest}
       />
     );
   }
@@ -185,7 +212,7 @@ export function TopicTrainer({
     setErrorMessage(null);
     setPendingMappingId(currentTask.mappingId);
 
-    const result = await checkAnswerAction({
+    const result = await resolvedActions.checkAnswer({
       sessionId,
       mappingId: currentTask.mappingId,
       answerNumber,
@@ -244,7 +271,7 @@ export function TopicTrainer({
     setErrorMessage(null);
     setIsFinishing(true);
 
-    const result = await finishTrainerSessionAction({ sessionId, locale });
+    const result = await resolvedActions.finishTrainerSession({ sessionId, locale });
     setIsFinishing(false);
 
     if (result.status !== "success") {
@@ -273,7 +300,11 @@ export function TopicTrainer({
       <header className={css.header}>
         <div>
           <h1 id="topic-trainer-title" className={css.title}>
-            {isUltimate ? t("ultimateTitle") : t("title")}
+            {isUltimate
+              ? t("ultimateTitle")
+              : mode === "diagnostic"
+                ? t("diagnosticTitle")
+                : t("title")}
           </h1>
           <p className={css.meta}>{t("session", { id: sessionId })}</p>
         </div>

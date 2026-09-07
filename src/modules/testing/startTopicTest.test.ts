@@ -15,6 +15,7 @@ const MAPPING_COLUMNS = ["task_type", "task_id", "session_id", "user_id", "statu
 function makeConnection(options: {
   tasks: { id: number }[];
   failMapping?: boolean;
+  failSelfScore?: boolean;
 }) {
   const calls: Call[] = [];
   let rolledBack = false;
@@ -35,6 +36,9 @@ function makeConnection(options: {
     },
     execute: async (sql: string, params: unknown[] = []) => {
       calls.push({ sql, params });
+      if (sql.includes("CREATE TABLE")) {
+        return { insertId: 0, affectedRows: 0 };
+      }
       if (sql.startsWith("INSERT INTO task_sessions")) {
         return { insertId: nextSessionId, affectedRows: 1 };
       }
@@ -44,6 +48,9 @@ function makeConnection(options: {
           insertId: 0,
           affectedRows: options.failMapping ? rowCount - 1 : rowCount,
         };
+      }
+      if (sql.includes("INSERT INTO user_self_scores")) {
+        return { insertId: 0, affectedRows: options.failSelfScore ? 0 : 1 };
       }
       return { insertId: 0, affectedRows: 0 };
     },
@@ -346,4 +353,98 @@ test("prevents a duplicate submission while a request is already pending for the
   releaseFirst();
   const result = await first;
   assert.equal(result.themeId, themeId);
+});
+
+test("rejects a selfScore of 0 before touching the database", async () => {
+  let called = false;
+  await assert.rejects(
+    () =>
+      startTopicTest(
+        { userId: 1, themeId: 2, selfScore: 0 },
+        {
+          getConnection: async () => {
+            called = true;
+            throw new Error("should not be called");
+          },
+        },
+      ),
+    (error: unknown) =>
+      error instanceof StartTopicTestError && error.code === "invalid_input",
+  );
+  assert.equal(called, false);
+});
+
+test("rejects a selfScore of 11 before touching the database", async () => {
+  await assert.rejects(
+    () =>
+      startTopicTest(
+        { userId: 1, themeId: 2, selfScore: 11 },
+        { getConnection: async () => { throw new Error("should not be called"); } },
+      ),
+    (error: unknown) =>
+      error instanceof StartTopicTestError && error.code === "invalid_input",
+  );
+});
+
+test("writes a pre_topic self-score row atomically with the session, inside the same transaction", async () => {
+  const themeId = 8;
+  const userId = 3;
+  const tasks = tasksFor(TOPIC_TEST_TASK_COUNT, themeId);
+  const mock = makeConnection({ tasks });
+
+  await startTopicTest(
+    { userId, themeId, selfScore: 7 },
+    { getConnection: async () => mock.connection },
+  );
+
+  const selfScoreInsert = mock.calls.find((c) =>
+    c.sql.includes("INSERT INTO user_self_scores"),
+  );
+  assert.ok(selfScoreInsert);
+  assert.match(selfScoreInsert!.sql, /pre_topic/);
+  assert.deepEqual(selfScoreInsert!.params, [userId, themeId, 7]);
+  assert.ok(mock.isCommitted());
+
+  // The task_sessions insert's own params are unaffected by the self-score
+  // branch — still the exact 8-value array startTopicTest.ts always wrote.
+  const sessionInsert = mock.calls.find((c) =>
+    c.sql.startsWith("INSERT INTO task_sessions"),
+  );
+  assert.equal(sessionInsert!.params.length, 8);
+});
+
+test("omitting selfScore never touches user_self_scores", async () => {
+  const themeId = 8;
+  const tasks = tasksFor(TOPIC_TEST_TASK_COUNT, themeId);
+  const mock = makeConnection({ tasks });
+
+  await startTopicTest(
+    { userId: 3, themeId },
+    { getConnection: async () => mock.connection },
+  );
+
+  assert.equal(
+    mock.calls.filter((c) => c.sql.includes("user_self_scores")).length,
+    0,
+  );
+});
+
+test("a DB failure on the self-score insert rolls back the whole transaction, including the session", async () => {
+  const themeId = 8;
+  const tasks = tasksFor(TOPIC_TEST_TASK_COUNT, themeId);
+  const mock = makeConnection({ tasks, failSelfScore: true });
+
+  await assert.rejects(
+    () =>
+      startTopicTest(
+        { userId: 3, themeId, selfScore: 5 },
+        { getConnection: async () => mock.connection },
+      ),
+    (error: unknown) =>
+      error instanceof StartTopicTestError && error.code === "db_error",
+  );
+
+  assert.ok(mock.isRolledBack());
+  assert.ok(!mock.isCommitted());
+  assert.ok(mock.isReleased());
 });

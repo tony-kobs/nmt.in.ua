@@ -45,6 +45,7 @@ export async function TopicResultsTable({ rows }: TopicResultsTableProps) {
               <th scope="col">{t("overall")}</th>
               <th scope="col">{t("lastThree")}</th>
               <th scope="col">{t("speed")}</th>
+              <th scope="col">{t("selfScore")}</th>
             </tr>
           </thead>
           <tbody>
@@ -68,6 +69,9 @@ export async function TopicResultsTable({ rows }: TopicResultsTableProps) {
                 </td>
                 <td className={clsx(css.metric, css.metricNone)}>
                   {formatSpeed(row.avgSecondsPerTask)}
+                </td>
+                <td className={clsx(css.metric, css.metricNone, css.metricSelfScore)}>
+                  {row.selfScore != null ? `${row.selfScore} / 10` : "—"}
                 </td>
               </tr>
             ))}

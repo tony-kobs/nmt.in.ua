@@ -47,14 +47,54 @@ test("ignores any client-supplied userId and always uses the trusted demo user i
     };
   }) as typeof startTopicTest;
 
-  const formData = formDataWith({ themeId: "2", userId: "999" });
+  const formData = formDataWith({ themeId: "2", userId: "999", selfScore: "7" });
 
   await startTopicTestAction(IDLE_STATE, formData, {
     startTopicTest: spy,
     ...mockAuth,
   });
 
-  assert.deepEqual(capturedInput, { userId: 1, themeId: 2, mode: "standard" });
+  assert.deepEqual(capturedInput, {
+    userId: 1,
+    themeId: 2,
+    mode: "standard",
+    selfScore: 7,
+  });
+});
+
+test("rejects a topic-test start with no self-score, without calling startTopicTest", async () => {
+  let called = false;
+  const spy = (async () => {
+    called = true;
+    throw new Error("should not be called");
+  }) as typeof startTopicTest;
+
+  const state = await startTopicTestAction(
+    IDLE_STATE,
+    formDataWith({ themeId: "2" }),
+    { startTopicTest: spy, ...mockAuth },
+  );
+
+  assert.deepEqual(state, { status: "error", code: "invalidSelfScore" });
+  assert.equal(called, false);
+});
+
+test("rejects a topic-test start with selfScore 0 or 11, without calling startTopicTest", async () => {
+  let called = false;
+  const spy = (async () => {
+    called = true;
+    throw new Error("should not be called");
+  }) as typeof startTopicTest;
+
+  for (const invalid of ["0", "11", "abc", "5.5"]) {
+    const state = await startTopicTestAction(
+      IDLE_STATE,
+      formDataWith({ themeId: "2", selfScore: invalid }),
+      { startTopicTest: spy, ...mockAuth },
+    );
+    assert.deepEqual(state, { status: "error", code: "invalidSelfScore" });
+  }
+  assert.equal(called, false);
 });
 
 test("the created session receives user_id = 1", async () => {
@@ -71,11 +111,17 @@ test("the created session receives user_id = 1", async () => {
     },
     execute: async (sql: string, params: unknown[] = []) => {
       insertCalls.push({ sql, params });
+      if (sql.includes("CREATE TABLE")) {
+        return { insertId: 0, affectedRows: 0 };
+      }
       if (sql.startsWith("INSERT INTO task_sessions")) {
         return { insertId: 777, affectedRows: 1 };
       }
       if (sql.startsWith("INSERT INTO tasks2session")) {
         return { insertId: 0, affectedRows: params.length / 5 };
+      }
+      if (sql.includes("INSERT INTO user_self_scores")) {
+        return { insertId: 0, affectedRows: 1 };
       }
       return { insertId: 0, affectedRows: 0 };
     },
@@ -84,7 +130,7 @@ test("the created session receives user_id = 1", async () => {
     release: () => {},
   };
 
-  const formData = formDataWith({ themeId: "3" });
+  const formData = formDataWith({ themeId: "3", selfScore: "6" });
 
   const state = await startTopicTestAction(IDLE_STATE, formData, {
     startTopicTest: (input) =>
@@ -148,12 +194,18 @@ test("a second submission while one is pending is rejected, not creating a dupli
       return [] as T[];
     },
     execute: async (sql: string, params: unknown[] = []) => {
+      if (sql.includes("CREATE TABLE")) {
+        return { insertId: 0, affectedRows: 0 };
+      }
       if (sql.startsWith("INSERT INTO task_sessions")) {
         sessionInsertCount += 1;
         return { insertId: 900 + sessionInsertCount, affectedRows: 1 };
       }
       if (sql.startsWith("INSERT INTO tasks2session")) {
         return { insertId: 0, affectedRows: params.length / 5 };
+      }
+      if (sql.includes("INSERT INTO user_self_scores")) {
+        return { insertId: 0, affectedRows: 1 };
       }
       return { insertId: 0, affectedRows: 0 };
     },
@@ -163,11 +215,15 @@ test("a second submission while one is pending is rejected, not creating a dupli
   };
 
   const runAction = (themeId: string) =>
-    startTopicTestAction(IDLE_STATE, formDataWith({ themeId }), {
-      startTopicTest: (input) =>
-        startTopicTest(input, { getConnection: async () => connection }),
-      ...mockAuth,
-    });
+    startTopicTestAction(
+      IDLE_STATE,
+      formDataWith({ themeId, selfScore: "5" }),
+      {
+        startTopicTest: (input) =>
+          startTopicTest(input, { getConnection: async () => connection }),
+        ...mockAuth,
+      },
+    );
 
   const first = runAction("1");
   const second = await runAction("1");
