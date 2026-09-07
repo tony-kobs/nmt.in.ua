@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { SqlConnection } from "@/lib/db/mysql";
+import { reduceLatestSelfScores } from "@/modules/self-score/types";
 
 import {
   buildTopicResultRows,
@@ -7,6 +9,7 @@ import {
   formatSpeed,
   getScoreLevel,
 } from "./types";
+import { attachSelfScores, getTopicResults } from "./getTopicResults";
 
 test("getScoreLevel maps percent bands", () => {
   assert.equal(getScoreLevel(null), "none");
@@ -66,4 +69,56 @@ test("buildTopicResultRows keeps empty metrics for themes without sessions", () 
     lastThreePercent: null,
     avgSecondsPerTask: null,
   });
+});
+
+test("attachSelfScores prefers the latest pre_topic score for the theme", () => {
+  const rows = buildTopicResultRows([{ id: 1, name: "Тема", ord: 0 }], []);
+  const latest = reduceLatestSelfScores([
+    { theme_id: 1, score: 9, source: "pre_topic" },
+    { theme_id: null, score: 3, source: "diagnostic_overall" },
+  ]);
+  const withScores = attachSelfScores(rows, latest);
+  assert.equal(withScores[0]?.selfScore, 9);
+});
+
+test("attachSelfScores falls back to the latest diagnostic_overall score", () => {
+  const rows = buildTopicResultRows([{ id: 1, name: "Тема", ord: 0 }], []);
+  const latest = reduceLatestSelfScores([
+    { theme_id: null, score: 4, source: "diagnostic_overall" },
+  ]);
+  const withScores = attachSelfScores(rows, latest);
+  assert.equal(withScores[0]?.selfScore, 4);
+});
+
+test("attachSelfScores leaves selfScore null when neither exists", () => {
+  const rows = buildTopicResultRows([{ id: 1, name: "Тема", ord: 0 }], []);
+  const withScores = attachSelfScores(rows, reduceLatestSelfScores([]));
+  assert.equal(withScores[0]?.selfScore, null);
+});
+
+test("getTopicResults composes theme results with the self-score fallback", async () => {
+  const connection: SqlConnection = {
+    beginTransaction: async () => {},
+    query: async <T,>(sql: string) => {
+      if (sql.includes("FROM themes")) {
+        return [{ id: 1, name: "Тема", ord: 0 }] as unknown as T[];
+      }
+      if (sql.includes("FROM task_sessions")) {
+        return [] as unknown as T[];
+      }
+      if (sql.includes("FROM user_self_scores")) {
+        return [
+          { theme_id: 1, score: 6, source: "pre_topic" },
+        ] as unknown as T[];
+      }
+      return [] as T[];
+    },
+    execute: async () => ({ insertId: 0, affectedRows: 0 }),
+    commit: async () => {},
+    rollback: async () => {},
+    release: () => {},
+  };
+
+  const rows = await getTopicResults(1, { getConnection: async () => connection });
+  assert.equal(rows[0]?.selfScore, 6);
 });

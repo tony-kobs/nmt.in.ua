@@ -4,21 +4,22 @@ import { useTranslations } from "next-intl";
 import { PostTestFeedbackPrompt } from "@/components/feedback/FeedbackDialog";
 import { TopicTrainerMistakeReview } from "@/components/testing/TopicTrainerMistakeReview";
 import type { SessionMistakeItem } from "@/modules/testing/getSessionMistakeReview";
-import type { TopicTestMode } from "@/modules/testing/topicTestMode";
 import { RecommendedActionsPanel } from "@/components/dashboard/RecommendedActionsPanel";
 import { formatPercent } from "@/modules/results/types";
 import type { RecommendedAction } from "@/modules/recommendations";
 import { formatDurationSeconds } from "@/modules/sessions/types";
-import type { TrainerSessionSummary } from "@/modules/testing/types";
+import type { TrainerMode, TrainerSessionSummary } from "@/modules/testing/types";
 import Link from "next/link";
 import css from "./TopicTrainerSummary.module.css";
 
 type TopicTrainerSummaryProps = {
   summary: TrainerSessionSummary;
   recommendations?: RecommendedAction[];
-  mode?: TopicTestMode;
+  mode?: TrainerMode;
   timedOut?: boolean;
   mistakes?: SessionMistakeItem[];
+  /** Guest-owned diagnostic attempt — shows the "save progress" CTA. */
+  isGuest?: boolean;
 };
 
 export function TopicTrainerSummary({
@@ -27,21 +28,29 @@ export function TopicTrainerSummary({
   mode = "standard",
   timedOut = false,
   mistakes = [],
+  isGuest = false,
 }: TopicTrainerSummaryProps) {
   const t = useTranslations("TopicTrainerSummary");
   const isUltimate = mode === "ultimate";
+  const isDiagnostic = mode === "diagnostic";
 
   return (
     <section className={css.summary} aria-labelledby="trainer-summary-title">
       <header className={css.intro}>
         <h1 id="trainer-summary-title" className={css.title}>
-          {isUltimate ? t("ultimateTitle") : t("title")}
+          {isUltimate
+            ? t("ultimateTitle")
+            : isDiagnostic
+              ? t("diagnosticTitle")
+              : t("title")}
         </h1>
         <p className={css.lead}>
-          {t("summary", {
-            theme: summary.themeName,
-            sessionId: summary.sessionId,
-          })}
+          {isDiagnostic
+            ? t("diagnosticSummary", { sessionId: summary.sessionId })
+            : t("summary", {
+                theme: summary.themeName,
+                sessionId: summary.sessionId,
+              })}
           {isUltimate ? (
             <>
               {" "}
@@ -77,28 +86,38 @@ export function TopicTrainerSummary({
         />
       ) : null}
 
-      <RecommendedActionsPanel
-        actions={recommendations}
-        title={t("recommendationsTitle")}
-        lead={t("recommendationsLead")}
-        className={css.recommendations}
-      />
+      {isDiagnostic ? null : (
+        <RecommendedActionsPanel
+          actions={recommendations}
+          title={t("recommendationsTitle")}
+          lead={t("recommendationsLead")}
+          className={css.recommendations}
+        />
+      )}
 
       <nav className={css.links} aria-label={t("nextSteps")}>
-        <Link href="/results" className={css.primary}>
-          {t("results")}
-        </Link>
+        {isDiagnostic && isGuest ? (
+          <Link href="/register?from=diagnostic" className={css.primary}>
+            {t("saveDiagnosticProgress")}
+          </Link>
+        ) : (
+          <>
+            <Link href="/results" className={css.primary}>
+              {t("results")}
+            </Link>
 
-        <Link href="/sessions" className={css.secondary}>
-          {t("sessions")}
-        </Link>
+            <Link href="/sessions" className={css.secondary}>
+              {t("sessions")}
+            </Link>
+          </>
+        )}
 
         <Link href="/" className={css.secondary}>
           {t("newTest")}
         </Link>
       </nav>
 
-      <PostTestFeedbackPrompt sessionId={summary.sessionId} />
+      <PostTestFeedbackPrompt sessionId={summary.sessionId} isGuest={isGuest} />
     </section>
   );
 }
