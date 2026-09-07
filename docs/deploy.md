@@ -53,6 +53,32 @@ bash scripts/rollback-hosting.sh --yes
 
 Без `SESSION_SECRET` у production вхід і реєстрація падають (`createSessionToken`). Ключ не комітити і не світити в логах. Згенерувати один раз: `openssl rand -hex 32` — і записати в обидва `.env.production` (store + `www`).
 
+### Діагностика (`/diagnostic`) — одноразова міграція БД
+
+Прод MySQL уже має контент (`themes` + `quiz_tasks`) — діагностика перевикористовує його
+автоматично через звичайний `getConnection()` (`src/lib/db/mysql.ts`), нічого сідити чи
+дублювати в репо не треба. Поріг доступності — `HAVING COUNT(q.id) >= 3` на тему
+(`DIAGNOSTIC_TASKS_PER_THEME`, `src/modules/diagnostic/startDiagnosticTest.ts`); прод має
+~36 завдань на тему, отже всі теми проходять цей поріг без змін коду.
+
+Перед першим релізом із діагностикою прогнати один раз (`SHOW CREATE TABLE` спочатку —
+див. коментар у файлі):
+
+```bash
+mysql ... < scripts/sql/006_diagnostic_ownership.sql
+mysql ... < scripts/sql/007_user_self_scores.sql
+```
+
+`006` обов'язково прогнати вручну — без нього `user_id`/`theme_id` в `task_sessions` /
+`tasks2session` лишаються `NOT NULL`, і будь-який старт діагностики (навіть для увійденого
+учня — `theme_id` там завжди `NULL`) впаде. `007` (`user_self_scores`) додатково
+самостворюється лениво в рантаймі (`ensureSelfScoreSchema`), але краще прогнати заздалегідь,
+щоб перший запит не платив за DDL.
+
+Якщо контенту для якоїсь теми тимчасово не вистачає — `/diagnostic` сам ховає форму і показує
+`t("unavailable")` (`hasEligibleDiagnosticContent`, fail-open при збої/таймауті читання БД);
+це не помилка, а очікуваний стан порожнього каталогу.
+
 ## Скрипти
 
 | Файл | Роль |
