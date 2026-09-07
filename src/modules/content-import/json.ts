@@ -4,9 +4,10 @@ export type ImportJsonDocument = {
   themes: RawRow[];
   themeConnections: RawRow[];
   quizTasks: RawRow[];
+  problems: RawRow[];
 };
 
-const REQUIRED_TOP_LEVEL_KEYS = ["themes", "themeConnections", "quizTasks"] as const;
+const REQUIRED_TOP_LEVEL_KEYS = ["themes", "themeConnections", "quizTasks", "problems"] as const;
 
 function toRawRows(value: unknown, datasetLabel: string, errors: string[]): RawRow[] {
   if (!Array.isArray(value)) {
@@ -63,8 +64,9 @@ export function parseImportJsonDocument(
   const themes = toRawRows(obj.themes, "themes", errors);
   const themeConnections = toRawRows(obj.themeConnections, "themeConnections", errors);
   const quizTasks = toRawRows(obj.quizTasks, "quizTasks", errors);
+  const problems = toRawRows(obj.problems, "problems", errors);
 
   if (errors.length > 0) return { errors };
 
-  return { document: { themes, themeConnections, quizTasks }, errors: [] };
+  return { document: { themes, themeConnections, quizTasks, problems }, errors: [] };
 }

@@ -5,18 +5,21 @@ import type {
   QuizTaskRecord,
   ThemeConnectionRecord,
   ThemeRecord,
+  ProblemRecord,
 } from "./validate";
 
 export type ImportDatasets = {
   themes: ThemeRecord[];
   themeConnections: ThemeConnectionRecord[];
   quizTasks: QuizTaskRecord[];
+  problems: ProblemRecord[];
 };
 
 export type DatasetCounts = {
   themes: number;
   themeConnections: number;
   quizTasks: number;
+  problems: number;
 };
 
 export type ImportSummary = {
@@ -45,9 +48,14 @@ const SQL_INSERT_QUIZ_TASKS_PREFIX =
 const SQL_UPSERT_QUIZ_TASKS_SUFFIX =
   " ON DUPLICATE KEY UPDATE name = VALUES(name), task_text = VALUES(task_text), theme_id = VALUES(theme_id), answer_1 = VALUES(answer_1), answer_2 = VALUES(answer_2), answer_3 = VALUES(answer_3), answer_4 = VALUES(answer_4), right_answer_n = VALUES(right_answer_n), comments = VALUES(comments), difficulty = VALUES(difficulty)";
 
+const SQL_INSERT_PROBLEMS_PREFIX = 
+  "INSERT INTO problems (id, name, problem_text, theme_id, answer_1, answer_2, answer_3, answer_4, right_answer_n, comments, difficulty) VALUES ";
+const SQL_UPSERT_PROBLEMS_SUFFIX = 
+  "  ON DUPLICATE KEY UPDATE name = VALUES(name), problem_text = VALUES(problem_text), theme_id = VALUES(theme_id), answer_1 = VALUES(answer_1), answer_2 = VALUES(answer_2), answer_3 = VALUES(answer_3), answer_4 = VALUES(answer_4), right_answer_n = VALUES(right_answer_n), comments = VALUES(comments), difficulty = VALUES(difficulty)";
+
 async function findExistingIds(
   connection: SqlConnection,
-  table: "themes" | "theme_connections" | "quiz_tasks",
+  table: "themes" | "theme_connections" | "quiz_tasks" | "problems",
   ids: number[],
 ): Promise<Set<number>> {
   if (ids.length === 0) return new Set();
@@ -157,6 +165,43 @@ async function upsertQuizTasks(
   );
 }
 
+async function upsertProblems(
+  connection: SqlConnection,
+  records: ProblemRecord[],
+): Promise<{ inserted: number; updated: number }> {
+  if (records.length === 0) return { inserted: 0, updated: 0 };
+
+  const existingIds = await findExistingIds(
+    connection,
+    "problems",
+    records.map((r) => r.id),
+  );
+  const placeholders = records
+    .map(() => "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    .join(", ");
+  const params = records.flatMap((r) => [
+    r.id,
+    r.name,
+    r.problemText,
+    r.themeId,
+    r.answer1,
+    r.answer2,
+    r.answer3,
+    r.answer4,
+    r.rightAnswerN,
+    r.comments,
+    r.difficulty,
+  ]);
+  await connection.execute(
+    SQL_INSERT_PROBLEMS_PREFIX + placeholders + SQL_UPSERT_PROBLEMS_SUFFIX,
+    params,
+  );
+  return countInsertedUpdated(
+    records.map((r) => r.id),
+    existingIds,
+  );
+}
+
 /** Validates cross-dataset foreign-key references against the live `themes` table. */
 async function checkThemeReferences(
   connection: SqlConnection,
@@ -212,6 +257,7 @@ export async function importToDatabase(
         datasets.themeConnections,
       );
       const quizTasks = await upsertQuizTasks(connection, datasets.quizTasks);
+      const problems = await upsertProblems(connection, datasets.problems);
 
       await connection.commit();
 
@@ -219,11 +265,13 @@ export async function importToDatabase(
         themes: themes.inserted,
         themeConnections: themeConnections.inserted,
         quizTasks: quizTasks.inserted,
+        problems: problems.inserted,
       };
       const updated: DatasetCounts = {
         themes: themes.updated,
         themeConnections: themeConnections.updated,
         quizTasks: quizTasks.updated,
+        problems: problems.updated,
       };
       return {
         inserted,

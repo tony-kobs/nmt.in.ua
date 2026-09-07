@@ -1,8 +1,8 @@
 /**
  * Column lists and length limits, verified against the `themes`,
- * `theme_connections`, and `quiz_tasks` tables in phpMyAdmin. Column order
- * here is also the required CSV header order and the SQL column order used
- * for every INSERT.
+ * `theme_connections`, `quiz_tasks`, and `problems` tables in phpMyAdmin. 
+ * Column order here is also the required CSV header order and the SQL column 
+ * order used for every INSERT.
  */
 
 export const THEMES_COLUMNS = ["id", "name", "description", "ord"] as const;
@@ -15,6 +15,19 @@ export const QUIZ_TASKS_COLUMNS = [
   "id",
   "name",
   "task_text",
+  "theme_id",
+  "answer_1",
+  "answer_2",
+  "answer_3",
+  "answer_4",
+  "right_answer_n",
+  "comments",
+  "difficulty",
+] as const;
+export const PROBLEMS_COLUMNS = [
+  "id",
+  "name",
+  "problem_text",
   "theme_id",
   "answer_1",
   "answer_2",
