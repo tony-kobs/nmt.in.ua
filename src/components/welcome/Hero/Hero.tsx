@@ -33,6 +33,9 @@ export async function Hero() {
             <Link href="/login" className={`${css.btn} ${css.btnGhost}`}>
               {t("ctaSecondary")}
             </Link>
+            <Link href="/diagnostic" className={`${css.btn} ${css.btnGhost}`}>
+              {t("ctaDiagnostic")}
+            </Link>
           </div>
 
           <p className={css.heroNote}>

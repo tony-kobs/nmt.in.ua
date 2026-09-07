@@ -55,7 +55,7 @@ function limitFor(pathname: string): number {
   return LIMIT_PAGE;
 }
 
-const PUBLIC_PATHS = ["/", "/welcome", "/login", "/register"];
+const PUBLIC_PATHS = ["/", "/welcome", "/login", "/register", "/diagnostic"];
 
 /** Files shipped in /public — images, fonts, manifest. Never behind the auth guard. */
 const PUBLIC_ASSET =

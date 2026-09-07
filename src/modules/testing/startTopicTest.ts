@@ -1,4 +1,6 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ensureSelfScoreSchema } from "@/modules/self-score/schema";
+import { isValidSelfScore } from "@/modules/self-score/types";
 import {
   parseTopicTestMode,
   taskLimitForMode,
@@ -31,11 +33,20 @@ const SQL_INSERT_SESSION =
   "INSERT INTO task_sessions (user_id, session_type, theme_id, tasks_number, right_number, time, session_status, start_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 const SQL_INSERT_MAPPING_PREFIX =
   "INSERT INTO tasks2session (task_type, task_id, session_id, user_id, status) VALUES ";
+const SQL_INSERT_SELF_SCORE = `
+  INSERT INTO user_self_scores (user_id, guest_token, theme_id, score, source)
+  VALUES (?, NULL, ?, ?, 'pre_topic')
+`;
 
 export type StartTopicTestInput = {
   userId: number;
   themeId: number;
   mode?: TopicTestMode;
+  /** Required by TopicTestStart's pre-topic self-assessment step; written in
+   * the same transaction as the session so a failed start never leaves an
+   * orphan `user_self_scores` row (and vice versa). Omitted entirely by
+   * every other caller (e.g. planned/auto sessions). */
+  selfScore?: number;
 };
 
 export type StartTopicTestResult = {
@@ -78,14 +89,25 @@ export function validateStartTopicTestInput(
       "invalid_input",
     );
   }
-  const { userId, themeId, mode } = input as Record<string, unknown>;
+  const { userId, themeId, mode, selfScore } = input as Record<string, unknown>;
   if (!isPositiveInt(userId) || !isPositiveInt(themeId)) {
     throw new StartTopicTestError(
       "userId and themeId must be positive integers.",
       "invalid_input",
     );
   }
-  return { userId, themeId, mode: parseTopicTestMode(mode) };
+  if (selfScore !== undefined && !isValidSelfScore(selfScore)) {
+    throw new StartTopicTestError(
+      "selfScore must be an integer 1-10.",
+      "invalid_input",
+    );
+  }
+  return {
+    userId,
+    themeId,
+    mode: parseTopicTestMode(mode),
+    selfScore: selfScore as number | undefined,
+  };
 }
 
 /** Guards against duplicate concurrent start requests from the same user. */
@@ -117,6 +139,10 @@ export async function startTopicTest(
   pendingUserIds.add(input.userId);
 
   try {
+    if (input.selfScore !== undefined) {
+      await ensureSelfScoreSchema(deps.getConnection);
+    }
+
     const connection = await deps.getConnection();
     try {
       await connection.beginTransaction();
@@ -165,6 +191,20 @@ export async function startTopicTest(
           "Failed to link all tasks to the new session.",
           "db_error",
         );
+      }
+
+      if (input.selfScore !== undefined) {
+        const selfScoreInsert = await connection.execute(
+          SQL_INSERT_SELF_SCORE,
+          [input.userId, input.themeId, input.selfScore],
+        );
+        if (selfScoreInsert.affectedRows !== 1) {
+          await connection.rollback();
+          throw new StartTopicTestError(
+            "Failed to store the pre-topic self-score.",
+            "db_error",
+          );
+        }
       }
 
       await connection.commit();

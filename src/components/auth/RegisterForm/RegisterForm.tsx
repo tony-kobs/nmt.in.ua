@@ -18,9 +18,12 @@ const INITIAL: RegisterActionState = { status: "idle" };
 
 type RegisterFormProps = {
   nextPath: string;
+  /** Set when arriving via `/register?from=diagnostic` — lets `registerAction`
+   * claim the guest's diagnostic progress after a successful signup. */
+  from?: "diagnostic";
 };
 
-export function RegisterForm({ nextPath }: RegisterFormProps) {
+export function RegisterForm({ nextPath, from }: RegisterFormProps) {
   const t = useTranslations("RegisterForm");
   const [state, formAction, pending] = useActionState(registerAction, INITIAL);
 
@@ -29,11 +32,14 @@ export function RegisterForm({ nextPath }: RegisterFormProps) {
       <header className={css.intro}>
         <p className={css.kicker}>{t("kicker")}</p>
         <h1 className={css.title}>{t("title")}</h1>
-        <p className={css.lead}>{t("lead")}</p>
+        <p className={css.lead}>
+          {from === "diagnostic" ? t("leadFromDiagnostic") : t("lead")}
+        </p>
       </header>
 
       <form className={css.form} action={formAction}>
         <input type="hidden" name="next" value={nextPath} />
+        <input type="hidden" name="from" value={from ?? ""} />
 
         <label className={css.field}>
           <span className={css.label}>{t("displayName")}</span>

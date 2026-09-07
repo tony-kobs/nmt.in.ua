@@ -16,16 +16,20 @@ export async function generateMetadata() {
 }
 
 type RegisterPageProps = {
-  searchParams: Promise<{ next?: string | string[] }>;
+  searchParams: Promise<{ next?: string | string[]; from?: string | string[] }>;
 };
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   const params = await searchParams;
   const rawNext = Array.isArray(params.next) ? params.next[0] : params.next;
+  const rawFrom = Array.isArray(params.from) ? params.from[0] : params.from;
 
   return (
     <AuthShell>
-      <RegisterForm nextPath={safeInternalPath(rawNext)} />
+      <RegisterForm
+        nextPath={safeInternalPath(rawNext)}
+        from={rawFrom === "diagnostic" ? "diagnostic" : undefined}
+      />
     </AuthShell>
   );
 }
