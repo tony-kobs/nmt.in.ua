@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { DiagnosticIntro } from "@/components/diagnostic/DiagnosticIntro";
+import { DiagnosticShell } from "@/components/diagnostic/DiagnosticShell";
 import { createPageMetadata } from "@/constants/seo";
 import { hasEligibleDiagnosticContent } from "@/modules/diagnostic";
 
@@ -47,5 +48,9 @@ async function resolveContentAvailable(): Promise<boolean> {
  * submit the form (inside startDiagnosticAction), not on this render. */
 export default async function DiagnosticPage() {
   const contentAvailable = await resolveContentAvailable();
-  return <DiagnosticIntro contentAvailable={contentAvailable} />;
+  return (
+    <DiagnosticShell mathDecor="intro">
+      <DiagnosticIntro contentAvailable={contentAvailable} />
+    </DiagnosticShell>
+  );
 }

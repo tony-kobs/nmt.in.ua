@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 import { TopicTrainer } from "@/components/testing/TopicTrainer";
+import { DiagnosticShell } from "@/components/diagnostic/DiagnosticShell";
 import { createPageMetadata } from "@/constants/seo";
 import {
   checkDiagnosticAnswerAction,
   finishDiagnosticSessionAction,
+  getDiagnosticThemeBreakdownAction,
   markDiagnosticSessionStartedAction,
 } from "@/modules/diagnostic/actions";
 import {
@@ -61,20 +63,23 @@ export default async function DiagnosticSessionPage({
   }
 
   return (
-    <TopicTrainer
-      sessionId={sessionId}
-      themeCode={session.themeCode}
-      themeName={session.themeName}
-      tasks={session.tasks}
-      initialSummary={session.summary}
-      initialRecommendations={[]}
-      mode="diagnostic"
-      isGuest={owner.userId === null}
-      actions={{
-        checkAnswer: checkDiagnosticAnswerAction,
-        finishTrainerSession: finishDiagnosticSessionAction,
-        markSessionStarted: markDiagnosticSessionStartedAction,
-      }}
-    />
+    <DiagnosticShell mathDecor="geometry">
+      <TopicTrainer
+        sessionId={sessionId}
+        themeCode={session.themeCode}
+        themeName={session.themeName}
+        tasks={session.tasks}
+        initialSummary={session.summary}
+        initialRecommendations={[]}
+        mode="diagnostic"
+        isGuest={owner.userId === null}
+        actions={{
+          checkAnswer: checkDiagnosticAnswerAction,
+          finishTrainerSession: finishDiagnosticSessionAction,
+          markSessionStarted: markDiagnosticSessionStartedAction,
+        }}
+        diagnosticThemeBreakdownAction={getDiagnosticThemeBreakdownAction}
+      />
+    </DiagnosticShell>
   );
 }

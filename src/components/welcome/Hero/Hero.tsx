@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Reveal } from "@/components/ui/Reveal";
+import { DiagnosticPageTurnLink } from "@/components/welcome/DiagnosticPageTurnLink";
 import { ArrowRightIcon, CheckIcon, TimerIcon, TrendIcon } from "../icons";
 import css from "../landing.module.css";
 
@@ -33,9 +34,9 @@ export async function Hero() {
             <Link href="/login" className={`${css.btn} ${css.btnGhost}`}>
               {t("ctaSecondary")}
             </Link>
-            <Link href="/diagnostic" className={`${css.btn} ${css.btnGhost}`}>
+            <DiagnosticPageTurnLink href="/diagnostic" className={`${css.btn} ${css.btnGhost}`}>
               {t("ctaDiagnostic")}
-            </Link>
+            </DiagnosticPageTurnLink>
           </div>
 
           <p className={css.heroNote}>

@@ -183,6 +183,7 @@
     "checkingAnswer": "Antwort wird geprüft…",
     "correct": "Richtig",
     "incorrect": "Falsch",
+    "answerSaved": "Antwort gespeichert",
     "skip": "Überspringen",
     "abort": "Test beenden",
     "next": "Nächste Aufgabe",
@@ -230,6 +231,34 @@
     "mistakeReview": "Fehleranalyse ({count})",
     "saveDiagnosticProgress": "Fortschritt speichern — registrieren"
   },
+  "DiagnosticResult": {
+    "kicker": "Ergebnis des Einstufungstests",
+    "title": "Du weißt schon, womit du anfangen solltest",
+    "lead": "Wir haben deine Antworten analysiert und die Themen ermittelt, die bereits gut laufen, sowie die, bei denen du dich am schnellsten verbessern kannst.",
+    "sessionLabel": "Einstufungstest Nr. {sessionId}",
+    "statCorrect": "Richtige Antworten",
+    "statResult": "Ergebnis",
+    "statTime": "Zeit",
+    "priorityTitle": "{count} Themen helfen dir am meisten auf dem Weg zu einem sicheren Ergebnis",
+    "priorityLead": "Beginne mit diesen – hier ist der schnellste Fortschritt möglich.",
+    "strongTitle": "Läuft schon gut",
+    "analyzing": "Antworten werden nach Themen ausgewertet…",
+    "noBreakdown": "Eine Auswertung nach Themen ist nach deinem nächsten Test verfügbar.",
+    "topicScore": "{correct} / {total} · {percent}",
+    "registerKicker": "Registrierung in 30 Sekunden",
+    "registerTitle": "Registriere dich, um dein Ergebnis zu speichern und mit deinem persönlichen Plan weiterzumachen.",
+    "registerBenefitSave": "eine persönliche Themenliste für die Vorbereitung;",
+    "registerBenefitPlan": "Aufgaben passend zu deinem Niveau;",
+    "registerBenefitProgress": "Fortschritt zu jedem Thema;",
+    "registerBenefitHistory": "deinen Ergebnisverlauf;",
+    "registerBenefitNext": "eine Empfehlung, was als Nächstes zu lernen ist.",
+    "registerCta": "Konto erstellen und weitermachen →",
+    "loginPrompt": "Hast du schon ein Konto?",
+    "loginCta": "Anmelden",
+    "resultsCta": "Ergebnisse nach Themen",
+    "sessionsCta": "Meine Sitzungen",
+    "newTest": "Test wiederholen"
+  },
   "TopicResultsTable": {
     "title": "Ergebnisse nach Thema",
     "lead": "Fortschritt nach Thema: Gesamtergebnis, letzte Versuche und durchschnittliche Antwortgeschwindigkeit.",
@@ -255,6 +284,15 @@
       "insufficientTasks": "Für den Einstufungstest gibt es derzeit nicht genügend Aufgaben. Bitte versuche es später erneut.",
       "alreadyInProgress": "Eine Anfrage wird bereits ausgeführt. Bitte warte.",
       "generic": "Der Einstufungstest konnte nicht gestartet werden. Bitte versuche es erneut."
+    },
+    "info": {
+      "title": "Das bringt dir der Einstufungstest",
+      "items": {
+        "tasks": "30 Aufgaben zu verschiedenen Themen",
+        "duration": "etwa 10–15 Minuten",
+        "insight": "zeigt deine Stärken und Schwächen",
+        "recommendations": "nach dem Test persönliche Empfehlungen"
+      }
     }
   },
   "LearningSessionsTable": {
