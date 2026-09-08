@@ -1,14 +1,35 @@
+/**
+ * A fixed, comfortable button size (not `1fr`-stretched to the panel width)
+ * so the 1-10 grid stays compact and centered regardless of how wide the
+ * surrounding page is — see the diagnostic-intro layout regression this
+ * fixed: `1fr` columns inside an unconstrained ancestor stretched each
+ * single-digit button to hundreds of pixels wide.
+ */
 .scoreWrap :global([role="tablist"]) {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 6px;
-  width: 100%;
+  grid-template-columns: repeat(5, minmax(44px, 56px));
+  justify-content: center;
+  gap: 8px;
 }
 
 .scoreWrap :global(button) {
   width: 100%;
-  min-width: 0;
+  min-width: 44px;
   min-height: 44px;
-  padding: 8px 2px;
+  padding: 8px 4px;
   justify-content: center;
+}
+
+/**
+ * 10 columns need >= 512px (10 * 44px min button + 9 * 8px gaps) plus the
+ * PagePanel's own padding (24px/side below 768px, see PageFrame.module.css)
+ * and the page's --container-pad gutters — at 480px that math doesn't work
+ * out, so the grid overflowed the card between ~480-560px. 640px leaves
+ * enough room at every panel padding step to switch to 10 columns without
+ * clipping.
+ */
+@media (min-width: 640px) {
+  .scoreWrap :global([role="tablist"]) {
+    grid-template-columns: repeat(10, minmax(44px, 56px));
+  }
 }

@@ -33,9 +33,14 @@
   background: var(--surface);
 }
 
+.tab:focus-visible {
+  outline: 2px solid rgb(31 143 69 / 65%);
+  outline-offset: 2px;
+}
+
 .tabActive {
-  border-color: rgb(31 143 69 / 40%);
-  background: var(--grad-mint);
+  border-color: rgb(31 143 69 / 70%);
+  background: rgb(214 239 220);
   box-shadow: var(--shadow-sm);
   color: var(--green-dark);
 }

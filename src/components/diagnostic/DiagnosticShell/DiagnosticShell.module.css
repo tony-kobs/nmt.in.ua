@@ -1,0 +1,210 @@
+.page {
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  overflow-x: clip;
+  /* Same token + notebook-grid decor AuthShell/DashboardShell use for their
+   * background — diagnostic bypasses those shells (see DashboardShell's
+   * passthrough list) but should still read as the same product, not a
+   * plain unstyled page. */
+  background: var(--grad-aurora);
+}
+
+.decor {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.decorGrid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgb(94 76 40 / 11%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(94 76 40 / 11%) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(180deg, rgb(0 0 0 / 65%), rgb(0 0 0 / 18%) 70%);
+}
+
+.decorOrbA,
+.decorOrbB {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(10px);
+}
+
+.decorOrbA {
+  top: -12rem;
+  right: -7rem;
+  width: min(72vw, 30rem);
+  height: min(72vw, 30rem);
+  background: radial-gradient(circle, rgb(31 143 69 / 18%), transparent 68%);
+}
+
+.decorOrbB {
+  bottom: -10rem;
+  left: -8rem;
+  width: min(64vw, 26rem);
+  height: min(64vw, 26rem);
+  background: radial-gradient(circle, rgb(150 118 62 / 16%), transparent 70%);
+}
+
+/* Subtle math watermark for the lower part of the page — a coordinate axis,
+ * a plotted curve and a few formula fragments, faded in from the top so it
+ * only reads in the area below the intro card. Reuses the sepia decor tone
+ * (see .decorGrid) instead of introducing a new accent color. */
+.decorMath {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  width: 100%;
+  height: clamp(220px, 32vw, 380px);
+  color: rgb(94 76 40 / 60%);
+  mask-image: linear-gradient(180deg, transparent, rgb(0 0 0 / 100%) 45%);
+}
+
+.decorAxis,
+.decorCurve {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.decorAxis {
+  opacity: 0.3;
+}
+
+.decorCurve {
+  opacity: 0.45;
+}
+
+/* Heron's-formula variant (session + result screens): a plain triangle
+ * outline plus one dashed altitude as the "auxiliary construction line". */
+.decorTriangle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  opacity: 0.4;
+}
+
+.decorAux {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  opacity: 0.25;
+}
+
+.decorGlyph,
+.decorFormula {
+  fill: currentColor;
+}
+
+.decorGlyph {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 700;
+  opacity: 0.35;
+}
+
+.decorFormula {
+  font-family: var(--font);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.28;
+}
+
+.inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: var(--content-narrow);
+  margin-inline: auto;
+  padding: var(--space-lg) var(--container-pad) var(--space-3xl);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 16px 8px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-pill);
+  background: rgb(253 251 244 / 78%);
+  color: var(--muted);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    transform var(--t) var(--ease),
+    background-color var(--t) var(--ease),
+    border-color var(--t) var(--ease);
+}
+
+.backLink:hover,
+.backLink:focus-visible {
+  transform: translateX(-2px);
+  border-color: rgb(31 143 69 / 45%);
+  background: var(--surface);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  text-decoration: none;
+}
+
+.brandGlyph {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--grad-brand);
+  color: #fdfbf4;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.brandName {
+  display: none;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink-deep);
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .inner {
+    padding-block: var(--space-xl) var(--section-y);
+  }
+
+  .brandName {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backLink:hover {
+    transform: none;
+  }
+}

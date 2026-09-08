@@ -1,0 +1,1 @@
+export { DiagnosticInfoPanel } from "./DiagnosticInfoPanel";

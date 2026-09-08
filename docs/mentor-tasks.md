@@ -186,6 +186,64 @@ user_self_scores (
 **08.09:** самооцінку перед стартом тесту за темою знято з `TopicTestStart`
 (лишилась на `/diagnostic`). Кількість завдань учень вписує сам.
 
+### Виконано (`feat/interactive-diagnostic-experience`) — підсумок діагностики й архітектура завдань
+
+Підсумок вступного тесту (`mode="diagnostic"`) тепер окремий компонент
+`DiagnosticResultSummary` (не гілка всередині `TopicTrainerSummary`): заголовок
+«Ти вже знаєш, з чого почати», до 3 карток **пріоритетних тем** (найслабші за
+% з поточної спроби) і до 3 карток **сильних тем**, потім CTA реєстрації з
+переліком вигод (`/register?from=diagnostic`) або, для вже увійшлого учня,
+лінки «Результати за темами» / «Мої сесії» — без %-фокусу і без відновлення
+колонки «Останні результати» (вона лишається прибраною, див. запис
+2026-09-08 у `design-system.mdc`).
+
+Дані для карток тем **не нова таблиця** — `src/modules/diagnostic/diagnosticThemeBreakdown.ts`
+рахує correct/total per-theme з тих самих `tasks2session` рядків, приєднаних
+до `quiz_tasks.theme_id` (діагностична сесія тем не зберігає — вона на кілька
+тем одразу — але кожне завдання в ній усе одно вказує на свою тему). Підсумок
+завантажується окремим викликом після finish (`getDiagnosticThemeBreakdownAction`),
+за тим самим патерном, що й `getSessionMistakeReviewAction` для Ultimate —
+без правок спільного `FinishTrainerSessionActionState`.
+
+Режим `diagnostic` у `TopicTrainer` більше не показує «Вірно» / «Невірно» —
+нейтральне «Відповідь збережено» (`resolveAnswerFeedbackKind` /
+`resolveAnswerCardState` у `src/modules/testing/answerCardState.ts`, чисті
+функції з юніт-тестами). Стандартний topic-test і Ultimate поведінки не
+змінили.
+
+**Архітектура інтерактивних завдань** — `src/modules/testing/taskPresentation.ts`
+(`resolveTaskPresentation`). Типізовано весь цільовий набір форматів (`choice`,
+`visual-choice`, `numeric-line`, `matching`, `ordering`, `error-spotting`,
+`fill-gap`, `table-choice`, `expression-builder`), але поточна схема
+`quiz_tasks` (текст + 4 фіксовані відповіді, один правильний індекс) реально
+підтримує лише два:
+
+- `choice` — як і раніше, плюс опційний **візуал** з `task_text`: якщо текст
+  завдання починається з `![alt](url)`, картинку виносить у візуальну зону
+  (`TaskVisualArea`), а решту тексту рендерить як звичайне питання. Без нової
+  колонки — використовує вже наявне поле `task_text`.
+- `table-choice` — якщо `task_text` починається з pipe-таблиці (GFM-стиль:
+  `| ... |` + роздільник `| --- |`), таблицю виносить у візуальну зону, а
+  текст під нею — питання. Той самий 4-варіантний вибір відповіді.
+
+Решта форматів **лишаються лише типами** — щоб реалізувати їх насправді,
+потрібні нові колонки/таблиці (напр. `answer_image_url` для `visual-choice`,
+впорядкований список кроків для `ordering`, `matching`-пари, числовий
+діапазон + допуск для `numeric-line`). Поки такої схеми немає,
+`resolveTaskPresentation` ніколи їх не повертає — небезпечний UI під
+неіснуючі дані не пишемо. Коли з'явиться потрібна колонка/таблиця: додати
+`case` у `resolveTaskPresentation`, новий варіант `TaskVisual`, і рендерер у
+`TaskVisualArea` (або окремий компонент для не-візуальних форматів на кшталт
+`ordering`/`matching`).
+
+**Файли:** `src/modules/diagnostic/diagnosticThemeBreakdown.ts`,
+`src/modules/testing/{taskPresentation,answerCardState}.ts`,
+`src/components/diagnostic/DiagnosticResultSummary/`,
+`src/components/testing/{TaskVisualArea,TopicTrainer}/`.
+
+**DB/схема:** без змін — усе виведено з наявних `tasks2session` / `quiz_tasks`
+/ `themes` і з наявного поля `task_text`.
+
 ---
 
 ## Таска 6.5 — Наповнення банку завдань

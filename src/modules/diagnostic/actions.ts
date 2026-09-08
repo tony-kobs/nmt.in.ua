@@ -24,6 +24,11 @@ import {
   startDiagnosticTest,
   StartDiagnosticTestError,
 } from "./startDiagnosticTest";
+import {
+  getDiagnosticThemeBreakdown,
+  toDiagnosticTopicInsight,
+  type DiagnosticTopicInsight,
+} from "./diagnosticThemeBreakdown";
 
 export type StartDiagnosticActionErrorCode =
   | "invalidSelfScore"
@@ -153,6 +158,25 @@ export async function finishDiagnosticSessionAction(
     }
     console.error("finishDiagnosticSessionAction: unexpected error", error);
     return { status: "error", code: "generic" };
+  }
+}
+
+/**
+ * Fetched as a follow-up call after a successful finish — same shape as how
+ * `getSessionMistakeReviewAction` enriches the Ultimate summary — rather than
+ * folded into `FinishTrainerSessionActionState`, so the shared testing/type
+ * surface used by standard and Ultimate sessions stays untouched.
+ */
+export async function getDiagnosticThemeBreakdownAction(
+  sessionId: number,
+): Promise<DiagnosticTopicInsight> {
+  try {
+    const owner = await resolveOwnerForWrite();
+    const stats = await getDiagnosticThemeBreakdown(sessionId, owner);
+    return toDiagnosticTopicInsight(stats);
+  } catch (error) {
+    console.error("getDiagnosticThemeBreakdownAction: unexpected error", error);
+    return { strongest: [], priority: [] };
   }
 }
 

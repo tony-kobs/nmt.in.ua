@@ -47,6 +47,19 @@ export {
 } from "./getDiagnosticSessionTasks";
 
 export {
+  getDiagnosticThemeBreakdown,
+  selectPriorityTopics,
+  selectStrongTopics,
+  toDiagnosticTopicInsight,
+  PRIORITY_TOPICS_LIMIT,
+  STRONG_TOPICS_LIMIT,
+} from "./diagnosticThemeBreakdown";
+export type {
+  DiagnosticThemeStat,
+  DiagnosticTopicInsight,
+} from "./diagnosticThemeBreakdown";
+
+export {
   markDiagnosticSessionStarted,
   MarkDiagnosticSessionStartedError,
 } from "./markDiagnosticSessionStarted";
@@ -59,5 +72,6 @@ export {
   checkDiagnosticAnswerAction,
   finishDiagnosticSessionAction,
   markDiagnosticSessionStartedAction,
+  getDiagnosticThemeBreakdownAction,
 } from "./actions";
 export type { StartDiagnosticActionState } from "./actions";

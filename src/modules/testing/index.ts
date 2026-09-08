@@ -92,6 +92,24 @@ export {
   TASK_STATUS_CORRECT,
   TASK_STATUS_INCORRECT,
 } from "./types";
+export {
+  resolveTaskPresentation,
+  IMPLEMENTED_TASK_FORMATS,
+} from "./taskPresentation";
+export type {
+  TaskFormat,
+  ImplementedTaskFormat,
+  TaskVisual,
+  TaskPresentation,
+} from "./taskPresentation";
+export {
+  resolveAnswerCardState,
+  resolveAnswerFeedbackKind,
+} from "./answerCardState";
+export type {
+  AnswerCardVisualState,
+  AnswerFeedbackKind,
+} from "./answerCardState";
 
 export type TrainerSession = {
   id: string;
