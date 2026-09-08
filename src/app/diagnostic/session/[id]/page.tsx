@@ -63,6 +63,8 @@ export default async function DiagnosticSessionPage({
   return (
     <TopicTrainer
       sessionId={sessionId}
+      themeCode={session.themeCode}
+      themeName={session.themeName}
       tasks={session.tasks}
       initialSummary={session.summary}
       initialRecommendations={[]}

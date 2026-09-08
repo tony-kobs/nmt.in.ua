@@ -177,7 +177,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | Таблиця | Навіщо | Важливі поля |
 | --- | --- | --- |
 | `app_users` | Наші акаунти | `login`, `role`. Не плутати з legacy `users` |
-| `themes` | Теми тесту | `id`, `name`, `description`, `ord` |
+| `themes` | Теми тесту | `id`, `code` (unique, напр. `ALG-08-QUAD-EQ` — якір розділу підручника), `name`, `description`, `ord` |
 | `theme_connections` | Граф «наступна тема» | `vertex_start` → `vertex_finish` |
 | `quiz_tasks` | Банк тренажера (тест / Ultimate / симулятор / діагностика) | `right_answer_n` (1–4) лише на сервері в сесії |
 | `problems` | Банк задачника (друк) | 6.6, таблиця + seed з `src/content/workbookProblems.json` |
@@ -196,6 +196,12 @@ scan усієї таблиці мапінгів, яка росте з кожни
 `quiz_tasks(theme_id)`. Перед запуском — `SHOW CREATE TABLE`, бо `ADD INDEX IF NOT
 EXISTS` у MySQL немає. **Застосована 08.09.2026**: `EXPLAIN` на `tasks2session` пішов
 з `type: ALL` (405 рядків) на `type: ref` + `Using index`.
+
+`scripts/sql/010_theme_codes.sql` додає `themes.code` (unique) і заповнює коди всім
+23 темам — це якір розділу підручника (`/materials/textbook#topic-<code>`). **Застосована
+08.09.2026.** Імпорт (`content-import`) колонку приймає опційно: немає коду в CSV/JSON —
+тема лишається без нього, а підручник показує «Матеріал готується». Нумерація міграцій
+розійшлась (два різні `008`), тому підручник переїхав на `010`; наступна вільна — `011`.
 
 ### Гостьова діагностика: модель власності
 
@@ -238,6 +244,7 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 | `/results`, `/sessions`, `/simulator` | Учень+ | Готово |
 | `/settings` | Лише admin | Готово |
 | `/materials` | Учень+ | Готово |
+| `/materials/textbook` | Учень+ | Підручник: зміст + розділ на кожну тему БД, якір `#topic-<themes.code>` |
 | `/problems` | Учень+ | Задачник: друкований тест по темі |
 | `/account` | Учень+ | Особистий кабінет: пароль, останні результати, вихід |
 | `/consultations` | Учень+ | Заглушка `NavStubPage` |
@@ -291,7 +298,7 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 
 | Задача | Де копати | Складність | Нотатка |
 | --- | --- | --- | --- |
-| 6.1 Підручник + `themes.code` | `src/content/learningMaterials`, `/materials`, імпорт `themes` | Середня | Конспекти по класах лишити; TOC з якорями |
+| 6.1 Підручник + `themes.code` | `src/content/learningMaterials`, `/materials`, імпорт `themes` | Середня | ✅ зроблено 08.09 (Марія, PR #60): `/materials/textbook`, конспекти по класах лишились, TOC з якорями |
 | 6.5 Банк 30–40 / тему | `content-import`, `docs/content-review/` | Контент | Спочатку розширити `varchar(50)` у відповідях |
 | 6.8 Варіанти НМТ | `startNmtSimulator`, `/simulator`, нові таблиці | Середня | Не RAND по всій базі — випадковий *варіант* |
 | 6.6 Задачник | `src/app/problems`, таблиця `problems`, імпорт опційний | Середня | ✅ зроблено 08.09: друкований тест по темі; банк `problems`; 439 завдань зі старого сайту |

@@ -43,7 +43,9 @@ type TopicTrainerActionOverrides = {
 
 type TopicTrainerProps = {
   sessionId: number;
-  themeCode: string;
+  /** `null` on a diagnostic attempt: it spans many themes, so the header shows
+   * the theme name without a textbook link. */
+  themeCode: string | null;
   themeName: string;
   tasks: SessionTask[];
   initialSummary?: TrainerSessionSummary | null;
@@ -340,12 +342,16 @@ export function TopicTrainer({
           <p className={css.meta}>
             {t("session", { id: sessionId })}
             {" · "}
-            <Link
-              href={`/materials/textbook#topic-${themeCode}`}
-              className={css.themeLink}
-            >
-              {themeName}
-            </Link>
+            {themeCode ? (
+              <Link
+                href={`/materials/textbook#topic-${themeCode}`}
+                className={css.themeLink}
+              >
+                {themeName}
+              </Link>
+            ) : (
+              themeName
+            )}
           </p>
         </div>
         <div className={css.badges}>

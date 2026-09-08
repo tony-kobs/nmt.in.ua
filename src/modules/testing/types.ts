@@ -37,7 +37,9 @@ export type TrainerSessionSummary = {
   percent: number;
   timeSec: number;
   themeId: number;
-  themeCode: string;
+  /** `null` for a diagnostic attempt: it spans many themes, so there is no
+   * single textbook section to link to. */
+  themeCode: string | null;
   themeName: string;
 };
 
@@ -45,7 +47,8 @@ export type SessionTasksResult = {
   sessionId: number;
   sessionStatus: number;
   themeId: number;
-  themeCode: string;
+  /** `null` for a diagnostic attempt — see `TrainerSessionSummary.themeCode`. */
+  themeCode: string | null;
   themeName: string;
   tasks: SessionTask[];
   summary: TrainerSessionSummary | null;
