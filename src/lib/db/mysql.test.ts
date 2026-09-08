@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { shouldRetryConnectError } from "./mysql";
+import { shouldPingIdleConnection, shouldRetryConnectError } from "./mysql";
 
 /**
  * Regression test for the diagnostic-intro "stuck on Готуємо тест…" bug:
@@ -51,4 +51,27 @@ test("never retries a non-transient error", () => {
     shouldRetryConnectError({ code: "ER_ACCESS_DENIED_ERROR" }, 1, 3),
     false,
   );
+});
+
+/**
+ * A `ping` before every query costs a full round trip. While a student answers
+ * question after question the pooled socket is handed back and taken again
+ * within milliseconds, so it can only be dead if the host dropped it while
+ * idle — which is what the threshold checks for.
+ */
+test("skips the ping for a socket released moments ago", () => {
+  assert.equal(shouldPingIdleConnection(10_000, 10_500, 10_000), false);
+});
+
+test("pings a socket that sat idle past the threshold", () => {
+  assert.equal(shouldPingIdleConnection(10_000, 20_000, 10_000), true);
+  assert.equal(shouldPingIdleConnection(10_000, 45_000, 10_000), true);
+});
+
+test("skips the ping for a freshly opened connection", () => {
+  assert.equal(shouldPingIdleConnection(undefined, 99_999, 10_000), false);
+});
+
+test("a zero threshold keeps pinging every reused socket", () => {
+  assert.equal(shouldPingIdleConnection(500, 500, 0), true);
 });

@@ -53,6 +53,21 @@ export async function requireUserId(): Promise<number> {
   return user.id;
 }
 
+/**
+ * User id straight from the signed session cookie — no `app_users` lookup.
+ *
+ * For hot paths (one Server Action per answered question) where only the id is
+ * needed: every query behind them filters by `user_id`, so an id whose row is
+ * gone matches nothing instead of leaking another user's data.
+ */
+export async function requireSessionUserId(): Promise<number> {
+  const payload = await getSessionPayload();
+  if (!payload) {
+    redirect("/login");
+  }
+  return payload.userId;
+}
+
 export async function requireRole(roles: UserRole[]): Promise<AuthUser> {
   const user = await requireUser();
   if (!roles.includes(user.role)) {

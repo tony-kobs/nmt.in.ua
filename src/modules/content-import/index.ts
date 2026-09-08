@@ -1,10 +1,10 @@
 /**
  * Module 2 — content import (CSV / JSON -> MySQL).
  *
- * `runContentImport` is the single entry point: it parses four CSV
- * files or one JSON file into the four datasets (`themes`,
- * `themeConnections`, `quizTasks`, `problems`), validates and normalizes every record,
- * then persists everything in one transaction via `importToDatabase`.
+ * `runContentImport` is the single entry point: it parses three required CSV
+ * files (plus optional `problems`) or one JSON file into datasets (`themes`,
+ * `themeConnections`, `quizTasks`, optional `problems`), validates and
+ * normalizes every record, then persists everything in one transaction.
  *
  * HTTP wiring lives in `src/app/api/import/route.ts`.
  */
@@ -39,7 +39,7 @@ export type ContentImportInput =
       themes: ImportSource;
       themeConnections: ImportSource;
       quizTasks: ImportSource;
-      problems: ImportSource;
+      problems?: ImportSource;
     }
   | { format: "json"; file: ImportSource };
 
@@ -51,14 +51,15 @@ async function buildCsvDatasets(input: {
   themes: ImportSource;
   themeConnections: ImportSource;
   quizTasks: ImportSource;
-  problems: ImportSource;
+  problems?: ImportSource;
 }) {
-  const [themesText, themeConnectionsText, quizTasksText, problemsText] = await Promise.all([
-    readText(input.themes),
-    readText(input.themeConnections),
-    readText(input.quizTasks),
-    readText(input.problems),
-  ]);
+  const [themesText, themeConnectionsText, quizTasksText, problemsText] =
+    await Promise.all([
+      readText(input.themes),
+      readText(input.themeConnections),
+      readText(input.quizTasks),
+      input.problems ? readText(input.problems) : Promise.resolve(""),
+    ]);
 
   const themesParsed = parseCsvDataset(
     themesText,
@@ -72,7 +73,9 @@ async function buildCsvDatasets(input: {
     "themeConnections",
   );
   const quizTasksParsed = parseCsvDataset(quizTasksText, QUIZ_TASKS_COLUMNS, "quizTasks");
-  const problemsParsed = parseCsvDataset(problemsText, PROBLEMS_COLUMNS, "problems");
+  const problemsParsed = input.problems
+    ? parseCsvDataset(problemsText, PROBLEMS_COLUMNS, "problems")
+    : { rows: [], errors: [] as string[] };
 
   const structuralErrors = [
     ...themesParsed.errors,

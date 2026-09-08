@@ -2,10 +2,11 @@
  * Модуль 3 — тести та інтерактивні тренажери.
  *
  * Реалізовано:
- * - `/` → TopicTestStart (звичайний + Ultimate)
+ * - `/` → TopicTestStart (тема + кількість завдань)
  * - `/session/[id]` → TopicTrainer
  * - `/simulator` → симулятор НМТ (`NmtTrainer`)
- * - `/problems`, `/materials` → заглушки (скоро)
+ * - `/problems` → задачник (друкований тест по темі)
+ * - `/materials` → конспекти
  */
 
 export type TopicTestConfig = {
@@ -65,6 +66,8 @@ export type {
   FinishTrainerSessionErrorCode,
 } from "./finishTrainerSession";
 export { getAvailableTopicThemes } from "./getAvailableTopicThemes";
+export { getWorkbookThemes, getWorkbookProblems } from "./getProblems";
+export type { WorkbookTheme, WorkbookProblem } from "./getProblems";
 export {
   getSessionTasks,
   GetSessionTasksError,

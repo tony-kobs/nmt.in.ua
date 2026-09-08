@@ -68,6 +68,7 @@ function baseDatasets(): ImportDatasets {
         difficulty: 1,
       },
     ],
+    problems: [],
   };
 }
 
@@ -85,11 +86,13 @@ test("importToDatabase commits, upserts in dependency order, and releases the co
     themes: 0,
     themeConnections: 1,
     quizTasks: 1,
+    problems: 0,
   });
   assert.deepEqual(summary.updated, {
     themes: 1,
     themeConnections: 0,
     quizTasks: 0,
+    problems: 0,
   });
   assert.equal(summary.totalInserted, 2);
   assert.equal(summary.totalUpdated, 1);

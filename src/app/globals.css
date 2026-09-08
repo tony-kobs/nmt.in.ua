@@ -107,6 +107,8 @@ a {
   --section-y: clamp(2.75rem, 2.046rem + 3.005vw, 4.75rem);
   --container-pad: clamp(1rem, 0.472rem + 2.254vw, 2.5rem);
   --container-max: 1200px;
+  /* Одноколонкові екрани кабінету: не розтягуються, коли сайдбар згорнуто. */
+  --content-narrow: 46rem;
 
   /* shape */
   --radius: 12px;

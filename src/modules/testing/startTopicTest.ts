@@ -2,6 +2,7 @@ import type { SqlConnection } from "@/lib/db/mysql";
 import { ensureSelfScoreSchema } from "@/modules/self-score/schema";
 import { isValidSelfScore } from "@/modules/self-score/types";
 import {
+  parseRequestedTaskCount,
   parseTopicTestMode,
   taskLimitForMode,
   TOPIC_TEST_TASK_COUNT,
@@ -42,10 +43,12 @@ export type StartTopicTestInput = {
   userId: number;
   themeId: number;
   mode?: TopicTestMode;
-  /** Required by TopicTestStart's pre-topic self-assessment step; written in
-   * the same transaction as the session so a failed start never leaves an
-   * orphan `user_self_scores` row (and vice versa). Omitted entirely by
-   * every other caller (e.g. planned/auto sessions). */
+  /** How many tasks to draw. Caps at the bank size. When omitted, falls
+   * back to the mode default (10 standard / 20 ultimate). */
+  taskCount?: number;
+  /** Optional pre-topic self-assessment. Written in the same transaction as
+   * the session. TopicTestStart no longer sends this; diagnostic and other
+   * callers may still pass it. */
   selfScore?: number;
 };
 
@@ -89,7 +92,10 @@ export function validateStartTopicTestInput(
       "invalid_input",
     );
   }
-  const { userId, themeId, mode, selfScore } = input as Record<string, unknown>;
+  const { userId, themeId, mode, selfScore, taskCount } = input as Record<
+    string,
+    unknown
+  >;
   if (!isPositiveInt(userId) || !isPositiveInt(themeId)) {
     throw new StartTopicTestError(
       "userId and themeId must be positive integers.",
@@ -102,10 +108,22 @@ export function validateStartTopicTestInput(
       "invalid_input",
     );
   }
+  let parsedTaskCount: number | undefined;
+  if (taskCount !== undefined) {
+    const parsed = parseRequestedTaskCount(taskCount);
+    if (parsed === null) {
+      throw new StartTopicTestError(
+        "taskCount must be an integer from 1 to MAX_TOPIC_TEST_TASKS.",
+        "invalid_input",
+      );
+    }
+    parsedTaskCount = parsed;
+  }
   return {
     userId,
     themeId,
     mode: parseTopicTestMode(mode),
+    taskCount: parsedTaskCount,
     selfScore: selfScore as number | undefined,
   };
 }
@@ -119,16 +137,18 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
 }
 
 /**
- * Starts a topic-test session: selects up to the mode limit of distinct tasks
- * for the theme (or all available when fewer), inserts one `task_sessions` row
- * and one `tasks2session` row per task, all inside a single transaction.
+ * Starts a topic-test session: selects up to `taskCount` (or the mode default)
+ * distinct tasks for the theme (or all available when fewer), inserts one
+ * `task_sessions` row and one `tasks2session` row per task, all inside a
+ * single transaction.
  */
 export async function startTopicTest(
   rawInput: unknown,
   deps: StartTopicTestDeps = { getConnection: loadDefaultConnection },
 ): Promise<StartTopicTestResult> {
   const input = validateStartTopicTestInput(rawInput);
-  const taskLimit = taskLimitForMode(input.mode ?? "standard");
+  const taskLimit =
+    input.taskCount ?? taskLimitForMode(input.mode ?? "standard");
 
   if (pendingUserIds.has(input.userId)) {
     throw new StartTopicTestError(

@@ -1,6 +1,7 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { ContentImportError } from "./errors";
 import { logSanitizedError } from "./logging";
+import { SQL_CREATE_PROBLEMS } from "./schema";
 import type {
   QuizTaskRecord,
   ThemeConnectionRecord,
@@ -251,6 +252,7 @@ export async function importToDatabase(
 ): Promise<ImportSummary> {
   const connection = await deps.getConnection();
   try {
+    await connection.execute(SQL_CREATE_PROBLEMS, []);
     await connection.beginTransaction();
     try {
       const themes = await upsertThemes(connection, datasets.themes);

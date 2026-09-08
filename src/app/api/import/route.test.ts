@@ -27,8 +27,8 @@ function validCsvFormData(): FormData {
 }
 
 const OK_SUMMARY: ImportSummary = {
-  inserted: { themes: 1, themeConnections: 0, quizTasks: 0 },
-  updated: { themes: 0, themeConnections: 0, quizTasks: 0 },
+  inserted: { themes: 1, themeConnections: 0, quizTasks: 0, problems: 0 },
+  updated: { themes: 0, themeConnections: 0, quizTasks: 0, problems: 0 },
   totalInserted: 1,
   totalUpdated: 0,
 };

@@ -44,8 +44,9 @@ export const DASHBOARD_NAV: NavItem[] = [
   {
     href: "/problems",
     label: "Задачник",
-    description: "Банк завдань для самостійної практики поза тестом.",
-    status: "soon",
+    description:
+      "Друкований тест по темі: таблиця завдань, щоб роздрукувати й дати дітям.",
+    status: "ready",
   },
   {
     href: "/settings",
