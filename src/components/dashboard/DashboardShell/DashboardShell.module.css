@@ -136,6 +136,11 @@
 }
 
 @media (min-width: 1240px) {
+  .materialsBody {
+    width: 100%;
+    max-width: none;
+  }
+
   .body {
     gap: var(--space-xl);
     padding-block: var(--space-lg) var(--space-2xl);

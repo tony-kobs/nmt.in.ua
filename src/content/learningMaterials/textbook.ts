@@ -4,6 +4,7 @@ import type { MaterialContentBlock } from "./sourceBlocks";
 type TextbookSource = {
   materialSlug: string;
   start?: string;
+  startOccurrence?: number;
   end?: string;
 };
 
@@ -49,6 +50,26 @@ const textbookSources: Partial<Record<string, TextbookSource[]>> = {
       start: "6. Математичні вирази",
       end: "8. Рівняння",
     },
+    {
+      materialSlug: "algebra-8-complex",
+      start: "6. Математичні вирази",
+      startOccurrence: 0,
+      end: "2. Арифметичні дії",
+    },
+    {
+      materialSlug: "algebra-8-complex",
+      start: "6. Математичні вирази",
+      startOccurrence: 1,
+    },
+    {
+      materialSlug: "algebra-10",
+      start: "6. Математичні вирази",
+    },
+    {
+      materialSlug: "math-7-algorithms",
+      start: "6. Математичні вирази",
+      end: "8. Рівняння",
+    },
   ],
   "GEO-07-CALC": [
     {
@@ -66,14 +87,37 @@ const textbookSources: Partial<Record<string, TextbookSource[]>> = {
       start: "8. Рівняння",
       end: "12. Текстові задачі:",
     },
+    {
+      materialSlug: "algebra-8-fractions",
+      start: "8. Рівняння",
+      end: "10. Ступені та корені",
+    },
+    {
+      materialSlug: "math-7-algorithms",
+      start: "7. Рівняння",
+      end: "12. Текстові задачі",
+    },
+    {
+      materialSlug: "math-7-algorithms",
+      start: "8. Рівняння",
+    },
   ],
   "ALG-08-POWERS-ROOTS": [
+    {
+      materialSlug: "algebra-7",
+      start: "10. Ступені та корені",
+    },
     {
       materialSlug: "algebra-8-fractions",
       start: "10. Ступені та корені",
     },
   ],
   "MATH-07-WORD-PROBLEMS": [
+    {
+      materialSlug: "algebra-7",
+      start: "12. Текстові задачі:",
+      end: "10. Ступені та корені",
+    },
     {
       materialSlug: "math-7-algorithms",
       start: "12. Текстові задачі",
@@ -90,6 +134,11 @@ const textbookSources: Partial<Record<string, TextbookSource[]>> = {
       materialSlug: "algebra-9",
       start: "14. Функції",
       end: "21. Комбінаторика. Прогресії",
+    },
+    {
+      materialSlug: "algebra-10",
+      start: "14. Функції",
+      end: "6. Математичні вирази",
     },
   ],
   "ALG-09-COMB-PROG": [
@@ -128,9 +177,14 @@ function getSourceBlocks(source: TextbookSource): MaterialContentBlock[] {
   let startIndex = 0;
 
   if (source.start) {
-    const headingIndex = material.blocks.findIndex(
-      (block) => getParagraphText(block) === source.start,
-    );
+    const headingIndexes = material.blocks
+      .map((block, index) =>
+        getParagraphText(block) === source.start ? index : -1,
+      )
+      .filter((index) => index >= 0);
+
+    const headingIndex =
+      headingIndexes[source.startOccurrence ?? 0] ?? -1;
 
     if (headingIndex === -1) {
       return [];

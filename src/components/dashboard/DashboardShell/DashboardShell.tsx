@@ -121,7 +121,7 @@ export function DashboardShell({
         />
       ) : null}
 
-      <div className={css.body}>
+      <div className={clsx(css.body, isMaterialsPage && css.materialsBody)}>
         <div
           className={clsx(
             css.sidebarSlot,
