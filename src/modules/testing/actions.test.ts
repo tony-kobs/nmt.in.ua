@@ -47,7 +47,7 @@ test("ignores any client-supplied userId and always uses the trusted demo user i
     };
   }) as typeof startTopicTest;
 
-  const formData = formDataWith({ themeId: "2", userId: "999", selfScore: "7" });
+  const formData = formDataWith({ themeId: "2", userId: "999", taskCount: "7" });
 
   await startTopicTestAction(IDLE_STATE, formData, {
     startTopicTest: spy,
@@ -58,11 +58,11 @@ test("ignores any client-supplied userId and always uses the trusted demo user i
     userId: 1,
     themeId: 2,
     mode: "standard",
-    selfScore: 7,
+    taskCount: 7,
   });
 });
 
-test("rejects a topic-test start with no self-score, without calling startTopicTest", async () => {
+test("rejects a topic-test start with no taskCount, without calling startTopicTest", async () => {
   let called = false;
   const spy = (async () => {
     called = true;
@@ -75,24 +75,24 @@ test("rejects a topic-test start with no self-score, without calling startTopicT
     { startTopicTest: spy, ...mockAuth },
   );
 
-  assert.deepEqual(state, { status: "error", code: "invalidSelfScore" });
+  assert.deepEqual(state, { status: "error", code: "invalidTaskCount" });
   assert.equal(called, false);
 });
 
-test("rejects a topic-test start with selfScore 0 or 11, without calling startTopicTest", async () => {
+test("rejects a topic-test start with an invalid taskCount, without calling startTopicTest", async () => {
   let called = false;
   const spy = (async () => {
     called = true;
     throw new Error("should not be called");
   }) as typeof startTopicTest;
 
-  for (const invalid of ["0", "11", "abc", "5.5"]) {
+  for (const invalid of ["0", "-1", "abc", "5.5", "201"]) {
     const state = await startTopicTestAction(
       IDLE_STATE,
-      formDataWith({ themeId: "2", selfScore: invalid }),
+      formDataWith({ themeId: "2", taskCount: invalid }),
       { startTopicTest: spy, ...mockAuth },
     );
-    assert.deepEqual(state, { status: "error", code: "invalidSelfScore" });
+    assert.deepEqual(state, { status: "error", code: "invalidTaskCount" });
   }
   assert.equal(called, false);
 });
@@ -130,7 +130,10 @@ test("the created session receives user_id = 1", async () => {
     release: () => {},
   };
 
-  const formData = formDataWith({ themeId: "3", selfScore: "6" });
+  const formData = formDataWith({
+    themeId: "3",
+    taskCount: String(TOPIC_TEST_TASK_COUNT),
+  });
 
   const state = await startTopicTestAction(IDLE_STATE, formData, {
     startTopicTest: (input) =>
@@ -217,7 +220,7 @@ test("a second submission while one is pending is rejected, not creating a dupli
   const runAction = (themeId: string) =>
     startTopicTestAction(
       IDLE_STATE,
-      formDataWith({ themeId, selfScore: "5" }),
+      formDataWith({ themeId, taskCount: String(TOPIC_TEST_TASK_COUNT) }),
       {
         startTopicTest: (input) =>
           startTopicTest(input, { getConnection: async () => connection }),

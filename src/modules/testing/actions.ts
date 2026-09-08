@@ -6,8 +6,10 @@ import {
   type RecommendationTranslator,
 } from "@/modules/recommendations";
 import { getStudentTopicStats } from "@/modules/recommendations/getStudentTopicStats";
-import { requireUserId } from "@/modules/auth/getCurrentUser";
-import { isValidSelfScore } from "@/modules/self-score/types";
+import {
+  requireSessionUserId,
+  type requireUserId,
+} from "@/modules/auth/getCurrentUser";
 import { revalidatePath } from "next/cache";
 import {
   checkAnswer,
@@ -23,7 +25,7 @@ import {
   MarkSessionStartedError,
 } from "./markSessionStarted";
 import { startTopicTest, StartTopicTestError } from "./startTopicTest";
-import { parseTopicTestMode, type TopicTestMode } from "./topicTestMode";
+import { parseRequestedTaskCount, type TopicTestMode } from "./topicTestMode";
 import { skipTaskAnswer, SkipTaskAnswerError } from "./skipTaskAnswer";
 import {
   getSessionMistakeReview,
@@ -45,7 +47,7 @@ export type StartTopicTestErrorCode =
   | "insufficientTasks"
   | "alreadyInProgress"
   | "invalidInput"
-  | "invalidSelfScore"
+  | "invalidTaskCount"
   | "generic";
 
 import { startNmtSimulator, StartNmtSimulatorError } from "./startNmtSimulator";
@@ -59,7 +61,7 @@ type AuthDeps = {
   requireUserId: typeof requireUserId;
 };
 
-const defaultAuthDeps: AuthDeps = { requireUserId };
+const defaultAuthDeps: AuthDeps = { requireUserId: requireSessionUserId };
 
 async function getRecommendationTranslator(
   locale: "uk" | "en" | "de",
@@ -86,14 +88,10 @@ export async function startTopicTestAction(
   deps: StartTopicTestActionDeps = { startTopicTest, ...defaultAuthDeps },
 ): Promise<StartTopicTestActionState> {
   const themeId = Number(formData.get("themeId"));
-  const mode = parseTopicTestMode(formData.get("mode"));
-  const rawSelfScore = Number(formData.get("selfScore"));
+  const taskCount = parseRequestedTaskCount(formData.get("taskCount"));
 
-  // A fresh self-assessment is required before every topic test — validated
-  // here (not just via the disabled Start button) since the client can
-  // never be trusted for this.
-  if (!isValidSelfScore(rawSelfScore)) {
-    return { status: "error", code: "invalidSelfScore" };
+  if (taskCount === null) {
+    return { status: "error", code: "invalidTaskCount" };
   }
 
   try {
@@ -101,8 +99,8 @@ export async function startTopicTestAction(
     const result = await deps.startTopicTest({
       userId,
       themeId,
-      mode,
-      selfScore: rawSelfScore,
+      taskCount,
+      mode: "standard",
     });
     return {
       status: "success",
@@ -146,7 +144,7 @@ export async function startNmtSimulatorAction(
   _formData: FormData,
 ): Promise<StartNmtSimulatorActionState> {
   try {
-    const userId = await requireUserId();
+    const userId = await requireSessionUserId();
 
     const result = await startNmtSimulator(userId);
 
@@ -400,6 +398,6 @@ export async function skipTaskAnswerAction(
 export async function getSessionMistakeReviewAction(
   sessionId: number,
 ): Promise<SessionMistakeItem[]> {
-  const userId = await requireUserId();
+  const userId = await requireSessionUserId();
   return getSessionMistakeReview(sessionId, userId);
 }

@@ -371,8 +371,7 @@ export function validateProblemsDataset(
   rows: RawRow[],
   datasetLabel = "problems",
 ): { records: ProblemRecord[]; errors: string[] } {
-  if (rows.length === 0)
-    return { records: [], errors: [`${datasetLabel}: dataset is empty`] };
+  if (rows.length === 0) return { records: [], errors: [] };
 
   const records: ProblemRecord[] = [];
   const errors: string[] = [];

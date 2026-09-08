@@ -104,6 +104,9 @@ export function TopicTrainer({
   const [timedOut, setTimedOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const finishingRef = useRef(false);
+  /** `pendingMappingId` only blocks the *next* render's clicks; two clicks
+   * inside one frame both read the stale state and fire two actions. */
+  const answeringRef = useRef(false);
   const t = useTranslations("TopicTrainer");
   const locale = useLocale() as "uk" | "en" | "de";
 
@@ -203,7 +206,8 @@ export function TopicTrainer({
   }
 
   async function handleSelect(answerNumber: SessionTaskAnswer["number"]) {
-    if (checkResult || isPending || isFinishing) return;
+    if (checkResult || isPending || isFinishing || answeringRef.current) return;
+    answeringRef.current = true;
 
     setSelectedByMappingId((prev) => ({
       ...prev,
@@ -212,15 +216,26 @@ export function TopicTrainer({
     setErrorMessage(null);
     setPendingMappingId(currentTask.mappingId);
 
-    const result = await resolvedActions.checkAnswer({
-      sessionId,
-      mappingId: currentTask.mappingId,
-      answerNumber,
-    });
-
-    setPendingMappingId(null);
+    let result: Awaited<ReturnType<typeof resolvedActions.checkAnswer>>;
+    try {
+      result = await resolvedActions.checkAnswer({
+        sessionId,
+        mappingId: currentTask.mappingId,
+        answerNumber,
+      });
+    } finally {
+      answeringRef.current = false;
+      setPendingMappingId(null);
+    }
 
     if (result.status !== "success") {
+      // Let the student pick again: keeping the highlight on an answer that was
+      // never recorded reads as "saved" while the buttons are live once more.
+      setSelectedByMappingId((prev) => {
+        const next = { ...prev };
+        delete next[currentTask.mappingId];
+        return next;
+      });
       setErrorMessage(t(`errors.checkAnswer.${result.code}`));
       return;
     }
@@ -238,16 +253,22 @@ export function TopicTrainer({
 
   async function handleSkip() {
     if (!isUltimate || checkResult || isPending || isFinishing) return;
+    if (answeringRef.current) return;
+    answeringRef.current = true;
 
     setErrorMessage(null);
     setPendingMappingId(currentTask.mappingId);
 
-    const result = await skipTaskAnswerAction({
-      sessionId,
-      mappingId: currentTask.mappingId,
-    });
-
-    setPendingMappingId(null);
+    let result: Awaited<ReturnType<typeof skipTaskAnswerAction>>;
+    try {
+      result = await skipTaskAnswerAction({
+        sessionId,
+        mappingId: currentTask.mappingId,
+      });
+    } finally {
+      answeringRef.current = false;
+      setPendingMappingId(null);
+    }
 
     if (result.status !== "success") {
       setErrorMessage(t(`errors.skip.${result.code}`));
@@ -266,15 +287,21 @@ export function TopicTrainer({
   }
 
   async function handleFinish() {
-    if (!allAnswered || isFinishing || isPending) return;
+    if (!allAnswered || isFinishing || isPending || finishingRef.current) return;
+    finishingRef.current = true;
 
     setErrorMessage(null);
     setIsFinishing(true);
 
-    const result = await resolvedActions.finishTrainerSession({ sessionId, locale });
-    setIsFinishing(false);
+    let result: Awaited<ReturnType<typeof resolvedActions.finishTrainerSession>>;
+    try {
+      result = await resolvedActions.finishTrainerSession({ sessionId, locale });
+    } finally {
+      setIsFinishing(false);
+    }
 
     if (result.status !== "success") {
+      finishingRef.current = false;
       setErrorMessage(t(`errors.finish.${result.code}`));
       return;
     }

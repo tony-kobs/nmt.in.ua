@@ -12,6 +12,8 @@ import {
   requireUser,
   setSessionCookie,
 } from "./getCurrentUser";
+import { changePassword, ChangePasswordError } from "./changePassword";
+import type { ChangePasswordErrorCode } from "./changePassword";
 import { createUser, CreateUserError, findUserByLogin } from "./users";
 import {
   PASSWORD_MAX_LEN,
@@ -133,8 +135,30 @@ export async function logoutAction(): Promise<void> {
   redirect("/login");
 }
 
-export async function logoutActionFromHeader(): Promise<void> {
-  await requireUser();
-  await clearSessionCookie();
-  redirect("/login");
+export type ChangePasswordActionState =
+  | { status: "idle" }
+  | { status: "ok" }
+  | { status: "error"; code: ChangePasswordErrorCode };
+
+export async function changePasswordAction(
+  _prev: ChangePasswordActionState,
+  formData: FormData,
+): Promise<ChangePasswordActionState> {
+  const user = await requireUser();
+
+  try {
+    await changePassword({
+      user,
+      currentPassword: String(formData.get("currentPassword") ?? ""),
+      newPassword: String(formData.get("newPassword") ?? ""),
+      newPasswordConfirm: String(formData.get("newPasswordConfirm") ?? ""),
+    });
+    return { status: "ok" };
+  } catch (error) {
+    if (error instanceof ChangePasswordError) {
+      return { status: "error", code: error.code };
+    }
+    console.error("changePasswordAction: unexpected error", error);
+    return { status: "error", code: "serverError" };
+  }
 }

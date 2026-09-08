@@ -4,6 +4,7 @@ import {
   validateQuizTasksDataset,
   validateThemeConnectionsDataset,
   validateThemesDataset,
+  validateProblemsDataset,
   type RawRow,
 } from "./validate";
 
@@ -242,4 +243,10 @@ test("validateQuizTasksDataset rejects difficulty outside 1..3", () => {
       error.includes("difficulty must be between 1 and 3"),
     ),
   );
+});
+
+test("validateProblemsDataset allows an empty workbook dataset", () => {
+  const result = validateProblemsDataset([]);
+  assert.deepEqual(result.records, []);
+  assert.deepEqual(result.errors, []);
 });

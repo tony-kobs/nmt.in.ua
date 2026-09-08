@@ -1,7 +1,7 @@
 /**
  * Column lists and length limits, verified against the `themes`,
- * `theme_connections`, `quiz_tasks`, and `problems` tables in phpMyAdmin. 
- * Column order here is also the required CSV header order and the SQL column 
+ * `theme_connections`, `quiz_tasks`, and `problems` tables in phpMyAdmin.
+ * Column order here is also the required CSV header order and the SQL column
  * order used for every INSERT.
  */
 
@@ -77,3 +77,21 @@ export const MAX_TOTAL_UPLOAD_BYTES = 5 * 1024 * 1024;
  * (8 MiB) recommendation for `server.js` in README.md.
  */
 export const MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024;
+
+export const SQL_CREATE_PROBLEMS = `
+  CREATE TABLE IF NOT EXISTS problems (
+    id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    problem_text TEXT NOT NULL,
+    theme_id INT NOT NULL,
+    answer_1 VARCHAR(255) NOT NULL,
+    answer_2 VARCHAR(255) NOT NULL,
+    answer_3 VARCHAR(255) NOT NULL,
+    answer_4 VARCHAR(255) NOT NULL,
+    right_answer_n TINYINT NOT NULL,
+    comments TEXT NOT NULL,
+    difficulty TINYINT NOT NULL DEFAULT 1,
+    PRIMARY KEY (id),
+    KEY idx_problems_theme (theme_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+`;

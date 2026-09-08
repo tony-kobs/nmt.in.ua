@@ -7,7 +7,12 @@ export type ImportJsonDocument = {
   problems: RawRow[];
 };
 
-const REQUIRED_TOP_LEVEL_KEYS = ["themes", "themeConnections", "quizTasks", "problems"] as const;
+const REQUIRED_TOP_LEVEL_KEYS = ["themes", "themeConnections", "quizTasks"] as const;
+const OPTIONAL_TOP_LEVEL_KEYS = ["problems"] as const;
+const KNOWN_TOP_LEVEL_KEYS = [
+  ...REQUIRED_TOP_LEVEL_KEYS,
+  ...OPTIONAL_TOP_LEVEL_KEYS,
+] as const;
 
 function toRawRows(value: unknown, datasetLabel: string, errors: string[]): RawRow[] {
   if (!Array.isArray(value)) {
@@ -29,6 +34,7 @@ function toRawRows(value: unknown, datasetLabel: string, errors: string[]): RawR
 /**
  * Parses and structurally validates the single-document JSON import format:
  * `{ "themes": [...], "themeConnections": [...], "quizTasks": [...], "problems": [...] }`.
+ * `problems` is optional — omit or `[]` to leave the workbook bank unchanged.
  * Per-field validation happens in `validate.ts`.
  */
 export function parseImportJsonDocument(
@@ -50,7 +56,7 @@ export function parseImportJsonDocument(
   const errors: string[] = [];
 
   const unknownKeys = Object.keys(obj).filter(
-    (key) => !(REQUIRED_TOP_LEVEL_KEYS as readonly string[]).includes(key),
+    (key) => !(KNOWN_TOP_LEVEL_KEYS as readonly string[]).includes(key),
   );
   const missingKeys = REQUIRED_TOP_LEVEL_KEYS.filter((key) => !(key in obj));
   if (unknownKeys.length > 0) {
@@ -64,7 +70,10 @@ export function parseImportJsonDocument(
   const themes = toRawRows(obj.themes, "themes", errors);
   const themeConnections = toRawRows(obj.themeConnections, "themeConnections", errors);
   const quizTasks = toRawRows(obj.quizTasks, "quizTasks", errors);
-  const problems = toRawRows(obj.problems, "problems", errors);
+  const problems =
+    obj.problems === undefined
+      ? []
+      : toRawRows(obj.problems, "problems", errors);
 
   if (errors.length > 0) return { errors };
 
