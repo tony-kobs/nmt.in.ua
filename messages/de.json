@@ -213,7 +213,7 @@
     "ultimateTitle": "Ultimate — Zusammenfassung",
     "title": "Testzusammenfassung",
     "diagnosticTitle": "Ergebnis des Einstufungstests",
-    "summary": "Thema „{theme}“. Sitzung Nr. {sessionId}.",
+    "summary": "Thema „<themeLink>{theme}</themeLink>“. Sitzung Nr. {sessionId}.",
     "diagnosticSummary": "Einstufungstest Nr. {sessionId} abgeschlossen.",
     "timedOut": "Die Zeit ist abgelaufen.",
     "completed": "Test abgeschlossen.",

@@ -5,7 +5,7 @@ import type { SqlConnection } from "@/lib/db/mysql";
 import { getAvailableTopicThemes } from "./getAvailableTopicThemes";
 
 function makeConnection(
-  rows: Array<{ id: number; name: string; ord: number; task_count: number }>,
+  rows: Array<{ id: number; code: string; name: string; ord: number; task_count: number }>,
 ) {
   const calls: Array<{ sql: string; params?: unknown[] }> = [];
   let released = false;
@@ -29,8 +29,20 @@ function makeConnection(
 
 test("getAvailableTopicThemes queries themes with at least one task and maps rows", async () => {
   const { connection, calls, isReleased } = makeConnection([
-    { id: 2, name: "  Арифметичні дії  ", ord: 2, task_count: 10 },
-    { id: 99901, name: "Smoke test theme", ord: 999, task_count: 1 },
+    {
+      id: 2,
+      code: "MATH-06-ARITH-OPS",
+      name: "  Арифметичні дії  ",
+      ord: 2,
+      task_count: 10,
+    },
+    {
+      id: 99901,
+      code: "T-99901",
+      name: "Smoke test theme",
+      ord: 999,
+      task_count: 1,
+    },
   ]);
 
   const themes = await getAvailableTopicThemes({
@@ -39,11 +51,24 @@ test("getAvailableTopicThemes queries themes with at least one task and maps row
 
   assert.equal(calls.length, 1);
   assert.match(calls[0]!.sql, /FROM themes t/);
+  assert.match(calls[0]!.sql, /t\.code/);
   assert.match(calls[0]!.sql, /HAVING task_count >= 1/);
   assert.equal(calls[0]?.params, undefined);
   assert.deepEqual(themes, [
-    { id: 2, name: "Арифметичні дії", ord: 2, taskCount: 10 },
-    { id: 99901, name: "Smoke test theme", ord: 999, taskCount: 1 },
+    {
+      id: 2,
+      code: "MATH-06-ARITH-OPS",
+      name: "Арифметичні дії",
+      ord: 2,
+      taskCount: 10,
+    },
+    {
+      id: 99901,
+      code: "T-99901",
+      name: "Smoke test theme",
+      ord: 999,
+      taskCount: 1,
+    },
   ]);
   assert.equal(isReleased(), true);
 });

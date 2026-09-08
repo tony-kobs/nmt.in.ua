@@ -14,6 +14,7 @@ const SQL_SESSION_HEADER = `
     ts.right_number,
     ts.time,
     ts.session_status,
+    t.code AS theme_code,
     t.name AS theme_name
   FROM task_sessions ts
   INNER JOIN themes t ON t.id = ts.theme_id
@@ -48,6 +49,7 @@ type SessionHeaderRow = {
   right_number: number;
   time: number;
   session_status: number;
+  theme_code: string;
   theme_name: string;
 };
 
@@ -161,6 +163,9 @@ export async function getSessionTasks(
           return {
             sessionId: validSessionId,
             sessionStatus: header.session_status,
+            themeId: header.theme_id,
+            themeCode: header.theme_code.trim(),
+            themeName: header.theme_name.trim(),
             tasks: [],
             summary: null,
             isPlannedWithoutTasks: true,
@@ -175,6 +180,9 @@ export async function getSessionTasks(
       return {
         sessionId: validSessionId,
         sessionStatus: header.session_status,
+        themeId: header.theme_id,
+        themeCode: header.theme_code.trim(),
+        themeName: header.theme_name.trim(),
         tasks: rows.map(mapRow),
         summary:
           header.session_status === SESSION_STATUS_COMPLETED

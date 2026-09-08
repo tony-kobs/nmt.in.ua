@@ -15,6 +15,7 @@ import { parseImportJsonDocument } from "./json";
 import {
   QUIZ_TASKS_COLUMNS,
   THEMES_COLUMNS,
+  THEMES_REQUIRED_COLUMNS,
   THEME_CONNECTIONS_COLUMNS,
   PROBLEMS_COLUMNS,
 } from "./schema";
@@ -60,7 +61,12 @@ async function buildCsvDatasets(input: {
       input.problems ? readText(input.problems) : Promise.resolve(""),
     ]);
 
-  const themesParsed = parseCsvDataset(themesText, THEMES_COLUMNS, "themes");
+  const themesParsed = parseCsvDataset(
+    themesText,
+    THEMES_COLUMNS,
+    "themes",
+    [THEMES_REQUIRED_COLUMNS],
+  );
   const connectionsParsed = parseCsvDataset(
     themeConnectionsText,
     THEME_CONNECTIONS_COLUMNS,

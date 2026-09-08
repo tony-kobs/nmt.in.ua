@@ -58,6 +58,10 @@ export function DashboardShell({
   const t = useTranslations("Dashboard");
 
   const pathname = usePathname();
+
+  const isMaterialsPage =
+  pathname === "/materials" || pathname.startsWith("/materials/");
+
   const sidebarOpen = useSyncExternalStore(
     subscribeSidebar,
     readSidebarOpen,
@@ -115,7 +119,7 @@ export function DashboardShell({
         ) : null}
       </div>
 
-      <div className={css.body}>
+      <div className={clsx(css.body, isMaterialsPage && css.materialsBody)}>
         <div
           className={clsx(
             css.sidebarSlot,

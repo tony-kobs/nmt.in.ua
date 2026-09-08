@@ -43,6 +43,10 @@ type TopicTrainerActionOverrides = {
 
 type TopicTrainerProps = {
   sessionId: number;
+  /** `null` on a diagnostic attempt: it spans many themes, so the header shows
+   * the theme name without a textbook link. */
+  themeCode: string | null;
+  themeName: string;
   tasks: SessionTask[];
   initialSummary?: TrainerSessionSummary | null;
   initialRecommendations?: RecommendedAction[];
@@ -68,6 +72,8 @@ function initialResults(tasks: SessionTask[]): Record<number, CheckResult> {
 
 export function TopicTrainer({
   sessionId,
+  themeCode,
+  themeName,
   tasks,
   initialSummary = null,
   initialRecommendations = [],
@@ -333,7 +339,20 @@ export function TopicTrainer({
                 ? t("diagnosticTitle")
                 : t("title")}
           </h1>
-          <p className={css.meta}>{t("session", { id: sessionId })}</p>
+          <p className={css.meta}>
+            {t("session", { id: sessionId })}
+            {" · "}
+            {themeCode ? (
+              <Link
+                href={`/materials/textbook#topic-${themeCode}`}
+                className={css.themeLink}
+              >
+                {themeName}
+              </Link>
+            ) : (
+              themeName
+            )}
+          </p>
         </div>
         <div className={css.badges}>
           {isUltimate ? (

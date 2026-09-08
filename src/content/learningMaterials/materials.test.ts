@@ -39,15 +39,17 @@ test("source structure preserves Word tables, illustrations and body text", () =
   );
 
   assert.equal(blocks.filter(({ type }) => type === "table").length, 50);
-  assert.equal(blocks.filter(({ type }) => type === "image").length, 40);
+  const images = blocks.filter((block) => block.type === "image");
+
+  assert.equal(images.length, 42);
+  assert.equal(
+    images.filter(({ src }) => src.includes("/algebra-7/")).length,
+    2,
+  );
   assert.ok(
-    blocks
-      .filter((block) => block.type === "image")
-      .every(
-        ({ src }) =>
-          !src.includes("/algebra-7/") &&
-          !src.includes("/algebra-8-fractions/"),
-      ),
+    images.every(
+      ({ src }) => !src.includes("/algebra-8-fractions/"),
+    ),
   );
   assert.equal(centralAngle?.variant, "body");
 });
@@ -72,7 +74,10 @@ test("source structure preserves Word table layout", () => {
     6,
   );
   assert.equal(
-    graphTables.filter(({ variant }) => variant === "layout").length,
+    graphTables.filter(
+      ({ variant, equalColumns }) =>
+        variant === "grid" && equalColumns,
+    ).length,
     6,
   );
   assert.equal(fractionsTables[0]?.variant, "layout");
@@ -109,7 +114,7 @@ test("all positioned learning material formulas render as KaTeX", () => {
     .flatMap((block) => (block.type === "paragraph" ? block.runs : []))
     .filter(({ math }) => math);
 
-  assert.equal(mathRuns.length, 215);
+  assert.equal(mathRuns.length, 464);
 
   mathRuns.forEach(({ text }) => {
     const displayMode = text.startsWith("\\[");

@@ -213,7 +213,7 @@
     "ultimateTitle": "Ultimate — підсумок",
     "title": "Підсумок тесту",
     "diagnosticTitle": "Результат вступного тесту",
-    "summary": "Тема «{theme}». Сесія №{sessionId}.",
+    "summary": "Тема «<themeLink>{theme}</themeLink>». Сесія №{sessionId}.",
     "diagnosticSummary": "Вступний тест №{sessionId} завершено.",
     "timedOut": "Час вийшов.",
     "completed": "Тест завершено.",

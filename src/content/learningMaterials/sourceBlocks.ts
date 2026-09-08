@@ -1,8 +1,31 @@
-export type MaterialTextRun = { text: string; bold?: true; italic?: true; math?: true; superscript?: true; subscript?: true };
+export type MaterialTextRun = {
+  text: string;
+  bold?: true;
+  underline?: true;
+  italic?: true;
+  math?: true;
+  superscript?: true;
+  subscript?: true;
+  desktopOnly?: true;
+  mobileOnly?: true;
+};
 export type MaterialParagraphBlock = { type: "paragraph"; variant: "body" | "listItem" | "sectionHeading" | "subheading"; align: "left" | "center" | "right" | "both"; runs: MaterialTextRun[] };
-export type MaterialImageBlock = { type: "image"; src: string; alt: string };
+export type MaterialImageBlock = {
+  type: "image";
+  src: string;
+  alt: string;
+  align?: "left" | "center" | "right";
+};
 export type MaterialTableCell = { blocks: MaterialContentBlock[]; colSpan?: number };
-export type MaterialTableBlock = { type: "table"; variant: "grid" | "layout" | "graphPaper"; columnWidths: number[]; rows: { cells: MaterialTableCell[] }[] };
+export type MaterialTableBlock = {
+  type: "table";
+  variant: "grid" | "layout" | "graphPaper";
+  columnWidths: number[];
+  equalColumns?: true;
+  graphExercise?: true;
+  topAligned?: true;
+  rows: { cells: MaterialTableCell[] }[];
+};
 export type MaterialContentBlock = MaterialParagraphBlock | MaterialImageBlock | MaterialTableBlock;
 
 export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
@@ -11,6 +34,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     {
       "type": "table",
       "variant": "grid",
+      "graphExercise": true,
       "columnWidths": [
         5494,
         5494
@@ -22,18 +46,20 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
                       "text": "\\[y=x - 3\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
                 {
                   "type": "table",
-                  "variant": "layout",
+                  "variant": "grid",
+                  "equalColumns": true,
                   "columnWidths": [
                     390,
                     516,
@@ -51,7 +77,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -168,7 +194,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -208,7 +234,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -314,7 +340,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -352,7 +378,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                 },
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
@@ -1041,18 +1067,20 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
-                      "text": "\\[y= \\frac{1}{2}x-2;\\]",
-                      "math": true
+                      "text": "\\[y=-\\frac{1}{2}x-2;\\]",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
                 {
                   "type": "table",
-                  "variant": "layout",
+                  "variant": "grid",
+                  "equalColumns": true,
                   "columnWidths": [
                     567,
                     567,
@@ -1070,7 +1098,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -1110,7 +1138,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -1150,7 +1178,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -1190,7 +1218,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -1228,7 +1256,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                 },
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
@@ -1916,6 +1944,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     {
       "type": "table",
       "variant": "grid",
+      "graphExercise": true,
       "columnWidths": [
         5494,
         5494
@@ -1927,18 +1956,20 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
                       "text": "\\[y= 3x + 1\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
                 {
                   "type": "table",
-                  "variant": "layout",
+                  "variant": "grid",
+                  "equalColumns": true,
                   "columnWidths": [
                     567,
                     567,
@@ -1956,7 +1987,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -1996,7 +2027,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -2036,7 +2067,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -2076,7 +2107,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -2114,7 +2145,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                 },
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
@@ -2795,18 +2826,20 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
                       "text": "\\[y= 0,25x + 1\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
                 {
                   "type": "table",
-                  "variant": "layout",
+                  "variant": "grid",
+                  "equalColumns": true,
                   "columnWidths": [
                     567,
                     567,
@@ -2824,7 +2857,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -2864,7 +2897,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -2904,7 +2937,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -2944,7 +2977,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -2982,7 +3015,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                 },
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
@@ -3666,6 +3699,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     {
       "type": "table",
       "variant": "grid",
+      "graphExercise": true,
       "columnWidths": [
         5494,
         5494
@@ -3677,18 +3711,20 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
                       "text": "\\[y=x - 5\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
                 {
                   "type": "table",
-                  "variant": "layout",
+                  "variant": "grid",
+                  "equalColumns": true,
                   "columnWidths": [
                     390,
                     516,
@@ -3706,7 +3742,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -3823,7 +3859,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -3863,7 +3899,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -3969,7 +4005,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -4007,7 +4043,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                 },
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
@@ -4688,18 +4724,20 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
-                      "text": "\\[y= \\frac{1}{6}x-5;\\]",
-                      "math": true
+                      "text": "\\[y=-\\frac{1}{6}x-5;\\]",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
                 {
                   "type": "table",
-                  "variant": "layout",
+                  "variant": "grid",
+                  "equalColumns": true,
                   "columnWidths": [
                     567,
                     567,
@@ -4717,7 +4755,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -4757,7 +4795,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -4797,7 +4835,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -4837,7 +4875,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                           "blocks": [
                             {
                               "type": "paragraph",
-                              "variant": "subheading",
+                              "variant": "body",
                               "align": "center",
                               "runs": [
                                 {
@@ -4875,7 +4913,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                 },
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
@@ -5564,10 +5602,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "6. "
-        },
-        {
-          "text": "Математичні вирази"
+          "text": "6. Математичні вирази",
+          "bold": true
         }
       ]
     },
@@ -5577,16 +5613,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "both",
       "runs": [
         {
-          "text": "Ч"
-        },
-        {
-          "text": "исловим виразом називають "
-        },
-        {
-          "text": "будь-який запис із чисел, знаків арифметичних дій і дужок"
-        },
-        {
-          "text": ", що має математичний сенс."
+          "text": "Числовим виразом називають будь-який запис із чисел, знаків арифметичних дій і дужок, що має математичний сенс."
         }
       ]
     },
@@ -5600,7 +5627,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "bold": true
         },
         {
-          "text": " фраза, записана за допомогою чисел, знаків і букв. Вираз, записаний тільки за допомогою чисел і знаків, називається числовим."
+          "text": " фраза, записана за допомогою чисел, знаків і букв. Вираз, записаний тільки за допомогою чисел і знаків, називається числовим."
         }
       ]
     },
@@ -5613,17 +5640,21 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "text": "Наприклад: "
         },
         {
-          "text": "\\(3 + 5\\)",
-          "math": true
+          "text": "\\(\\,3 + 5 \\cdot 7 - 4\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": " "
+          "text": " — числовий вираз. ",
+          "bold": true
         },
         {
-          "text": "⋅"
+          "text": "\\(\\,3 + {:} - 5\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": "безглуздий набір символів",
+          "text": " — НЕ числовий вираз, а безглуздий набір символів",
           "bold": true
         },
         {
@@ -5686,10 +5717,21 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "bold": true
         },
         {
-          "text": " — "
+          "text": " — математична величина, значення якої може змінюватись у межах певної задачі."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "body",
+      "align": "both",
+      "runs": [
+        {
+          "text": "Числові вирази та вирази зі змінними називають "
         },
         {
-          "text": "математична величина, значення якої може змінюватись у межах певної задачі"
+          "text": "алгебраїчними виразами",
+          "bold": true
         },
         {
           "text": "."
@@ -5699,49 +5741,41 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
-      "runs": [
-        {
-          "text": "Числові вирази та вирази зі змінними називають "
-        },
-        {
-          "text": "алгебраїчними виразами.",
-          "bold": true
-        }
-      ]
-    },
-    {
-      "type": "paragraph",
-      "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
           "text": "Вирази, що не містять ділення на вирази зі змінними, називаються "
         },
         {
-          "text": "цілими виразами.",
+          "text": "цілими виразами",
           "bold": true
+        },
+        {
+          "text": "."
         }
       ]
     },
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
           "text": "Запис, сполучений знаком рівності, називається "
         },
         {
-          "text": "числовою рівністю.",
+          "text": "числовою рівністю",
           "bold": true
+        },
+        {
+          "text": "."
         }
       ]
     },
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
           "text": "Вирази, відповідні значення яких є рівними при будь-яких значеннях змінних, що входять до них, називають "
@@ -5758,17 +5792,24 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
-          "text": "Рівність, яка є правильною при будь-яких значеннях змінних, що входять до неї, називають тотожністю"
+          "text": "Рівність, яка є правильною при будь-яких значеннях змінних, що входять до неї, називають "
+        },
+        {
+          "text": "тотожністю",
+          "bold": true
+        },
+        {
+          "text": "."
         }
       ]
     },
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
           "text": "Заміну одного виразу іншим, тотожно рівним йому, називають"
@@ -5785,7 +5826,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
           "text": "Зведення подібних доданків і розкриття дужок — приклади тотожних перетворень виразів."
@@ -5795,50 +5836,96 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
-          "text": "Спрощення виразу - це заміна його простішим (для вирішення, для сприйняття), тотожно рівним даному."
+          "text": "Спрощення виразу — це заміна його простішим (для розв’язання, для сприйняття), тотожно рівним даному."
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "left",
+      "variant": "subheading",
+      "align": "center",
       "runs": [
         {
-          "text": "Методи тотожних перетворень: 1. ",
-          "bold": true
-        },
-        {
-          "text": "Розкрити дужки. 2. Звести подібні доданки. 3. Додати до лівої та правої частин рівності одне й те саме число. 4. Помножити або поділити ліву й праву частини"
-        },
-        {
-          "text": " ",
-          "bold": true
-        },
-        {
-          "text": "рівності на одне й те саме число (за винятком нуля). 5. Перенести один із доданків через знак = (з лівої частини рівності до правої або з правої до лівої)"
+          "text": "Методи тотожних перетворень:"
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "left",
+      "variant": "listItem",
+      "align": "both",
       "runs": [
         {
-          "text": "Приклади ",
+          "text": "1. Розкрити дужки."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "listItem",
+      "align": "both",
+      "runs": [
+        {
+          "text": "2. Звести подібні доданки."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "listItem",
+      "align": "both",
+      "runs": [
+        {
+          "text": "3. Додати до лівої та правої частин рівності одне й те саме число."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "listItem",
+      "align": "both",
+      "runs": [
+        {
+          "text": "4. Помножити або поділити ліву й праву частини рівності на одне й те саме число (за винятком "
+        },
+        {
+          "text": "\\(0\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": "тотожніх",
+          "text": ")."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "listItem",
+      "align": "both",
+      "runs": [
+        {
+          "text": "5. Перенести один із доданків через знак "
+        },
+        {
+          "text": "\\(=\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": " перетворень",
-          "bold": true
+          "text": " (з лівої частини рівності до правої або з правої до лівої)."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "subheading",
+      "align": "center",
+      "runs": [
+        {
+          "text": "Приклади тотожних перетворень"
         }
       ]
     },
@@ -5872,8 +5959,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
-                  "align": "center",
+                  "variant": "body",
+                  "align": "left",
                   "runs": [
                     {
                       "text": "Дія",
@@ -5910,8 +5997,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(a -15 = 0\\)",
-                      "math": true
+                      "text": "\\(a - 15 = 0\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -5925,10 +6013,12 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Додамо"
+                      "text": "Додамо до обох частин рівняння "
                     },
                     {
-                      "text": " до обох частин рівняння 15"
+                      "text": "\\(15\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -5943,7 +6033,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(a = 15\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -5962,7 +6053,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(a = 5\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -5976,7 +6068,12 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Помножимо обидві частини рівняння на -1"
+                      "text": "Помножимо обидві частини рівняння на "
+                    },
+                    {
+                      "text": "\\( -1\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -5991,7 +6088,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(-a = -5\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6009,8 +6107,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\[\\frac{a}{5}=1\\]",
-                      "math": true
+                      "text": "\\(\\frac{a}{5} = 1\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6024,7 +6123,13 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Помножимо обидві частини рівняння на 5"
+                      "text": "Помножимо обидві частини рівняння на "
+                    },
+
+                    {
+                      "text": "\\(5\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6038,8 +6143,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(a= 5\\)",
-                      "math": true
+                      "text": "\\(a = 5\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6057,8 +6163,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(3(a+5)=1\\)",
-                      "math": true
+                      "text": "\\(3(a + 5) = 1\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6086,8 +6193,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(3a+15 = 1\\)",
-                      "math": true
+                      "text": "\\(3a + 15 = 1\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6099,12 +6207,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "left",
+      "variant": "subheading",
+      "align": "center",
       "runs": [
         {
-          "text": "Приклад розкриття дужок та зведення доданків",
-          "bold": true
+          "text": "Приклад розкриття дужок та зведення доданків"
         }
       ]
     },
@@ -6138,8 +6245,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
-                  "align": "center",
+                  "variant": "body",
+                  "align": "left",
                   "runs": [
                     {
                       "text": "Дія",
@@ -6177,7 +6284,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\((a+2)(a+3)=0\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
@@ -6188,7 +6296,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(a^{2}+3a+2a+6 = 0\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6227,7 +6336,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(a^{2}+3a+2a+6 = 0\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
@@ -6238,7 +6348,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(a^{2}+5a+6 = 0\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6250,28 +6361,28 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "left",
+      "variant": "subheading",
+      "align": "center",
       "runs": [
         {
-          "text": "Розкриття дужок.",
-          "bold": true
-        },
-        {
-          "text": " Щоб помножити одночлен на многочлен, треба помножити цей одночлен на кожний член многочлена й додати знайдені добутки. Множення одночлена на многочлен"
+          "text": "Розкриття дужок"
         }
       ]
     },
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "center",
+      "align": "left",
       "runs": [
         {
-          "text": "\\[5x(3x-7)=5x\\cdot3x-5x\\cdot7=15x^2-35x\\]",
-          "math": true
+          "text": " Щоб помножити одночлен на многочлен, треба помножити цей одночлен на кожний член многочлена й додати знайдені добутки. Множення одночлена на многочлен"
         }
       ]
+    },
+    {
+      "type": "image",
+      "src": "/materials/source/algebra-7/02-image1.png",
+      "alt": "Схема розкриття дужок: одночлен 5x множиться на 3x і на мінус 7"
     },
     {
       "type": "paragraph",
@@ -6285,11 +6396,22 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "left",
+      "variant": "subheading",
+      "align": "center",
       "runs": [
         {
-          "text": "Розкладання многочленів на множники способом винесення спільного множника за дужки",
+          "text": "Розкладання многочленів на множники способом винесення спільного множника за дужки"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "body",
+      "align": "center",
+      "runs": [
+        {
+          "text": "\\[8m+4=\\underline4\\cdot2m+\\underline4\\cdot1=4(2m+1)\\]",
+          "math": true,
           "bold": true
         }
       ]
@@ -6300,19 +6422,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "\\[8m+4=4\\cdot2m+4\\cdot1=4(2m+1)\\]",
-          "math": true
-        }
-      ]
-    },
-    {
-      "type": "paragraph",
-      "variant": "body",
-      "align": "center",
-      "runs": [
-        {
           "text": "\\[at+7ap=a(t+7p)\\]",
-          "math": true
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -6341,11 +6453,12 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                 {
                   "type": "paragraph",
                   "variant": "body",
-                  "align": "center",
+                  "align": "left",
                   "runs": [
                     {
                       "text": "\\[(a+b)(x+y)=(a+b)m=am+bm\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6354,15 +6467,10 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
             {
               "blocks": [
                 {
-                  "type": "paragraph",
-                  "variant": "body",
-                  "align": "center",
-                  "runs": [
-                    {
-                      "text": "\\[(a+b)(x+y)=ax+ay+bx+by\\]",
-                      "math": true
-                    }
-                  ]
+                  "type": "image",
+                  "src": "/materials/source/algebra-7/01-image5.png",
+                  "alt": "Схема множення многочленів: кожний член першого многочлена множиться на кожний член другого",
+                  "align": "left"
                 }
               ]
             }
@@ -6376,36 +6484,17 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Щоб помножити многочлен на многочлен, треба кожний член одного многочлена "
-        },
-        {
-          "text": ""
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "помножити"
-        },
-        {
-          "text": " на кожний член другого многочлена й "
-        },
-        {
-          "text": "одержані"
-        },
-        {
-          "text": " добутки додати."
+          "text": "Щоб помножити многочлен на многочлен, треба кожний член одного многочлена помножити на кожний член другого многочлена й одержані добутки додати."
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "left",
+      "variant": "subheading",
+      "align": "center",
       "runs": [
         {
-          "text": "Розкладання многочленів на множники способом групування",
-          "bold": true
+          "text": "Розкладання многочленів на множники способом групування"
         }
       ]
     },
@@ -6416,7 +6505,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "runs": [
         {
           "text": "\\[ab-5a+2b-10\\]",
-          "math": true
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -6427,7 +6517,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "runs": [
         {
           "text": "\\[(ab-5a)+(2b-10)=a(b-5)+2(b-5)\\]",
-          "math": true
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -6438,7 +6529,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "runs": [
         {
           "text": "\\[a\\underline{(b-5)}+2\\underline{(b-5)}=(b-5)(a+2)\\]",
-          "math": true
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -6478,41 +6570,64 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "8. "
-        },
-        {
-          "text": "Рівняння"
+          "text": "8. Рівняння",
+          "bold": true
         }
       ]
     },
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
           "text": "Рівняння — це",
           "bold": true
         },
         {
-          "text": " рівність, що містить позначене буквою невідоме число, яке потрібно знайти"
+          "text": " рівність, що містить позначене буквою невідоме число, яке потрібно знайти."
         }
       ]
     },
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
           "text": "Рівняння виду "
         },
         {
           "text": "\\(ax= b\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
-          "text": ", де x — змінна, a і b — деякі числа, "
+          "text": ", де "
+        },
+        {
+          "text": "\\(x\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " — змінна, "
+        },
+        {
+          "text": "\\(a\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " і "
+        },
+        {
+          "text": "\\(b\\)",
+          "math": true,
+          "bold": true
+        },
+                {
+          "text": " — деякі числа, "
         },
         {
           "text": "називають лінійним рівнянням з однією змінною",
@@ -6525,50 +6640,243 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "left",
+      "variant": "subheading",
+      "align": "center",
       "runs": [
         {
-          "text": "Розв’язання лінійних рівнянь:",
-          "bold": true
+          "text": "Розв’язання лінійних рівнянь"
         }
       ]
     },
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
           "text": "Розв’яжемо рівняння "
         },
         {
           "text": "\\(ax= b\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
-          "text": " для різних значень a і b."
+          "text": " для різних значень "
+        },
+        {
+          "text": "\\(a\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " і "
+        },
+        {
+          "text": "\\(b\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": "."
+        },
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "listItem",
+      "align": "left",
+      "runs": [
+        {
+          "text": "1) Якщо "
+        },
+        {
+          "text": "\\(a \\ne 0\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", то, поділивши обидві частини рівняння "
+        },
+        {
+          "text": "\\(ax = b\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " на "
+        },
+        {
+          "text": "\\(a\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", отримаємо "
+        },
+        {
+          "text": "\\(x = \\frac{b}{a}\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ". Тоді можна зробити такий висновок: якщо "
+        },
+        {
+          "text": "\\(a \\ne 0\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", то рівняння "
+        },
+        {
+          "text": "\\(ax = b\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " має єдиний корінь, що дорівнює "
+        },
+        {
+          "text": "\\(\\frac{b}{a}\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": "."
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "center",
+      "variant": "listItem",
+      "align": "left",
       "runs": [
         {
-          "text": "\\(x=\\frac{b}{a}\\)",
-          "math": true
+          "text": "2) Якщо "
         },
         {
-          "text": "\n"
+          "text": "\\(a = 0\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": "\\(\\frac{b}{a}\\)",
-          "math": true
+          "text": ", то лінійне рівняння набуває такого вигляду: "
         },
         {
-          "text": "."
+          "text": "\\(0x = b\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ". Тоді можливі два випадки: "
+        },
+        {
+          "text": "\\(b = 0\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " або "
+        },
+        {
+          "text": "\\(b \\ne 0\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ". У першому випадку отримуємо рівняння "
+        },
+        {
+          "text": "\\(0x = 0\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ". Тоді можна зробити такий висновок: якщо "
+        },
+        {
+          "text": "\\(a = 0\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " та "
+        },
+        {
+          "text": "\\(b = 0\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", то рівняння "
+        },
+        {
+          "text": "\\(ax = b\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " має безліч коренів: будь-яке число є його коренем."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "listItem",
+      "align": "left",
+      "runs": [
+        {
+          "text": "У другому випадку, коли "
+        },
+        {
+          "text": "\\(b \\ne 0\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", при будь-якому значенні "
+        },
+        {
+          "text": "\\(x\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " маємо хибну рівність "
+        },
+        {
+          "text": "\\(0x = b\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ". Тоді можна зробити такий висновок: якщо "
+        },
+        {
+          "text": "\\(a = 0\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " та "
+        },
+        {
+          "text": "\\(b \\ne 0\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", то рівняння "
+        },
+        {
+          "text": "\\(ax = b\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " коренів не має."
         }
       ]
     },
@@ -6592,15 +6900,26 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Значення a і b",
+                      "text": "Значення ",
                       "bold": true
-                    }
+                    },
+                    {
+                      "text": "\\(a\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " і ",
+                      "bold": true
+                    },
+                    {
+                      "text": "\\(b\\)",
+                      "math": true,
+                      "bold": true
+                    },
                   ]
                 }
               ]
-            },
-            {
-              "blocks": []
             },
             {
               "blocks": [
@@ -6610,15 +6929,45 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(a = 0, b = 0\\)",
-                      "math": true
+                      "text": "\\(a \\ne 0\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
               ]
             },
             {
-              "blocks": []
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "variant": "body",
+                  "align": "left",
+                  "runs": [
+                    {
+                      "text": "\\(a = 0,\\,b = 0\\)",
+                      "math": true,
+                      "bold": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "variant": "body",
+                  "align": "left",
+                  "runs": [
+                    {
+                      "text": "\\(a = 0,\\,b \\ne 0\\)",
+                      "math": true,
+                      "bold": true
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -6635,15 +6984,13 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                       "text": "Корені рівняння "
                     },
                     {
-                      "text": "\\(ax= b\\)",
-                      "math": true
+                      "text": "\\(ax = b\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
               ]
-            },
-            {
-              "blocks": []
             },
             {
               "blocks": [
@@ -6653,7 +7000,28 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "x — будь-яке число"
+                      "text": "\\(x = \\frac{b}{a}\\)",
+                      "math": true,
+                      "bold": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "blocks": [
+                {
+                  "type": "paragraph",
+                  "variant": "body",
+                  "align": "left",
+                  "runs": [
+                    {
+                      "text": "\\(x\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " — будь-яке число"
                     }
                   ]
                 }
@@ -6679,12 +7047,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "left",
+      "variant": "subheading",
+      "align": "center",
       "runs": [
         {
-          "text": "Алгоритм вирішення рівнянь",
-          "bold": true
+          "text": "Алгоритм вирішення рівнянь"
         }
       ]
     },
@@ -6692,9 +7059,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "type": "table",
       "variant": "grid",
       "columnWidths": [
-        2802,
-        4677,
-        3119
+        3750,
+        5900,
+        3750
       ],
       "rows": [
         {
@@ -6718,8 +7085,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
-                  "align": "center",
+                  "variant": "body",
+                  "align": "left",
                   "runs": [
                     {
                       "text": "Дія",
@@ -6757,7 +7124,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(3(a+2)-2(3a-6)=14+a\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6785,8 +7153,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(3a+6-6a+12=18+a\\)",
-                      "math": true
+                      "text": "\\(3a+6-6a+12=14+a\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6805,7 +7174,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(3a+6-6a+12=14+a\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6834,7 +7204,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(-3a+18=14+a\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6853,7 +7224,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(-3a+18=14+a\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6870,14 +7242,24 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                       "text": "Перенесемо/залишимо всі елементи з "
                     },
                     {
-                      "text": "a",
+                      "text": "\\(a\\)",
+                      "math": true,
                       "bold": true
                     },
                     {
-                      "text": " зліва від знаку =, а без "
+                      "text": " зліва від знаку "
                     },
                     {
-                      "text": "а",
+                      "text": "\\(=\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ", а без "
+                    },
+                    {
+                      "text": "\\(a\\)",
+                      "math": true,
                       "bold": true
                     },
                     {
@@ -6896,7 +7278,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(-4a=-4\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6915,7 +7298,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(-4a=-4\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6929,7 +7313,20 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Ділимо обидві частини на значення (коефіцієнт, що стоїть при а) -4"
+                      "text": "Ділимо обидві частини на значення (коефіцієнт, що стоїть при "
+                    },
+                    {
+                      "text": "\\(a\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ") "
+                    },
+                    {
+                      "text": "\\(\\,-4\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6944,7 +7341,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(a=1\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6963,7 +7361,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(3(a+2)-2(3a-6)=14+a\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -6981,7 +7380,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(a=1\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": " до первинного рівняння (для перевірки)"
@@ -6999,7 +7399,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(3(1+2)-2(3-6)=14+1\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
@@ -7009,8 +7410,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(9+6=15 15=15\\)",
-                      "math": true
+                      "text": "\\(9+6=15\\qquad15=15\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -7026,27 +7428,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "12. "
-        },
-        {
-          "text": "Текстові задачі:"
-        }
-      ]
-    },
-    {
-      "type": "paragraph",
-      "variant": "body",
-      "align": "left",
-      "runs": [
-        {
-          "text": "Рівняння, складене за умовою реальної ситуації, називають "
-        },
-        {
-          "text": "математичною моделлю",
+          "text": "12. Текстові задачі:",
           "bold": true
-        },
-        {
-          "text": " даної ситуації. "
         }
       ]
     },
@@ -7056,7 +7439,24 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "both",
       "runs": [
         {
-          "text": "Алгоритмом розв’язування задач",
+          "text": "Рівняння, складене за умовою реальної ситуації, називають "
+        },
+        {
+          "text": "математичною моделлю",
+          "bold": true
+        },
+        {
+          "text": " даної ситуації."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "body",
+      "align": "both",
+      "runs": [
+        {
+          "text": "Алгоритм розв’язування задач",
           "bold": true
         },
         {
@@ -7106,20 +7506,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "left",
+      "variant": "subheading",
+      "align": "center",
       "runs": [
         {
-          "text": "Алгоритм складання ",
-          "bold": true
-        },
-        {
-          "text": "рівняння",
-          "bold": true
-        },
-        {
-          "text": ":",
-          "bold": true
+          "text": "Алгоритм складання рівняння:"
         }
       ]
     },
@@ -7129,13 +7520,43 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "1. Що є невідомим (що є x)? 2. Виразіть "
+          "text": "1. Що є невідомим (що є "
         },
         {
-          "text": "через"
+          "text": "\\(x\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": " x усі елементи, описані в задачі. 3. Запишіть рівняння, що відображає співвідношення елементів."
+          "text": ")?"
+        },
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "listItem",
+      "align": "left",
+      "runs": [
+        {
+          "text": "2. Виразіть через "
+        },
+        {
+          "text": "\\(x\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " всі елементи, описані в задачі."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "listItem",
+      "align": "left",
+      "runs": [
+        {
+          "text": "3. Запишіть рівняння, що відображає співвідношення елементів."
         }
       ]
     },
@@ -7145,7 +7566,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "10. Ступені та корені"
+          "text": "10. Ступені та корені",
+          "bold": true
         }
       ]
     },
@@ -7155,10 +7577,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Степенем числа "
+          "text": "Ступенем числа "
         },
         {
-          "text": "а",
+          "text": "\\(a\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -7166,10 +7589,27 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(n (n > 1)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
-          "text": " називають добуток n множників, кожний з яких дорівнює а. "
+          "text": " називають добуток "
+        },
+        {
+          "text": "\\(n\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " множників, кожний з яких дорівнює "
+        },
+        {
+          "text": "\\(a\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": "."
         }
       ]
     },
@@ -7180,7 +7620,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "runs": [
         {
           "text": "\\[\\underbrace{4\\cdot4\\cdot4\\cdot4\\cdot4\\cdot4}_{6\\text{ множників}}=4^6\\]",
-          "math": true
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -7190,17 +7631,63 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Степінь з основою а і показником n записують так: "
+          "text": "Ступінь з основою "
         },
         {
-          "text": "а"
+          "text": "\\(a\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": "n",
-          "superscript": true
+          "text": " і показником "
         },
         {
-          "text": ", читають: «а в степені n» або «n-й степінь числа а»"
+          "text": "\\(n\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " записують так: "
+        },
+        {
+          "text": "\\(a^n\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", читають: «"
+        },
+        {
+          "text": "\\(a\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " в ступені "
+        },
+        {
+          "text": "\\(n\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": "» або «"
+        },
+        {
+          "text": "\\(n\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": "-й ступінь числа "
+        },
+        {
+          "text": "\\(a\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": "»"
         }
       ]
     },
@@ -7210,47 +7697,46 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "a",
+          "text": "\\(a^2\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": "2",
-          "bold": true,
-          "superscript": true
+          "text": " називають квадратом числа "
         },
         {
-          "text": " називають квадратом числа а, "
-        },
-        {
-          "text": "а",
+          "text": "\\(a\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": "3",
-          "bold": true,
-          "superscript": true
+          "text": ", "
         },
         {
-          "text": " називають кубом числа а."
+          "text": "\\(a^3\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " називають кубом числа "
+        },
+        {
+          "text": "\\(a\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": "."
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "left",
+      "variant": "subheading",
+      "align": "center",
       "runs": [
         {
-          "text": "Властивості ",
-          "bold": true
-        },
-        {
-          "text": "ступеня",
-          "bold": true
-        },
-        {
-          "text": ".",
-          "bold": true
+          "text": "Властивості ступеня"
         }
       ]
     },
@@ -7258,11 +7744,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "type": "table",
       "variant": "grid",
       "columnWidths": [
-        2197,
-        2197,
-        2198,
-        2198,
-        2198
+        3100,
+        3100,
+        3100,
+        3100,
+        3100
       ],
       "rows": [
         {
@@ -7275,8 +7761,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(a^{n}a^{m}= a^{n+m}\\)",
-                      "math": true
+                      "text": "\\(a^{n}a^{m}=a^{(n+m)}\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -7290,8 +7777,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(a^{n}a^{m}a^{k}= a^{n+m+k}\\)",
-                      "math": true
+                      "text": "\\(a^{n}a^{m}a^{k}=a^{(n+m+k)}\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -7305,8 +7793,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(a^{n}:a^{m}= a^{(n-m)}\\)",
-                      "math": true
+                      "text": "\\(a^{n}:a^{m}=a^{(n-m)}\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -7320,8 +7809,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\((a^{n})^{m}= a^{nm}\\)",
-                      "math": true
+                      "text": "\\((a^{n})^{m}=a^{(nm)}\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -7336,7 +7826,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\((ab)^{n}=a^{n}b^{n}\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -7355,7 +7846,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(a^{2}a^{3}= a^{(2+3)}= a^{5}\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -7370,7 +7862,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(a^{2}a^{3}a^{5}= a^{(2+3+5)}= a^{10}\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -7385,7 +7878,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(a^{5}: a^{3}= a^{(5-3)}= a^{2}\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -7400,7 +7894,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\((a^{5})^{2}= a^{(2\\cdot{}5)}=a^{10}\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -7415,7 +7910,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\((ab)^{3}=a^{3}b^{3}\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -7428,21 +7924,24 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
-          "text": "Вирази, що є добутком чисел, змінних та їхніх степенів, називають "
+          "text": "Вирази, що є добутком чисел, змінних та їхніх ступенів, називають "
         },
         {
-          "text": "одночленами.",
+          "text": "одночленами",
           "bold": true
+        },
+        {
+          "text": "."
         }
       ]
     },
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
           "text": "Вигляд одночлена, який містить тільки один числовий множник, відмінний від нуля, що стоїть на першому місці, називають "
@@ -7456,7 +7955,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
           "text": "Числовий множник одночлена, записаного в стандартному вигляді, називають "
@@ -7473,7 +7972,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
           "text": "Одночлени, в яких буквені частини є тотожно рівними виразами, називають "
@@ -7490,31 +7989,31 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
-          "text": "Степенем одночлена",
+          "text": "Ступенем одночлена",
           "bold": true
         },
         {
-          "text": " називають суму показників степенів усіх змінних, що входять до нього."
+          "text": " називають суму показників ступенів усіх змінних, що входять до нього."
         }
       ]
     },
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
-          "text": " Степінь одночлена, який є числом, відмінним від нуля, вважають рівним нулю."
+          "text": "Ступінь одночлена, який є числом, відмінним від нуля, вважають рівним нулю."
         }
       ]
     },
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
           "text": "Вираз, який є сумою кількох одночленів, називають многочленом."
@@ -7524,7 +8023,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     {
       "type": "paragraph",
       "variant": "body",
-      "align": "left",
+      "align": "both",
       "runs": [
         {
           "text": "Якщо серед одночленів, з яких складається многочлен, є подібні, то їх називають подібними членами многочлена."
@@ -7537,7 +8036,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Многочлен, складений з одночленів стандартного вигляду, серед яких немає подібних, називають многочленом стандартного вигляду"
+          "text": "Многочлен, складений з одночленів стандартного вигляду, серед яких немає подібних, називають многочленом стандартного вигляду."
         }
       ]
     },
@@ -7547,7 +8046,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Степенем многочлена стандартного вигляду називають найбільший зі степенів одночленів, з яких цей многочлен складений."
+          "text": "Ступенем многочлена стандартного вигляду називають найбільший зі ступенів одночленів, з яких цей многочлен складений."
         }
       ]
     }
@@ -7559,7 +8058,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "6. Математичні вирази"
+          "text": "6. Математичні вирази",
+          "bold": true
         }
       ]
     },
@@ -7569,8 +8069,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Порядок дій",
-          "bold": true
+          "text": "Порядок дій"
         }
       ]
     },
@@ -7598,33 +8097,33 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                 },
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "listItem",
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Дужки",
+                      "text": "1. Дужки",
                       "bold": true
                     }
                   ]
                 },
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "listItem",
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Ступені та корені",
+                      "text": "2. Ступені та корені",
                       "bold": true
                     }
                   ]
                 },
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "listItem",
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Множення та ділення",
+                      "text": "3. Множення та ділення",
                       "bold": true
                     },
                     {
@@ -7641,11 +8140,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                 },
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "listItem",
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Додавання та віднімання",
+                      "text": "4. Додавання та віднімання",
                       "bold": true
                     },
                     {
@@ -7672,7 +8171,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "2. Арифметичні дії"
+          "text": "2. Арифметичні дії",
+          "bold": true
         }
       ]
     },
@@ -7682,14 +8182,14 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Робота із від’ємними числами",
-          "bold": true
+          "text": "Робота із від’ємними числами"
         }
       ]
     },
     {
       "type": "table",
       "variant": "grid",
+      "topAligned": true,
       "columnWidths": [
         5381,
         5381
@@ -7701,7 +8201,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "sectionHeading",
+                  "variant": "body",
                   "align": "left",
                   "runs": [
                     {
@@ -7728,7 +8228,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(-4+(-5)=-9\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
@@ -7748,11 +8249,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                 },
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "listItem",
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Якщо "
+                      "text": "• Якщо "
                     },
                     {
                       "text": "додатне більше",
@@ -7762,18 +8263,19 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                       "text": ", результат додатний. "
                     },
                     {
-                      "text": "\\(7+(-3)=4\\)",
-                      "math": true
+                      "text": "\\[7+(-3)=4\\]",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "listItem",
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Якщо "
+                      "text": "• Якщо "
                     },
                     {
                       "text": "від’ємне більше",
@@ -7783,8 +8285,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                       "text": ", результат від’ємний. "
                     },
                     {
-                      "text": "\\(-6+2=-4\\)",
-                      "math": true
+                      "text": "\\[-6+2=-4\\]",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -7794,7 +8297,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "sectionHeading",
+                  "variant": "body",
                   "align": "left",
                   "runs": [
                     {
@@ -7830,8 +8333,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(5-(-2)=5+2=7\\)",
-                      "math": true
+                      "text": "\\[5-(-2)=5+2=7\\]",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
@@ -7845,11 +8349,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                       "bold": true
                     },
                     {
-                      "text": "\n"
-                    },
-                    {
-                      "text": "\\(a-(-b)=a+b\\)",
-                      "math": true
+                      "text": "\\[a-(-b)=a+b\\]",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
@@ -7859,8 +8361,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(a-(+b)=a-b\\)",
-                      "math": true
+                      "text": "\\[a-(+b)=a-b\\]",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -7874,7 +8377,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "sectionHeading",
+                  "variant": "body",
                   "align": "left",
                   "runs": [
                     {
@@ -8038,8 +8541,21 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(-3\\times{}4=-12-3\\times{}-4=12\\)",
-                      "math": true
+                      "text": "\\[-3\\times{}4=-12\\]",
+                      "math": true,
+                      "bold": true
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "variant": "body",
+                  "align": "left",
+                  "runs": [
+                    {
+                      "text": "\\[-3\\times{}-4=12\\]",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -8049,7 +8565,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "sectionHeading",
+                  "variant": "body",
                   "align": "left",
                   "runs": [
                     {
@@ -8213,8 +8729,21 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(-12\\div{}3=-4-12\\div{}-3=4\\)",
-                      "math": true
+                      "text": "\\[-12\\div{}3=-4\\]",
+                      "math": true,
+                      "bold": true
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "variant": "body",
+                  "align": "left",
+                  "runs": [
+                    {
+                      "text": "\\[-12\\div{}-3=4\\]",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -8228,7 +8757,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "sectionHeading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
@@ -8239,23 +8768,25 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                 },
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
                       "text": "\\((-2)^{2}=(-2)\\times{}(-2)=4\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
                       "text": "\\(-2^{2}=-(2^{2})=-4\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -8272,7 +8803,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "6. Математичні вирази"
+          "text": "6. Математичні вирази",
+          "bold": true
         }
       ]
     },
@@ -8282,14 +8814,14 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Еквівалентні перетворення",
-          "bold": true
+          "text": "Еквівалентні перетворення"
         }
       ]
     },
     {
       "type": "table",
       "variant": "grid",
+      "topAligned": true,
       "columnWidths": [
         4957,
         5805
@@ -8301,7 +8833,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "sectionHeading",
+                  "variant": "body",
                   "align": "left",
                   "runs": [
                     {
@@ -8317,7 +8849,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(x+3=7\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
@@ -8328,7 +8861,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(x=4\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -8338,7 +8872,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "sectionHeading",
+                  "variant": "body",
                   "align": "left",
                   "runs": [
                     {
@@ -8354,7 +8888,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(3x=12\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
@@ -8375,7 +8910,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(x=4\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -8389,14 +8925,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "sectionHeading",
+                  "variant": "body",
                   "align": "left",
                   "runs": [
                     {
-                      "text": "3. "
-                    },
-                    {
-                      "text": "Розкриття дужок",
+                      "text": "3. Розкриття дужок",
                       "bold": true
                     }
                   ]
@@ -8410,11 +8943,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                       "text": "Можна розкривати дужки, використовуючи дистрибутивну властивість:"
                     },
                     {
-                      "text": "\n"
-                    },
-                    {
-                      "text": "\\(a(b+c)=ab+ac\\)",
-                      "math": true
+                      "text": "\\[a(b+c)=ab+ac\\]",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
@@ -8424,8 +8955,14 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(2(x+3)=142x+6=14\\)",
-                      "math": true
+                      "text": "\\[2(x+3)=14\\]",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": "\\[2x+6=14\\]",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -8435,20 +8972,13 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "sectionHeading",
+                  "variant": "body",
                   "align": "left",
                   "runs": [
                     {
-                      "text": "4. "
-                    },
-                    {
-                      "text": "Перенесення членів з однієї частини рівняння в іншу зі зміною ",
+                      "text": "4. Перенесення членів з однієї частини рівняння в іншу зі зміною знака",
                       "bold": true
                     },
-                    {
-                      "text": "знака",
-                      "bold": true
-                    }
                   ]
                 },
                 {
@@ -8467,21 +8997,17 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(x+5=8\\)",
-                      "math": true
+                      "text": "\\[x+5=8\\]",
+                      "math": true,
+                      "bold": true
                     },
                     {
-                      "text": "Переносимо"
+                      "text": "Переносимо 5 в праву частину зі знаком «–»:"
                     },
                     {
-                      "text": " 5 в праву частину зі знаком «–»:"
-                    },
-                    {
-                      "text": "\n"
-                    },
-                    {
-                      "text": "\\(x=8-5=3\\)",
-                      "math": true
+                      "text": "\\[x=8-5=3\\]",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -8495,14 +9021,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "sectionHeading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
-                      "text": "5. "
-                    },
-                    {
-                      "text": "Заміна виразу рівним йому",
+                      "text": "5. Заміна виразу рівним йому",
                       "bold": true
                     }
                   ]
@@ -8530,15 +9053,17 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "center",
                   "runs": [
                     {
-                      "text": "\\(x+x=10\\)",
-                      "math": true
+                      "text": "\\[x+x=10\\]",
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": "Можна записати як "
                     },
                     {
-                      "text": "\\(2x=10\\)",
-                      "math": true
+                      "text": "\\[2x=10\\]",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -8557,10 +9082,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "5. "
-        },
-        {
-          "text": "Дроби"
+          "text": "5. Дроби",
+          "bold": true
         }
       ]
     },
@@ -8570,32 +9093,18 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Дробові ",
+          "text": "Дробові вирази",
           "bold": true
         },
         {
-          "text": "вирази - ",
+          "text": " — містять ділення на вираз зі змінними. "
+        },
+        {
+          "text": "Допустимі значення змінних",
           "bold": true
         },
         {
-          "text": "містять ділення на вираз зі змінними."
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "Допустим",
-          "bold": true
-        },
-        {
-          "text": "і значеннями змінних",
-          "bold": true
-        },
-        {
-          "text": " - такі, "
-        },
-        {
-          "text": "при яких цей вираз має зміст."
+          "text": " — такі, при яких цей вираз має зміст."
         }
       ]
     },
@@ -8633,28 +9142,18 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "text": ". Проте ця заміна можлива лише тоді, коли вона "
         },
         {
-          "text": "не приводить до ділення на нуль",
+          "text": "не призводить до ділення на нуль",
           "bold": true
         },
         {
-          "text": "."
+          "text": ". "
         },
         {
-          "text": " "
-        },
-        {
-          "text": "Р",
+          "text": "Раціональний дріб",
           "bold": true
         },
         {
-          "text": "аціональний дріб",
-          "bold": true
-        },
-        {
-          "text": " - ц"
-        },
-        {
-          "text": "е дріб, чисельником і знаменником якого є многочлени"
+          "text": " - це дріб, чисельником і знаменником якого є многочлени."
         }
       ]
     },
@@ -8678,10 +9177,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "bold": true
         },
         {
-          "text": "."
-        },
-        {
-          "text": " "
+          "text": ". "
         },
         {
           "text": "Рівність, яка виконується при будь-яких допустимих значеннях змінних, що в неї входять, називають "
@@ -8717,7 +9213,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\[\\frac{a}{b}=\\frac{am}{bm}\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -8731,7 +9228,12 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "a,b,m — деякі числа, "
+                      "text": "\\(a,b,m\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " — деякі числа,"
                     }
                   ]
                 },
@@ -8742,14 +9244,16 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(b \\ne{} 0\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": " і "
                     },
                     {
                       "text": "\\(m \\ne{} 0\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -8772,13 +9276,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Якщо чисельник і знаменник раціонального дробу помножити на один і той самий ненульовий многочлен, то отримаємо дріб, тотожно рівний даному, "
-                    },
-                    {
-                      "text": "ця"
-                    },
-                    {
-                      "text": " властивість називають "
+                      "text": "Якщо чисельник і знаменник раціонального дробу помножити на один і той самий ненульовий многочлен, то отримаємо дріб, тотожно рівний даному, цю властивість називають "
                     },
                     {
                       "text": "основною властивістю раціонального дробу",
@@ -8801,7 +9299,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\[\\frac{A}{B}=\\frac{A\\cdot C}{B\\cdot C}\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
@@ -8830,7 +9329,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\[\\frac{A\\cdot C}{B\\cdot C}= \\frac{A}{B}\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -8889,7 +9389,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\[\\frac{a}{c}+\\frac{b}{c}=\\frac{a+b}{c}\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -8918,7 +9419,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\[\\frac{a}{c}-\\frac{b}{c}=\\frac{a-b}{c}\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -8960,10 +9462,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Для складання дробів із різним знаменником за"
-                    },
-                    {
-                      "text": " спільний знаменник вибрано вираз, який дорівнює "
+                      "text": "Для складання дробів із різним знаменником за спільний знаменник вибрано вираз, який дорівнює "
                     },
                     {
                       "text": "добутку знаменників даних дробів",
@@ -8982,7 +9481,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\[\\frac{A}{B}+\\frac{C}{D}=\\frac{A\\cdot D}{B\\cdot D}+\\frac{C\\cdot B}{D\\cdot B}=\\frac{A\\cdot D+C\\cdot B}{B\\cdot D}\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -9006,12 +9506,13 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
                       "text": "\\[\\frac{a}{b}\\cdot \\frac{c}{d}=\\frac{ac}{bd}\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -9043,12 +9544,13 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
                       "text": "\\[\\frac{a}{b}:\\frac{c}{d}=\\frac{ad}{bc}\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -9082,8 +9584,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Піднесення дробу до ступеня",
-          "bold": true
+          "text": "Піднесення дробу до ступеня"
         }
       ]
     },
@@ -9091,8 +9592,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "type": "table",
       "variant": "grid",
       "columnWidths": [
-        1242,
-        9746
+        1590,
+        9398
       ],
       "rows": [
         {
@@ -9106,7 +9607,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\[\\left(\\frac{A}{B}\\right)^n=\\frac{A^n}{B^n}\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -9136,7 +9638,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "8. Рівняння"
+          "text": "8. Рівняння",
+          "bold": true
         }
       ]
     },
@@ -9146,8 +9649,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Рівносильні рівняння",
-          "bold": true
+          "text": "Рівносильні рівняння"
         }
       ]
     },
@@ -9174,7 +9676,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Дії, у результаті яких отримують рівняння, рівносильне даному:"
+          "text": "Дії, що створюють рівняння рівносильне даного:"
         }
       ]
     },
@@ -9196,20 +9698,14 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Д"
-                    },
-                    {
-                      "text": "о обох частин даного рівняння "
+                      "text": "До обох частин даного рівняння "
                     },
                     {
                       "text": "додати",
                       "bold": true
                     },
                     {
-                      "text": " (або відняти) одне й те сам"
-                    },
-                    {
-                      "text": "е число, то отримаємо рівняння"
+                      "text": " (або відняти) одне й те саме число, то отримаємо рівняння"
                     }
                   ]
                 }
@@ -9224,7 +9720,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\[2a+c=0\\Leftrightarrow 2a+c+d=d\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
@@ -9235,7 +9732,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\[2a+c=0\\Leftrightarrow 2a+c-2e=-2e\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -9272,7 +9770,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\[2a+c=0\\Leftrightarrow 2a=-c\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -9309,7 +9808,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\[2a+c=0\\Leftrightarrow 4a+2c=0\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -9325,7 +9825,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "10. Ступені та корені"
+          "text": "10. Ступені та корені",
+          "bold": true
         }
       ]
     },
@@ -9335,8 +9836,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Піднесення до ступеня",
-          "bold": true
+          "text": "Піднесення до ступеня"
         }
       ]
     },
@@ -9356,23 +9856,25 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
                       "text": "\\[{a}^{m}\\cdot {a}^{n}={a}^{m+n}\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
                       "text": "\\[{({a}^{m})}^{n}={a}^{mn}\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -9382,23 +9884,25 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
                       "text": "\\[{(ab)}^{n}={a}^{n}\\cdot {b}^{n}\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
                       "text": "\\[{a}^{m}:{a}^{n}={a}^{m-n}\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -9408,12 +9912,13 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
                       "text": "\\[{a}^{-n}=\\frac{1}{{a}^{n}}\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -9423,12 +9928,13 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
                       "text": "\\[\\sqrt{a}=b, {b}^{2}=a\\]",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -9444,8 +9950,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Корені",
-          "bold": true
+          "text": "Корені"
         }
       ]
     },
@@ -9456,33 +9961,33 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "runs": [
         {
           "text": "Квадратним коренем",
-          "bold": true
+          "bold": true,
+          "underline": true
         },
         {
           "text": " із числа "
         },
         {
-          "text": "a",
+          "text": "\\(a\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " називають число, квадрат якого дорівнює "
         },
         {
-          "text": "a",
+          "text": "\\(a\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": ";      ",
+          "text": ":",
           "bold": true
         },
         {
-          "text": " ",
+          "text": "\\(\\qquad\\sqrt{a}=b, a={b}^{2}\\)",
+          "math": true,
           "bold": true
-        },
-        {
-          "text": "\\(\\sqrt{a}=b, a= {b}^{2}\\)",
-          "math": true
         }
       ]
     },
@@ -9492,61 +9997,31 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Арифметичним",
+          "text": "Арифметичним квадратним коренем",
+          "bold": true,
+          "underline": true
+        },
+        {
+          "text": " із числа "
+        },
+        {
+          "text": "\\(a\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": " ",
-          "bold": true
-        },
-        {
-          "text": "квадратним",
-          "bold": true
-        },
-        {
-          "text": " ",
-          "bold": true
-        },
-        {
-          "text": "коренем",
-          "bold": true
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "із"
-        },
-        {
-          "text": " числа a "
-        },
-        {
-          "text": "називають"
-        },
-        {
-          "text": " "
+          "text": " називають "
         },
         {
           "text": "невід’ємне",
           "bold": true
         },
         {
-          "text": " число, квадрат "
+          "text": "  число, квадрат якого дорівнює "
         },
         {
-          "text": "якого"
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "дорівнює"
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "a",
+          "text": "\\(a\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -9560,107 +10035,10 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Вираз"
+          "text": "Вираз, який стоїть під радикалом, називають "
         },
         {
-          "text": ","
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "який"
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "стоїть"
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "під"
-        },
-        {
-          "text": " радикалом, "
-        },
-        {
-          "text": "називають"
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "підкореневим",
-          "bold": true
-        },
-        {
-          "text": " ",
-          "bold": true
-        },
-        {
-          "text": "виразом",
-          "bold": true
-        },
-        {
-          "text": ".",
-          "bold": true
-        }
-      ]
-    },
-    {
-      "type": "paragraph",
-      "variant": "body",
-      "align": "left",
-      "runs": [
-        {
-          "text": "Дію"
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "знаходження"
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "арифметичного"
-        },
-        {
-          "text": " квадратного "
-        },
-        {
-          "text": "кореня"
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "із"
-        },
-        {
-          "text": " числа "
-        },
-        {
-          "text": "називають"
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "добуванням",
-          "bold": true
-        },
-        {
-          "text": " квадратного ",
-          "bold": true
-        },
-        {
-          "text": "кореня",
+          "text": "підкореневим виразом",
           "bold": true
         },
         {
@@ -9674,35 +10052,37 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Для будь-"
+          "text": "Дію знаходження арифметичного квадратного кореня із числа називають "
         },
         {
-          "text": "якого"
+          "text": "добуванням квадратного кореня",
+          "bold": true
         },
         {
-          "text": " "
+          "text": "."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "body",
+      "align": "left",
+      "runs": [
+        {
+          "text": "Для будь-якого дійсного числа "
         },
         {
-          "text": "дійсного"
+          "text": "\\(a\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": " числа а "
-        },
-        {
-          "text": "виконується"
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "рівність"
-        },
-        {
-          "text": " "
+          "text": " виконується рівність "
         },
         {
           "text": "\\(\\sqrt{{a}^{2}}=\\left|a\\right|\\)",
-          "math": true
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -9712,53 +10092,28 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Для будь-"
+          "text": "Для будь-якого дійсного числа "
         },
         {
-          "text": "якого"
+          "text": "\\(a\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": " "
+          "text": " та будь-якого натурального числа "
         },
         {
-          "text": "дійсного"
+          "text": "\\(n\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": " числа а та будь-"
-        },
-        {
-          "text": "якого"
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "нату"
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "рального"
-        },
-        {
-          "text": " числа n "
-        },
-        {
-          "text": "виконується"
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "рівність"
-        },
-        {
-          "text": " "
+          "text": " виконується рівність "
         },
         {
           "text": "\\(\\sqrt{{a}^{2n}}=\\left|{a}^{n}\\right|\\)",
-          "math": true
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -9768,55 +10123,44 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Для будь-"
+          "text": "Для будь-яких дійсних чисел "
         },
         {
-          "text": "яких"
+          "text": "\\(a\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": " "
+          "text": " і "
         },
         {
-          "text": "дійсних"
+          "text": "\\(b\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": " чисел а і b таких, "
-        },
-        {
-          "text": "що"
-        },
-        {
-          "text": " "
+          "text": " таких, що "
         },
         {
           "text": "\\(a \\ge{} 0\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " і "
         },
         {
           "text": "\\(b \\ge{} 0\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
-          "text": ", "
-        },
-        {
-          "text": "виконується"
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "рівність"
-        },
-        {
-          "text": " "
+          "text": ", виконується рівність "
         },
         {
           "text": "\\(\\sqrt{ab}=\\sqrt{a }\\cdot \\sqrt{b}\\)",
-          "math": true
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -9827,14 +10171,13 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "runs": [
         {
           "text": "\\(\\sqrt{abc}=\\sqrt{(ab)c}=\\sqrt{ab }\\cdot \\sqrt{c}=\\sqrt{a }\\cdot \\sqrt{b}\\cdot \\sqrt{c}\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
-          "text": "         "
-        },
-        {
-          "text": "\\(\\sqrt{\\frac{a}{b} }=\\frac{\\sqrt{a}}{\\sqrt{b}}\\)",
-          "math": true
+          "text": "\\(\\qquad\\sqrt{\\frac{a}{b}}=\\frac{\\sqrt{a}}{\\sqrt{b}}\\)",
+          "math": true,
+          "bold": true
         }
       ]
     }
@@ -9846,7 +10189,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "4. Рівності та нерівності"
+          "text": "4. Рівності та нерівності",
+          "bold": true
         }
       ]
     },
@@ -9888,7 +10232,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(a>b, a-b>0\\)",
-          "math": true
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -9926,7 +10271,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(a<b, a-b<0\\)",
-          "math": true
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -9936,8 +10282,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Основні властивості числових нерівностей",
-          "bold": true
+          "text": "Основні властивості числових нерівностей"
         }
       ]
     },
@@ -9964,14 +10309,16 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(a>b\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": " і "
                     },
                     {
                       "text": "\\(b>c\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": ", "
@@ -9988,7 +10335,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(a>c\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -10006,13 +10354,15 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(a>b\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": " і "
                     },
                     {
-                      "text": "c",
+                      "text": "\\(c\\)",
+                      "math": true,
                       "bold": true
                     },
                     {
@@ -10030,7 +10380,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(a + c>b + c\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -10048,13 +10399,15 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(a>b\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": " і "
                     },
                     {
-                      "text": "c",
+                      "text": "\\(c\\)",
+                      "math": true,
                       "bold": true
                     },
                     {
@@ -10062,7 +10415,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(ac>bc\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": ". "
@@ -10079,13 +10433,15 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(a>b\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": " і "
                     },
                     {
-                      "text": "c",
+                      "text": "\\(c\\)",
+                      "math": true,
                       "bold": true
                     },
                     {
@@ -10093,7 +10449,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(ac<bc\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": "."
@@ -10129,14 +10486,16 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(ab>0\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": " і "
                     },
                     {
                       "text": "\\(a>b\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": ", "
@@ -10153,7 +10512,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(\\frac{1}{a}<\\frac{1}{b}\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -10171,14 +10531,16 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(a>b\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": " і "
                     },
                     {
                       "text": "\\(c>d\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": ", "
@@ -10195,7 +10557,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(a + c > b + d\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -10212,14 +10575,40 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                       "text": "Якщо "
                     },
                     {
-                      "text": "\\(a>b,c>d\\)",
-                      "math": true
+                      "text": "\\(a>b, c>d\\)",
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": " і "
                     },
                     {
-                      "text": "a, b, c, d",
+                      "text": "\\(a\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ", "
+                    },
+                    {
+                      "text": "\\(b\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ", "
+                    },
+                    {
+                      "text": "\\(c\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " і "
+                    },
+                    {
+                      "text": "\\(d\\)",
+                      "math": true,
                       "bold": true
                     },
                     {
@@ -10237,7 +10626,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(ac>bd\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -10268,13 +10658,23 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(a>b\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": " і "
                     },
                     {
-                      "text": "a, b",
+                      "text": "\\(a\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ", "
+                    },
+                    {
+                      "text": "\\(b\\)",
+                      "math": true,
                       "bold": true
                     },
                     {
@@ -10282,13 +10682,15 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(a^{n}>b^{n}\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": ", де "
                     },
                     {
-                      "text": "n",
+                      "text": "\\(n\\)",
+                      "math": true,
                       "bold": true
                     },
                     {
@@ -10308,8 +10710,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Розв’язки нерівності",
-          "bold": true
+          "text": "Розв’язки нерівності"
         }
       ]
     },
@@ -10370,8 +10771,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Нерівності, проміжки за зображення",
-          "bold": true
+          "text": "Нерівності, проміжки за зображення"
         }
       ]
     },
@@ -10386,11 +10786,24 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Множина допустимих значень змінної x",
+          "text": "Множина допустимих значень змінної ",
           "bold": true
         },
         {
-          "text": ", тобто всі значення змінної x, при яких даний вираз "
+          "text": "\\(x\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", тобто всі значення змінної "
+        },
+        {
+          "text": "\\(x\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", при яких даний вираз ",
         },
         {
           "text": "має зміст",
@@ -10417,14 +10830,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "text": "Розв’язком системи нерівностей з однією змінною називають значення змінної, яке "
         },
         {
-          "text": "перетворює кожну нерівність системи",
-          "bold": true
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "в правильну числову нерівність",
+          "text": "перетворює кожну нерівність системи в правильну числову нерівність",
           "bold": true
         },
         {
@@ -10472,13 +10878,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "14. "
-        },
-        {
-          "text": "Функці"
-        },
-        {
-          "text": "ї"
+          "text": "14. Функції",
+          "bold": true
         }
       ]
     },
@@ -10533,8 +10934,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Нуль функції",
-          "bold": true
+          "text": "Нуль функції"
         }
       ]
     },
@@ -10561,16 +10961,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Проміжок ",
-          "bold": true
-        },
-        {
-          "text": "знакосталості",
-          "bold": true
-        },
-        {
-          "text": " функції",
-          "bold": true
+          "text": "Проміжок знакосталості функції"
         }
       ]
     },
@@ -10580,24 +10971,10 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Проміжок, на якому функція набуває значень однакового "
+          "text": "Проміжок, на якому функція набуває значень однакового знака, називають "
         },
         {
-          "text": "знака"
-        },
-        {
-          "text": ", називають "
-        },
-        {
-          "text": "проміжком ",
-          "bold": true
-        },
-        {
-          "text": "знакосталості",
-          "bold": true
-        },
-        {
-          "text": " функції",
+          "text": "проміжком знакосталості функції",
           "bold": true
         },
         {
@@ -10611,8 +10988,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Зростання і спадання функції",
-          "bold": true
+          "text": "Зростання і спадання функції"
         }
       ]
     },
@@ -10674,12 +11050,12 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Побудова графіка функції ",
-          "bold": true
+          "text": "Побудова графіка функції "
         },
         {
           "text": "\\(y =kf(x)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -10693,20 +11069,23 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(y =kf(x)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " можна отримати з графіка функції "
         },
         {
           "text": "\\(y = f (x)y\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " результаті розтягнення в "
         },
         {
-          "text": "k",
+          "text": "\\(k\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -10714,44 +11093,43 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(k>1\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ", або в результаті стискання в"
         },
         {
-          "text": " k раз"
+          "text": "\\(k>1\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": "ів"
+          "text": " разів"
         },
         {
           "text": " до осі абсцис, якщо "
         },
         {
           "text": "\\(k>1\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ", або в результаті стискання в "
         },
         {
           "text": "\\(\\frac{1}{k}\\)",
-          "math": true
-        },
-        {
-          "text": " ",
+          "math": true,
           "bold": true
         },
         {
-          "text": "раза"
-        },
-        {
-          "text": " до осі абсцис, якщо "
+          "text": " раза до осі абсцис, якщо "
         },
         {
           "text": "\\(0<k<1\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": "."
@@ -10764,12 +11142,12 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Побудова графіка функції ",
-          "bold": true
+          "text": "Побудова графіка функції "
         },
         {
           "text": "\\(y = f (x) + b\\)",
-          "math": true
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -10783,20 +11161,23 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(y = f (x) + b\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " можна отримати в результаті паралельного перенесення графіка функції "
         },
         {
           "text": "\\(y = f (x)y\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": "вздовж осі ординат на "
         },
         {
-          "text": "b",
+          "text": "\\(b\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -10804,13 +11185,15 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(b>0\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ", і на "
         },
         {
-          "text": "–b",
+          "text": "\\(-b\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -10818,7 +11201,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(b<0\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": "."
@@ -10831,12 +11215,12 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Побудова графіка функції ",
-          "bold": true
+          "text": "Побудова графіка функції "
         },
         {
           "text": "\\(y = f (x + a)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -10850,27 +11234,39 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(y = f (x + a)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " можна отримати в результаті паралельного перенесення графіка функції "
         },
         {
           "text": "\\(y = f (x)y\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
-          "text": "вздовж осі абсцис на a одиниць уліво, якщо "
+          "text": "вздовж осі абсцис на "
+        },
+        {
+          "text": "\\(a\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " одиниць уліво, якщо "
         },
         {
           "text": "\\(a>0\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ", і на "
         },
         {
-          "text": "–a",
+          "text": "\\(-a\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -10878,7 +11274,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(a<0\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": "."
@@ -10891,8 +11288,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Квадратична функція",
-          "bold": true
+          "text": "Квадратична функція"
         }
       ]
     },
@@ -10906,27 +11302,39 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(y = ax^{2}+bx+ c\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ", де "
         },
         {
-          "text": "x",
+          "text": "\\(x\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " — незалежна змінна, "
         },
         {
-          "text": "a, b",
+          "text": "\\(a\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", "
+        },
+        {
+          "text": "\\(b\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " і "
         },
         {
-          "text": "c",
+          "text": "\\(c\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -10934,7 +11342,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(a \\ne{} 0\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ", називають квадратичною."
@@ -10947,8 +11356,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Квадратні нерівності",
-          "bold": true
+          "text": "Квадратні нерівності"
         }
       ]
     },
@@ -10961,28 +11369,64 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "text": " Нерівності виду "
         },
         {
-          "text": "\\(ax^{2}+bx+ c>0,ax^{2}+bx+ c <0,ax^{2}+bx+c\\ge{}0,ax^{2}+bx+c\\le{}0\\)",
-          "math": true
+          "text": "\\(ax^{2}+bx+c>0\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", "
+        },
+        {
+          "text": "\\(ax^{2}+bx+c<0\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", "
+        },
+        {
+          "text": "\\(ax^{2}+bx+c\\geq0\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", "
+        },
+        {
+          "text": "\\(ax^{2}+bx+c\\leq0\\)",
+          "math": true,
+          "bold": true
         },
         {
           "text": ", де "
         },
         {
-          "text": "x",
+          "text": "\\(x\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " — змінна, "
         },
         {
-          "text": "a, b",
+          "text": "\\(a\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", "
+        },
+        {
+          "text": "\\(b\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " і "
         },
         {
-          "text": "c",
+          "text": "\\(c\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -10990,7 +11434,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(a \\ne{} 0\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ", називають квадратними."
@@ -11007,7 +11452,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(y = ax^{2}+bx+ c\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " відносно осі абсцис"
@@ -11021,11 +11467,12 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "subheading",
+      "variant": "sectionHeading",
       "align": "left",
       "runs": [
         {
-          "text": "21. Комбінаторика. Прогресії"
+          "text": "21. Комбінаторика. Прогресії",
+          "bold": true
         }
       ]
     },
@@ -11035,8 +11482,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Послідовність",
-          "bold": true
+          "text": "Послідовність"
         }
       ]
     },
@@ -11049,11 +11495,59 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "text": "Об’єкти, які пронумеровано поспіль натуральними числами "
         },
         {
-          "text": "1, 2, 3, ..., n,",
+          "text": "\\(1\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": " ..., утворюють послідовності. "
+          "text": ", ",
+          "bold": true
+        },
+        {
+          "text": "\\(2\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", ",
+          "bold": true
+        },
+        {
+          "text": "\\(3\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", ",
+          "bold": true
+        },
+        {
+          "text": "\\(...\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", ",
+          "bold": true
+        },
+        {
+          "text": " "
+        },
+        {
+          "text": "\\(n\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", ",
+          "bold": true
+        },
+        {
+          "text": " ..., ",
+          "bold": true
+        },
+        {
+          "text": " утворюють послідовності. "
         }
       ]
     },
@@ -11063,8 +11557,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Арифметична прогресія",
-          "bold": true
+          "text": "Арифметична прогресія"
         }
       ]
     },
@@ -11077,13 +11570,15 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "text": "Послідовність, кожний член якої, починаючи з другого, дорівнює попередньому члену, до якого додано одне й те саме число, називають арифметичною прогресією."
         },
         {
-          "text": " "
+          "text": " Формула "
         },
         {
-          "text": "Формула n-го члена арифметичної прогресії"
+          "text": "\\(n\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": ":"
+          "text": " -го члена арифметичної прогресії: "
         },
         {
           "text": " ",
@@ -11091,7 +11586,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(a_{n}= a_{1}+ d (n - 1)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -11101,8 +11597,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Формула n-го члена арифметичної прогресії",
-          "bold": true
+          "text": "Формула n-го члена арифметичної прогресії"
         }
       ]
     },
@@ -11115,22 +11610,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "text": "Будь-який член арифметичної прогресії, крім першого (і останнього, якщо прогресія є скінченною), дорівнює середньому арифметичному двох сусідніх із ним членів: "
         },
         {
-          "text": "a"
-        },
-        {
-          "text": "n",
-          "subscript": true
-        },
-        {
-          "text": " ",
-          "subscript": true
-        },
-        {
-          "text": "= "
-        },
-        {
-          "text": "\\(\\frac{{a}_{n-1}+{a}_{n+1}}{2}\\)",
-          "math": true
+          "text": "\\(a_n=\\frac{a_{n-1}+a_{n+1}}{2}\\)",
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -11140,47 +11622,21 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Формули суми n перших членів арифметичної прогресії",
+          "text": "Формули суми n перших членів арифметичної прогресії: ",
           "bold": true
         },
         {
-          "text": ": ",
+          "text": "\\(S_n=\\frac{a_1+a_n}{2}\\cdot n\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": "S"
+          "text": ", "
         },
         {
-          "text": "n",
-          "subscript": true
-        },
-        {
-          "text": " ",
-          "subscript": true
-        },
-        {
-          "text": "="
-        },
-        {
-          "text": "\\(\\frac{{a}_{1}+{a}_{n}}{2}\\cdot n\\)",
-          "math": true
-        },
-        {
-          "text": " , "
-        },
-        {
-          "text": "S"
-        },
-        {
-          "text": "n",
-          "subscript": true
-        },
-        {
-          "text": "= "
-        },
-        {
-          "text": "\\(\\frac{2{a}_{1}+d(n-1)}{2}\\cdot n\\)",
-          "math": true
+          "text": "\\(S_n=\\frac{2a_1+d(n-1)}{2}\\cdot n\\)",
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -11190,8 +11646,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Геометрична прогресія",
-          "bold": true
+          "text": "Геометрична прогресія"
         }
       ]
     },
@@ -11211,10 +11666,15 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Формула n-го члена геометричної прогресії"
+          "text": "Формула "
         },
         {
-          "text": ":"
+          "text": "\\(n\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": "-го члена геометричної прогресії: "
         },
         {
           "text": " ",
@@ -11222,7 +11682,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\({b}_{n}= {b}_{1}{q}^{n-1}\\)",
-          "math": true
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -11232,7 +11693,21 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Властивість членів геометричної прогресії",
+          "text": "Властивість членів геометричної прогресії"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "body",
+      "align": "left",
+      "runs": [
+        {
+          "text": "Квадрат будь-якого члена геометричної прогресії, крім першого (і останнього, якщо прогресія є скінченною), дорівнює добутку двох сусідніх із ним членів: "
+        },
+        {
+          "text": "\\({b}_{n}^{2}={b}_{n-1}{b}_{n+1}\\)",
+          "math": true,
           "bold": true
         }
       ]
@@ -11243,24 +11718,16 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Квадрат будь-якого члена геометричної прогресії, крім першого (і останнього, якщо прогресія є скінченною), дорівнює добутку двох сусідніх із ним членів:"
+          "text": "Формула суми ",
+          "bold": true
         },
         {
-          "text": " "
+          "text": "\\(n\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": "\\({b}_{n}^{2}={b}_{n-1}{b}_{n+1}\\)",
-          "math": true
-        }
-      ]
-    },
-    {
-      "type": "paragraph",
-      "variant": "body",
-      "align": "left",
-      "runs": [
-        {
-          "text": "Формула суми n перших членів геометричної прогресії",
+          "text": " перших членів геометричної прогресії: ",
           "bold": true
         }
       ]
@@ -11272,7 +11739,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "runs": [
         {
           "text": "\\[{S}_{n}=\\frac{{b}_{1}({q}^{n}-1)}{q-1}\\]",
-          "math": true
+          "math": true,
+          "bold": true
         }
       ]
     },
@@ -11282,7 +11750,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "22. Теорія ймовірностей"
+          "text": "22. Теорія ймовірностей",
+          "bold": true
         }
       ]
     },
@@ -11292,8 +11761,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Класичне означення ймовірності",
-          "bold": true
+          "text": "Класичне означення ймовірності"
         }
       ]
     },
@@ -11303,10 +11771,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Подію, "
-        },
-        {
-          "text": "яка "
+          "text": "Подію, яка "
         },
         {
           "text": "обов’язково відбудеться",
@@ -11320,13 +11785,14 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "bold": true
         },
         {
-          "text": " (вірогідною). Ймовірність такої події вважають рівною 1, тобто: "
+          "text": " (вірогідною). "
         },
         {
-          "text": "якщо "
+          "text": " Ймовірність такої події вважають рівною 1, тобто: якщо "
         },
         {
-          "text": "A",
+          "text": "\\(A\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -11341,7 +11807,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(P(A) = 1\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": "."
@@ -11368,14 +11835,28 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "bold": true
         },
         {
-          "text": ". Ймовірність такої події вважають рівною 0, тобто:якщо A — неможлива подія, то"
+          "text": ". Ймовірність такої події вважають рівною "
         },
         {
-          "text": " "
+          "text": "\\(0\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", тобто: якщо "
+        },
+        {
+          "text": "\\(A\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " — неможлива подія, то "
         },
         {
           "text": "\\(P (A) = 0\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": "."
@@ -11388,8 +11869,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Класичне визначення ймовірності",
-          "bold": true
+          "text": "Класичне визначення ймовірності"
         }
       ]
     },
@@ -11402,34 +11882,32 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "text": "Якщо випробування може закінчитися одним з "
         },
         {
-          "text": "n",
+          "text": "\\(n\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": " "
+          "text": " рівноможливих результатів, з яких "
         },
         {
-          "text": "рівноможливих"
-        },
-        {
-          "text": " результатів, з яких "
-        },
-        {
-          "text": "m",
+          "text": "\\(m\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": " приводять до настання події "
+          "text": " призводять до настання події "
         },
         {
-          "text": "A",
+          "text": "\\(A\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": ", то ймовірністю події "
         },
         {
-          "text": "A",
+          "text": "\\(A\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -11437,7 +11915,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(\\frac{m}{n}\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": "."
@@ -11446,8 +11925,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "text": "   "
         },
         {
-          "text": "\\(P\\left(A\\right)= \\frac{m}{n}\\)",
-          "math": true
+          "text": "\\(\\; P (A) = \\frac{m}{n}\\)",
+          "math": true,
+          "bold": true
         }
       ]
     }
@@ -11459,7 +11939,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Елементарні дії",
+          "text": "1. Елементарні дії",
           "bold": true
         }
       ]
@@ -11470,8 +11950,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Підмножина",
-          "bold": true
+          "text": "Підмножина"
         }
       ]
     },
@@ -11484,21 +11963,32 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "text": "Множину "
         },
         {
-          "text": "B",
+          "text": "\\(B\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": " називають підмножиною множини A, якщо кожний елемент множини "
+          "text": " називають підмножиною множини "
         },
         {
-          "text": "B",
+          "text": "\\(A\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", якщо кожний елемент множини "
+        },
+        {
+          "text": "\\(B\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " є елементом множини "
         },
         {
-          "text": "A",
+          "text": "\\(A\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -11506,7 +11996,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(B\\subset{}A\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " ",
@@ -11521,20 +12012,23 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(B \\ne{} A\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ", то множину "
         },
         {
-          "text": "B",
+          "text": "\\(B\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " називають власною підмножиною множини "
         },
         {
-          "text": "A",
+          "text": "\\(A\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -11548,8 +12042,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Операції над множинами",
-          "bold": true
+          "text": "Операції над множинами"
         }
       ]
     },
@@ -11830,8 +12323,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Функція",
-          "bold": true
+          "text": "Функція"
         }
       ]
     },
@@ -11879,8 +12371,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Найбільше і найменше значення функції",
-          "bold": true
+          "text": "Найбільше і найменше значення функції"
         }
       ]
     },
@@ -11893,23 +12384,16 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "text": "Число "
         },
         {
-          "text": "f (x",
-          "bold": true
-        },
-        {
-          "text": "0",
-          "bold": true,
-          "subscript": true
-        },
-        {
-          "text": ")",
+          "text": "\\(f (x_{0})\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " називають найбільшим значенням функції "
         },
         {
-          "text": "f",
+          "text": "\\(f\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -11917,105 +12401,82 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(M\\subset{}D (f)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ", якщо існує таке число "
         },
         {
           "text": "\\(x_{0}\\in{}M\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ", що для всіх "
         },
         {
           "text": "\\(x\\in{}M\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " виконується нерівність "
         },
         {
-          "text": "f(x",
+          "text": "\\(f(x_{0})\\geq f(x)\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": "0",
-          "bold": true,
-          "subscript": true
+          "text": ". "
         },
         {
-          "text": ") ",
+          "text": " Число "
+        },
+        {
+          "text": "\\(f(x_{0})\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": "\\(\\ge\\)",
-          "math": true
+          "text": " називають найменшим значенням функції "
         },
         {
-          "text": " f(x)",
+          "text": "\\(f\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": "Число "
-        },
-        {
-          "text": "f (x",
-          "bold": true
-        },
-        {
-          "text": "0",
-          "bold": true,
-          "subscript": true
-        },
-        {
-          "text": ")",
-          "bold": true
-        },
-        {
-          "text": " називають найменшим значенням функції f на множині "
+          "text": " на множині "
         },
         {
           "text": "\\(M\\subset{}D (f)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ", якщо існує таке число "
         },
         {
           "text": "\\(x_{0}\\in{}M\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ", що для всіх "
         },
         {
           "text": "\\(x\\in{}M\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " виконується нерівність "
         },
         {
-          "text": "f(x",
-          "bold": true
-        },
-        {
-          "text": "0",
-          "bold": true,
-          "subscript": true
-        },
-        {
-          "text": ") ",
-          "bold": true
-        },
-        {
-          "text": "\\(\\le\\)",
-          "math": true
-        },
-        {
-          "text": " f(x)",
+          "text": "\\(f(x_{0})\\leq f(x)\\)",
+          "math": true,
           "bold": true
         }
       ]
@@ -12026,8 +12487,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Парні і непарні функції.",
-          "bold": true
+          "text": "Парні і непарні функції."
         }
       ]
     },
@@ -12040,29 +12500,49 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "text": "Функцію "
         },
         {
-          "text": "f",
+          "text": "\\(f\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": " називають парною, якщо для будь-якого x із області визначення виконується рівність "
+          "text": " називають парною, якщо для будь-якого "
+        },
+        {
+          "text": "\\(x\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " із області визначення виконується рівність "
         },
         {
           "text": "\\(f (-x) = f (x)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ". Функцію "
         },
         {
-          "text": "f",
+          "text": "\\(f\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": " називають непарною, якщо для будь-якого x із області визначення виконується рівність "
+          "text": " називають непарною, якщо для будь-якого "
+        },
+        {
+          "text": "\\(x\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " із області визначення виконується рівність "
         },
         {
           "text": "\\(f (-x) = -f (x)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ". "
@@ -12082,8 +12562,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Перетворення графіків функцій",
-          "bold": true
+          "text": "Перетворення графіків функцій"
         }
       ]
     },
@@ -12097,20 +12576,23 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(y = f (kx)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " можна отримати з графіка функції "
         },
         {
-          "text": "\\(y = f (x)y\\)",
-          "math": true
+          "text": "\\(y = f (x)\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": " результаті стискання в "
+          "text": " у результаті стискання в "
         },
         {
-          "text": "k",
+          "text": "\\(k\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -12118,34 +12600,48 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(k > 1\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
-          "text": ", або в результаті розтягнення в 1 k "
+          "text": ", або в результаті розтягнення в "
         },
         {
-          "text": "раза"
+          "text": "\\(1\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": " від осі ординат, якщо "
+          "text": " "
+        },
+        {
+          "text": "\\(k\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": "раза від осі ординат, якщо "
         },
         {
           "text": "\\(0 < k < 1\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ". Графік функції "
         },
         {
           "text": "\\(y = f (-x)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " можна отримати, відобразивши графік функції "
         },
         {
           "text": "\\(y = f (x)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " симетрично відносно осі ординат."
@@ -12158,8 +12654,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Оборотна функція",
-          "bold": true
+          "text": "Оборотна функція"
         }
       ]
     },
@@ -12173,28 +12668,32 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(y = f (x)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " називають оборотною, якщо для будь-якого "
         },
         {
           "text": "\\(y0\\in{}E (f)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " існує єдине "
         },
         {
           "text": "\\(x0\\in{}D (f)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " таке, що "
         },
         {
           "text": "\\(y0 = f (x0)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ". Якщо функція є зростаючою (спадною), то вона є оборотною."
@@ -12207,8 +12706,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Взаємно обернені функції",
-          "bold": true
+          "text": "Взаємно обернені функції"
         }
       ]
     },
@@ -12218,58 +12716,84 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Функції f і g називають взаємно оберненими, якщо"
+          "text": "Функції "
         },
         {
-          "text": ": ",
+          "text": "\\(f\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": "\\(1) D (f) = E (g)\\)",
-          "math": true
+          "text": " і "
         },
         {
-          "text": " і ",
+          "text": "\\(g\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": "\\(E (f) = D (g);2)\\)",
-          "math": true
+          "text": " називають взаємно оберненими, якщо: "
+        },
+        {
+          "text": "1) ",
+          "bold": true
+        },
+        {
+          "text": "\\(D (f) = E (g)\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " і "
+        },
+        {
+          "text": "\\(E (f) = D (g))\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": "; 2)",
+          "bold": true
         },
         {
           "text": " для будь-якого "
         },
         {
           "text": "\\(x_{0}\\in{}D (f)\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " із рівності "
         },
         {
           "text": "\\(f (x_{0}) = y_{0}\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " випливає, що "
         },
         {
           "text": "\\(g (y_{0}) = x_{0}\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ", тобто "
         },
         {
           "text": "\\(g (f (x_{0})) = x_{0}\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ". Графіки взаємно обернених функцій симетричні відносно прямої "
         },
         {
           "text": "\\(y = x\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": ". Якщо функція є зростаючою (спадною), то обернена до неї функція є також зростаючою (спадною)."
@@ -12293,8 +12817,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Ділення многочленів",
-          "bold": true
+          "text": "Ділення многочленів"
         }
       ]
     },
@@ -12307,21 +12830,51 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "text": "Говорять, що многочлен "
         },
         {
-          "text": "A (x)",
+          "text": "\\(A\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " ділиться націло на тотожно не рівний нулю многочлен "
         },
         {
-          "text": "B (x)",
+          "text": "\\(B\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": ", якщо існує такий многочлен "
         },
         {
-          "text": "Q (x)",
+          "text": "\\(Q\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -12329,54 +12882,66 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(x\\in{}R\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": " виконується рівність "
         },
         {
-          "text": "\\(A(x)= B(x)\\)",
-          "math": true
-        },
-        {
-          "text": "◦",
-          "bold": true
-        },
-        {
-          "text": "Q",
-          "bold": true
-        },
-        {
-          "text": "(",
-          "bold": true
-        },
-        {
-          "text": "x",
-          "bold": true
-        },
-        {
-          "text": ")",
+          "text": "\\(A(x)=B(x)\\cdot Q(x)\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": ". Многочлен "
         },
         {
-          "text": "A(x)",
+          "text": "\\(A\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " називають діленим, многочлен "
         },
         {
-          "text": "B (x)",
+          "text": "\\(B\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " — дільником, многочлен "
         },
         {
-          "text": "Q (x)",
+          "text": "\\(Q\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -12393,104 +12958,193 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "text": "Для будь-якого многочлена "
         },
         {
-          "text": "A (x)",
+          "text": "\\(A\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " і ненульового многочлена "
         },
         {
-          "text": "B (x)",
+          "text": "\\(B\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " існує єдина пара многочленів "
         },
         {
-          "text": "Q (x)",
+          "text": "\\(Q\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " і "
         },
         {
-          "text": "R (x)",
+          "text": "\\(R\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " таких, що "
         },
         {
-          "text": "\\(A(x)= B(x)\\)",
-          "math": true
-        },
-        {
-          "text": "◦"
-        },
-        {
-          "text": "\\(Q(x)+ R x\\)",
-          "math": true
-        },
-        {
-          "text": " , де степінь многочлена "
-        },
-        {
-          "text": "R (x)",
+          "text": "\\(A(x)= B(x)\\cdot Q(x)+ R(x)\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": " менший від степеня многочлена "
+          "text": ", де ступінь многочлена "
         },
         {
-          "text": "B (x)",
+          "text": "\\(R\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " менший від ступеня многочлена "
+        },
+        {
+          "text": "\\(B\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " або "
         },
         {
-          "text": "R (x)",
+          "text": "\\(R\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " — нульовий многочлен. У цій рівності многочлен "
         },
         {
-          "text": "Q (x)",
+          "text": "\\(Q\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " називають неповною часткою, а многочлен "
         },
         {
-          "text": "R (x)",
+          "text": "\\(R\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": " — остачею."
+          "text": " ",
+          "bold": true
         },
         {
-          "text": " "
+          "text": "\\((x)\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " — остачею. "
         },
         {
           "text": "Число "
         },
         {
-          "text": "a",
+          "text": "\\(a\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " називають "
         },
         {
-          "text": "коренем многочлена",
+          "text": "коренем многочлена ",
           "bold": true
         },
         {
-          "text": " "
+          "text": "\\(A\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": "A (x)",
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -12498,7 +13152,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(A (a)= 0\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": "."
@@ -12511,8 +13166,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Властивості коренів многочлена",
-          "bold": true
+          "text": "Властивості коренів многочлена"
         }
       ]
     },
@@ -12522,142 +13176,144 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "both",
       "runs": [
         {
-          "text": "Число a є коренем многочлена "
+          "text": "Число "
         },
         {
-          "text": "A(x) ",
+          "text": "\\(a\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": "тоді й тільки тоді, коли многочлен A (x) ділиться націло на двочлен x – a. Якщо "
+          "text": " є коренем многочлена "
         },
         {
-          "text": "{a",
+          "text": "\\(A\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": "1",
-          "bold": true,
-          "subscript": true
-        },
-        {
-          "text": ", a",
+          "text": " ",
           "bold": true
         },
         {
-          "text": "2",
-          "bold": true,
-          "subscript": true
-        },
-        {
-          "text": ", ..., ",
+          "text": "\\((x)\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": "a",
+          "text": " тоді й тільки тоді, коли многочлен "
+        },
+        {
+          "text": "\\(A\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": "n",
-          "bold": true,
-          "subscript": true
+          "text": " ",
+          "bold": true
         },
         {
-          "text": "}",
+          "text": "\\((x)\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ділиться націло на двочлен "
+        },
+        {
+          "text": "\\(x - a\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ". Якщо "
+        },
+        {
+          "text": "\\(\\{a_1,a_2,\\ldots,a_n\\}\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " — множина коренів многочлена "
         },
         {
-          "text": "A (x)",
+          "text": "\\(A\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": ", то "
         },
         {
-          "text": "\\(A(x)=(x-a_{1}) (x-a_{2})\\)",
-          "math": true
-        },
-        {
-          "text": "◦"
-        },
-        {
-          "text": "…"
-        },
-        {
-          "text": "◦"
-        },
-        {
-          "text": "("
-        },
-        {
-          "text": "x"
-        },
-        {
-          "text": "-"
-        },
-        {
-          "text": "a"
-        },
-        {
-          "text": "n",
-          "subscript": true
-        },
-        {
-          "text": ")"
-        },
-        {
-          "text": " ◦"
-        },
-        {
-          "text": " "
-        },
-        {
-          "text": "Q (x) "
-        },
-        {
-          "text": " де Q (x) — деякий многочлен. Множина коренів многочлена степеня "
-        },
-        {
-          "text": "n",
+          "text": "\\(A(x)=(x-a_1)(x-a_2)\\cdot\\ldots\\cdot(x-a_n)\\cdot Q(x)\\)",
+          "math": true,
           "bold": true
         },
         {
-          "text": " містить не більше ніж "
+          "text": ", де "
         },
         {
-          "text": "n",
+          "text": "\\(Q\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((x)\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " — деякий многочлен. Множина коренів многочлена ступеня "
+        },
+        {
+          "text": "\\(n\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " містить не більше, ніж "
+        },
+        {
+          "text": "\\(n\\)",
+          "math": true,
           "bold": true
         },
         {
           "text": " елементів. Якщо множина коренів многочлена "
         },
         {
-          "text": "\\(a_{n}x_{n}+a_{n- 1}x^{n - 1}\\)",
-          "math": true
+          "text": "\\(a_nx^n+a_{n-1}x^{n-1}+\\ldots+a_1x+a_0\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": " + ... + "
+          "text": " містить більше, ніж "
         },
         {
-          "text": "\\(a_{1}x + a_{0}\\)",
-          "math": true
+          "text": "\\(n\\)",
+          "math": true,
+          "bold": true
         },
         {
-          "text": " містить більше ніж n елементів, то "
+          "text": " елементів, то "
         },
         {
-          "text": "\\(a_{n}=a_{n}- 1\\)",
-          "math": true
-        },
-        {
-          "text": " = ... = "
-        },
-        {
-          "text": "\\(a_{1}= a_{0}= 0\\)",
-          "math": true
+          "text": "\\(a_n=a_{n-1}=\\ldots=a_1=a_0=0\\)",
+          "math": true,
+          "bold": true
         },
         {
           "text": ", тобто цей многочлен "
@@ -12668,16 +13324,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": ". "
-        }
-      ]
-    },
-    {
-      "type": "paragraph",
-      "variant": "body",
-      "align": "both",
-      "runs": [
+        },
         {
-          "text": "Якщо ціле раціональне рівняння із цілими коефіцієнтами має цілий корінь, то він є дільником вільного члена."
+          "text": " Якщо ціле раціональне рівняння із цілими коефіцієнтами має цілий корінь, то він є дільником вільного члена."
         }
       ]
     },
@@ -12687,12 +13336,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Теорема ",
-          "bold": true
-        },
-        {
-          "text": "Безу",
-          "bold": true
+          "text": "Теорема Безу"
         }
       ]
     },
@@ -12702,53 +13346,98 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Остача від ділення многочлена A (x) на двочлен "
+          "text": "Остача від ділення многочлена "
         },
         {
-          "text": "x – a",
+          "text": "\\(A\\)",
+          "math": true,
           "bold": true
-        },
-        {
-          "text": " дорівнює A(a)."
-        }
-      ]
-    },
-    {
-      "type": "paragraph",
-      "variant": "subheading",
-      "align": "center",
-      "runs": [
-        {
-          "text": "Метод математичної індукції",
-          "bold": true
-        }
-      ]
-    },
-    {
-      "type": "paragraph",
-      "variant": "body",
-      "align": "left",
-      "runs": [
-        {
-          "text": "Нехай потрібно довести, що деяке твердження є правильним для будь-якого натурального значення n. Доведення цього факту методом математичної індукції складається з двох частин (теорем): 1) База індукції. Доводять (перевіряють) справедливість твердження для "
-        },
-        {
-          "text": "\\(n = 1\\)",
-          "math": true
-        },
-        {
-          "text": ". 2) Індуктивний перехід. Роблять припущення, що твердження є правильним для "
-        },
-        {
-          "text": "\\(n = k, k\\)",
-          "math": true
         },
         {
           "text": " ",
           "bold": true
         },
         {
-          "text": "∈",
+          "text": "\\((x)\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " на двочлен "
+        },
+        {
+          "text": "\\(x-a\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " дорівнює "
+        },
+        {
+          "text": "\\(A\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " ",
+          "bold": true
+        },
+        {
+          "text": "\\((a)\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": "."
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "subheading",
+      "align": "center",
+      "runs": [
+        {
+          "text": "Метод математичної індукції"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "body",
+      "align": "left",
+      "runs": [
+        {
+          "text": "Нехай потрібно довести, що деяке твердження є правильним для будь-якого натурального значення "
+        },
+        {
+          "text": "\\(n\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ". Доведення цього факту методом математичної індукції складається з двох частин (теорем): 1) База індукції. Доводять (перевіряють) справедливість твердження для "
+        },
+        {
+          "text": "\\(n = 1\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ". 2) Індуктивний перехід. Роблять припущення, що твердження є правильним для "
+        },
+        {
+          "text": "\\(n=k,\\)",
+          "math": true,
+          "bold": true
+        },
+
+        {
+          "text": "  "
+        },
+        {
+          "text": "\\(k\\in\\mathbb{N}\\)",
+          "math": true,
           "bold": true
         },
         {
@@ -12756,7 +13445,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "\\(n = k + 1\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": "."
@@ -12782,8 +13472,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Геометричні об’єкти.",
-          "bold": true
+          "text": "Геометричні об’єкти."
         }
       ]
     },
@@ -12794,20 +13483,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "runs": [
         {
           "text": "Точка",
-          "bold": true
+          "bold": true,
+          "underline": true
         },
         {
-          "text": " ",
-          "bold": true
-        },
-        {
-          "text": "- "
-        },
-        {
-          "text": "цє"
-        },
-        {
-          "text": " геометричний об'єкт, що має тільки положення в просторі. Найпростіший геометричний об’єкт."
+          "text": " - це геометричний об'єкт, що має тільки положення в просторі. Найпростіший геометричний об’єкт."
         }
       ]
     },
@@ -12818,14 +13498,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "runs": [
         {
           "text": "Пряма",
-          "bold": true
+          "bold": true,
+          "underline": true
         },
         {
-          "text": " - ",
-          "bold": true
-        },
-        {
-          "text": "лінія нескінченної довжини, проходить через дві точки."
+          "text": " - лінія нескінченної довжини, проходить через дві точки."
         }
       ]
     },
@@ -12836,10 +13513,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "runs": [
         {
           "text": "Промінь",
-          "bold": true
+          "bold": true,
+          "underline": true
         },
         {
-          "text": " - частина прямої обмежена з однієї сторони. "
+          "text": " - частина прямої обмежена з однієї сторони."
         }
       ]
     },
@@ -12850,21 +13528,12 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "runs": [
         {
           "text": "Відрізок",
-          "bold": true
+          "bold": true,
+          "underline": true
         },
         {
-          "text": " - ",
-          "bold": true
+          "text": " - частина прямої обмежена з двох сторін; найкоротша лінія, що з’єднує дві точки."
         },
-        {
-          "text": "частина прямої обмежена з двох "
-        },
-        {
-          "text": "сторн"
-        },
-        {
-          "text": "; найкоротша лінія, що з’єднує дві точки. "
-        }
       ]
     },
     {
@@ -12874,7 +13543,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "runs": [
         {
           "text": "Кут",
-          "bold": true
+          "bold": true,
+          "underline": true
         },
         {
           "text": " - геометрична фігура, утворена двома променями, які виходять з однієї точки."
@@ -12888,7 +13558,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "runs": [
         {
           "text": "Трикутник",
-          "bold": true
+          "bold": true,
+          "underline": true
         },
         {
           "text": " - геометрична фігура, яка складається з трьох точок, що "
@@ -12909,7 +13580,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "runs": [
         {
           "text": "Коло",
-          "bold": true
+          "bold": true,
+          "underline": true
         },
         {
           "text": " - це геометричне місце точок площини, відстань від яких до заданої точки, є сталою величиною."
@@ -12922,8 +13594,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Зв’язки між геометричними об’єктами",
-          "bold": true
+          "text": "Зв’язки між геометричними об’єктами"
         }
       ]
     },
@@ -12934,7 +13605,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "runs": [
         {
           "text": "Дві точки",
-          "bold": true
+          "bold": true,
+          "underline": true
         },
         {
           "text": " - дозволяють визначити: "
@@ -12954,8 +13626,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "text": "та "
         },
         {
-          "text": "пряму.",
+          "text": "пряму",
           "bold": true
+        },
+        {
+          "text": "."
         }
       ]
     },
@@ -12965,23 +13640,19 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Два ",
+          "text": "Два променя",
+          "bold": true,
+          "underline": true
+        },
+        {
+          "text": " - що виходять з однієї точки утворюють "
+        },
+        {
+          "text": "кут",
           "bold": true
         },
         {
-          "text": "променя",
-          "bold": true
-        },
-        {
-          "text": ",",
-          "bold": true
-        },
-        {
-          "text": " що виходять з однієї точки утворюють "
-        },
-        {
-          "text": "кут.",
-          "bold": true
+          "text": "."
         }
       ]
     },
@@ -12992,7 +13663,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "runs": [
         {
           "text": "Дві прямі",
-          "bold": true
+          "bold": true,
+          "underline": true
         },
         {
           "text": " - що перетинаються, утворюють "
@@ -13012,18 +13684,27 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Три відрізка, ",
+          "text": "Три відрізка",
+          "bold": true,
+          "underline": true
+        },
+        {
+          "text": " - які з’єднують "
+        },
+        {
+          "text": "три точки",
+          "bold": true,
+          "underline": true
+        },
+        {
+          "text": ", що не лежать на одній прямій, утворюють "
+        },
+        {
+          "text": "трикутник",
           "bold": true
         },
         {
-          "text": "які з’єднують "
-        },
-        {
-          "text": "три точки, ",
-          "bold": true
-        },
-        {
-          "text": "які не лежать на одній прямій, утворюють трикутник."
+          "text": "."
         }
       ]
     },
@@ -13033,8 +13714,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Інші визначення",
-          "bold": true
+          "text": "Інші визначення"
         }
       ]
     },
@@ -13063,10 +13743,14 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": " - це множина точок, що володіє деякою властивістю."
-        },
-        {
-          "text": "\n"
-        },
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "variant": "body",
+      "align": "left",
+      "runs": [
         {
           "text": "Відстань",
           "bold": true
@@ -13082,14 +13766,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "Довжина ",
+          "text": "Довжина",
           "bold": true
         },
         {
-          "text": "- "
-        },
-        {
-          "text": "відстань від точки до точки вздовж деякої лінії."
+          "text": " - відстань від точки до точки вздовж деякої лінії."
         }
       ]
     },
@@ -13099,15 +13780,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "7. ",
-          "bold": true
-        },
-        {
-          "text": "Обрахункова",
-          "bold": true
-        },
-        {
-          "text": " геометрія",
+          "text": "7. Обрахункова геометрія",
           "bold": true
         }
       ]
@@ -13118,8 +13791,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Властивості відрізків",
-          "bold": true
+          "text": "Властивості відрізків"
         }
       ]
     },
@@ -13150,40 +13822,96 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Довжина відрізка - ",
+                      "text": "Довжина відрізка",
                       "bold": true
                     },
                     {
-                      "text": "відстань між точками "
+                      "text": " - відстань між точками "
                     },
                     {
-                      "text": "A і B.",
+                      "text": "\\(A\\)",
+                      "math": true,
                       "bold": true
                     },
                     {
-                      "text": "\n",
+                      "text": " і "
+                    },
+                    {
+                      "text": "\\(B\\)",
+                      "math": true,
                       "bold": true
                     },
+                    {
+                      "text": "."
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "variant": "body",
+                  "align": "left",
+                  "runs": [
                     {
                       "text": "Якщо "
                     },
                     {
-                      "text": "точка C",
+                      "text": "точка ",
                       "bold": true
                     },
                     {
-                      "text": " лежить на відрізку AB, то "
-                    },
-                    {
-                      "text": "довжина",
+                      "text": "\\(C\\)",
+                      "math": true,
                       "bold": true
                     },
                     {
-                      "text": " відрізка AB дорівнює сумі довжин відрізків AC і CB, тобто "
+                      "text": " лежить на відрізку "
                     },
                     {
-                      "text": "\\(AB = AC + CB (\\)",
-                      "math": true
+                      "text": "\\(AB\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ", то"
+                    },
+                    {
+                      "text": " довжина",
+                      "bold": true
+                    },
+                    {
+                      "text": " відрізка "
+                    },
+                    {
+                      "text": "\\(AB\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " дорівнює сумі довжин відрізків "
+                    },
+                    {
+                      "text": "\\(AC\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " і "
+                    },
+                    {
+                      "text": "\\(CB\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ", тобто "
+                    },
+                    {
+                      "text": "\\(AB = AC + CB \\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " ("
                     },
                     {
                       "text": "основна властивість довжини відрізка",
@@ -13193,7 +13921,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                       "text": ")"
                     }
                   ]
-                }
+                },
               ]
             }
           ]
@@ -13206,8 +13934,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Градусна міра кутів.",
-          "bold": true
+          "text": "Градусна міра кутів."
         }
       ]
     },
@@ -13271,11 +13998,13 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Гострий <45",
+                      "text": "Гострий ",
                       "bold": true
                     },
                     {
-                      "text": "°"
+                      "text": "\\(\\;0^{\\circ}<\\alpha<90^{\\circ}\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -13289,11 +14018,13 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Прямий =90",
+                      "text": "Прямий ",
                       "bold": true
                     },
                     {
-                      "text": "°"
+                      "text": "\\(\\;\\alpha=90^{\\circ}\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -13311,8 +14042,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                       "bold": true
                     },
                     {
-                      "text": "\\(90^{\\circ}<180^{\\circ}\\)",
-                      "math": true
+                      "text": "\\(\\;90^{\\circ}<\\alpha<180^{\\circ}\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -13326,11 +14058,13 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Розгорнутий = 180",
+                      "text": "Розгорнутий ",
                       "bold": true
                     },
                     {
-                      "text": "°"
+                      "text": "\\(\\;\\alpha=180^{\\circ}\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -13346,8 +14080,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Сума кутів",
-          "bold": true
+          "text": "Сума кутів"
         }
       ]
     },
@@ -13380,8 +14113,40 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Якщо промінь OC ділить кут AOB на два кути AOC і COB, "
-                    }
+                      "text": "Якщо промінь "
+                    },
+                    {
+                      "text": "\\(OC\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " ділить кут "
+                    },
+                    {
+                      "text": "\\(AOB\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " на два кути "
+                    },
+                    {
+                      "text": "\\(AOC\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " і "
+                    },
+                    {
+                      "text": "\\(COB\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ", "
+                    },
                   ]
                 },
                 {
@@ -13394,10 +14159,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(\\angle{}AOB =\\angle{}AOC +\\angle{}COB\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
-                      "text": ","
+                      "text": "."
                     }
                   ]
                 },
@@ -13411,10 +14177,19 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                     },
                     {
                       "text": "\\(\\angle{}AOC =\\angle{}COB\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
-                      "text": ", то OC називають "
+                      "text": ", то "
+                    },
+                    {
+                      "text": "\\(OC\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " називають "
                     },
                     {
                       "text": "бісектрисою",
@@ -13441,14 +14216,19 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Два кути утворюють розгорнутий кут - їх "
+                      "text": "Два кути утворюють розгорнутий кут - їх називають "
                     },
                     {
                       "text": "суміжними",
                       "bold": true
                     },
                     {
-                      "text": ", сума їх градусних мір дорівнює 180°"
+                      "text": ", сума їх градусних мір дорівнює "
+                    },
+                    {
+                      "text": "\\(180^{\\circ}\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
@@ -13474,8 +14254,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Пряма. Перетин прямих. Вертикальні кути.",
-          "bold": true
+          "text": "Пряма. Перетин прямих. Вертикальні кути."
         }
       ]
     },
@@ -13625,8 +14404,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Паралельні прямі та січна",
-          "bold": true
+          "text": "Паралельні прямі та січна"
         }
       ]
     },
@@ -13690,14 +14468,190 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Якщо дві прямі a і b перетнути третьою прямою c, то утвориться вісім кутів. Пряму c називають "
+                      "text": "Якщо дві прямі "
+                    },
+                    {
+                      "text": "\\(a\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " і "
+                    },
+                    {
+                      "text": "\\(b\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " перетнути третьою прямою "
+                    },
+                    {
+                      "text": "\\(c\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ", то утвориться вісім кутів. Пряму "
+                    },
+                    {
+                      "text": "\\(c\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " називають "
                     },
                     {
                       "text": "січною",
                       "bold": true
                     },
                     {
-                      "text": " прямих a і b. Кути 3 і 6, 4 і 5 називають односторонніми. Кути 3 і 5, 4 і 6 називають різносторонніми. Кути 6 і 2, 5 і 1, 3 і 7, 4 і 8 називають відповідними."
+                      "text": " прямих "
+                    },
+                    {
+                      "text": "\\(a\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " і "
+                    },
+                    {
+                      "text": "\\(b\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ". Кути "
+                    },
+                    {
+                      "text": "\\(3\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " і "
+                    },
+                    {
+                      "text": "\\(6\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ", "
+                    },
+                    {
+                      "text": "\\(4\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " і "
+                    },
+                    {
+                      "text": "\\(5\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " називають односторонніми. Кути "
+                    },
+                    {
+                      "text": "\\(3\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " і "
+                    },
+                    {
+                      "text": "\\(5\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ", "
+                    },
+                    {
+                      "text": "\\(4\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " і "
+                    },
+                    {
+                      "text": "\\(6\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " називають різносторонніми. Кути "
+                    },
+                    {
+                      "text": "\\(6\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " і "
+                    },
+                    {
+                      "text": "\\(2\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ", "
+                    },
+                    {
+                      "text": "\\(5\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " і "
+                    },
+                    {
+                      "text": "\\(1\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ", "
+                    },
+                    {
+                      "text": "\\(3\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " і "
+                    },
+                    {
+                      "text": "\\(7\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ", "
+                    },
+                    {
+                      "text": "\\(4\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " і "
+                    },
+                    {
+                      "text": "\\(8\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " називають відповідними."
                     }
                   ]
                 }
@@ -13713,14 +14667,14 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Трикутник",
-          "bold": true
+          "text": "Трикутник"
         }
       ]
     },
     {
       "type": "table",
       "variant": "grid",
+      "topAligned": true,
       "columnWidths": [
         2370,
         3075,
@@ -13734,12 +14688,13 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
                       "text": "Трикутник ",
-                      "bold": true
+                      "bold": true,
+                      "underline": true
                     }
                   ]
                 },
@@ -13785,7 +14740,39 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Кути BAC, ABC, BCA називають внутрішніми кутами трикутника ABC."
+                      "text": "Кути "
+                    },
+                    {
+                      "text": "\\(\\angle BAC\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ", "
+                    },
+                    {
+                      "text": "\\(\\angle ABC\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ", "
+                    },
+                    {
+                      "text": "\\(\\angle BCA\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " називають внутрішніми кутами трикутника "
+                    },
+                    {
+                      "text": "\\(ABC\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": "."
                     }
                   ]
                 },
@@ -13795,7 +14782,12 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Їх сума завжди дорівнює 180°"
+                      "text": "Їх сума завжди дорівнює "
+                    },
+                    {
+                      "text": "\\(180^{\\circ}\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -13811,14 +14803,14 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Бісектриса, медіана, висота трикутника",
-          "bold": true
+          "text": "Бісектриса, медіана, висота трикутника"
         }
       ]
     },
     {
       "type": "table",
       "variant": "grid",
+      "topAligned": true,
       "columnWidths": [
         3593,
         3592,
@@ -13835,7 +14827,12 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "BD – це бісектриса"
+                      "text": "\\(BD\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " – це бісектриса"
                     }
                   ]
                 }
@@ -13849,7 +14846,12 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "BD – це медіана"
+                      "text": "\\(BD\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " – це медіана"
                     }
                   ]
                 }
@@ -13863,7 +14865,12 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "BD – це висота"
+                      "text": "\\(BD\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " – це висота"
                     }
                   ]
                 }
@@ -13981,14 +14988,14 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Типи трикутників та їх властивості",
-          "bold": true
+          "text": "Типи трикутників та їх властивості"
         }
       ]
     },
     {
       "type": "table",
       "variant": "grid",
+      "topAligned": true,
       "columnWidths": [
         1680,
         1695,
@@ -14018,9 +15025,16 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "2 сторони рівні."
-                    },
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "variant": "body",
+                  "align": "left",
+                  "runs": [
                     {
-                      "text": "\nКути при основі - рівні."
+                      "text": "Кути при основі - рівні."
                     }
                   ]
                 },
@@ -14063,8 +15077,16 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Всі кути рівні і дорівнюють 60°"
-                    }
+                      "text": "Всі кути рівні і дорівнюють "
+                    },
+                    {
+                      "text": "\\(60^{\\circ}\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": "."
+                    },
                   ]
                 },
                 {
@@ -14073,7 +15095,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Медіана, проведена до будь-якої сторони є бісектрисою та висотою"
+                      "text": "Медіана, проведена до будь-якої сторони є бісектрисою та висотою."
                     }
                   ]
                 }
@@ -14097,7 +15119,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "runs": [
                     {
                       "text": "\\(\\angle{}C = 90^{\\circ}\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": "."
@@ -14110,7 +15133,15 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Катет навпроти кута в 30° дорівнює половині гіпотенузи"
+                      "text": "Катет навпроти кута в "
+                    },
+                    {
+                      "text": "\\(30^{\\circ}\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " дорівнює половині гіпотенузи."
                     }
                   ]
                 },
@@ -14120,7 +15151,31 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Якщо a, b - катети, а с - гіпотенуза, то "
+                      "text": "Якщо "
+                    },
+                    {
+                      "text": "\\(a\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": ", "
+                    },
+                    {
+                      "text": "\\(b\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " - катети, "
+                    },
+                    {
+                      "text": "\\(a\\,c\\)",
+                      "math": true,
+                      "bold": true
+                    },
+                    {
+                      "text": " - гіпотенуза, то "
                     }
                   ]
                 },
@@ -14130,8 +15185,21 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "\\(a<c, b<c, a^{2}+b^{2}=c^{2}\\)",
-                      "math": true
+                      "text": "\\(a<c,\\;b<c,\\)",
+                      "math": true,
+                      "bold": true
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "variant": "body",
+                  "align": "left",
+                  "runs": [
+                    {
+                      "text": "\\(a^{2}+b^{2}=c^{2}\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -14145,7 +15213,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
@@ -14161,7 +15229,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
@@ -14177,7 +15245,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "subheading",
+                  "variant": "body",
                   "align": "center",
                   "runs": [
                     {
@@ -14199,8 +15267,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Ознаки рівності трикутників",
-          "bold": true
+          "text": "Ознаки рівності трикутників"
         }
       ]
     },
@@ -14250,7 +15317,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "sectionHeading",
+                  "variant": "body",
                   "align": "left",
                   "runs": [
                     {
@@ -14264,7 +15331,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "sectionHeading",
+                  "variant": "body",
                   "align": "left",
                   "runs": [
                     {
@@ -14278,7 +15345,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
               "blocks": [
                 {
                   "type": "paragraph",
-                  "variant": "sectionHeading",
+                  "variant": "body",
                   "align": "left",
                   "runs": [
                     {
@@ -14294,12 +15361,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "left",
+      "variant": "subheading",
+      "align": "center",
       "runs": [
         {
-          "text": "Геометричне місце точок",
-          "bold": true
+          "text": "Геометричне місце точок"
         }
       ]
     },
@@ -14343,14 +15409,14 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Коло",
-          "bold": true
+          "text": "Коло"
         }
       ]
     },
     {
       "type": "table",
       "variant": "grid",
+      "topAligned": true,
       "columnWidths": [
         2115,
         6780,
@@ -14400,7 +15466,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                       "bold": true
                     },
                     {
-                      "text": " кола"
+                      "text": " кола."
                     }
                   ]
                 },
@@ -14431,7 +15497,14 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Пряму, яка має з колом тільки одну спільну точку, називають дотичною до кола."
+                      "text": "Пряму, яка має з колом тільки одну спільну точку, називають "
+                    },
+                    {
+                      "text": "дотичною ",
+                      "bold": true
+                    },
+                    {
+                      "text": " до кола."
                     }
                   ]
                 }
@@ -14456,16 +15529,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "center",
       "runs": [
         {
-          "text": "Властивості діаметра, ",
-          "bold": true
-        },
-        {
-          "text": "радіуса",
-          "bold": true
-        },
-        {
-          "text": " та дотичної",
-          "bold": true
+          "text": "Властивості діаметра, радіуса та дотичної"
         }
       ]
     },
@@ -14480,8 +15544,19 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       ]
     },
     {
+      "type": "paragraph",
+      "variant": "subheading",
+      "align": "center",
+      "runs": [
+        {
+          "text": "Описане та вписане коло трикутника"
+        },
+      ]
+    },
+    {
       "type": "table",
       "variant": "grid",
+      "topAligned": true,
       "columnWidths": [
         1605,
         7545,
@@ -14507,24 +15582,10 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Описане та вписане коло трикутника.",
-                      "bold": true
+                      "text": "Коло називають описаним навколо трикутника, якщо воно проходить через усі його вершини. "
                     },
                     {
-                      "text": " ",
-                      "bold": true
-                    },
-                    {
-                      "text": "Коло називають описаним навколо трикутника, якщо воно проходить через усі його "
-                    },
-                    {
-                      "text": "вершини."
-                    },
-                    {
-                      "text": "Центр"
-                    },
-                    {
-                      "text": " кола, описаного навколо трикутника, — це точка перетину серединних перпендикулярів сторін трикутника."
+                      "text": "Центр кола, описаного навколо трикутника, — це точка перетину серединних перпендикулярів сторін трикутника."
                     }
                   ]
                 },
@@ -14561,15 +15622,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "7. ",
-          "bold": true
-        },
-        {
-          "text": "Обрахункова",
-          "bold": true
-        },
-        {
-          "text": " геометрія",
+          "text": "7. Обрахункова геометрія",
           "bold": true
         }
       ]
@@ -14635,37 +15688,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                   "align": "left",
                   "runs": [
                     {
-                      "text": "Центральни",
+                      "text": "Центральний кут",
                       "bold": true
                     },
                     {
-                      "text": "й",
-                      "bold": true
-                    },
-                    {
-                      "text": " кут",
-                      "bold": true
-                    },
-                    {
-                      "text": " кола"
-                    },
-                    {
-                      "text": " "
-                    },
-                    {
-                      "text": " - "
-                    },
-                    {
-                      "text": "кут"
-                    },
-                    {
-                      "text": " "
-                    },
-                    {
-                      "text": "з вершиною в центрі кол"
-                    },
-                    {
-                      "text": "а"
+                      "text": " кола - кут з вершиною в центрі кола"
                     }
                   ]
                 }
@@ -14696,46 +15723,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                       "bold": true
                     },
                     {
-                      "text": " кола"
-                    },
-                    {
-                      "text": " — "
-                    },
-                    {
-                      "text": "це"
-                    },
-                    {
-                      "text": " одна з "
-                    },
-                    {
-                      "text": "двох"
-                    },
-                    {
-                      "text": " "
-                    },
-                    {
-                      "text": "частин"
-                    },
-                    {
-                      "text": " ("
-                    },
-                    {
-                      "text": "підмножин"
-                    },
-                    {
-                      "text": ")"
-                    },
-                    {
-                      "text": " кола, на які його розбивають дві точки кола."
-                    },
-                    {
-                      "text": " "
-                    },
-                    {
-                      "text": "Кожна дуга має градусну міру. Градусна міра всього кола дорівнює 360"
-                    },
-                    {
-                      "text": "°"
+                      "text": " кола — це одна з двох частин (підмножин) кола, на які його розбивають дві точки кола. Кожна дуга має градусну міру. Градусна міра всього кола дорівнює 360°."
                     }
                   ]
                 },
@@ -14748,49 +15736,33 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                       "text": "Кут ділить коло на дуги. "
                     },
                     {
-                      "text": " "
+                      "text": "\\(\\cup ADB\\)",
+                      "math": true,
+                      "bold": true
                     },
                     {
-                      "text": "ADB"
+                      "text": " та "
                     },
                     {
-                      "text": " "
-                    },
-                    {
-                      "text": " "
-                    },
-                    {
-                      "text": "та"
-                    },
-                    {
-                      "text": " "
-                    },
-                    {
-                      "text": " "
-                    },
-                    {
-                      "text": "ADB"
+                      "text": "\\(\\cup ACB\\)",
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": ". Кут "
                     },
                     {
-                      "text": "⦣"
+                      "text": "\\(\\angle AOB\\)",
+                      "math": true,
+                      "bold": true
                     },
                     {
-                      "text": "AOB"
+                      "text": " спирається на дугу "
                     },
                     {
-                      "text": " "
-                    },
-                    {
-                      "text": "спирається на дугу "
-                    },
-                    {
-                      "text": " "
-                    },
-                    {
-                      "text": "ADB"
+                      "text": "\\(\\cup ADB\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 },
@@ -14810,8 +15782,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                       "text": " "
                     },
                     {
-                      "text": "\\(ADB=\\widehat{AOB}\\)",
-                      "math": true
+                      "text": "\\(\\cup ADB=\\angle AOB\\)",
+                      "math": true,
+                      "bold": true
                     }
                   ]
                 }
@@ -14842,48 +15815,22 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                       "bold": true
                     },
                     {
-                      "text": " – це відрізок, що з"
+                      "text": " – це відрізок, що з'єднує дві точки, що лежать на колі. "
                     },
                     {
-                      "text": "'"
-                    },
-                    {
-                      "text": "єднує"
-                    },
-                    {
-                      "text": " дві точки, що лежать на колі. "
-                    },
-                    {
-                      "text": "CD",
+                      "text": "CD – ",
                       "bold": true
                     },
                     {
-                      "text": " – ",
+                      "text": "Хорда. "
+                    },
+                    {
+                      "text": "Хорда CD стягує дугу "
+                    },
+                    {
+                      "text": "\\(\\cup CED\\)",
+                      "math": true,
                       "bold": true
-                    },
-                    {
-                      "text": "Хорда."
-                    },
-                    {
-                      "text": " "
-                    },
-                    {
-                      "text": "Хорда "
-                    },
-                    {
-                      "text": "CD"
-                    },
-                    {
-                      "text": " "
-                    },
-                    {
-                      "text": "стягує дугу "
-                    },
-                    {
-                      "text": " "
-                    },
-                    {
-                      "text": "CED"
                     }
                   ]
                 }
@@ -14914,16 +15861,10 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                       "bold": true
                     },
                     {
-                      "text": "вершина "
+                      "text": "вершина кута належить колу, а сторони перетинають коло. "
                     },
                     {
-                      "text": "кута"
-                    },
-                    {
-                      "text": " належить колу, а сторони перетинають коло"
-                    },
-                    {
-                      "text": ". Градусна міра вписаного кута дорівнює половині градусної міри дуги, на яку він спирається"
+                      "text": "Градусна міра вписаного кута дорівнює половині градусної міри дуги, на яку він спирається"
                     }
                   ]
                 },
@@ -14970,22 +15911,23 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
                       "text": ". "
                     },
                     {
-                      "text": "\\(\\widehat{AOB}\\)",
-                      "math": true
+                      "text": "\\(\\angle AOB\\)",
+                      "math": true,
+                      "bold": true
                     },
                     {
                       "text": " = "
                     },
                     {
                       "text": "\\(\\frac{1}{2}\\)",
-                      "math": true
+                      "math": true,
+                      "bold": true
                     },
                     {
-                      "text": "⦣"
+                      "text": "\\(\\angle ACB\\)",
+                      "math": true,
+                      "bold": true
                     },
-                    {
-                      "text": "ACB"
-                    }
                   ]
                 }
               ]
@@ -15033,23 +15975,18 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "7. Рівняння"
+          "text": "7. Рівняння",
+          "bold": true
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
-          "text": "Алгоритм №1"
-        },
-        {
-          "text": ". "
-        },
-        {
-          "text": "Вирішення рівнянь"
+          "text": "Алгоритм №1. Вирішення рівнянь:"
         }
       ]
     },
@@ -15070,7 +16007,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "невідоме",
-          "bold": true
+          "bold": true,
+          "underline": true
         },
         {
           "text": " у ліву частину рівняння, а відомі — у праву, змінивши їхній знак на протилежний."
@@ -15087,13 +16025,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
         },
         {
           "text": "зведення",
-          "bold": true
+          "bold": true,
+          "underline": true
         },
         {
-          "text": " "
-        },
-        {
-          "text": "подібних",
+          "text": " подібних",
           "italic": true
         },
         {
@@ -15130,17 +16066,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
-          "text": "Алгоритм №2"
-        },
-        {
-          "text": ". "
-        },
-        {
-          "text": "Вирішення рівнянь"
+          "text": "Алгоритм №2. Вирішення рівнянь:"
         }
       ]
     },
@@ -15196,11 +16126,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
-          "text": "Алгоритм №3"
+          "text": "Алгоритм №3. Вирішення рівнянь:"
         }
       ]
     },
@@ -15213,8 +16143,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
           "text": "1. Знайдіть "
         },
         {
-          "text": "найменший  спільний  знаменник",
-          "bold": true
+          "text": "найменший спільний знаменник",
+          "bold": true,
+          "underline": true
         },
         {
           "text": " усіх дробів."
@@ -15237,11 +16168,12 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "3."
+          "text": "3. "
         },
         {
-          "text": " Розкрийте дужки",
-          "bold": true
+          "text": "Розкрийте дужки",
+          "bold": true,
+          "underline": true
         },
         {
           "text": ", якщо вони є."
@@ -15294,26 +16226,24 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "12. Текстові задачі"
+          "text": "12. Текстові задачі",
+          "bold": true
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
-          "text": "Розв’язування "
-        },
-        {
-          "text": "задач"
+          "text": "Розв’язування задач"
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -15323,14 +16253,11 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
-          "text": "(на складання "
-        },
-        {
-          "text": "рівняння)"
+          "text": "(на складання рівняння)"
         }
       ]
     },
@@ -15350,18 +16277,23 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "2."
+          "text": "2. "
         },
         {
-          "text": " Перекладіть",
-          "bold": true
+          "text": "Перекладіть",
+          "bold": true,
+          "underline": true
         },
         {
           "text": " задачу зі звичайної мови на мову "
         },
         {
           "text": "алгебраїчну",
-          "bold": true
+          "bold": true,
+          "underline": true
+        },
+        {
+          "text": "."
         }
       ]
     },
@@ -15371,7 +16303,15 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": "3. Невідому величину позначте через x."
+          "text": "3. Невідому величину позначте через "
+        },
+        {
+          "text": "\\(X\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": "."
         }
       ]
     },
@@ -15407,7 +16347,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -15417,7 +16357,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -15427,7 +16367,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -15437,7 +16377,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -15447,8 +16387,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "both",
+      "variant": "listItem",
+      "align": "left",
       "runs": [
         {
           "text": "3. Перекладіть задачу зі звичайної мови на мову алгебраїчну."
@@ -15457,8 +16397,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "both",
+      "variant": "listItem",
+      "align": "left",
       "runs": [
         {
           "text": "4. Введіть змінні."
@@ -15467,8 +16407,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "both",
+      "variant": "listItem",
+      "align": "left",
       "runs": [
         {
           "text": "5. Встановіть залежність між даними задачі та змінними."
@@ -15477,8 +16417,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "both",
+      "variant": "listItem",
+      "align": "left",
       "runs": [
         {
           "text": "6. Складіть рівняння."
@@ -15487,8 +16427,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "both",
+      "variant": "listItem",
+      "align": "left",
       "runs": [
         {
           "text": "7. Розв’яжіть систему рівнянь."
@@ -15497,8 +16437,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "both",
+      "variant": "listItem",
+      "align": "left",
       "runs": [
         {
           "text": "8. Запишіть відповідь."
@@ -15511,32 +16451,24 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": " "
-        },
-        {
-          "text": "6. Математичні вирази"
+          "text": "6. Математичні вирази",
+          "bold": true
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
-          "text": "Множення одночленів. Піднесення одночлена до "
-        },
-        {
-          "text": "ступеня"
-        },
-        {
-          "text": "."
+          "text": "Множення одночленів. Піднесення одночлена до ступеня."
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -15546,34 +16478,28 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "both",
+      "variant": "listItem",
+      "align": "left",
       "runs": [
         {
-          "text": "1. Знайдіть добуток"
-        },
-        {
-          "text": " коефіцієнтів."
+          "text": "1. Знайдіть добуток  коефіцієнтів."
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "both",
+      "variant": "listItem",
+      "align": "left",
       "runs": [
         {
-          "text": "2. Показники степенів однакових змінних"
-        },
-        {
-          "text": " додайте."
+          "text": "2. Показники ступенів однакових змінних додайте."
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "both",
+      "variant": "listItem",
+      "align": "left",
       "runs": [
         {
           "text": "3. Якщо змінна входить лише в один із множників, то допишіть її в добутку."
@@ -15582,7 +16508,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -15592,27 +16518,27 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "both",
+      "variant": "listItem",
+      "align": "left",
       "runs": [
         {
-          "text": "1. Піднесіть до степеня коефіцієнт одночлена."
+          "text": "1. Піднесіть до ступеня коефіцієнт одночлена."
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "both",
+      "variant": "listItem",
+      "align": "left",
       "runs": [
         {
-          "text": "2. Показник степеня кожної змінної одночлена помножте на показник степеня, до якого підноситься одночлен."
+          "text": "2. Показник ступеня кожної змінної одночлена помножте на показник ступеня, до якого підноситься одночлен."
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -15622,7 +16548,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -15632,20 +16558,17 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
-          "text": "(додавання "
-        },
-        {
-          "text": "многочленів)"
+          "text": "(додавання многочленів)"
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -15655,7 +16578,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -15665,7 +16588,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -15675,20 +16598,17 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
-          "text": "(віднімання "
-        },
-        {
-          "text": "многочленів)"
+          "text": "(віднімання многочленів)"
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -15698,7 +16618,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -15708,7 +16628,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -15718,7 +16638,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -15728,20 +16648,20 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
-          "text": "(добуток одночлена на "
+          "text": "(добуток одночлена на многочлен)"
         },
         {
-          "text": "многочлен )"
+          "text": ""
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -15751,7 +16671,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -15761,7 +16681,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -15771,7 +16691,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -15781,7 +16701,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -15791,7 +16711,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -15801,7 +16721,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -15811,7 +16731,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -15821,7 +16741,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -15831,8 +16751,8 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
-      "align": "right",
+      "variant": "subheading",
+      "align": "center",
       "runs": [
         {
           "text": "(розкладання многочлена на множники)"
@@ -15841,7 +16761,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -15851,7 +16771,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -15861,7 +16781,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -15875,16 +16795,14 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
       "align": "left",
       "runs": [
         {
-          "text": " "
-        },
-        {
-          "text": "8. Рівняння"
+          "text": "8. Рівняння",
+          "bold": true
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -15894,7 +16812,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -15904,7 +16822,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -15914,15 +16832,24 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
-          "text": "1. Знайдіть значення y, якщо "
+          "text": "1. Знайдіть значення "
+        },
+        {
+          "text": "\\(Y\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", якщо "
         },
         {
           "text": "\\(X=0\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": "."
@@ -15931,15 +16858,24 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
-          "text": "2. Знайдіть значення x, якщо "
+          "text": "2. Знайдіть значення "
+        },
+        {
+          "text": "\\(X\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": ", якщо "
         },
         {
           "text": "\\(Y=0\\)",
-          "math": true
+          "math": true,
+          "bold": true
         },
         {
           "text": "."
@@ -15948,32 +16884,24 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
-        {
-          "text": "   "
-        },
         {
           "text": "3. Зобразіть на координатній площині точки "
         },
         {
-          "text": "\\(A ( 0; Y )\\)",
-          "math": true
+          "text": "\\(A\\,( 0; Y )\\)",
+          "math": true,
+          "bold": true
         },
         {
           "text": " і "
-        }
-      ]
-    },
-    {
-      "type": "paragraph",
-      "variant": "body",
-      "align": "left",
-      "runs": [
+        },
         {
-          "text": "\\(B ( X; 0 )\\)",
-          "math": true
+          "text": "\\(B\\,( X; 0 )\\)",
+          "math": true,
+          "bold": true
         },
         {
           "text": "."
@@ -15992,7 +16920,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -16002,7 +16930,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -16012,7 +16940,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -16022,7 +16950,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -16032,7 +16960,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -16042,7 +16970,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -16052,17 +16980,33 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
-          "text": "1. Зрівняйте коефіцієнти при змінній x або y так, щоб вони стали протилежними числами."
+          "text": "1. Зрівняйте коефіцієнти при змінній "
+        },
+        {
+          "text": "\\(X\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " або "
+        },
+        {
+          "text": "\\(Y\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " так, щоб вони стали протилежними числами."
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -16072,7 +17016,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -16082,7 +17026,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -16092,7 +17036,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -16102,7 +17046,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -16112,7 +17056,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -16122,7 +17066,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "subheading",
       "align": "center",
       "runs": [
         {
@@ -16132,17 +17076,49 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
-          "text": "1. Виразіть в одному з рівнянь одну змінну через іншу (x через y або y через x)."
+          "text": "1. Виразіть в одному з рівнянь одну змінну через іншу ( "
+        },
+        {
+          "text": "\\(X\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " через "
+        },
+        {
+          "text": "\\(Y\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " або "
+        },
+        {
+          "text": "\\(Y\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " через "
+        },
+        {
+          "text": "\\(X\\)",
+          "math": true,
+          "bold": true
+        },
+        {
+          "text": " )."
         }
       ]
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -16152,7 +17128,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -16162,7 +17138,7 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
         {
@@ -16172,12 +17148,9 @@ export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
     },
     {
       "type": "paragraph",
-      "variant": "body",
+      "variant": "listItem",
       "align": "left",
       "runs": [
-        {
-          "text": "   "
-        },
         {
           "text": "5. Запишіть відповідь."
         }

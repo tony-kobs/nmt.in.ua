@@ -4,3 +4,4 @@ export {
   type LearningMaterial,
 } from "./materials";
 
+export { getTextbookBlocks } from "./textbook";

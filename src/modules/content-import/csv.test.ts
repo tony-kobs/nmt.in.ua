@@ -59,3 +59,17 @@ test("parseCsvDataset produces raw rows keyed by column name with 1-based CSV ro
     { rowLabel: "themes row 2", raw: { id: "1", name: "Alpha" } },
   ]);
 });
+
+test("parseCsvDataset accepts an alternative header", () => {
+  const result = parseCsvDataset(
+    "id,name\n1,Alpha\n",
+    ["id", "name", "code"],
+    "themes",
+    [["id", "name"]],
+  );
+
+  assert.deepEqual(result.errors, []);
+  assert.deepEqual(result.rows, [
+    { rowLabel: "themes row 2", raw: { id: "1", name: "Alpha" } },
+  ]);
+});

@@ -213,7 +213,7 @@
     "ultimateTitle": "Ultimate — summary",
     "title": "Test summary",
     "diagnosticTitle": "Diagnostic test result",
-    "summary": "Topic “{theme}”. Session #{sessionId}.",
+    "summary": "Topic “<themeLink>{theme}</themeLink>”. Session #{sessionId}.",
     "diagnosticSummary": "Diagnostic test #{sessionId} completed.",
     "timedOut": "Time is up.",
     "completed": "Test completed.",

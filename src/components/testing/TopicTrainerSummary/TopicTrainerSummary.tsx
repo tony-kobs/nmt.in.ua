@@ -47,9 +47,20 @@ export function TopicTrainerSummary({
         <p className={css.lead}>
           {isDiagnostic
             ? t("diagnosticSummary", { sessionId: summary.sessionId })
-            : t("summary", {
+            : t.rich("summary", {
                 theme: summary.themeName,
                 sessionId: summary.sessionId,
+                themeLink: (children) =>
+                  summary.themeCode ? (
+                    <Link
+                      href={`/materials/textbook#topic-${summary.themeCode}`}
+                      className={css.themeLink}
+                    >
+                      {children}
+                    </Link>
+                  ) : (
+                    children
+                  ),
               })}
           {isUltimate ? (
             <>

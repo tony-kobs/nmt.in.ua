@@ -114,6 +114,7 @@ export function toDiagnosticSummary(
     percent: sessionPercent(row.tasks_number, row.right_number) ?? 0,
     timeSec: row.time,
     themeId: DIAGNOSTIC_SUMMARY_THEME_ID,
+    themeCode: null,
     themeName: DIAGNOSTIC_SUMMARY_THEME_NAME,
   };
 }
