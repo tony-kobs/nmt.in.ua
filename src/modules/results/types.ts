@@ -6,6 +6,10 @@ export type TopicResultRow = {
   overallPercent: number | null;
   lastThreePercent: number | null;
   avgSecondsPerTask: number | null;
+  /** Latest pre_topic self-score for this theme, falling back to the latest
+   * general diagnostic_overall score — see `attachSelfScores` in
+   * getTopicResults.ts. Never a percentage; displayed as "N / 10". */
+  selfScore?: number | null;
 };
 
 export type ScoreLevel = "high" | "medium" | "low" | "none";

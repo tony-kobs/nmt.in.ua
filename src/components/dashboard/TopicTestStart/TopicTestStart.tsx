@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import clsx from "clsx";
 import { PageFrame, PagePanel } from "@/components/dashboard/PageFrame";
 import { ModeTabs } from "@/components/ui/ModeTabs";
+import { SelfScorePicker } from "@/components/ui/SelfScorePicker";
 import { CheckIcon, TimerIcon } from "@/components/welcome/icons";
 import {
   startTopicTestAction,
@@ -84,6 +85,17 @@ export function TopicTestStart({
   const tasksToRun = previewTaskCount(mode, bankSize);
   const controlsDisabled = pending || isRedirecting;
 
+  const [selfScore, setSelfScore] = useState<number | null>(null);
+  // A fresh self-assessment is required before every topic test — never
+  // carry the previous theme's answer over to a different theme. Reset
+  // during render (React's recommended way to reset state on a prop
+  // change) rather than in an effect, which would cascade an extra render.
+  const [selfScoreThemeId, setSelfScoreThemeId] = useState(selectedThemeId);
+  if (selfScoreThemeId !== selectedThemeId) {
+    setSelfScoreThemeId(selectedThemeId);
+    setSelfScore(null);
+  }
+
   return (
     <PageFrame
       kicker={t("kicker")}
@@ -157,6 +169,18 @@ export function TopicTestStart({
                     </div>
                   </div>
                 </div>
+
+                <div className={css.field}>
+                  <span className={css.label}>{t("selfScoreLabel")}</span>
+                  <SelfScorePicker
+                    value={selfScore}
+                    onChange={setSelfScore}
+                    ariaLabel={t("selfScoreAria")}
+                    disabled={controlsDisabled}
+                  />
+                  <span className={css.hint}>{t("selfScoreHint")}</span>
+                  <input type="hidden" name="selfScore" value={selfScore ?? ""} />
+                </div>
               </div>
 
               <button
@@ -165,7 +189,7 @@ export function TopicTestStart({
                   css.start,
                   mode === "ultimate" && css.startUltimate,
                 )}
-                disabled={controlsDisabled || tasksToRun === 0}
+                disabled={controlsDisabled || tasksToRun === 0 || selfScore === null}
               >
                 {isRedirecting
                   ? t("redirecting")

@@ -1,3 +1,5 @@
+import type { TopicTestMode } from "./topicTestMode";
+
 export type AvailableTopicTheme = {
   id: number;
   code: string;
@@ -109,6 +111,11 @@ export type SkipTaskAnswerActionState =
   | { status: "error"; code: SkipTaskAnswerErrorCode };
 
 export type { TopicTestMode } from "./topicTestMode";
+
+/** `TopicTestMode` plus the public diagnostic test. Diagnostic behaves like
+ * "standard" in TopicTrainer (immediate feedback, no Ultimate timer) — it
+ * only needs its own branch for copy/CTA differences in the summary. */
+export type TrainerMode = TopicTestMode | "diagnostic";
 
 export type MarkSessionStartedActionInput = {
   sessionId: number;

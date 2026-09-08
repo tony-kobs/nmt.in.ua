@@ -101,7 +101,7 @@
     "lead": "Pick a topic and a mode — then practise in the NMT format.",
     "leadStandard": "up to {count} random tasks with instant explanations.",
     "leadUltimate": "up to {count} tasks, 20 minutes, with no hints until the end of the test.",
-    "noThemes": "There are currently no topics with tasks in the database. Add tasks by importing them on the settings page.",
+    "noThemes": "Topics and tasks are being prepared. Testing will be available soon.",
     "selectTopic": "Choose a topic",
     "mode": "Mode",
     "testMode": "Test mode",
@@ -111,6 +111,9 @@
     "loading": "Loading…",
     "start": "Start",
     "startUltimate": "Start Ultimate",
+    "selfScoreLabel": "How do you rate this topic?",
+    "selfScoreAria": "Self-assessment for this topic, 1 to 10",
+    "selfScoreHint": "Pick a score from 1 to 10 to start the test.",
     "modes": {
       "standard": "Standard",
       "ultimate": "Ultimate"
@@ -119,6 +122,7 @@
       "insufficientTasks": "There are no tasks available for this topic yet.",
       "alreadyInProgress": "A request is already in progress. Please wait.",
       "invalidInput": "Select a topic to start the test.",
+      "invalidSelfScore": "Pick a self-assessment score from 1 to 10 to start the test.",
       "generic": "Could not start the test. Please try again."
     }
   },
@@ -143,6 +147,7 @@
     "confirmAbortUltimate": "Finish the Ultimate test? Unanswered tasks will be counted as incorrect.",
     "ultimateTitle": "Ultimate — topic test",
     "title": "Topic test",
+    "diagnosticTitle": "Diagnostic test",
     "session": "Session #{id}",
     "remaining": "Remaining",
     "time": "Time",
@@ -184,7 +189,9 @@
   "TopicTrainerSummary": {
     "ultimateTitle": "Ultimate — summary",
     "title": "Test summary",
+    "diagnosticTitle": "Diagnostic test result",
     "summary": "Topic “<themeLink>{theme}</themeLink>”. Session #{sessionId}.",
+    "diagnosticSummary": "Diagnostic test #{sessionId} completed.",
     "timedOut": "Time is up.",
     "completed": "Test completed.",
     "mistakesBelow": "Review your mistakes below.",
@@ -197,7 +204,8 @@
     "results": "Results by topic",
     "sessions": "My sessions",
     "newTest": "New test",
-    "mistakeReview": "Mistake review ({count})"
+    "mistakeReview": "Mistake review ({count})",
+    "saveDiagnosticProgress": "Save progress — sign up"
   },
   "TopicResultsTable": {
     "title": "Results by topic",
@@ -206,7 +214,25 @@
     "overall": "Overall",
     "lastThree": "Last 3 tests",
     "speed": "Speed, sec/task",
+    "selfScore": "Self-assessment",
     "hint": "Empty cells indicate topics without completed attempts. Colors: green ≥70%, yellow 40–69%, red <40%."
+  },
+  "Diagnostic": {
+    "kicker": "Diagnostic test",
+    "title": "How do you rate your math knowledge?",
+    "lead": "Pick a score from 1 to 10, then take a short test across all topics to see your real level.",
+    "selfScoreLabel": "Overall self-assessment",
+    "selfScoreAria": "Overall self-assessment of math knowledge, 1 to 10",
+    "start": "Start the diagnostic test",
+    "loading": "Preparing the test…",
+    "redirecting": "Opening the test…",
+    "unavailable": "Topics and tasks are still being prepared. Testing will be available soon.",
+    "errors": {
+      "invalidSelfScore": "Pick a score from 1 to 10 to continue.",
+      "insufficientTasks": "There aren't enough tasks for a diagnostic test yet. Please try again later.",
+      "alreadyInProgress": "A request is already in progress. Please wait.",
+      "generic": "Could not start the diagnostic test. Please try again."
+    }
   },
   "LearningSessionsTable": {
     "title": "Learning sessions",
@@ -272,6 +298,7 @@
       "lead": "An online workspace that shows your weak topics, trains you in exam format and gives a clear plan for the next steps. No scattered PDFs, no random tests.",
       "ctaPrimary": "Start preparing",
       "ctaSecondary": "I already have an account",
+      "ctaDiagnostic": "Test your knowledge",
       "note": "Sign up in a minute — no card, no payment",
       "imageAlt": "Illustration: a function graph, a progress ring and geometric shapes",
       "stats": {
@@ -421,6 +448,7 @@
     "kicker": "Sign up",
     "title": "Create a student account",
     "lead": "Register to take tests, save results, and get recommendations. Teacher and admin access stay on demo login for now.",
+    "leadFromDiagnostic": "Register to save your diagnostic test result and self-assessment to your account.",
     "displayName": "Display name",
     "login": "Login",
     "loginHint": "Latin letters, digits, dot, _ or - (at least 3 characters).",
@@ -528,6 +556,14 @@
     "session": {
       "title": "Taking a Test",
       "description": "Interactive trainer with test tasks for the selected topic."
+    },
+    "diagnostic": {
+      "title": "Diagnostic test",
+      "description": "Rate your math knowledge and take a short diagnostic test across all topics."
+    },
+    "diagnosticSession": {
+      "title": "Diagnostic test",
+      "description": "Taking the diagnostic test."
     },
     "settings": {
       "title": "Settings",

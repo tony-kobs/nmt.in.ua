@@ -30,6 +30,32 @@ test("parseMathText separates inline and display formulas", () => {
   );
 });
 
+test("parseMathText reads TeX dollar delimiters from the task bank", () => {
+  assert.deepEqual(
+    parseMathText(String.raw`Знайдіть $15\%$ від числа $240$.`),
+    [
+      { type: "text", content: "Знайдіть " },
+      { type: "formula", content: String.raw`15\%`, displayMode: false },
+      { type: "text", content: " від числа " },
+      { type: "formula", content: "240", displayMode: false },
+      { type: "text", content: "." },
+    ],
+  );
+});
+
+test("parseMathText reads display math written with double dollars", () => {
+  assert.deepEqual(parseMathText(String.raw`Формула: $$E = mc^2$$`), [
+    { type: "text", content: "Формула: " },
+    { type: "formula", content: "E = mc^2", displayMode: true },
+  ]);
+});
+
+test("parseMathText keeps escaped and unclosed dollars as text", () => {
+  assert.deepEqual(parseMathText(String.raw`Ціна \$5 і залишок $240`), [
+    { type: "text", content: String.raw`Ціна \$5 і залишок $240` },
+  ]);
+});
+
 test("KaTeX renders the required formulas as HTML and accessible MathML", () => {
   const formulas = [
     String.raw`E = mc^2`,

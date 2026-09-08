@@ -39,6 +39,13 @@
   gap: var(--space-sm);
 }
 
+.hint {
+  margin: 0;
+  color: var(--subtle);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
 .label {
   color: var(--subtle);
   font-size: var(--fs-kicker);

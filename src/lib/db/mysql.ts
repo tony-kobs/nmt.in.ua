@@ -80,6 +80,23 @@ function isTransientDbError(error: unknown): boolean {
   );
 }
 
+/**
+ * A connect-phase timeout (no response at all within `connectTimeout`, e.g. a firewall
+ * silently dropping packets instead of refusing the connection) means the host is
+ * unreachable right now — retrying repeats the exact same multi-second wait for no benefit.
+ * This is distinct from the dropped-idle-socket case `isTransientDbError` targets (ECONNRESET
+ * et al.), which fails fast and is worth retrying. Left un-retried here, a single connect
+ * attempt still costs up to `connectTimeout`; retried at MAX_CONNECT_ATTEMPTS it silently
+ * multiplies that into a `connectTimeout * MAX_CONNECT_ATTEMPTS`-long hang (45s at the
+ * defaults) behind a static "loading" button before any error ever surfaces to the user.
+ */
+function isConnectTimeoutError(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  return (error as { code?: string }).code === "ETIMEDOUT";
+}
+
 function isPoolClosedError(error: unknown): boolean {
   if (!error || typeof error !== "object") {
     return false;
@@ -185,6 +202,17 @@ function wrap(connection: PoolConnection): SqlConnection {
   };
 }
 
+/** Exported for unit testing — see `isConnectTimeoutError`'s doc comment. */
+export function shouldRetryConnectError(
+  error: unknown,
+  attempt: number,
+  maxAttempts: number = MAX_CONNECT_ATTEMPTS,
+): boolean {
+  return (
+    attempt < maxAttempts && isTransientDbError(error) && !isConnectTimeoutError(error)
+  );
+}
+
 async function acquireRawConnection(): Promise<PoolConnection> {
   let lastError: unknown;
 
@@ -201,7 +229,7 @@ async function acquireRawConnection(): Promise<PoolConnection> {
       if (connection) {
         connection.destroy();
       }
-      if (attempt >= MAX_CONNECT_ATTEMPTS || !isTransientDbError(error)) {
+      if (!shouldRetryConnectError(error, attempt, MAX_CONNECT_ATTEMPTS)) {
         throw error;
       }
       if (isPoolClosedError(error)) {
