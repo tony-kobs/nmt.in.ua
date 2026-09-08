@@ -1,0 +1,268 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  overflow: hidden;
+  perspective: 2200px;
+  perspective-origin: 100% 0%;
+  pointer-events: auto;
+}
+
+/* The real homepage is never covered or re-rendered here — it stays exactly
+   where it is in the document, underneath this fixed overlay, and reads as
+   the top sheet simply because nothing paints over it. This layer only
+   reveals the `/diagnostic` preview inside the region the sheet has
+   physically turned away from (the same growing notch `.flap` occupies),
+   so the destination is exposed by clipping, never by fading the page. */
+.underlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--page);
+  clip-path: polygon(100% 0%, 100% 0%, 100% 100%, 100% 100%);
+  animation: underlayReveal 1150ms forwards;
+  pointer-events: none;
+  will-change: clip-path;
+}
+
+/* Soft shadow the lifting sheet casts onto the destination page beneath it.
+   Flat (no rotation) — a shadow lives on the surface it falls on, not on the
+   paper that is casting it — and only reads once the flap above starts
+   fading out near the end of the curl. */
+.castShadow {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(100% 0%, 100% 0%, 100% 100%, 100% 100%);
+  background: linear-gradient(100deg, transparent 0%, rgb(58 44 18 / 30%) 45%, transparent 100%);
+  opacity: 0;
+  animation: shadowSweep 1150ms forwards;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* The part of the sheet that has already crossed the crease: rotates away
+   from the top-right hinge and shows its backside tone until it exits. */
+.flap {
+  position: absolute;
+  inset: 0;
+  transform-origin: 100% 0%;
+  transform-style: preserve-3d;
+  clip-path: polygon(100% 0%, 100% 0%, 100% 100%, 100% 100%);
+  background: linear-gradient(135deg, #d9c9a0 0%, #c1ac7c 55%, #a88f63 100%);
+  opacity: 0;
+  animation: flapTurn 1150ms forwards;
+  will-change: transform, clip-path, opacity;
+}
+
+/* The moving crease itself: a narrow diagonal band sitting just inside the
+   flap, with a bright edge right at the hinge fading into a soft shadow
+   deeper into the curl. */
+.fold {
+  position: absolute;
+  inset: 0;
+  transform-origin: 100% 0%;
+  transform-style: preserve-3d;
+  clip-path: polygon(100% 0%, 100% 0%, 100% 100%, 100% 100%);
+  background: linear-gradient(
+    100deg,
+    rgb(255 253 240 / 95%) 0%,
+    rgb(255 253 240 / 60%) 18%,
+    rgb(58 44 18 / 12%) 55%,
+    rgb(58 44 18 / 36%) 82%,
+    transparent 100%
+  );
+  opacity: 0;
+  animation: foldSweep 1150ms forwards;
+  will-change: transform, clip-path, opacity;
+}
+
+/* The very first thing that moves: a small paper-backed triangle pinched at
+   the top-right corner, as if a fingertip just lifted it. Sits above the
+   real (untouched) homepage and plays a short animation of its own
+   (independent of the 1150ms timeline) so it visibly finishes and hands off
+   to `.flap`'s already-fading-in sliver before the notch grows past a
+   corner. */
+.curlCorner {
+  position: absolute;
+  inset: 0;
+  transform-origin: 100% 0%;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  clip-path: polygon(100% 0%, 100% 0%, 100% 0%);
+  background: linear-gradient(
+    120deg,
+    rgb(255 253 240 / 92%) 0%,
+    rgb(255 253 240 / 55%) 16%,
+    #d9c9a0 38%,
+    #c1ac7c 66%,
+    #a88f63 100%
+  );
+  box-shadow: -16px 20px 30px rgb(58 44 18 / 20%);
+  opacity: 0;
+  animation: curlCornerLift 180ms cubic-bezier(0.4, 0, 0.4, 1) forwards;
+  will-change: transform, clip-path, opacity;
+}
+
+@keyframes curlCornerLift {
+  0% {
+    clip-path: polygon(100% 0%, 100% 0%, 100% 0%);
+    transform: rotateY(0deg) rotateX(0deg) rotateZ(0deg);
+    opacity: 0;
+  }
+  55% {
+    clip-path: polygon(75% 0%, 100% 0%, 100% 26%);
+    transform: rotateY(15deg) rotateX(-3deg) rotateZ(2deg);
+    opacity: 1;
+  }
+  100% {
+    clip-path: polygon(83% 0%, 100% 0%, 100% 100%, 100% 100%);
+    transform: rotateY(10deg) rotateX(-2deg) rotateZ(1deg);
+    opacity: 0;
+  }
+}
+
+/* Mirrors `flapTurn`'s own clip-path exactly: the destination is exposed in
+   precisely the notch the sheet has turned away from, growing from a
+   zero-width sliver at the top-right corner. No opacity, no transform — the
+   reveal is pure geometry, so the destination never blends or crossfades in. */
+@keyframes underlayReveal {
+  0% {
+    clip-path: polygon(100% 0%, 100% 0%, 100% 100%, 100% 100%);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1);
+  }
+  12% {
+    clip-path: polygon(85% 0%, 100% 0%, 100% 100%, 100% 100%);
+    animation-timing-function: cubic-bezier(0.55, 0, 0.35, 1);
+  }
+  40% {
+    clip-path: polygon(30% 0%, 100% 0%, 100% 100%, 78% 100%);
+    animation-timing-function: cubic-bezier(0.2, 0, 0.4, 1);
+  }
+  75% {
+    clip-path: polygon(-25% 0%, 100% 0%, 100% 100%, 35% 100%);
+    animation-timing-function: ease-out;
+  }
+  100% {
+    clip-path: polygon(-70% 0%, 100% 0%, 100% 100%, -15% 100%);
+  }
+}
+
+@keyframes flapTurn {
+  0% {
+    clip-path: polygon(100% 0%, 100% 0%, 100% 100%, 100% 100%);
+    transform: rotateY(0deg) rotateX(0deg) rotateZ(0deg);
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1);
+  }
+  12% {
+    clip-path: polygon(85% 0%, 100% 0%, 100% 100%, 100% 100%);
+    transform: rotateY(10deg) rotateX(-2deg) rotateZ(1deg);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.55, 0, 0.35, 1);
+  }
+  40% {
+    clip-path: polygon(30% 0%, 100% 0%, 100% 100%, 78% 100%);
+    transform: rotateY(58deg) rotateX(-5deg) rotateZ(3deg);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.2, 0, 0.4, 1);
+  }
+  75% {
+    clip-path: polygon(-25% 0%, 100% 0%, 100% 100%, 35% 100%);
+    transform: rotateY(118deg) rotateX(-7deg) rotateZ(4deg);
+    opacity: 0.5;
+    animation-timing-function: ease-out;
+  }
+  100% {
+    clip-path: polygon(-70% 0%, 100% 0%, 100% 100%, -15% 100%);
+    transform: rotateY(152deg) rotateX(-8deg) rotateZ(5deg);
+    opacity: 0;
+  }
+}
+
+/* Band offsets are derived from the flap's own boundary (A, B — see flapTurn)
+   shifted +2/+16 further into flap territory, so the crease band always sits
+   fully on top of the flap and is never clipped away by its own edge. */
+@keyframes foldSweep {
+  0% {
+    clip-path: polygon(102% 0%, 116% 0%, 116% 100%, 102% 100%);
+    transform: rotateY(0deg) rotateX(0deg) rotateZ(0deg) skewY(0deg);
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1);
+  }
+  12% {
+    clip-path: polygon(87% 0%, 101% 0%, 116% 100%, 102% 100%);
+    transform: rotateY(10deg) rotateX(-2deg) rotateZ(1deg) skewY(-4deg);
+    opacity: 0.95;
+    animation-timing-function: cubic-bezier(0.55, 0, 0.35, 1);
+  }
+  40% {
+    clip-path: polygon(32% 0%, 46% 0%, 94% 100%, 80% 100%);
+    transform: rotateY(58deg) rotateX(-5deg) rotateZ(3deg) skewY(-2.5deg);
+    opacity: 0.9;
+    animation-timing-function: cubic-bezier(0.2, 0, 0.4, 1);
+  }
+  75% {
+    clip-path: polygon(-23% 0%, -9% 0%, 51% 100%, 37% 100%);
+    transform: rotateY(118deg) rotateX(-7deg) rotateZ(4deg) skewY(-1deg);
+    opacity: 0.55;
+    animation-timing-function: ease-out;
+  }
+  100% {
+    clip-path: polygon(-68% 0%, -54% 0%, 1% 100%, -13% 100%);
+    transform: rotateY(152deg) rotateX(-8deg) rotateZ(5deg) skewY(0deg);
+    opacity: 0;
+  }
+}
+
+/* Sits further still into flap territory (+20/+55) — hidden beneath the
+   opaque flap while it's flat, only reading once perspective foreshortening
+   and the flap's own fade-out (see flapTurn) open a gap onto the underlay. */
+@keyframes shadowSweep {
+  0% {
+    clip-path: polygon(120% 0%, 155% 0%, 155% 100%, 120% 100%);
+    opacity: 0;
+    animation-timing-function: linear;
+  }
+  40% {
+    clip-path: polygon(50% 0%, 85% 0%, 133% 100%, 98% 100%);
+    opacity: 0.1;
+  }
+  75% {
+    clip-path: polygon(-5% 0%, 30% 0%, 90% 100%, 55% 100%);
+    opacity: 0.32;
+  }
+  100% {
+    clip-path: polygon(-50% 0%, -15% 0%, 40% 100%, 5% 100%);
+    opacity: 0.16;
+  }
+}
+
+@media (max-width: 480px) {
+  .overlay {
+    perspective: 1400px;
+  }
+
+  .castShadow {
+    display: none;
+  }
+
+  .curlCorner {
+    box-shadow: -10px 12px 18px rgb(58 44 18 / 18%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .underlay,
+  .flap,
+  .fold,
+  .castShadow,
+  .curlCorner {
+    animation: none;
+  }
+
+  .flap,
+  .fold,
+  .castShadow,
+  .curlCorner {
+    opacity: 0;
+  }
+}

@@ -138,25 +138,60 @@
 .answers {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
+  gap: 10px;
 }
 
 .answer {
-  min-height: 44px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
   background: var(--surface-muted);
   text-align: left;
+  font-size: 1rem;
   cursor: pointer;
   transition:
-    border-color 120ms ease,
-    background-color 120ms ease;
+    border-color var(--t, 180ms) ease,
+    background-color var(--t, 180ms) ease,
+    transform var(--t, 180ms) ease,
+    box-shadow var(--t, 180ms) ease;
+}
+
+.answerBadge {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--surface-hover);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.answerText {
+  flex: 1;
+  min-width: 0;
+}
+
+.answerIcon {
+  flex-shrink: 0;
+  color: currentColor;
 }
 
 .answer:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--green) 55%, var(--border));
   background: color-mix(in srgb, var(--green-bg) 70%, var(--surface-muted));
+  transform: translateY(-1px);
+}
+
+.answer:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--green) 45%, transparent);
+  outline-offset: 2px;
 }
 
 .answerSelected {
@@ -166,11 +201,21 @@
   font-weight: 700;
 }
 
+.answerSelected .answerBadge {
+  background: var(--green);
+  color: var(--surface);
+}
+
 .answerCorrect {
   border-color: var(--green);
   background: var(--green-bg);
   color: var(--green-dark);
   font-weight: 700;
+}
+
+.answerCorrect .answerBadge {
+  background: var(--green);
+  color: var(--surface);
 }
 
 .answerWrong {
@@ -180,8 +225,27 @@
   font-weight: 700;
 }
 
+.answerWrong .answerBadge {
+  background: crimson;
+  color: var(--surface);
+}
+
 .answer:disabled {
   cursor: default;
+}
+
+.answer:disabled:not(.answerSelected):not(.answerCorrect):not(.answerWrong) {
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .answer {
+    transition: none;
+  }
+
+  .answer:hover:not(:disabled) {
+    transform: none;
+  }
 }
 
 .actions {

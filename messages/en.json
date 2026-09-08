@@ -183,6 +183,7 @@
     "checkingAnswer": "Checking answer…",
     "correct": "Correct",
     "incorrect": "Incorrect",
+    "answerSaved": "Answer saved",
     "skip": "Skip",
     "abort": "Finish test",
     "next": "Next task",
@@ -230,6 +231,34 @@
     "mistakeReview": "Mistake review ({count})",
     "saveDiagnosticProgress": "Save progress — sign up"
   },
+  "DiagnosticResult": {
+    "kicker": "Diagnostic test result",
+    "title": "You already know where to start",
+    "lead": "We analyzed your answers and found the topics that are already going well, and the ones where you can improve fastest.",
+    "sessionLabel": "Diagnostic test #{sessionId}",
+    "statCorrect": "Correct answers",
+    "statResult": "Result",
+    "statTime": "Time",
+    "priorityTitle": "{count} topics will help you the most on your way to a confident result",
+    "priorityLead": "Start with these — they give the fastest improvement.",
+    "strongTitle": "Already going well",
+    "analyzing": "Analyzing your answers by topic…",
+    "noBreakdown": "A topic-by-topic breakdown will be available after your next test.",
+    "topicScore": "{correct} / {total} · {percent}",
+    "registerKicker": "30-second sign-up",
+    "registerTitle": "Sign up to save your result and continue with a personal plan.",
+    "registerBenefitSave": "a personal list of topics to prepare;",
+    "registerBenefitPlan": "tasks matched to your level;",
+    "registerBenefitProgress": "progress on every topic;",
+    "registerBenefitHistory": "your result history;",
+    "registerBenefitNext": "a recommendation for what to study next.",
+    "registerCta": "Create an account and continue →",
+    "loginPrompt": "Already have an account?",
+    "loginCta": "Log in",
+    "resultsCta": "Results by topic",
+    "sessionsCta": "My sessions",
+    "newTest": "Take it again"
+  },
   "TopicResultsTable": {
     "title": "Results by topic",
     "lead": "Progress by topic: overall score, recent attempts, and average response speed.",
@@ -255,6 +284,15 @@
       "insufficientTasks": "There aren't enough tasks for a diagnostic test yet. Please try again later.",
       "alreadyInProgress": "A request is already in progress. Please wait.",
       "generic": "Could not start the diagnostic test. Please try again."
+    },
+    "info": {
+      "title": "What the diagnostic test gives you",
+      "items": {
+        "tasks": "30 tasks across different topics",
+        "duration": "about 10–15 minutes",
+        "insight": "shows your strengths and weaknesses",
+        "recommendations": "personal recommendations once you finish"
+      }
     }
   },
   "LearningSessionsTable": {

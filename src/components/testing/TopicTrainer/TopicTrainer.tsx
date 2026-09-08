@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   checkAnswerAction,
@@ -24,9 +24,18 @@ import {
   type TrainerMode,
   type TrainerSessionSummary,
 } from "@/modules/testing/types";
+import { resolveTaskPresentation } from "@/modules/testing/taskPresentation";
+import {
+  resolveAnswerCardState,
+  resolveAnswerFeedbackKind,
+} from "@/modules/testing/answerCardState";
 import type { RecommendedAction } from "@/modules/recommendations";
+import type { DiagnosticTopicInsight } from "@/modules/diagnostic/diagnosticThemeBreakdown";
 import { TopicTrainerSummary } from "@/components/testing/TopicTrainerSummary";
+import { DiagnosticResultSummary } from "@/components/diagnostic/DiagnosticResultSummary";
 import { MathText } from "@/components/ui/MathText";
+import { TaskVisualArea } from "@/components/testing/TaskVisualArea";
+import { AnswerStateIcon } from "./AnswerStateIcon";
 import { useCountdownTimer } from "./useCountdownTimer";
 import { useSessionTimer } from "./useSessionTimer";
 import { useLocale, useTranslations } from "next-intl";
@@ -55,6 +64,10 @@ type TopicTrainerProps = {
    * summary instead of the usual results/sessions links. */
   isGuest?: boolean;
   actions?: Partial<TopicTrainerActionOverrides>;
+  /** Diagnostic-only: fetched as a follow-up call once the session finishes,
+   * mirroring how Ultimate fetches its mistake review after finish. Not part
+   * of `TopicTrainerActionOverrides` — no other mode has an equivalent. */
+  diagnosticThemeBreakdownAction?: (sessionId: number) => Promise<DiagnosticTopicInsight>;
 };
 
 type CheckResult = { correct: boolean };
@@ -80,6 +93,7 @@ export function TopicTrainer({
   mode = "standard",
   isGuest = false,
   actions,
+  diagnosticThemeBreakdownAction,
 }: TopicTrainerProps) {
   const isUltimate = mode === "ultimate";
   const resolvedActions: TopicTrainerActionOverrides = useMemo(
@@ -107,6 +121,9 @@ export function TopicTrainer({
     initialRecommendations,
   );
   const [mistakes, setMistakes] = useState<SessionMistakeItem[]>([]);
+  const [topicInsight, setTopicInsight] = useState<DiagnosticTopicInsight | null>(
+    null,
+  );
   const [timedOut, setTimedOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const finishingRef = useRef(false);
@@ -163,7 +180,24 @@ export function TopicTrainer({
     onExpire: handleTimeExpired,
   });
 
+  // Covers both a fresh finish and reopening an already-completed diagnostic
+  // session (which arrives via `initialSummary`, never through `handleFinish`)
+  // — either way, the breakdown loads once a diagnostic summary exists.
+  useEffect(() => {
+    if (mode !== "diagnostic" || !summary || !diagnosticThemeBreakdownAction) {
+      return;
+    }
+    let cancelled = false;
+    void diagnosticThemeBreakdownAction(summary.sessionId).then((insight) => {
+      if (!cancelled) setTopicInsight(insight);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, summary, diagnosticThemeBreakdownAction]);
+
   const currentTask = tasks[currentIndex];
+  const presentation = currentTask ? resolveTaskPresentation(currentTask) : null;
   const total = tasks.length;
   const selectedAnswer = currentTask
     ? selectedByMappingId[currentTask.mappingId]
@@ -179,6 +213,15 @@ export function TopicTrainer({
     tasks.every((task) => resultsByMappingId[task.mappingId] !== undefined);
 
   if (summary) {
+    if (mode === "diagnostic") {
+      return (
+        <DiagnosticResultSummary
+          summary={summary}
+          topicInsight={topicInsight}
+          isGuest={isGuest}
+        />
+      );
+    }
     return (
       <TopicTrainerSummary
         summary={summary}
@@ -380,10 +423,11 @@ export function TopicTrainer({
         aria-label={t("taskAria", { number: currentIndex + 1 })}
       >
         <h2 className={css.taskName}>{currentTask.name}</h2>
+        <TaskVisualArea visual={presentation?.visual ?? null} />
         <MathText
           as="div"
           className={css.taskText}
-          text={currentTask.taskText}
+          text={presentation?.displayText ?? currentTask.taskText}
         />
 
         <div
@@ -391,31 +435,38 @@ export function TopicTrainer({
           role="group"
           aria-label={t("answerOptions")}
         >
-          {currentTask.answers.map((answer) => (
-            <button
-              key={answer.number}
-              type="button"
-              className={clsx(
-                css.answer,
-                selectedAnswer === answer.number &&
-                  (isUltimate ? checkResult === undefined : true) &&
-                  css.answerSelected,
-                !isUltimate &&
-                  selectedAnswer === answer.number &&
-                  checkResult?.correct === true &&
-                  css.answerCorrect,
-                !isUltimate &&
-                  selectedAnswer === answer.number &&
-                  checkResult?.correct === false &&
-                  css.answerWrong,
-              )}
-              onClick={() => handleSelect(answer.number)}
-              disabled={isPending || checkResult !== undefined || isFinishing}
-              aria-pressed={selectedAnswer === answer.number}
-            >
-              {answer.number}. <MathText text={answer.text} />
-            </button>
-          ))}
+          {currentTask.answers.map((answer) => {
+            const isSelected = selectedAnswer === answer.number;
+            const cardState = resolveAnswerCardState({
+              mode,
+              isUltimate,
+              isSelected,
+              correct: checkResult?.correct,
+            });
+            return (
+              <button
+                key={answer.number}
+                type="button"
+                className={clsx(
+                  css.answer,
+                  cardState === "selected" && css.answerSelected,
+                  cardState === "correct" && css.answerCorrect,
+                  cardState === "incorrect" && css.answerWrong,
+                )}
+                onClick={() => handleSelect(answer.number)}
+                disabled={isPending || checkResult !== undefined || isFinishing}
+                aria-pressed={isSelected}
+              >
+                <span className={css.answerBadge} aria-hidden="true">
+                  {answer.number}
+                </span>
+                <span className={css.answerText}>
+                  <MathText text={answer.text} />
+                </span>
+                <AnswerStateIcon state={cardState} className={css.answerIcon} />
+              </button>
+            );
+          })}
         </div>
       </article>
 
@@ -425,17 +476,27 @@ export function TopicTrainer({
         </p>
       ) : null}
 
-      {!isUltimate && checkResult ? (
-        <p
-          className={clsx(
-            css.feedback,
-            checkResult.correct ? css.feedbackOk : css.feedbackBad,
-          )}
-          role="status"
-        >
-          {checkResult.correct ? t("correct") : t("incorrect")}
-        </p>
-      ) : null}
+      {!isUltimate && checkResult
+        ? (() => {
+            const feedbackKind = resolveAnswerFeedbackKind(mode, checkResult.correct);
+            return (
+              <p
+                className={clsx(
+                  css.feedback,
+                  feedbackKind === "correct" && css.feedbackOk,
+                  feedbackKind === "incorrect" && css.feedbackBad,
+                )}
+                role="status"
+              >
+                {feedbackKind === "neutral"
+                  ? t("answerSaved")
+                  : feedbackKind === "correct"
+                    ? t("correct")
+                    : t("incorrect")}
+              </p>
+            );
+          })()
+        : null}
 
       {errorMessage ? (
         <p className={clsx(css.feedback, css.feedbackBad)} role="alert">

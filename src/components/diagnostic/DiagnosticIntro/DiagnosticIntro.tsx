@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageFrame, PagePanel } from "@/components/dashboard/PageFrame";
+import { DiagnosticInfoPanel } from "@/components/diagnostic/DiagnosticInfoPanel";
 import { SelfScorePicker } from "@/components/ui/SelfScorePicker";
 import {
   startDiagnosticAction,
@@ -78,6 +79,8 @@ export function DiagnosticIntro({ contentAvailable }: DiagnosticIntroProps) {
           </p>
         ) : null}
       </PagePanel>
+
+      <DiagnosticInfoPanel />
     </PageFrame>
   );
 }

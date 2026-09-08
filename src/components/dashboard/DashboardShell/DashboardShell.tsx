@@ -85,10 +85,14 @@ export function DashboardShell({
     };
   }, [sidebarOpen]);
 
+  const isDiagnosticRoute =
+    pathname === "/diagnostic" || pathname.startsWith("/diagnostic/");
+
   if (
     pathname === "/login" ||
     pathname === "/register" ||
     pathname === "/welcome" ||
+    isDiagnosticRoute ||
     !user
   ) {
     return <>{children}</>;
