@@ -146,6 +146,10 @@
     gap: var(--space-lg);
     align-items: start;
   }
+
+  .content.contentWide {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (min-width: 1440px) {

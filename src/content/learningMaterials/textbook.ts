@@ -11,7 +11,7 @@ const textbookSources: Partial<Record<string, TextbookSource[]>> = {
   "MATH-05-ELEM-OPS": [
     {
       materialSlug: "algebra-10",
-      start: "Елементарні дії",
+      start: "1. Елементарні дії",
       end: "14. Функції",
     },
   ],

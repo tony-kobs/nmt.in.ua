@@ -37,7 +37,7 @@ test("getTextbookBlocks returns only the requested section", () => {
 
   assert.equal(
     paragraphTexts[0],
-    "Рівняння — це рівність, що містить позначене буквою невідоме число, яке потрібно знайти",
+        "Рівняння — це рівність, що містить позначене буквою невідоме число, яке потрібно знайти.",
   );
   assert.equal(paragraphTexts.includes("8. Рівняння"), false);
   assert.equal(paragraphTexts.includes("12. Текстові задачі:"), false);

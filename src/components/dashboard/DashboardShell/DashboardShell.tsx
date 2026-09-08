@@ -62,6 +62,10 @@ export function DashboardShell({
   const t = useTranslations("Dashboard");
 
   const pathname = usePathname();
+
+  const isMaterialsPage =
+  pathname === "/materials" || pathname.startsWith("/materials/");
+
   const sidebarOpen = useSyncExternalStore(
     subscribeSidebar,
     readSidebarOpen,
@@ -135,9 +139,14 @@ export function DashboardShell({
           />
         </div>
 
-        <div className={css.content}>
+        <div
+          className={clsx(
+            css.content,
+            isMaterialsPage && css.contentWide,
+          )}
+        >
           <main className={css.main}>{children}</main>
-          <RecentResults items={recentResults} />
+          {isMaterialsPage ? null : <RecentResults items={recentResults} />}
         </div>
       </div>
     </div>
