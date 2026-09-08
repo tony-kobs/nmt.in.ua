@@ -2,6 +2,7 @@ import type { TopicTestMode } from "./topicTestMode";
 
 export type AvailableTopicTheme = {
   id: number;
+  code: string;
   name: string;
   ord: number;
   taskCount: number;
@@ -36,12 +37,19 @@ export type TrainerSessionSummary = {
   percent: number;
   timeSec: number;
   themeId: number;
+  /** `null` for a diagnostic attempt: it spans many themes, so there is no
+   * single textbook section to link to. */
+  themeCode: string | null;
   themeName: string;
 };
 
 export type SessionTasksResult = {
   sessionId: number;
   sessionStatus: number;
+  themeId: number;
+  /** `null` for a diagnostic attempt — see `TrainerSessionSummary.themeCode`. */
+  themeCode: string | null;
+  themeName: string;
   tasks: SessionTask[];
   summary: TrainerSessionSummary | null;
   /** Planned auto/mentor row without task mappings yet — needs `startPlannedSession`. */

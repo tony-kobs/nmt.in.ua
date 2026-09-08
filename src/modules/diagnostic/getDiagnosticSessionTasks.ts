@@ -1,7 +1,11 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
 import type { SessionTask, SessionTasksResult } from "@/modules/testing/types";
-import { toDiagnosticSummary } from "./finishDiagnosticSession";
+import {
+  DIAGNOSTIC_SUMMARY_THEME_ID,
+  DIAGNOSTIC_SUMMARY_THEME_NAME,
+  toDiagnosticSummary,
+} from "./finishDiagnosticSession";
 import { isValidOwner, ownerClause, ownerParams, type SessionOwner } from "./sessionOwner";
 
 const SESSION_TYPE_DIAGNOSTIC = 5;
@@ -159,6 +163,9 @@ export async function getDiagnosticSessionTasks(
       return {
         sessionId: validSessionId,
         sessionStatus: header.session_status,
+        themeId: DIAGNOSTIC_SUMMARY_THEME_ID,
+        themeCode: null,
+        themeName: DIAGNOSTIC_SUMMARY_THEME_NAME,
         tasks: rows.map(mapRow),
         summary:
           header.session_status === SESSION_STATUS_COMPLETED

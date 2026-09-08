@@ -21,10 +21,31 @@ export type MaterialSectionTarget = {
   match: string;
 };
 
-function renderRun(run: MaterialTextRun, key: string): ReactNode {
-  const text = run.text.replace(/\u00a0+/g, " ");
+function makeBoldMath(text: string) {
+  if (text.startsWith("\\(") && text.endsWith("\\)")) {
+    return `\\(\\boldsymbol{${text.slice(2, -2)}}\\)`;
+  }
+
+  if (text.startsWith("\\[") && text.endsWith("\\]")) {
+    return `\\[\\boldsymbol{${text.slice(2, -2)}}\\]`;
+  }
+
+  return text;
+}
+
+function renderRun(
+  run: MaterialTextRun,
+  key: string,
+  inTable: boolean,
+): ReactNode {
+  const normalizedText = run.text.replace(/\u00a0+/g, " ");
+  const text =
+    run.math && run.bold ? makeBoldMath(normalizedText) : normalizedText;
   let content: ReactNode = run.math ? (
-    <MathText text={text} />
+    <MathText
+      text={text}
+      className={inTable ? css.tableMath : undefined}
+    />
   ) : (
     text
   );
@@ -32,9 +53,20 @@ function renderRun(run: MaterialTextRun, key: string): ReactNode {
   if (run.superscript) content = <sup>{content}</sup>;
   if (run.subscript) content = <sub>{content}</sub>;
   if (run.italic) content = <em>{content}</em>;
-  if (run.bold) content = <strong>{content}</strong>;
+  if (run.bold && !run.math) content = <strong>{content}</strong>;
+  if (run.underline) content = <u>{content}</u>;
 
-  return <span key={key}>{content}</span>;
+  return (
+    <span
+      key={key}
+      className={clsx(
+        run.desktopOnly && css.desktopOnly,
+        run.mobileOnly && css.mobileOnly,
+      )}
+    >
+      {content}
+    </span>
+  );
 }
 
 function paragraphClass(block: MaterialParagraphBlock) {
@@ -48,7 +80,9 @@ function paragraphClass(block: MaterialParagraphBlock) {
     block.align === "center" && css.center,
     block.align === "right" && css.right,
     block.align === "both" && css.justify,
-    plainText.startsWith("(") && css.parenthetical,
+    plainText.startsWith("(") &&
+      block.align === "center" &&
+      css.parenthetical,
   );
 }
 
@@ -59,7 +93,7 @@ function renderParagraph(
   anchorId?: string,
 ) {
   const content = block.runs.map((run, index) =>
-    renderRun(run, `${key}-run-${index}`),
+    renderRun(run, `${key}-run-${index}`, inTable),
   );
   if (inTable) {
     return (
@@ -100,6 +134,13 @@ function renderTable(
   claimedAnchors: Set<string>,
 ) {
   const totalWidth = block.columnWidths.reduce((sum, width) => sum + width, 0);
+  const isScrollableTable = block.variant !== "layout";
+  const columnExtraWidth = block.variant === "graphPaper" ? 0 : 20;
+  const minimumWidth = block.columnWidths.reduce(
+    (sum, width) => sum + width / 15 + columnExtraWidth,
+    0,
+  );
+  const equalColumnWidth = minimumWidth / block.columnWidths.length;
 
   return (
     <div
@@ -110,28 +151,47 @@ function renderTable(
         block.variant === "layout" && css.layoutTableScroll,
         block.variant === "graphPaper" && css.graphPaperScroll,
       )}
-      role={inTable ? undefined : "region"}
+      role={isScrollableTable ? "region" : undefined}
       aria-label={
-        inTable
-          ? undefined
-          : "Таблиця навчального матеріалу, доступне горизонтальне прокручування"
+        isScrollableTable
+          ? "Таблиця навчального матеріалу, доступне горизонтальне прокручування"
+          : undefined
       }
-      tabIndex={inTable ? undefined : 0}
+      tabIndex={isScrollableTable ? 0 : undefined}
     >
+      {isScrollableTable ? (
+        <span className={css.scrollHint} aria-hidden="true">
+          Прокрутіть таблицю горизонтально →
+        </span>
+      ) : null}
       <table
         className={clsx(
           css.table,
           block.variant === "grid" && css.gridTable,
           block.variant === "layout" && css.layoutTable,
           block.variant === "graphPaper" && css.graphPaper,
+          block.equalColumns && css.equalColumns,
+          block.graphExercise && css.graphExercise,
+          block.topAligned && css.topAligned,
         )}
+        style={
+          isScrollableTable && totalWidth > 0
+            ? { minWidth: `${minimumWidth}px` }
+            : undefined
+        }
       >
         {totalWidth > 0 ? (
           <colgroup>
             {block.columnWidths.map((width, index) => (
               <col
                 key={key + "-column-" + index}
-                style={{ width: String((width / totalWidth) * 100) + "%" }}
+                style={{
+                  width: block.equalColumns
+                    ? `${equalColumnWidth}px`
+                    : isScrollableTable
+                      ? `${width / 15 + columnExtraWidth}px`
+                      : `${(width / totalWidth) * 100}%`,
+                }}
               />
             ))}
           </colgroup>
@@ -185,7 +245,14 @@ function renderBlocks(
 
     if (block.type === "image") {
       return (
-        <figure key={key} className={css.figure}>
+        <figure
+          key={key}
+          className={clsx(
+            css.figure,
+            block.align === "left" && css.figureLeft,
+            block.align === "right" && css.figureRight,
+          )}
+        >
           <NativeImage
             src={block.src}
             alt={block.alt}

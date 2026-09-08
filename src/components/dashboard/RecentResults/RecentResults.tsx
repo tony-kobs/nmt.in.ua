@@ -12,8 +12,10 @@ export function RecentResults({ items }: RecentResultsProps) {
   const t = useTranslations("RecentResults");
 
   return (
-    <aside className={css.panel} aria-label={t("title")}>
-      <h2 className={css.title}>{t("title")}</h2>
+    <section className={css.panel} aria-labelledby="recent-results-title">
+      <h2 id="recent-results-title" className={css.title}>
+        {t("title")}
+      </h2>
 
       {items.length === 0 ? (
         <p className={css.hint}>{t("empty")}</p>
@@ -27,6 +29,6 @@ export function RecentResults({ items }: RecentResultsProps) {
           ))}
         </ul>
       )}
-    </aside>
+    </section>
   );
 }

@@ -3,7 +3,7 @@ import type { ContentImportInput } from "./index";
 import { MAX_TOTAL_UPLOAD_BYTES } from "./schema";
 
 const JSON_FIELDS = new Set(["file", "format"]);
-const CSV_FIELDS = new Set(["themes", "themeConnections", "quizTasks"]);
+const CSV_FIELDS = new Set(["themes", "themeConnections", "quizTasks", "problems"]);
 
 function totalSize(files: File[]): number {
   return files.reduce((sum, file) => sum + file.size, 0);
@@ -81,16 +81,25 @@ export function buildImportInputFromFormData(formData: FormData): ContentImportI
   const themesField = formData.get("themes");
   const themeConnectionsField = formData.get("themeConnections");
   const quizTasksField = formData.get("quizTasks");
+  const problemsField = formData.get("problems");
   const missing: string[] = [];
   if (!isFile(themesField)) missing.push("themes");
   if (!isFile(themeConnectionsField)) missing.push("themeConnections");
   if (!isFile(quizTasksField)) missing.push("quizTasks");
+  if (problemsField != null && problemsField !== "" && !isFile(problemsField)) {
+    missing.push("problems");
+  }
   if (missing.length > 0) {
     throw new ContentImportError("validation", [
       `Missing or invalid CSV file field(s): ${missing.join(", ")}`,
     ]);
   }
-  const files = [themesField, themeConnectionsField, quizTasksField] as File[];
+  const files = [themesField, themeConnectionsField, quizTasksField].filter(
+    isFile,
+  );
+  if (isFile(problemsField) && problemsField.size > 0) {
+    files.push(problemsField);
+  }
   if (totalSize(files) > MAX_TOTAL_UPLOAD_BYTES) {
     throw new ContentImportError("payload_too_large", ["Uploaded files exceed the size limit."]);
   }
@@ -99,5 +108,8 @@ export function buildImportInputFromFormData(formData: FormData): ContentImportI
     themes: themesField as File,
     themeConnections: themeConnectionsField as File,
     quizTasks: quizTasksField as File,
+    ...(isFile(problemsField) && problemsField.size > 0
+      ? { problems: problemsField }
+      : {}),
   };
 }

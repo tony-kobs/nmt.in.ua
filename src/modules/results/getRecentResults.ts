@@ -47,7 +47,7 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-/** Last N completed sessions for the sidebar «Останні результати». */
+/** Last N completed sessions for the account page «Останні результати». */
 export async function getRecentResults(
   userId: number,
   limit: number = 4,

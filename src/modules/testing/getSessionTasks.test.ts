@@ -30,6 +30,7 @@ function makeSessionHeader() {
     right_number: 0,
     time: 0,
     session_status: 2,
+    theme_code: "GEO-07-ELEM-PLAN",
     theme_name: "Тема",
   };
 }
@@ -81,6 +82,7 @@ test("getSessionTasks joins tasks2session with quiz_tasks and maps client-safe f
 
   assert.equal(calls.length, 2);
   assert.match(calls[0]!.sql, /FROM task_sessions ts/);
+  assert.match(calls[0]!.sql, /t\.code AS theme_code/);
   assert.deepEqual(calls[0]?.params, [42, 1]);
   assert.match(calls[1]!.sql, /FROM tasks2session t2s/);
   assert.match(calls[1]!.sql, /INNER JOIN quiz_tasks qt ON qt\.id = t2s\.task_id/);
@@ -91,6 +93,9 @@ test("getSessionTasks joins tasks2session with quiz_tasks and maps client-safe f
 
   assert.equal(result.sessionId, 42);
   assert.equal(result.sessionStatus, 2);
+  assert.equal(result.themeId, 3);
+  assert.equal(result.themeCode, "GEO-07-ELEM-PLAN");
+  assert.equal(result.themeName, "Тема");
   assert.equal(result.summary, null);
   assert.equal(result.tasks.length, 10);
   assert.deepEqual(result.tasks[0], {
@@ -126,6 +131,9 @@ test("getSessionTasks returns planned-without-tasks marker for empty planned ses
 
   assert.equal(result.sessionId, 99);
   assert.equal(result.sessionStatus, 3);
+  assert.equal(result.themeId, 3);
+  assert.equal(result.themeCode, "GEO-07-ELEM-PLAN");
+  assert.equal(result.themeName, "Тема");
   assert.deepEqual(result.tasks, []);
   assert.equal(result.summary, null);
   assert.equal(result.isPlannedWithoutTasks, true);
@@ -154,6 +162,7 @@ test("getSessionTasks hydrates the summary when the session is already completed
     right_number: 1,
     time: 0,
     session_status: 1,
+    theme_code: "ALG-09-EQ-INEQ",
     theme_name: " Синтаксис ",
   });
 
@@ -168,6 +177,7 @@ test("getSessionTasks hydrates the summary when the session is already completed
     percent: 50,
     timeSec: 0,
     themeId: 4,
+    themeCode: "ALG-09-EQ-INEQ",
     themeName: "Синтаксис",
   });
 });

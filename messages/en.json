@@ -11,6 +11,7 @@
     "goHomeShort": "Home",
     "tagline": "mathematics · practice · progress",
     "logout": "log out",
+    "openAccount": "Personal account: {name}",
     "roles": {
       "student": "Student",
       "teacher": "Teacher",
@@ -45,6 +46,40 @@
   "RecentResults": {
     "title": "Recent results",
     "empty": "Results will appear after your first tests."
+  },
+  "AccountCabinet": {
+    "kicker": "Profile",
+    "title": "Personal account",
+    "lead": "Password, results, and placeholders for photo, achievements, and study time.",
+    "photoTitle": "Profile photo",
+    "photoLead": "Photo upload will come later. For now the header shows your initials.",
+    "achievementsTitle": "Achievements",
+    "achievementsLead": "Badges for tests and the simulator will appear in a later version.",
+    "timeTitle": "Total study time",
+    "timeLead": "We do not sum session time yet — statistics will live here.",
+    "passwordTitle": "Change password",
+    "passwordLead": "The new password replaces the current one for this login right away.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "newPasswordConfirm": "Confirm new password",
+    "passwordHint": "At least {min} characters.",
+    "savePassword": "Save password",
+    "saving": "Saving…",
+    "passwordSaved": "Password updated.",
+    "demoLocked": "The password cannot be changed on a demo account.",
+    "logoutTitle": "Sign out",
+    "logoutLead": "End the session on this device.",
+    "logout": "Log out",
+    "errors": {
+      "requiredFields": "Fill in all fields.",
+      "passwordTooShort": "The new password is too short.",
+      "passwordTooLong": "The new password is too long.",
+      "passwordMismatch": "Confirmation does not match the new password.",
+      "samePassword": "The new password must differ from the current one.",
+      "wrongCurrent": "The current password is incorrect.",
+      "demoAccount": "The password cannot be changed on a demo account.",
+      "serverError": "Could not change the password. Try again."
+    }
   },
   "Common": {
     "soon": "Coming soon"
@@ -86,7 +121,7 @@
     },
     "problems": {
       "title": "Problem bank",
-      "description": "A collection of problems for independent practice outside the test."
+      "description": "Printable per-topic test: a table of tasks to print and hand to students."
     },
     "consultations": {
       "title": "Teacher consultations",
@@ -95,34 +130,22 @@
   },
   "TopicTestStart": {
     "title": "Test by selected topic",
-    "kicker": "Workspace",
     "helloStart": "Hello,",
     "formTitle": "New practice",
-    "lead": "Pick a topic and a mode — then practise in the NMT format.",
-    "leadStandard": "up to {count} random tasks with instant explanations.",
-    "leadUltimate": "up to {count} tasks, 20 minutes, with no hints until the end of the test.",
+    "lead": "Pick a topic and how many tasks to run — then practise in the NMT format.",
     "noThemes": "Topics and tasks are being prepared. Testing will be available soon.",
     "selectTopic": "Choose a topic",
-    "mode": "Mode",
-    "testMode": "Test mode",
     "tasks": "Tasks",
-    "taskCount": "Tasks to complete: {count} of {total}",
+    "taskCountAria": "Number of tasks: {count} of {total}",
+    "tasksHint": "from 1 to {total}",
     "redirecting": "Opening the test…",
     "loading": "Loading…",
     "start": "Start",
-    "startUltimate": "Start Ultimate",
-    "selfScoreLabel": "How do you rate this topic?",
-    "selfScoreAria": "Self-assessment for this topic, 1 to 10",
-    "selfScoreHint": "Pick a score from 1 to 10 to start the test.",
-    "modes": {
-      "standard": "Standard",
-      "ultimate": "Ultimate"
-    },
     "errors": {
       "insufficientTasks": "There are no tasks available for this topic yet.",
       "alreadyInProgress": "A request is already in progress. Please wait.",
       "invalidInput": "Select a topic to start the test.",
-      "invalidSelfScore": "Pick a self-assessment score from 1 to 10 to start the test.",
+      "invalidTaskCount": "Enter how many tasks to run, from 1 up to the bank size.",
       "generic": "Could not start the test. Please try again."
     }
   },
@@ -190,7 +213,7 @@
     "ultimateTitle": "Ultimate — summary",
     "title": "Test summary",
     "diagnosticTitle": "Diagnostic test result",
-    "summary": "Topic “{theme}”. Session #{sessionId}.",
+    "summary": "Topic “<themeLink>{theme}</themeLink>”. Session #{sessionId}.",
     "diagnosticSummary": "Diagnostic test #{sessionId} completed.",
     "timedOut": "Time is up.",
     "completed": "Test completed.",
@@ -473,26 +496,47 @@
   },
   "ContentImportForm": {
     "title": "Content import",
-    "lead": "Upload three CSV files or one JSON document containing topics, connections, and tasks. The API key remains on the server and is not exposed to the browser.",
+    "lead": "Upload three CSV files or one JSON document containing topics, connections, and tasks. The problems workbook file is optional. The API key remains on the server and is not exposed to the browser.",
     "unavailable": "Import is unavailable: the following key is not configured on the server:",
     "validationErrors": "Validation errors:",
     "success": "Import successful.",
     "inserted": "Added",
     "updated": "Updated",
-    "counts": "topics {themes}, connections {connections}, tasks {tasks}",
+    "counts": "topics {themes}, connections {connections}, tasks {tasks}, workbook {problems}",
     "total": "total {count}",
     "formatAria": "Import format",
     "themesColumns": "Columns: id, name, description, ord",
     "connectionsColumns": "Columns: id, vertex_start, vertex_finish",
-    "tasksColumns": "Columns: id, name, task_text, theme_id, answer_1…answer_4, right_answer_n, comments",
+    "tasksColumns": "Columns: id, name, task_text, theme_id, answer_1…answer_4, right_answer_n, comments, difficulty",
+    "problemsColumns": "Optional. Columns: id, name, problem_text, theme_id, answer_1…answer_4, right_answer_n, comments, difficulty",
     "importing": "Importing…",
     "importCsv": "Import CSV",
-    "jsonHint": "An object containing the themes, themeConnections, and quizTasks arrays (see README).",
+    "jsonHint": "An object containing the themes, themeConnections, and quizTasks arrays; problems is optional (see README).",
     "importJson": "Import JSON",
     "modes": {
       "csv": "Three CSV files",
       "json": "One JSON file"
     }
+  },
+  "ProblemsWorkbook": {
+    "kicker": "Worksheet",
+    "title": "Problem book",
+    "lead": "Pick a topic, hide the answer key, and print a test for students.",
+    "empty": "The workbook bank is still empty. Opening this page creates the table automatically.",
+    "selectTopic": "Choose a topic",
+    "displayAria": "What to show in the table",
+    "hideOptions": "Hide answers",
+    "showOptions": "Show answer options",
+    "toggleKey": "Show/hide correct answers",
+    "print": "Print",
+    "sheetMeta": "{theme}: {count} tasks",
+    "caption": "{count} tasks",
+    "colPrompt": "Task",
+    "colA": "1",
+    "colB": "2",
+    "colC": "3",
+    "colD": "4",
+    "colKey": "Key"
   },
   "Feedback": {
     "leaveReview": "Leave feedback",
@@ -575,7 +619,7 @@
     },
     "problems": {
       "title": "Problem Bank",
-      "description": "A collection of tasks for independent practice outside the test."
+      "description": "Printable per-topic test: a table of tasks to print and hand to students."
     },
     "simulator": {
       "title": "NMT Simulator",
@@ -584,6 +628,10 @@
     "consultations": {
       "title": "Teacher Consultations",
       "description": "Book a consultation and communicate with teachers."
+    },
+    "account": {
+      "title": "Personal account",
+      "description": "Profile, password change, recent results, and sign out."
     }
   },
   "SettingsPage": {

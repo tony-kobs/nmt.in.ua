@@ -51,6 +51,13 @@ export function NmtTrainer({
 
   const [error, setError] = useState<string | null>(null);
 
+  /** State guards only take effect on the next render — two fast clicks would
+   * otherwise both pass and fire the same Server Action twice. */
+  const answeringRef = useRef(false);
+  const finishingRef = useRef(false);
+
+  const [pendingMappingId, setPendingMappingId] = useState<number | null>(null);
+
   const currentTask = tasks[currentIndex];
 
   const answeredCount = Object.keys(answered).length;
@@ -58,9 +65,10 @@ export function NmtTrainer({
   const isFinished = Boolean(initialSummary) || tasks.length === 0;
 
   const finish = useCallback(async () => {
-    if (isFinishing || isFinished) {
+    if (isFinishing || isFinished || finishingRef.current) {
       return;
     }
+    finishingRef.current = true;
 
     setIsFinishing(true);
     setError(null);
@@ -72,6 +80,7 @@ export function NmtTrainer({
     });
 
     if (result.status === "error") {
+      finishingRef.current = false;
       setError(result.code);
       setIsFinishing(false);
       return;
@@ -109,7 +118,7 @@ export function NmtTrainer({
   const isTimeOver = remainingSeconds <= 0;
 
   async function handleAnswer(answerNumber: 1 | 2 | 3 | 4) {
-    if (!currentTask || isFinishing || isTimeOver) {
+    if (!currentTask || isFinishing || isTimeOver || answeringRef.current) {
       return;
     }
 
@@ -117,13 +126,21 @@ export function NmtTrainer({
       return;
     }
 
+    answeringRef.current = true;
     setError(null);
+    setPendingMappingId(currentTask.mappingId);
 
-    const result = await checkAnswerAction({
-      sessionId,
-      mappingId: currentTask.mappingId,
-      answerNumber,
-    });
+    let result: Awaited<ReturnType<typeof checkAnswerAction>>;
+    try {
+      result = await checkAnswerAction({
+        sessionId,
+        mappingId: currentTask.mappingId,
+        answerNumber,
+      });
+    } finally {
+      answeringRef.current = false;
+      setPendingMappingId(null);
+    }
 
     if (result.status === "error") {
       setError(result.code);
@@ -197,7 +214,10 @@ export function NmtTrainer({
                   className={`${styles.answer} ${
                     isSelected ? styles.selected : ""
                   }`}
-                  disabled={Boolean(selectedAnswer)}
+                  disabled={
+                    Boolean(selectedAnswer) ||
+                    pendingMappingId === currentTask.mappingId
+                  }
                   onClick={() => handleAnswer(answer.number)}
                 >
                   <span className={styles.answerNumber}>{answer.number}</span>

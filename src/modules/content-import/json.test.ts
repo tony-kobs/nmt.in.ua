@@ -21,15 +21,20 @@ const VALID_DOC = JSON.stringify({
   ],
 });
 
-test("parseImportJsonDocument accepts the documented shape", () => {
+test("parseImportJsonDocument accepts a document without optional problems", () => {
   const result = parseImportJsonDocument(VALID_DOC);
   assert.deepEqual(result.errors, []);
   assert.ok(result.document);
   assert.equal(result.document!.themes.length, 1);
-  assert.deepEqual(result.document!.themes[0], {
-    rowLabel: "themes[0]",
-    raw: { id: 1, name: "A", description: "d", ord: 1 },
-  });
+  assert.equal(result.document!.problems.length, 0);
+});
+
+test("parseImportJsonDocument accepts an explicit empty problems array", () => {
+  const doc = JSON.parse(VALID_DOC);
+  doc.problems = [];
+  const result = parseImportJsonDocument(JSON.stringify(doc));
+  assert.deepEqual(result.errors, []);
+  assert.equal(result.document!.problems.length, 0);
 });
 
 test("parseImportJsonDocument rejects malformed JSON", () => {

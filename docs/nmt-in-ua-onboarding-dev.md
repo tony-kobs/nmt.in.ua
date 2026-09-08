@@ -6,13 +6,13 @@
 
 Word-копія: [nmt-in-ua-onboarding-dev.docx](./nmt-in-ua-onboarding-dev.docx)
 
-Оновлено 5 вересня 2026.
+Оновлено 8 вересня 2026.
 
 ---
 
 ## 1. Що ми робимо
 
-nmt.in.ua — тренажер підготовки до НМТ з математики. Учень логіниться, проходить тест за темою / Ultimate / симулятор, бачить результат і рекомендації. Викладач призначає сесію. Адмін імпортує завдання з CSV або JSON.
+nmt.in.ua — тренажер підготовки до НМТ з математики. Учень логіниться, проходить тест за темою / симулятор, бачить результат і рекомендації. Викладач призначає сесію. Адмін імпортує завдання з CSV або JSON.
 
 Живий сайт: <https://nmt.in.ua>  
 Репозиторій: <https://github.com/tony-kobs/nmt.in.ua>
@@ -59,6 +59,8 @@ npm run dev
 
 Секрети не комітити. Згенерувати: `openssl rand -hex 32`. `SESSION_SECRET` не копіюй з інших ключів.
 
+Необов'язкові налаштування пулу (усі мають дефолти) описані в `.env.example`: `DB_CONNECTION_LIMIT`, `DB_CONNECT_TIMEOUT_MS`, `DB_MAX_IDLE`, `DB_IDLE_TIMEOUT_MS`, `DB_PING_AFTER_IDLE_MS`.
+
 ### 3.2. Демо-акаунти
 
 | Логін | Пароль | Роль | Навіщо зайти |
@@ -104,7 +106,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 - `src/components/` — UI. Стилі — CSS Modules поруч із компонентом.
 - `src/lib/db/mysql.ts` — єдине місце, звідки ходимо в MySQL (`getConnection`).
 
-**Нове правило:** `userId` у Server Actions береться з `requireUserId()`, ніколи з FormData. Інакше учень A побачить сесії учня B.
+**Нове правило:** `userId` у Server Actions береться з auth-модуля, ніколи з FormData. Інакше учень A побачить сесії учня B. У «гарячих» діях тренажера (`checkAnswer`, `skip`, `markSessionStarted`, `finish`) беремо `requireSessionUserId()` — id з підписаної cookie, без запиту в `app_users`. Там, де потрібні ім'я чи роль, лишається `requireUser()` / `requireUserId()`.
 
 ### 4.3. До кого йти
 
@@ -133,6 +135,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `src/app/api/import/` і `api/admin/sessions/` | Machine-to-machine API з Bearer |
 | `src/components/welcome/` | Секції лендінгу + `landing.module.css` |
 | `src/components/dashboard/` | Кабінет: header, sidebar, таблиці, старт тесту |
+| `src/components/account/` | Особистий кабінет `/account` |
 | `src/components/testing/` | TopicTrainer, NmtTrainer, підсумок, розбір помилок |
 | `src/components/auth/` | AuthShell, форми входу / реєстрації |
 | `src/components/ui/` | Reveal, ModeTabs, MathText |
@@ -161,8 +164,8 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 
 | Модуль | Папка | Головні функції |
 | --- | --- | --- |
-| Auth | `src/modules/auth` | `requireUserId`, `getCurrentUser`, login/register actions |
-| Імпорт | `src/modules/content-import` | parse + validate + транзакція `themes` → connections → `quiz_tasks` |
+| Auth | `src/modules/auth` | `requireUserId`, `getCurrentUser`, login/register/`changePassword` |
+| Імпорт | `src/modules/content-import` | parse + validate + транзакція `themes` → connections → `quiz_tasks` (+ опційно `problems`) |
 | Тест | `src/modules/testing` | `startTopicTest`, `startNmtSimulator`, `checkAnswer`, `finishTrainerSession` |
 | Рекомендації | `src/modules/recommendations` | `getStudentTopicStats`, `recommendNextActions`, `persistRecommendations` |
 | Сесії | `src/modules/sessions` | `getLearningSessions`, `createMentorSession`, cancel |
@@ -174,15 +177,31 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | Таблиця | Навіщо | Важливі поля |
 | --- | --- | --- |
 | `app_users` | Наші акаунти | `login`, `role`. Не плутати з legacy `users` |
-| `themes` | Теми тесту | `id`, `name`, `description`, `ord` |
+| `themes` | Теми тесту | `id`, `code` (unique, напр. `ALG-08-QUAD-EQ` — якір розділу підручника), `name`, `description`, `ord` |
 | `theme_connections` | Граф «наступна тема» | `vertex_start` → `vertex_finish` |
-| `quiz_tasks` | Банк завдань | `right_answer_n` (1–4) лише на сервері |
+| `quiz_tasks` | Банк тренажера (тест / Ultimate / симулятор / діагностика) | `right_answer_n` (1–4) лише на сервері в сесії |
+| `problems` | Банк задачника (друк) | 6.6, таблиця + seed з `src/content/workbookProblems.json` |
 | `task_sessions` | Спроба учня | `session_type` 1 user / 2 auto / 3 mentor / 4 NMT / **5 diagnostic**; status 1 done / 2 created / 3 planned. `user_id` і `theme_id` **nullable**, плюс `guest_token CHAR(36)` nullable — діагностична спроба гостя не має `user_id`, а охоплює кілька тем одразу тож не має і `theme_id` |
 | `tasks2session` | Мапінг завдання↔сесія | `status` 0 / 1 / −1. `user_id` **nullable** + `guest_token CHAR(36)` nullable, дзеркалить владельця з `task_sessions` |
 | `site_feedback` | відгук про сайт (6.2) | `user_id`/`session_id` nullable, `score` 1–10, `message` (обов’язкове якщо score < 5), `email`, `source` footer/post_test |
 | `user_self_scores` | Самооцінка (6.3–6.4), **історія, ніколи не перезаписується** | `user_id`/`guest_token` (рівно один із двох), `theme_id` nullable (NULL = загальна оцінка), `score` 1–10, `source` `diagnostic_overall`/`pre_topic`, `created_at` |
 
 **`right_answer_n` і `comments` не віддавай клієнту**, поки відповідь не перевірена або сесія не завершена. Перевірка завжди на сервері.
+
+**Індекси.** У legacy-таблиць їх майже немає: `tasks2session` має лише PRIMARY і
+`guest_token`, тож `WHERE session_id = ?` (кожне відкриття тренажера) — це full
+scan усієї таблиці мапінгів, яка росте з кожним пройденим тестом. Міграція
+`scripts/sql/009_trainer_hot_path_indexes.sql` додає `tasks2session(session_id)`,
+`tasks2session(user_id, session_id)`, `task_sessions(user_id, session_status)` і
+`quiz_tasks(theme_id)`. Перед запуском — `SHOW CREATE TABLE`, бо `ADD INDEX IF NOT
+EXISTS` у MySQL немає. **Застосована 08.09.2026**: `EXPLAIN` на `tasks2session` пішов
+з `type: ALL` (405 рядків) на `type: ref` + `Using index`.
+
+`scripts/sql/010_theme_codes.sql` додає `themes.code` (unique) і заповнює коди всім
+23 темам — це якір розділу підручника (`/materials/textbook#topic-<code>`). **Застосована
+08.09.2026.** Імпорт (`content-import`) колонку приймає опційно: немає коду в CSV/JSON —
+тема лишається без нього, а підручник показує «Матеріал готується». Нумерація міграцій
+розійшлась (два різні `008`), тому підручник переїхав на `010`; наступна вільна — `011`.
 
 ### Гостьова діагностика: модель власності
 
@@ -207,8 +226,8 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 
 | Режим | Де старт | Скільки | Поведінка |
 | --- | --- | --- | --- |
-| Звичайний тест | `/` → TopicTestStart | до 10 | Розбір одразу після відповіді |
-| Ultimate | `/` → режим Ultimate | до 20, 20 хв | Підказки лише в кінці |
+| Звичайний тест | `/` → TopicTestStart | скільки впишеш (макс. банк теми) | Розбір одразу після відповіді |
+| Ultimate | не зі старту `/` | до 20, 20 хв | Лише вже відкрита сесія `?mode=ultimate` |
 | Симулятор НМТ | `/simulator` | 22, 60 хв | `session_type = 4` |
 | Авто-сесія | з’являється на `/sessions` | як тест | Створює recommend після фінішу |
 | Ментор-сесія | викладач на `/sessions` | як тест | `session_type = 3`, Старт / × |
@@ -225,7 +244,10 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 | `/results`, `/sessions`, `/simulator` | Учень+ | Готово |
 | `/settings` | Лише admin | Готово |
 | `/materials` | Учень+ | Готово |
-| `/problems`, `/consultations` | Учень+ | Заглушка `NavStubPage` — вільні задачі |
+| `/materials/textbook` | Учень+ | Підручник: зміст + розділ на кожну тему БД, якір `#topic-<themes.code>` |
+| `/problems` | Учень+ | Задачник: друкований тест по темі |
+| `/account` | Учень+ | Особистий кабінет: пароль, останні результати, вихід |
+| `/consultations` | Учень+ | Заглушка `NavStubPage` |
 
 ## 7. Як додавати фічу (шаблон)
 
@@ -265,7 +287,7 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 
 - Не світи секрети, не клади `.env.local` у git.
 - Імпорт і admin API без ключа мають лишатися 401.
-- Не віддавай `right_answer_n` на клієнт до перевірки.
+- Не віддавай `right_answer_n` на клієнт до перевірки в **тесті / сесії**. Задачник `/problems` — генератор аркуша: ключ можна тримати в HTML і ховати CSS-ом (за замовчуванням сховано).
 - Не бери `userId` з форми. Тільки сесія.
 - На проді demo-login вимкнений. Не вмикай `ALLOW_DEMO_LOGIN=1` на публічному сайті.
 - Статика з `public/` (webp, шрифти) не повинна потрапляти під auth-guard — інакше картинки лендінгу редіректнуть на `/login`.
@@ -276,10 +298,10 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 
 | Задача | Де копати | Складність | Нотатка |
 | --- | --- | --- | --- |
-| 6.1 Підручник + `themes.code` | `src/content/learningMaterials`, `/materials`, імпорт `themes` | Середня | Конспекти по класах лишити; TOC з якорями |
+| 6.1 Підручник + `themes.code` | `src/content/learningMaterials`, `/materials`, імпорт `themes` | Середня | ✅ зроблено 08.09 (Марія, PR #60): `/materials/textbook`, конспекти по класах лишились, TOC з якорями |
 | 6.5 Банк 30–40 / тему | `content-import`, `docs/content-review/` | Контент | Спочатку розширити `varchar(50)` у відповідях |
 | 6.8 Варіанти НМТ | `startNmtSimulator`, `/simulator`, нові таблиці | Середня | Не RAND по всій базі — випадковий *варіант* |
-| 6.6 Задачник | `src/app/problems`, стилі TopicTrainer | Середня | Практика без ключа в DOM; друк через `window.print` |
+| 6.6 Задачник | `src/app/problems`, таблиця `problems`, імпорт опційний | Середня | ✅ зроблено 08.09: друкований тест по темі; банк `problems`; 439 завдань зі старого сайту |
 | 6.3–6.4 Діагностика | `/diagnostic`, `Hero`, `TopicTestStart`, `TopicResultsTable` | Велика | ✅ зроблено (`feat/diagnostic-self-score`); guest-cookie `nmt_guest` (не тимчасовий `app_users`) → `claimGuestProgress()` при реєстрації. Відкрито: політика вибору тем при >10 eligible (зараз — порядок `ord`) |
 | 6.2 Відгук про сайт | `src/modules/feedback`, футер, модалка після finish | Мала | ✅ зроблено; оцінка 1–10, коментар лише якщо < 5; не хедер; не `/consultations` |
 

@@ -4,7 +4,7 @@ import { resolveDisplaySelfScore, type LatestSelfScores } from "@/modules/self-s
 import { buildTopicResultRows, type TopicResultRow } from "./types";
 
 const SQL_THEMES = `
-  SELECT id, name, ord
+  SELECT id, code, name, ord
   FROM themes
   ORDER BY ord ASC, id ASC
 `;
@@ -48,6 +48,7 @@ export async function getTopicResults(
   try {
     const themes = await connection.query<{
       id: number;
+      code: string;
       name: string;
       ord: number;
     }>(SQL_THEMES);

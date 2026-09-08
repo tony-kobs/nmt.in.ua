@@ -1,11 +1,25 @@
 /**
  * Column lists and length limits, verified against the `themes`,
- * `theme_connections`, and `quiz_tasks` tables in phpMyAdmin. Column order
- * here is also the required CSV header order and the SQL column order used
- * for every INSERT.
+ * `theme_connections`, `quiz_tasks`, and `problems` tables in phpMyAdmin.
+ * Column order here is also the required CSV header order and the SQL column
+ * order used for every INSERT.
  */
 
-export const THEMES_COLUMNS = ["id", "name", "description", "ord"] as const;
+export const THEMES_REQUIRED_COLUMNS = [
+  "id",
+  "name",
+  "description",
+  "ord",
+] as const;
+
+export const THEMES_COLUMNS = [
+  ...THEMES_REQUIRED_COLUMNS,
+  "code",
+] as const;
+
+export const MAX_LEN_THEME_CODE = 32;
+export const THEME_CODE_PATTERN = /^[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
+
 export const THEME_CONNECTIONS_COLUMNS = [
   "id",
   "vertex_start",
@@ -15,6 +29,19 @@ export const QUIZ_TASKS_COLUMNS = [
   "id",
   "name",
   "task_text",
+  "theme_id",
+  "answer_1",
+  "answer_2",
+  "answer_3",
+  "answer_4",
+  "right_answer_n",
+  "comments",
+  "difficulty",
+] as const;
+export const PROBLEMS_COLUMNS = [
+  "id",
+  "name",
+  "problem_text",
   "theme_id",
   "answer_1",
   "answer_2",
@@ -64,3 +91,21 @@ export const MAX_TOTAL_UPLOAD_BYTES = 5 * 1024 * 1024;
  * (8 MiB) recommendation for `server.js` in README.md.
  */
 export const MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024;
+
+export const SQL_CREATE_PROBLEMS = `
+  CREATE TABLE IF NOT EXISTS problems (
+    id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    problem_text TEXT NOT NULL,
+    theme_id INT NOT NULL,
+    answer_1 VARCHAR(255) NOT NULL,
+    answer_2 VARCHAR(255) NOT NULL,
+    answer_3 VARCHAR(255) NOT NULL,
+    answer_4 VARCHAR(255) NOT NULL,
+    right_answer_n TINYINT NOT NULL,
+    comments TEXT NOT NULL,
+    difficulty TINYINT NOT NULL DEFAULT 1,
+    PRIMARY KEY (id),
+    KEY idx_problems_theme (theme_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+`;

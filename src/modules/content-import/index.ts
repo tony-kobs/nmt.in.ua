@@ -1,10 +1,10 @@
 /**
  * Module 2 — content import (CSV / JSON -> MySQL).
  *
- * `runContentImport` is the single entry point: it parses either three CSV
- * files or one JSON file into the three datasets (`themes`,
- * `themeConnections`, `quizTasks`), validates and normalizes every record,
- * then persists everything in one transaction via `importToDatabase`.
+ * `runContentImport` is the single entry point: it parses three required CSV
+ * files (plus optional `problems`) or one JSON file into datasets (`themes`,
+ * `themeConnections`, `quizTasks`, optional `problems`), validates and
+ * normalizes every record, then persists everything in one transaction.
  *
  * HTTP wiring lives in `src/app/api/import/route.ts`.
  */
@@ -15,18 +15,21 @@ import { parseImportJsonDocument } from "./json";
 import {
   QUIZ_TASKS_COLUMNS,
   THEMES_COLUMNS,
+  THEMES_REQUIRED_COLUMNS,
   THEME_CONNECTIONS_COLUMNS,
+  PROBLEMS_COLUMNS,
 } from "./schema";
 import {
   validateQuizTasksDataset,
   validateThemeConnectionsDataset,
   validateThemesDataset,
+  validateProblemsDataset,
 } from "./validate";
 
 export { ContentImportError } from "./errors";
 export type { ContentImportErrorKind } from "./errors";
 export type { ImportSummary, DatasetCounts, ImportDatasets } from "./db";
-export type { ThemeRecord, ThemeConnectionRecord, QuizTaskRecord } from "./validate";
+export type { ThemeRecord, ThemeConnectionRecord, QuizTaskRecord, ProblemRecord } from "./validate";
 
 export type ImportSource = File | string;
 
@@ -36,6 +39,7 @@ export type ContentImportInput =
       themes: ImportSource;
       themeConnections: ImportSource;
       quizTasks: ImportSource;
+      problems?: ImportSource;
     }
   | { format: "json"; file: ImportSource };
 
@@ -47,25 +51,37 @@ async function buildCsvDatasets(input: {
   themes: ImportSource;
   themeConnections: ImportSource;
   quizTasks: ImportSource;
+  problems?: ImportSource;
 }) {
-  const [themesText, themeConnectionsText, quizTasksText] = await Promise.all([
-    readText(input.themes),
-    readText(input.themeConnections),
-    readText(input.quizTasks),
-  ]);
+  const [themesText, themeConnectionsText, quizTasksText, problemsText] =
+    await Promise.all([
+      readText(input.themes),
+      readText(input.themeConnections),
+      readText(input.quizTasks),
+      input.problems ? readText(input.problems) : Promise.resolve(""),
+    ]);
 
-  const themesParsed = parseCsvDataset(themesText, THEMES_COLUMNS, "themes");
+  const themesParsed = parseCsvDataset(
+    themesText,
+    THEMES_COLUMNS,
+    "themes",
+    [THEMES_REQUIRED_COLUMNS],
+  );
   const connectionsParsed = parseCsvDataset(
     themeConnectionsText,
     THEME_CONNECTIONS_COLUMNS,
     "themeConnections",
   );
   const quizTasksParsed = parseCsvDataset(quizTasksText, QUIZ_TASKS_COLUMNS, "quizTasks");
+  const problemsParsed = input.problems
+    ? parseCsvDataset(problemsText, PROBLEMS_COLUMNS, "problems")
+    : { rows: [], errors: [] as string[] };
 
   const structuralErrors = [
     ...themesParsed.errors,
     ...connectionsParsed.errors,
     ...quizTasksParsed.errors,
+    ...problemsParsed.errors,
   ];
   if (structuralErrors.length > 0) {
     throw new ContentImportError("validation", structuralErrors);
@@ -74,11 +90,13 @@ async function buildCsvDatasets(input: {
   const themes = validateThemesDataset(themesParsed.rows);
   const themeConnections = validateThemeConnectionsDataset(connectionsParsed.rows);
   const quizTasks = validateQuizTasksDataset(quizTasksParsed.rows);
+  const problems = validateProblemsDataset(problemsParsed.rows);
 
   const validationErrors = [
     ...themes.errors,
     ...themeConnections.errors,
     ...quizTasks.errors,
+    ...problems.errors,
   ];
   if (validationErrors.length > 0) {
     throw new ContentImportError("validation", validationErrors);
@@ -88,6 +106,7 @@ async function buildCsvDatasets(input: {
     themes: themes.records,
     themeConnections: themeConnections.records,
     quizTasks: quizTasks.records,
+    problems: problems.records,
   };
 }
 
@@ -104,11 +123,13 @@ async function buildJsonDatasets(input: { file: ImportSource }) {
     "themeConnections",
   );
   const quizTasks = validateQuizTasksDataset(parsed.document.quizTasks, "quizTasks");
+  const problems = validateProblemsDataset(parsed.document.problems, "problems");
 
   const validationErrors = [
     ...themes.errors,
     ...themeConnections.errors,
     ...quizTasks.errors,
+    ...problems.errors,
   ];
   if (validationErrors.length > 0) {
     throw new ContentImportError("validation", validationErrors);
@@ -118,6 +139,7 @@ async function buildJsonDatasets(input: { file: ImportSource }) {
     themes: themes.records,
     themeConnections: themeConnections.records,
     quizTasks: quizTasks.records,
+    problems: problems.records,
   };
 }
 

@@ -25,6 +25,29 @@ export default function MaterialsPage() {
       </header>
 
       <ul className={css.grid} aria-label="Список навчальних матеріалів">
+        <li>
+          <Link href="/materials/textbook" className={css.card}>
+            <div className={css.cardTop}>
+              <span className={css.cardIcon} aria-hidden>
+                ∑
+              </span>
+            </div>
+
+            <h2 className={css.cardTitle}>Підручник</h2>
+            <p className={css.summary}>
+              Усі доступні теми в одному підручнику зі змістом і швидкими
+              переходами до потрібного розділу.
+            </p>
+
+            <ul className={css.topics} aria-label="Можливості підручника">
+              <li className={css.topic}>Усі теми</li>
+              <li className={css.topic}>Зміст</li>
+            </ul>
+
+            <span className={css.openLabel}>Відкрити підручник →</span>
+          </Link>
+        </li>
+
         {learningMaterials.map((material) => (
           <li key={material.slug}>
             <Link href={`/materials/${material.slug}`} className={css.card}>

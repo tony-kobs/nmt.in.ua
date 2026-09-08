@@ -246,3 +246,41 @@ export async function createUser(
     connection.release();
   }
 }
+
+const SQL_UPDATE_PASSWORD = `
+  UPDATE ${AUTH_USERS_TABLE}
+  SET password_hash = ?
+  WHERE id = ?
+`;
+
+export class UpdatePasswordError extends Error {
+  constructor(
+    message: string,
+    public readonly code: "db_error",
+  ) {
+    super(message);
+    this.name = "UpdatePasswordError";
+  }
+}
+
+export async function updateUserPassword(
+  userId: number,
+  password: string,
+  deps: { getConnection: () => Promise<SqlConnection> } = {
+    getConnection: loadDefaultConnection,
+  },
+): Promise<void> {
+  await ensureAuthSchema(deps);
+  const connection = await deps.getConnection();
+  try {
+    await connection.execute(SQL_UPDATE_PASSWORD, [
+      hashPassword(password),
+      userId,
+    ]);
+  } catch (error) {
+    console.error("updateUserPassword: unexpected database error", error);
+    throw new UpdatePasswordError("Database operation failed.", "db_error");
+  } finally {
+    connection.release();
+  }
+}

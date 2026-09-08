@@ -4,7 +4,7 @@ import { NmtTrainer } from "@/components/testing/NmtTrainer";
 import { createPageMetadata } from "@/constants/seo";
 import { recommendNextActionsForStats } from "@/modules/recommendations";
 import { getStudentTopicStats } from "@/modules/recommendations/getStudentTopicStats";
-import { requireUserId } from "@/modules/auth/getCurrentUser";
+import { requireSessionUserId } from "@/modules/auth/getCurrentUser";
 import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
 import {
   getSessionTasks,
@@ -94,7 +94,7 @@ export default async function SessionPage({
   const isNmt = rawMode === "nmt";
   const mode = parseTopicTestMode(rawMode);
 
-  const userId = await requireUserId();
+  const userId = await requireSessionUserId();
 
   const t = await getTranslations("Recommendations");
 
@@ -122,6 +122,8 @@ export default async function SessionPage({
   ) : (
     <TopicTrainer
       sessionId={sessionId}
+      themeCode={session.themeCode}
+      themeName={session.themeName}
       tasks={session.tasks}
       initialSummary={session.summary}
       initialRecommendations={initialRecommendations}

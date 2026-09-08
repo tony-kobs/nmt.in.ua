@@ -45,7 +45,7 @@ npm run dev
 | Mentor API | `POST /api/admin/sessions` — planned-сесія від ментора |
 | Auth | `/` вітальна (гость), `/login`, `/register`, ролі, демо-акаунти |
 
-**Заглушки (скоро):** `/problems`, `/materials`, `/consultations`.
+**Заглушки (скоро):** `/consultations`.
 
 ## Змінні середовища
 
@@ -244,7 +244,7 @@ Authorization: Bearer <CONTENT_IMPORT_API_KEY>
 
 ### Формат запиту — рівно одна форма
 
-- **CSV:** поля `themes`, `themeConnections`, `quizTasks`
+- **CSV:** поля `themes`, `themeConnections`, `quizTasks`, опційно `problems`
 - **JSON:** поля `file` + `format=json`
 
 Заголовки CSV:
@@ -252,7 +252,8 @@ Authorization: Bearer <CONTENT_IMPORT_API_KEY>
 ```
 themes.csv:            id,name,description,ord
 theme_connections.csv: id,vertex_start,vertex_finish
-quiz_tasks.csv:         id,name,task_text,theme_id,answer_1,answer_2,answer_3,answer_4,right_answer_n,comments
+quiz_tasks.csv:         id,name,task_text,theme_id,answer_1,answer_2,answer_3,answer_4,right_answer_n,comments,difficulty
+problems.csv:           id,name,problem_text,theme_id,answer_1,answer_2,answer_3,answer_4,right_answer_n,comments,difficulty
 ```
 
 ```bash
@@ -269,7 +270,8 @@ JSON-схема:
 {
   "themes": [{ "id": 1, "name": "...", "description": "...", "ord": 1 }],
   "themeConnections": [{ "id": 1, "vertex_start": 1, "vertex_finish": 2 }],
-  "quizTasks": [{ "id": 1, "name": "...", "task_text": "...", "theme_id": 1, "answer_1": "...", "answer_2": "...", "answer_3": "...", "answer_4": "...", "right_answer_n": 1, "comments": "..." }]
+  "quizTasks": [{ "id": 1, "name": "...", "task_text": "...", "theme_id": 1, "answer_1": "...", "answer_2": "...", "answer_3": "...", "answer_4": "...", "right_answer_n": 1, "comments": "...", "difficulty": 1 }],
+  "problems": []
 }
 ```
 
@@ -297,7 +299,7 @@ JSON-схема:
 | Тренажер | [`TopicTrainer`](src/components/testing/TopicTrainer/) на `/session/[id]` |
 | Ultimate | 20 завдань, 20 хв, без підказок до кінця, розбір помилок |
 | Симулятор НМТ | `/simulator` — `startNmtSimulatorAction` + `NmtTrainer` |
-| Задачник | `/problems` — **заглушка** |
+| Задачник | `/problems` — друкований тест по темі |
 
 Режими на головній (`/`):
 
@@ -370,7 +372,7 @@ import {
 | `/sessions` | Історія + planned (auto/mentor) + mentor assign | 3, 4, 5 |
 | `/settings` | Імпорт контенту (admin) | 2, 5 |
 | `/simulator` | Симулятор НМТ | 3 |
-| `/problems` | Заглушка | 3 (pending) |
+| `/problems` | Друкований тест по темі | 6.6 |
 | `/materials` | Заглушка | контент |
 | `/consultations` | Заглушка | 4 (дія) |
 | `POST /api/import` | Реалізовано | 2 |

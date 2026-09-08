@@ -13,7 +13,6 @@ import {
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { pickClientMessages } from "@/i18n/clientMessages";
 import { getCurrentUser } from "@/modules/auth/getCurrentUser";
-import { getRecentResults } from "@/modules/results/getRecentResults";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import "katex/dist/katex.min.css";
@@ -65,20 +64,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const messages = pickClientMessages(await getMessages());
   const user = await getCurrentUser();
 
-  let recentResults: Awaited<ReturnType<typeof getRecentResults>> = [];
-  if (user) {
-    try {
-      recentResults = await getRecentResults(user.id);
-    } catch (error) {
-      console.error("layout: getRecentResults failed", error);
-    }
-  }
-
   return (
     <html lang={locale}>
       <body>
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <DashboardShell recentResults={recentResults} user={user}>
+          <DashboardShell user={user}>
             {children}
           </DashboardShell>
         </NextIntlClientProvider>
