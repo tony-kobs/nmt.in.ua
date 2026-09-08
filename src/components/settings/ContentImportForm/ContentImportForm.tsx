@@ -66,6 +66,7 @@ export function ContentImportForm({ importEnabled }: ContentImportFormProps) {
                   themes: state.inserted.themes,
                   connections: state.inserted.themeConnections,
                   tasks: state.inserted.quizTasks,
+                  problems: state.inserted.problems,
                 })}{" "}
                 ({t("total", { count: state.totalInserted })})
               </dd>
@@ -77,6 +78,7 @@ export function ContentImportForm({ importEnabled }: ContentImportFormProps) {
                   themes: state.updated.themes,
                   connections: state.updated.themeConnections,
                   tasks: state.updated.quizTasks,
+                  problems: state.updated.problems,
                 })}{" "}
                 ({t("total", { count: state.totalUpdated })})
               </dd>
@@ -138,6 +140,20 @@ export function ContentImportForm({ importEnabled }: ContentImportFormProps) {
                 name="quizTasks"
                 accept=".csv,text/csv"
                 required
+                disabled={disabled}
+              />
+            </div>
+            <div className={css.field}>
+              <label className={css.label} htmlFor="import-problems">
+                problems.csv
+              </label>
+              <p className={css.hint}>{t("problemsColumns")}</p>
+              <input
+                id="import-problems"
+                className={css.fileInput}
+                type="file"
+                name="problems"
+                accept=".csv,text/csv"
                 disabled={disabled}
               />
             </div>

@@ -20,12 +20,17 @@ export {
   requireUser,
   requireUserId,
 } from "./getCurrentUser";
-export type { LoginActionState, RegisterActionState } from "./actions";
+export type {
+  LoginActionState,
+  RegisterActionState,
+  ChangePasswordActionState,
+} from "./actions";
 export {
   loginAction,
   registerAction,
   logoutAction,
   demoLoginAction,
+  changePasswordAction,
 } from "./actions";
 export {
   ensureAuthSchema,
@@ -34,7 +39,15 @@ export {
   listStudents,
   createUser,
   CreateUserError,
+  updateUserPassword,
 } from "./users";
+export { changePassword, ChangePasswordError } from "./changePassword";
+export type { ChangePasswordErrorCode } from "./changePassword";
+export { validateChangePasswordInput } from "./validateChangePassword";
+export type {
+  ChangePasswordFieldError,
+  ChangePasswordInput,
+} from "./validateChangePassword";
 export type { CreateUserInput } from "./users";
 export {
   validateRegistrationInput,

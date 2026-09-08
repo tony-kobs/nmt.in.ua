@@ -1,6 +1,7 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { ContentImportError } from "./errors";
 import { logSanitizedError } from "./logging";
+import { SQL_CREATE_PROBLEMS } from "./schema";
 import type {
   QuizTaskRecord,
   ThemeConnectionRecord,
@@ -48,9 +49,9 @@ const SQL_INSERT_QUIZ_TASKS_PREFIX =
 const SQL_UPSERT_QUIZ_TASKS_SUFFIX =
   " ON DUPLICATE KEY UPDATE name = VALUES(name), task_text = VALUES(task_text), theme_id = VALUES(theme_id), answer_1 = VALUES(answer_1), answer_2 = VALUES(answer_2), answer_3 = VALUES(answer_3), answer_4 = VALUES(answer_4), right_answer_n = VALUES(right_answer_n), comments = VALUES(comments), difficulty = VALUES(difficulty)";
 
-const SQL_INSERT_PROBLEMS_PREFIX = 
+const SQL_INSERT_PROBLEMS_PREFIX =
   "INSERT INTO problems (id, name, problem_text, theme_id, answer_1, answer_2, answer_3, answer_4, right_answer_n, comments, difficulty) VALUES ";
-const SQL_UPSERT_PROBLEMS_SUFFIX = 
+const SQL_UPSERT_PROBLEMS_SUFFIX =
   " ON DUPLICATE KEY UPDATE name = VALUES(name), problem_text = VALUES(problem_text), theme_id = VALUES(theme_id), answer_1 = VALUES(answer_1), answer_2 = VALUES(answer_2), answer_3 = VALUES(answer_3), answer_4 = VALUES(answer_4), right_answer_n = VALUES(right_answer_n), comments = VALUES(comments), difficulty = VALUES(difficulty)";
 
 async function findExistingIds(
@@ -251,6 +252,7 @@ export async function importToDatabase(
 ): Promise<ImportSummary> {
   const connection = await deps.getConnection();
   try {
+    await connection.execute(SQL_CREATE_PROBLEMS, []);
     await connection.beginTransaction();
     try {
       const themes = await upsertThemes(connection, datasets.themes);

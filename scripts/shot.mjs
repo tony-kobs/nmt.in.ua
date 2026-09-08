@@ -82,12 +82,28 @@ if (process.env.SHOT_DEMO) {
   });
   await send("Page.navigate", { url: `${BASE}/login` });
   await sleep(2500);
+  // /login no longer carries demo cards — fill the real form instead.
   await send("Runtime.evaluate", {
-    expression:
-      'document.querySelector(\'[aria-labelledby="demo-login-title"] button\')?.click()',
+    expression: `(function () {
+      const login = document.querySelector('input[name="login"]');
+      const password = document.querySelector('input[name="password"]');
+      if (!login || !password) return "no login form";
+      const setValue = (el, value) => {
+        Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype,
+          "value",
+        ).set.call(el, value);
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      };
+      setValue(login, ${JSON.stringify(process.env.SHOT_LOGIN ?? "demo-student")});
+      setValue(password, ${JSON.stringify(process.env.SHOT_PASSWORD ?? "demo123")});
+      document.querySelector("form")?.requestSubmit();
+      return "submitted";
+    })()`,
     userGesture: true,
+    returnByValue: true,
   });
-  await sleep(4000);
+  await sleep(6000);
 }
 
 for (const path of pages) {

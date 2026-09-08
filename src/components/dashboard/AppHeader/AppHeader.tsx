@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import clsx from "clsx";
 import type { AuthUser } from "@/modules/auth/client";
 import { userInitials } from "@/modules/auth/client";
-import { logoutActionFromHeader } from "@/modules/auth/actions";
 import { useTranslations } from "next-intl";
 import css from "./AppHeader.module.css";
 
@@ -19,6 +20,9 @@ export function AppHeader({
   user,
 }: AppHeaderProps) {
   const t = useTranslations("Header");
+  const pathname = usePathname();
+  const onAccount = pathname === "/account";
+
   return (
     <header className={css.header}>
       <div className={css.inner}>
@@ -57,23 +61,23 @@ export function AppHeader({
             <span className={css.homeLinkShort}>{t("goHomeShort")}</span>
             <span className={css.homeLinkFull}>{t("goHome")}</span>
           </Link>
-          <form action={logoutActionFromHeader} className={css.profileForm}>
-            <button
-              type="submit"
-              className={css.profile}
-              title={`${user.displayName} — ${t("logout")}`}
-            >
-              <span className={css.avatar} aria-hidden>
-                {userInitials(user.displayName)}
+          <Link
+            href="/account"
+            className={clsx(css.profile, onAccount && css.profileActive)}
+            aria-current={onAccount ? "page" : undefined}
+            aria-label={t("openAccount", { name: user.displayName })}
+            title={t("openAccount", { name: user.displayName })}
+          >
+            <span className={css.avatar} aria-hidden>
+              {userInitials(user.displayName)}
+            </span>
+            <span className={css.profileMeta}>
+              <span className={css.profileName}>{user.displayName}</span>
+              <span className={css.profileRole}>
+                {t(`roles.${user.role}`)}
               </span>
-              <span className={css.profileMeta}>
-                <span className={css.profileName}>{user.displayName}</span>
-                <span className={css.profileRole}>
-                  {t(`roles.${user.role}`)}
-                </span>
-              </span>
-            </button>
-          </form>
+            </span>
+          </Link>
         </div>
       </div>
     </header>

@@ -6,8 +6,6 @@ import clsx from "clsx";
 import type { AuthUser } from "@/modules/auth/client";
 import { AppHeader } from "@/components/dashboard/AppHeader";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
-import { RecentResults } from "@/components/dashboard/RecentResults";
-import type { RecentResultItem } from "@/modules/results/getRecentResults";
 import { useTranslations } from "next-intl";
 import css from "./DashboardShell.module.css";
 
@@ -15,7 +13,6 @@ const STORAGE_KEY = "nmt-sidebar-open";
 
 type DashboardShellProps = {
   children: React.ReactNode;
-  recentResults: RecentResultItem[];
   user: AuthUser | null;
 };
 
@@ -56,7 +53,6 @@ function setSidebarOpen(next: boolean | ((prev: boolean) => boolean)) {
 
 export function DashboardShell({
   children,
-  recentResults,
   user,
 }: DashboardShellProps) {
   const t = useTranslations("Dashboard");
@@ -96,31 +92,34 @@ export function DashboardShell({
 
   return (
     <div className={css.shell}>
-      <div className={css.decor} aria-hidden>
-        <div className={css.decorGrid} />
-        <div className={css.decorOrbA} />
-        <div className={css.decorOrbB} />
-      </div>
+      <div className={css.noPrint}>
+        <div className={css.decor} aria-hidden>
+          <div className={css.decorGrid} />
+          <div className={css.decorOrbA} />
+          <div className={css.decorOrbB} />
+        </div>
 
-      <AppHeader
-        sidebarOpen={sidebarOpen}
-        onToggleSidebar={() => setSidebarOpen((open) => !open)}
-        user={user}
-      />
-
-      {sidebarOpen ? (
-        <button
-          type="button"
-          className={css.backdrop}
-          aria-label={t("hideMenu")}
-          onClick={() => setSidebarOpen(false)}
+        <AppHeader
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen((open) => !open)}
+          user={user}
         />
-      ) : null}
+
+        {sidebarOpen ? (
+          <button
+            type="button"
+            className={css.backdrop}
+            aria-label={t("hideMenu")}
+            onClick={() => setSidebarOpen(false)}
+          />
+        ) : null}
+      </div>
 
       <div className={css.body}>
         <div
           className={clsx(
             css.sidebarSlot,
+            css.noPrint,
             sidebarOpen ? css.sidebarSlotOpen : css.sidebarSlotClosed,
           )}
         >
@@ -137,7 +136,6 @@ export function DashboardShell({
 
         <div className={css.content}>
           <main className={css.main}>{children}</main>
-          <RecentResults items={recentResults} />
         </div>
       </div>
     </div>

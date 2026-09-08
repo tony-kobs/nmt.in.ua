@@ -35,6 +35,34 @@ const TRANSIENT_DB_ERROR_CODES = new Set([
 const MAX_CONNECT_ATTEMPTS = 3;
 const RETRY_BACKOFF_MS = 120;
 
+/**
+ * A pooled socket is only worth `ping`-ing when it sat idle long enough for the
+ * shared host to have dropped it. Pinging one we released milliseconds ago costs
+ * a full round trip on every query — noticeable when a student answers question
+ * after question, where each answer is its own request.
+ */
+const DEFAULT_PING_AFTER_IDLE_MS = 10_000;
+const lastReleasedAt = new WeakMap<PoolConnection, number>();
+
+/** Exported for unit testing — see the comment above. */
+export function shouldPingIdleConnection(
+  releasedAt: number | undefined,
+  now: number,
+  idleThresholdMs: number,
+): boolean {
+  // No timestamp means the pool just opened this socket — the handshake is the ping.
+  if (releasedAt === undefined) return false;
+  return now - releasedAt >= idleThresholdMs;
+}
+
+function needsPing(connection: PoolConnection): boolean {
+  return shouldPingIdleConnection(
+    lastReleasedAt.get(connection),
+    Date.now(),
+    readPingAfterIdleMs(),
+  );
+}
+
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 function readEnv(name: string): string {
@@ -54,6 +82,18 @@ function readPositiveIntEnv(name: string, defaultValue: number): number {
   if (!Number.isInteger(value) || value <= 0) {
     throw new Error(
       `Invalid environment variable ${name}: expected a positive integer, got "${raw}".`,
+    );
+  }
+  return value;
+}
+
+function readPingAfterIdleMs(): number {
+  const raw = process.env.DB_PING_AFTER_IDLE_MS;
+  if (raw === undefined) return DEFAULT_PING_AFTER_IDLE_MS;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(
+      `Invalid environment variable DB_PING_AFTER_IDLE_MS: expected a non-negative integer, got "${raw}".`,
     );
   }
   return value;
@@ -194,9 +234,11 @@ function wrap(connection: PoolConnection): SqlConnection {
     rollback: () => connection.rollback(),
     release: () => {
       if (broken) {
+        lastReleasedAt.delete(connection);
         connection.destroy();
         return;
       }
+      lastReleasedAt.set(connection, Date.now());
       connection.release();
     },
   };
@@ -221,12 +263,15 @@ async function acquireRawConnection(): Promise<PoolConnection> {
     let connection: PoolConnection | undefined;
     try {
       connection = await pool.getConnection();
-      await connection.ping();
+      if (needsPing(connection)) {
+        await connection.ping();
+      }
       return connection;
     } catch (error) {
       lastError = error;
       // destroy() evicts the dead socket from the pool; release() would hand it back out.
       if (connection) {
+        lastReleasedAt.delete(connection);
         connection.destroy();
       }
       if (!shouldRetryConnectError(error, attempt, MAX_CONNECT_ATTEMPTS)) {

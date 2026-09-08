@@ -11,6 +11,7 @@
     "goHomeShort": "Головна",
     "tagline": "математика · практика · прогрес",
     "logout": "вийти",
+    "openAccount": "Особистий кабінет: {name}",
     "roles": {
       "student": "Учень",
       "teacher": "Викладач",
@@ -45,6 +46,40 @@
   "RecentResults": {
     "title": "Останні результати",
     "empty": "Дані зʼявляться після перших тестів."
+  },
+  "AccountCabinet": {
+    "kicker": "Профіль",
+    "title": "Особистий кабінет",
+    "lead": "Пароль, результати та заглушки для фото, досягнень і часу навчання.",
+    "photoTitle": "Фото профілю",
+    "photoLead": "Завантаження світлини з’явиться пізніше. Поки що в шапці — ініціали.",
+    "achievementsTitle": "Досягнення",
+    "achievementsLead": "Бейджі за тести й симулятор з’являться в наступній версії.",
+    "timeTitle": "Загальний час навчання",
+    "timeLead": "Сумарний час сесій поки не рахуємо — тут буде статистика.",
+    "passwordTitle": "Зміна пароля",
+    "passwordLead": "Новий пароль одразу замінить поточний для цього логіна.",
+    "currentPassword": "Поточний пароль",
+    "newPassword": "Новий пароль",
+    "newPasswordConfirm": "Підтвердження нового пароля",
+    "passwordHint": "Мінімум {min} символів.",
+    "savePassword": "Зберегти пароль",
+    "saving": "Зберігаємо…",
+    "passwordSaved": "Пароль змінено.",
+    "demoLocked": "На демо-акаунті пароль змінити не можна.",
+    "logoutTitle": "Вихід",
+    "logoutLead": "Завершити сесію на цьому пристрої.",
+    "logout": "Вийти з акаунту",
+    "errors": {
+      "requiredFields": "Заповніть усі поля.",
+      "passwordTooShort": "Новий пароль закороткий.",
+      "passwordTooLong": "Новий пароль задовгий.",
+      "passwordMismatch": "Підтвердження не збігається з новим паролем.",
+      "samePassword": "Новий пароль має відрізнятися від поточного.",
+      "wrongCurrent": "Поточний пароль невірний.",
+      "demoAccount": "На демо-акаунті пароль змінити не можна.",
+      "serverError": "Не вдалося змінити пароль. Спробуйте ще раз."
+    }
   },
   "Common": {
     "soon": "Незабаром"
@@ -86,7 +121,7 @@
     },
     "problems": {
       "title": "Задачник",
-      "description": "Банк завдань для самостійної практики поза тестом."
+      "description": "Друкований тест по темі: таблиця завдань, щоб роздрукувати й дати дітям."
     },
     "consultations": {
       "title": "Консультації викладачів",
@@ -95,34 +130,22 @@
   },
   "TopicTestStart": {
     "title": "Тест за обраною темою",
-    "kicker": "Кабінет",
     "helloStart": "Привіт,",
     "formTitle": "Нове тренування",
-    "lead": "Обери тему й режим — і одразу тренуйся у форматі НМТ.",
-    "leadStandard": "до {count} випадкових завдань з миттєвим розбором.",
-    "leadUltimate": "до {count} завдань, 20 хвилин, без підказок до кінця тесту.",
+    "lead": "Обери тему та кількість завдань — і одразу тренуйся у форматі НМТ.",
     "noThemes": "Теми та завдання готуються. Тестування стане доступним згодом.",
     "selectTopic": "Обери тему",
-    "mode": "Режим",
-    "testMode": "Режим тесту",
     "tasks": "Завдань",
-    "taskCount": "Пройти завдань: {count} з {total}",
+    "taskCountAria": "Кількість завдань: {count} з {total}",
+    "tasksHint": "від 1 до {total}",
     "redirecting": "Переходимо до тесту…",
     "loading": "Завантаження…",
     "start": "Старт",
-    "startUltimate": "Старт Ultimate",
-    "selfScoreLabel": "Як оцінюєш цю тему?",
-    "selfScoreAria": "Самооцінка теми від 1 до 10",
-    "selfScoreHint": "Оберіть оцінку від 1 до 10, щоб почати тест.",
-    "modes": {
-      "standard": "Звичайний",
-      "ultimate": "Ultimate"
-    },
     "errors": {
       "insufficientTasks": "Для цієї теми поки що немає завдань у банку питань.",
       "alreadyInProgress": "Запит уже виконується — зачекайте.",
       "invalidInput": "Оберіть тему, щоб почати тест.",
-      "invalidSelfScore": "Оберіть самооцінку від 1 до 10, щоб почати тест.",
+      "invalidTaskCount": "Вкажіть кількість завдань від 1 до розміру банку.",
       "generic": "Не вдалося запустити тест. Спробуйте ще раз."
     }
   },
@@ -473,26 +496,47 @@
   },
   "ContentImportForm": {
     "title": "Імпорт контенту",
-    "lead": "Завантажте три CSV-файли або один JSON-документ з темами, звʼязками та завданнями. Ключ API залишається на сервері — браузер його не бачить.",
+    "lead": "Завантажте три CSV-файли або один JSON-документ з темами, звʼязками та завданнями. Файл задачника (problems) необовʼязковий. Ключ API залишається на сервері — браузер його не бачить.",
     "unavailable": "Імпорт недоступний: на сервері не налаштовано ключ",
     "validationErrors": "Помилки валідації:",
     "success": "Імпорт успішний.",
     "inserted": "Додано",
     "updated": "Оновлено",
-    "counts": "теми {themes}, звʼязки {connections}, завдання {tasks}",
+    "counts": "теми {themes}, звʼязки {connections}, завдання {tasks}, задачник {problems}",
     "total": "усього {count}",
     "formatAria": "Формат імпорту",
     "themesColumns": "Колонки: id, name, description, ord",
     "connectionsColumns": "Колонки: id, vertex_start, vertex_finish",
-    "tasksColumns": "Колонки: id, name, task_text, theme_id, answer_1…answer_4, right_answer_n, comments",
+    "tasksColumns": "Колонки: id, name, task_text, theme_id, answer_1…answer_4, right_answer_n, comments, difficulty",
+    "problemsColumns": "Необовʼязково. Колонки: id, name, problem_text, theme_id, answer_1…answer_4, right_answer_n, comments, difficulty",
     "importing": "Імпорт…",
     "importCsv": "Імпортувати CSV",
-    "jsonHint": "Обʼєкт з масивами themes, themeConnections, quizTasks (див. README).",
+    "jsonHint": "Обʼєкт з масивами themes, themeConnections, quizTasks; problems — опційно (див. README).",
     "importJson": "Імпортувати JSON",
     "modes": {
       "csv": "Три CSV",
       "json": "Один JSON"
     }
+  },
+  "ProblemsWorkbook": {
+    "kicker": "Аркуш",
+    "title": "Задачник",
+    "lead": "Оберіть тему, сховайте ключ і роздрукуйте тест для дітей.",
+    "empty": "Банк задачника ще порожній. Після першого відкриття сторінки таблиця створюється сама.",
+    "selectTopic": "Оберіть тему",
+    "displayAria": "Що показувати в таблиці",
+    "hideOptions": "Сховати відповіді",
+    "showOptions": "Показати варіанти відповідей",
+    "toggleKey": "Показати/сховати правильні відповіді",
+    "print": "Друкувати",
+    "sheetMeta": "{theme}: {count} завдань",
+    "caption": "{count} завдань",
+    "colPrompt": "Завдання",
+    "colA": "1",
+    "colB": "2",
+    "colC": "3",
+    "colD": "4",
+    "colKey": "Ключ"
   },
   "Feedback": {
     "leaveReview": "Залишити відгук",
@@ -575,7 +619,7 @@
     },
     "problems": {
       "title": "Задачник",
-      "description": "Банк завдань для самостійної практики поза тестом."
+      "description": "Друкований тест по темі: таблиця завдань, щоб роздрукувати й дати дітям."
     },
     "simulator": {
       "title": "Симулятор НМТ",
@@ -584,6 +628,10 @@
     "consultations": {
       "title": "Консультації викладачів",
       "description": "Запис на консультацію та спілкування з викладачами."
+    },
+    "account": {
+      "title": "Особистий кабінет",
+      "description": "Профіль, зміна пароля, останні результати та вихід з облікового запису."
     }
   },
   "SettingsPage": {

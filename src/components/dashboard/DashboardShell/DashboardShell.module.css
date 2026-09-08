@@ -120,13 +120,12 @@
     display: none;
   }
 
-  .body {
-    gap: var(--space-lg);
-  }
-
+  /* Відступ живе на відкритому сайдбарі, а не в `gap` тіла: інакше згорнутий
+     слот нульової ширини все одно зсував контент праворуч на цілий gap. */
   .sidebarSlotOpen {
     flex: 0 0 var(--sidebar-w);
     width: var(--sidebar-w);
+    margin-inline-end: var(--space-lg);
   }
 
   .sidebarSlotClosed {
@@ -137,20 +136,11 @@
 
 @media (min-width: 1240px) {
   .body {
-    gap: var(--space-xl);
     padding-block: var(--space-lg) var(--space-2xl);
   }
 
-  .content {
-    grid-template-columns: minmax(0, 1fr) var(--aside-w);
-    gap: var(--space-lg);
-    align-items: start;
-  }
-}
-
-@media (min-width: 1440px) {
-  .content {
-    gap: var(--space-xl);
+  .sidebarSlotOpen {
+    margin-inline-end: var(--space-xl);
   }
 }
 
@@ -158,5 +148,27 @@
   .decorOrbA,
   .decorOrbB {
     animation: none;
+  }
+}
+
+@media print {
+  .noPrint {
+    display: none !important;
+  }
+
+  .shell {
+    min-height: 0;
+    background: var(--surface);
+    color: var(--ink);
+  }
+
+  .body,
+  .content,
+  .main {
+    display: block;
+    width: 100%;
+    max-width: none;
+    padding: 0;
+    margin: 0;
   }
 }

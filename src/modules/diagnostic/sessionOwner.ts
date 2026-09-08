@@ -1,7 +1,17 @@
 import "server-only";
 
-import { getCurrentUserId } from "@/modules/auth/getCurrentUser";
+import { getSessionPayload } from "@/modules/auth/getCurrentUser";
 import { getGuestId, getOrCreateGuestId } from "@/modules/auth/guestToken";
+
+/**
+ * Owner resolution runs on every diagnostic answer, so it reads the id from the
+ * signed session cookie instead of loading the `app_users` row: the queries it
+ * feeds all filter by `user_id`, and only the id is ever used here.
+ */
+async function sessionUserId(): Promise<number | null> {
+  const payload = await getSessionPayload();
+  return payload?.userId ?? null;
+}
 
 /**
  * Identity for a diagnostic attempt: exactly one of `userId`/`guestToken` is
@@ -26,7 +36,7 @@ export function isValidOwner(value: unknown): value is SessionOwner {
  * is unauthenticated and has none yet (or an invalid/tampered one).
  */
 export async function resolveOwnerForWrite(): Promise<SessionOwner> {
-  const userId = await getCurrentUserId();
+  const userId = await sessionUserId();
   if (userId !== null) {
     return { userId, guestToken: null };
   }
@@ -41,7 +51,7 @@ export async function resolveOwnerForWrite(): Promise<SessionOwner> {
  * a new, empty guest identity mid-render.
  */
 export async function resolveOwnerForRead(): Promise<SessionOwner | null> {
-  const userId = await getCurrentUserId();
+  const userId = await sessionUserId();
   if (userId !== null) {
     return { userId, guestToken: null };
   }

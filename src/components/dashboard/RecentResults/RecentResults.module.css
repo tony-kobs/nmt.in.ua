@@ -1,5 +1,4 @@
 .panel {
-  display: none;
   padding: var(--space-lg);
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-lg);
@@ -54,11 +53,8 @@
   font-size: var(--fs-small);
 }
 
-@media (min-width: 1240px) {
+@media (min-width: 768px) {
   .panel {
-    display: block;
-    position: sticky;
-    top: calc(var(--header-h) + var(--space-md));
-    width: var(--aside-w);
+    padding: var(--space-xl);
   }
 }

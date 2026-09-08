@@ -174,13 +174,6 @@
   transform: translateY(-1px);
 }
 
-.profileForm {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-
 .profile {
   display: inline-flex;
   align-items: center;
@@ -191,6 +184,7 @@
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-pill);
   background: rgb(253 251 244 / 78%);
+  color: inherit;
   cursor: pointer;
   transition:
     transform var(--t) var(--ease),
@@ -199,9 +193,14 @@
 }
 
 .profile:hover,
-.profile:focus-visible {
+.profile:focus-visible,
+.profileActive {
   border-color: rgb(31 143 69 / 45%);
   background: var(--surface);
+}
+
+.profile:hover,
+.profile:focus-visible {
   transform: translateY(-1px);
 }
 

@@ -159,6 +159,47 @@ test("ultimate mode selects up to 20 tasks", async () => {
   assert.match(selectCall!.sql, new RegExp(`LIMIT ${ULTIMATE_TASK_LIMIT}$`));
 });
 
+test("taskCount selects that many tasks, ignoring the mode default", async () => {
+  const themeId = 4;
+  const userId = 2;
+  const tasks = tasksFor(25, themeId);
+  const mock = makeConnection({ tasks });
+
+  const result = await startTopicTest(
+    { userId, themeId, taskCount: 7 },
+    { getConnection: async () => mock.connection },
+  );
+
+  assert.equal(result.taskIds.length, 7);
+
+  const selectCall = mock.calls.find((c) => c.sql.startsWith("SELECT"));
+  assert.match(selectCall!.sql, /LIMIT 7$/);
+
+  const sessionInsert = mock.calls.find((c) =>
+    c.sql.startsWith("INSERT INTO task_sessions"),
+  );
+  assert.equal(sessionInsert?.params[3], 7);
+});
+
+test("rejects a taskCount of 0 before touching the database", async () => {
+  let called = false;
+  await assert.rejects(
+    () =>
+      startTopicTest(
+        { userId: 1, themeId: 2, taskCount: 0 },
+        {
+          getConnection: async () => {
+            called = true;
+            throw new Error("should not be called");
+          },
+        },
+      ),
+    (error: unknown) =>
+      error instanceof StartTopicTestError && error.code === "invalid_input",
+  );
+  assert.equal(called, false);
+});
+
 test("inserts task_sessions with the exact verified numeric parameters, in order", async () => {
   const themeId = 5;
   const userId = 1;

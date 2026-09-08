@@ -1,15 +1,14 @@
+.frame {
+  width: 100%;
+  max-width: var(--content-narrow);
+  margin-inline: auto;
+}
+
 .accent {
   background: var(--grad-brand);
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-}
-
-.layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-md);
-  align-items: stretch;
 }
 
 .formTitle {
@@ -30,11 +29,13 @@
 
 .fields {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-lg);
   width: 100%;
 }
 
-.field {
+.field,
+.fieldCount {
   display: grid;
   gap: var(--space-sm);
 }
@@ -84,54 +85,60 @@
   box-shadow: var(--ring);
 }
 
-.optionsRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: start;
-  gap: var(--space-lg);
-}
-
-.fieldMode {
-  min-width: 0;
-}
-
-.fieldCount {
-  justify-items: stretch;
-}
-
-.modeTabs button {
+.countWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 8.5rem;
   min-height: 48px;
-  padding-inline: 18px;
-}
-
-.countBadge {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  min-width: 6.5rem;
-  min-height: 48px;
-  margin: 0;
   padding: 0 14px;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-md);
   background: var(--surface);
   box-sizing: border-box;
+  transition:
+    border-color var(--t) var(--ease),
+    box-shadow var(--t) var(--ease);
 }
 
-.countFraction {
-  display: inline-flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 2px;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
+.countWrap:focus-within {
+  border-color: var(--green);
+  box-shadow: var(--ring);
 }
 
-.countNum {
+.countInput {
+  width: 3.2rem;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--green-dark);
   font-family: var(--font-display);
   font-size: var(--fs-h3);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: center;
+}
+
+.countInput::-webkit-outer-spin-button,
+.countInput::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.countInput[type="number"] {
+  appearance: textfield;
+}
+
+.countInput:focus-visible {
+  outline: none;
+}
+
+.countInput:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
 }
 
 .countSlash {
@@ -144,6 +151,7 @@
   color: var(--muted);
   font-size: var(--fs-small);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .start {
@@ -177,76 +185,6 @@
   box-shadow: none;
 }
 
-.startUltimate {
-  background: var(--grad-ultimate);
-  box-shadow: 0 12px 26px rgb(91 33 182 / 28%);
-}
-
-.startUltimate:hover:not(:disabled),
-.startUltimate:focus-visible:not(:disabled) {
-  box-shadow: 0 18px 34px rgb(91 33 182 / 34%);
-}
-
-.modeCards {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-sm);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.modeCard {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  column-gap: var(--space-sm);
-  row-gap: 4px;
-  height: 100%;
-  padding: var(--space-md);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-lg);
-  background: rgb(253 251 244 / 72%);
-}
-
-.modeCardUltimate {
-  background: color-mix(in srgb, var(--ultimate-bg) 55%, var(--surface));
-}
-
-.modeIcon {
-  display: grid;
-  grid-row: 1 / span 2;
-  place-items: center;
-  align-self: start;
-  width: 40px;
-  height: 40px;
-  border: 1px solid rgb(31 143 69 / 20%);
-  border-radius: 12px;
-  background: var(--grad-mint);
-  color: var(--green-dark);
-}
-
-.modeCardUltimate .modeIcon {
-  border-color: color-mix(in srgb, var(--ultimate) 28%, var(--line));
-  background: var(--ultimate-bg);
-  color: var(--ultimate-dark);
-}
-
-.modeCardTitle {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--fs-h4);
-  font-weight: 700;
-}
-
-.modeCardText {
-  margin: 0;
-  color: var(--muted);
-  font-size: var(--fs-small);
-  line-height: 1.5;
-  text-wrap: pretty;
-}
-
 .error {
   margin: 0;
   padding: 10px 14px;
@@ -259,34 +197,17 @@
 }
 
 @media (min-width: 768px) {
-  .optionsRow {
-    grid-template-columns: minmax(0, 1fr) 7.5rem;
-    gap: var(--space-lg);
+  .fields {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
   }
 
   .fieldCount {
-    justify-items: center;
+    justify-items: start;
   }
 
   .fieldCount .label {
     width: 100%;
-    text-align: center;
-  }
-
-  .modeCards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1240px) {
-  .layout {
-    grid-template-columns: minmax(0, 1.15fr) minmax(16rem, 0.85fr);
-    gap: var(--space-lg);
-    align-items: stretch;
-  }
-
-  .modeCards {
-    grid-template-columns: minmax(0, 1fr);
   }
 }
 

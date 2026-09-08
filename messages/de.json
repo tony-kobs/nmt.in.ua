@@ -11,6 +11,7 @@
     "goHomeShort": "Start",
     "tagline": "Mathematik · Übung · Fortschritt",
     "logout": "abmelden",
+    "openAccount": "Persönliches Konto: {name}",
     "roles": {
       "student": "Schüler",
       "teacher": "Lehrer",
@@ -45,6 +46,40 @@
   "RecentResults": {
     "title": "Letzte Ergebnisse",
     "empty": "Die Ergebnisse erscheinen nach deinen ersten Tests."
+  },
+  "AccountCabinet": {
+    "kicker": "Profil",
+    "title": "Persönliches Konto",
+    "lead": "Passwort, Ergebnisse und Platzhalter für Foto, Erfolge und Lernzeit.",
+    "photoTitle": "Profilfoto",
+    "photoLead": "Das Hochladen eines Fotos kommt später. In der Kopfzeile stehen vorerst die Initialen.",
+    "achievementsTitle": "Erfolge",
+    "achievementsLead": "Abzeichen für Tests und den Simulator erscheinen in einer späteren Version.",
+    "timeTitle": "Gesamte Lernzeit",
+    "timeLead": "Die Sitzungszeit wird noch nicht summiert — die Statistik kommt hierher.",
+    "passwordTitle": "Passwort ändern",
+    "passwordLead": "Das neue Passwort ersetzt sofort das aktuelle für dieses Login.",
+    "currentPassword": "Aktuelles Passwort",
+    "newPassword": "Neues Passwort",
+    "newPasswordConfirm": "Neues Passwort bestätigen",
+    "passwordHint": "Mindestens {min} Zeichen.",
+    "savePassword": "Passwort speichern",
+    "saving": "Wird gespeichert…",
+    "passwordSaved": "Passwort aktualisiert.",
+    "demoLocked": "Auf dem Demo-Konto kann das Passwort nicht geändert werden.",
+    "logoutTitle": "Abmelden",
+    "logoutLead": "Die Sitzung auf diesem Gerät beenden.",
+    "logout": "Abmelden",
+    "errors": {
+      "requiredFields": "Bitte alle Felder ausfüllen.",
+      "passwordTooShort": "Das neue Passwort ist zu kurz.",
+      "passwordTooLong": "Das neue Passwort ist zu lang.",
+      "passwordMismatch": "Die Bestätigung stimmt nicht mit dem neuen Passwort überein.",
+      "samePassword": "Das neue Passwort muss sich vom aktuellen unterscheiden.",
+      "wrongCurrent": "Das aktuelle Passwort ist falsch.",
+      "demoAccount": "Auf dem Demo-Konto kann das Passwort nicht geändert werden.",
+      "serverError": "Das Passwort konnte nicht geändert werden. Bitte erneut versuchen."
+    }
   },
   "Common": {
     "soon": "Demnächst"
@@ -86,7 +121,7 @@
     },
     "problems": {
       "title": "Aufgabenbank",
-      "description": "Eine Aufgabensammlung zum selbstständigen Üben außerhalb des Tests."
+      "description": "Druckbarer Test nach Thema: Aufgabentabelle zum Ausdrucken und Austeilen."
     },
     "consultations": {
       "title": "Lehrerberatungen",
@@ -95,34 +130,22 @@
   },
   "TopicTestStart": {
     "title": "Test zum ausgewählten Thema",
-    "kicker": "Arbeitsbereich",
     "helloStart": "Hallo,",
     "formTitle": "Neues Training",
-    "lead": "Wähle ein Thema und einen Modus — und übe im NMT-Format.",
-    "leadStandard": "bis zu {count} zufällige Aufgaben mit sofortiger Erklärung.",
-    "leadUltimate": "bis zu {count} Aufgaben, 20 Minuten, ohne Hinweise bis zum Ende des Tests.",
+    "lead": "Wähle ein Thema und die Anzahl der Aufgaben — und übe im NMT-Format.",
     "noThemes": "Themen und Aufgaben werden vorbereitet. Das Testen wird bald verfügbar sein.",
     "selectTopic": "Thema auswählen",
-    "mode": "Modus",
-    "testMode": "Testmodus",
     "tasks": "Aufgaben",
-    "taskCount": "Zu bearbeitende Aufgaben: {count} von {total}",
+    "taskCountAria": "Anzahl der Aufgaben: {count} von {total}",
+    "tasksHint": "von 1 bis {total}",
     "redirecting": "Test wird geöffnet…",
     "loading": "Wird geladen…",
     "start": "Start",
-    "startUltimate": "Ultimate starten",
-    "selfScoreLabel": "Wie schätzt du dieses Thema ein?",
-    "selfScoreAria": "Selbsteinschätzung für dieses Thema, 1 bis 10",
-    "selfScoreHint": "Wähle eine Bewertung von 1 bis 10, um den Test zu starten.",
-    "modes": {
-      "standard": "Standard",
-      "ultimate": "Ultimate"
-    },
     "errors": {
       "insufficientTasks": "Für dieses Thema sind noch keine Aufgaben verfügbar.",
       "alreadyInProgress": "Eine Anfrage wird bereits ausgeführt. Bitte warte.",
       "invalidInput": "Wähle ein Thema aus, um den Test zu starten.",
-      "invalidSelfScore": "Wähle eine Selbsteinschätzung von 1 bis 10, um den Test zu starten.",
+      "invalidTaskCount": "Gib an, wie viele Aufgaben du bearbeiten willst — von 1 bis zur Bankgröße.",
       "generic": "Der Test konnte nicht gestartet werden. Bitte versuche es erneut."
     }
   },
@@ -473,26 +496,47 @@
   },
   "ContentImportForm": {
     "title": "Content-Import",
-    "lead": "Lade drei CSV-Dateien oder ein JSON-Dokument mit Themen, Verbindungen und Aufgaben hoch. Der API-Schlüssel bleibt auf dem Server und ist im Browser nicht sichtbar.",
+    "lead": "Lade drei CSV-Dateien oder ein JSON-Dokument mit Themen, Verbindungen und Aufgaben hoch. Die Aufgabenheft-Datei (problems) ist optional. Der API-Schlüssel bleibt auf dem Server und ist im Browser nicht sichtbar.",
     "unavailable": "Import nicht verfügbar: Der folgende Schlüssel ist auf dem Server nicht konfiguriert:",
     "validationErrors": "Validierungsfehler:",
     "success": "Import erfolgreich.",
     "inserted": "Hinzugefügt",
     "updated": "Aktualisiert",
-    "counts": "Themen {themes}, Verbindungen {connections}, Aufgaben {tasks}",
+    "counts": "Themen {themes}, Verbindungen {connections}, Aufgaben {tasks}, Aufgabenheft {problems}",
     "total": "insgesamt {count}",
     "formatAria": "Importformat",
     "themesColumns": "Spalten: id, name, description, ord",
     "connectionsColumns": "Spalten: id, vertex_start, vertex_finish",
-    "tasksColumns": "Spalten: id, name, task_text, theme_id, answer_1…answer_4, right_answer_n, comments",
+    "tasksColumns": "Spalten: id, name, task_text, theme_id, answer_1…answer_4, right_answer_n, comments, difficulty",
+    "problemsColumns": "Optional. Spalten: id, name, problem_text, theme_id, answer_1…answer_4, right_answer_n, comments, difficulty",
     "importing": "Import läuft…",
     "importCsv": "CSV importieren",
-    "jsonHint": "Ein Objekt mit den Arrays themes, themeConnections und quizTasks (siehe README).",
+    "jsonHint": "Ein Objekt mit den Arrays themes, themeConnections und quizTasks; problems ist optional (siehe README).",
     "importJson": "JSON importieren",
     "modes": {
       "csv": "Drei CSV-Dateien",
       "json": "Eine JSON-Datei"
     }
+  },
+  "ProblemsWorkbook": {
+    "kicker": "Arbeitsblatt",
+    "title": "Aufgabenheft",
+    "lead": "Thema wählen, Schlüssel verbergen und den Test für die Klasse drucken.",
+    "empty": "Die Aufgabenheft-Bank ist noch leer. Beim ersten Öffnen der Seite wird die Tabelle angelegt.",
+    "selectTopic": "Thema wählen",
+    "displayAria": "Was in der Tabelle gezeigt wird",
+    "hideOptions": "Antworten ausblenden",
+    "showOptions": "Antwortoptionen zeigen",
+    "toggleKey": "Richtige Antworten ein-/ausblenden",
+    "print": "Drucken",
+    "sheetMeta": "{theme}: {count} Aufgaben",
+    "caption": "{count} Aufgaben",
+    "colPrompt": "Aufgabe",
+    "colA": "1",
+    "colB": "2",
+    "colC": "3",
+    "colD": "4",
+    "colKey": "Schlüssel"
   },
   "Feedback": {
     "leaveReview": "Feedback hinterlassen",
@@ -575,7 +619,7 @@
     },
     "problems": {
       "title": "Aufgabensammlung",
-      "description": "Eine Sammlung von Aufgaben zum selbstständigen Üben außerhalb des Tests."
+      "description": "Druckbarer Test nach Thema: Aufgabentabelle zum Ausdrucken und Austeilen."
     },
     "simulator": {
       "title": "NMT-Simulator",
@@ -584,6 +628,10 @@
     "consultations": {
       "title": "Lehrerberatung",
       "description": "Buche eine Beratung und kommuniziere mit Lehrkräften."
+    },
+    "account": {
+      "title": "Persönliches Konto",
+      "description": "Profil, Passwortänderung, letzte Ergebnisse und Abmeldung."
     }
   },
   "SettingsPage": {

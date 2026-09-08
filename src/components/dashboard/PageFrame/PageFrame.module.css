@@ -135,3 +135,10 @@
     padding: var(--space-xl);
   }
 }
+
+@media print {
+  .kicker,
+  .lead {
+    display: none;
+  }
+}
