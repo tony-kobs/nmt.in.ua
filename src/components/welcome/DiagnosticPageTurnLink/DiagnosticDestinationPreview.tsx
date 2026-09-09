@@ -7,7 +7,6 @@ import { SelfScorePicker } from "@/components/ui/SelfScorePicker";
 import { SITE_NAME } from "@/constants/seo";
 import shellCss from "@/components/diagnostic/DiagnosticShell/DiagnosticShell.module.css";
 import introCss from "@/components/diagnostic/DiagnosticIntro/DiagnosticIntro.module.css";
-import previewCss from "./DiagnosticDestinationPreview.module.css";
 
 const NOOP = () => {};
 
@@ -32,12 +31,10 @@ export function DiagnosticDestinationPreview() {
 
   return (
     <div className={shellCss.page}>
-      {/* Deliberately skips `shellCss.decorGrid` (mask-image) and the real
-          `filter: blur()` orbs — see DiagnosticDestinationPreview.module.css
-          for why. */}
       <div className={shellCss.decor} aria-hidden="true">
-        <span className={previewCss.orbA} />
-        <span className={previewCss.orbB} />
+        <span className={shellCss.decorGrid} />
+        <span className={shellCss.decorOrbA} />
+        <span className={shellCss.decorOrbB} />
       </div>
       <div className={shellCss.inner}>
         <div className={shellCss.topbar}>
@@ -65,7 +62,7 @@ export function DiagnosticDestinationPreview() {
         </div>
 
         <PageFrame kicker={t("kicker")} title={t("title")} lead={t("lead")}>
-          <PagePanel className={previewCss.panelPreview}>
+          <PagePanel>
             <div className={introCss.form}>
               <div className={introCss.field}>
                 <span className={introCss.label}>{t("selfScoreLabel")}</span>
