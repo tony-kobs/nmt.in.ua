@@ -17,10 +17,11 @@ const SQL_SELECT_SESSION = `
     ts.time,
     ts.start_time,
     ts.session_status,
-    t.code AS theme_code,
-    t.name AS theme_name
+    COALESCE(t.code, '') AS theme_code,
+    COALESCE(t.name, nv.label, 'Симулятор НМТ') AS theme_name
   FROM task_sessions ts
-  INNER JOIN themes t ON t.id = ts.theme_id
+  LEFT JOIN themes t ON t.id = ts.theme_id
+  LEFT JOIN nmt_variants nv ON nv.id = ts.nmt_variant_id
   WHERE ts.id = ? AND ts.user_id = ?
   FOR UPDATE
 `;
@@ -79,7 +80,7 @@ type FinishTrainerSessionDeps = {
 type SessionRow = {
   id: number;
   user_id: number;
-  theme_id: number;
+  theme_id: number | null;
   tasks_number: number;
   right_number: number;
   time: number;
@@ -122,14 +123,15 @@ export function toTrainerSessionSummary(
     "id" | "theme_id" | "theme_code" | "theme_name" | "tasks_number" | "right_number" | "time"
   >,
 ): TrainerSessionSummary {
+  const code = row.theme_code?.trim() ?? "";
   return {
     sessionId: row.id,
     rightNumber: row.right_number,
     tasksNumber: row.tasks_number,
     percent: sessionPercent(row.tasks_number, row.right_number) ?? 0,
     timeSec: row.time,
-    themeId: row.theme_id,
-    themeCode: row.theme_code.trim(),
+    themeId: row.theme_id ?? 0,
+    themeCode: code || null,
     themeName: row.theme_name.trim(),
   };
 }

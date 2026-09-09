@@ -119,7 +119,7 @@ test("persistRecommendations with no topic-test actions clears all planned auto 
         type: "materials",
         title: "Materials",
         reason: "test",
-        href: "/materials",
+        href: "/materials/textbook",
         priority: 1,
       },
     ],

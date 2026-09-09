@@ -2,7 +2,10 @@ import { notFound } from "next/navigation";
 import { TopicTrainer } from "@/components/testing/TopicTrainer";
 import { NmtTrainer } from "@/components/testing/NmtTrainer";
 import { createPageMetadata } from "@/constants/seo";
-import { recommendNextActionsForStats } from "@/modules/recommendations";
+import {
+  recommendFromSessionMistakes,
+  recommendNextActionsForStats,
+} from "@/modules/recommendations";
 import { getStudentTopicStats } from "@/modules/recommendations/getStudentTopicStats";
 import { requireSessionUserId } from "@/modules/auth/getCurrentUser";
 import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
@@ -10,6 +13,7 @@ import {
   getSessionTasks,
   GetSessionTasksError,
 } from "@/modules/testing/getSessionTasks";
+import { getSessionMistakeReview } from "@/modules/testing/getSessionMistakeReview";
 import {
   startPlannedSession,
   StartPlannedSessionError,
@@ -105,19 +109,33 @@ export default async function SessionPage({
     session = await loadSession(sessionId, userId);
   }
 
-  const initialRecommendations =
-    session.sessionStatus === SESSION_STATUS_COMPLETED && session.summary
-      ? await recommendNextActionsForStats(
+  const isNmtSession =
+    isNmt || session.tasks.some((task) => Boolean(task.taskKind));
+
+  const completed =
+    session.sessionStatus === SESSION_STATUS_COMPLETED && session.summary;
+
+  const initialMistakes = completed
+    ? await getSessionMistakeReview(sessionId, userId)
+    : [];
+
+  const fromMistakes = recommendFromSessionMistakes(initialMistakes, t);
+  const initialRecommendations = completed
+    ? fromMistakes.length > 0
+      ? fromMistakes
+      : await recommendNextActionsForStats(
           await getStudentTopicStats(userId),
           t,
         )
-      : [];
+    : [];
 
-  return isNmt ? (
+  return isNmtSession ? (
     <NmtTrainer
       sessionId={sessionId}
       tasks={session.tasks}
       initialSummary={session.summary}
+      initialRecommendations={initialRecommendations}
+      initialMistakes={initialMistakes}
     />
   ) : (
     <TopicTrainer

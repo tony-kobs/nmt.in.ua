@@ -26,12 +26,14 @@ function makeSessionHeader() {
   return {
     id: 42,
     theme_id: 3,
+    session_type: 1,
     tasks_number: 10,
     right_number: 0,
     time: 0,
     session_status: 2,
     theme_code: "GEO-07-ELEM-PLAN",
     theme_name: "Тема",
+    variant_label: null,
   };
 }
 
@@ -158,12 +160,14 @@ test("getSessionTasks hydrates the summary when the session is already completed
   const { connection } = makeConnection(rows, {
     id: 7,
     theme_id: 4,
+    session_type: 1,
     tasks_number: 2,
     right_number: 1,
     time: 0,
     session_status: 1,
     theme_code: "ALG-09-EQ-INEQ",
     theme_name: " Синтаксис ",
+    variant_label: null,
   });
 
   const result = await getSessionTasks(7, 1, {

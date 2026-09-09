@@ -16,7 +16,10 @@ type MappingRow = {
   session_id: number;
   status: number;
   user_id: number;
-  right_answer_n: number;
+  task_type: number;
+  right_answer_n: number | null;
+  right_answer_text: string | null;
+  task_kind: "mcq" | "match" | "open";
   session_status: number;
 };
 
@@ -26,7 +29,10 @@ function makeRow(overrides: Partial<MappingRow> = {}): MappingRow {
     session_id: 5,
     status: TASK_STATUS_UNANSWERED,
     user_id: 1,
+    task_type: 1,
     right_answer_n: 2,
+    right_answer_text: null,
+    task_kind: "mcq",
     session_status: SESSION_STATUS_CREATED,
     ...overrides,
   };
@@ -84,14 +90,14 @@ const validInput = {
   answerNumber: 2 as const,
 };
 
-test("validateCheckAnswerInput rejects non-positive ids and answers outside 1–4", () => {
+test("validateCheckAnswerInput rejects non-positive ids and answers outside 1–5", () => {
   assert.throws(
     () => validateCheckAnswerInput({ ...validInput, sessionId: 0 }),
     (error: unknown) =>
       error instanceof CheckAnswerError && error.code === "invalid_input",
   );
   assert.throws(
-    () => validateCheckAnswerInput({ ...validInput, answerNumber: 5 }),
+    () => validateCheckAnswerInput({ ...validInput, answerNumber: 6 }),
     (error: unknown) =>
       error instanceof CheckAnswerError && error.code === "invalid_input",
   );

@@ -1,77 +1,36 @@
-"use client";
+import { getTranslations } from "next-intl/server";
+import { requireSessionUserId } from "@/modules/auth/getCurrentUser";
+import { createPageMetadata } from "@/constants/seo";
+import { getNmtVariantsForUser } from "@/modules/testing/getNmtVariants";
+import { SimulatorStart } from "@/components/testing/SimulatorStart";
+import css from "./page.module.css";
 
-import { useActionState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+export async function generateMetadata() {
+  const t = await getTranslations("Metadata.simulator");
+  return createPageMetadata({
+    title: t("title"),
+    description: t("description"),
+    path: "/simulator",
+    noIndex: true,
+  });
+}
 
-import {
-  startNmtSimulatorAction,
-  type StartNmtSimulatorActionState,
-} from "@/modules/testing/actions";
-
-import styles from "./page.module.css";
-
-const initialState: StartNmtSimulatorActionState = {
-  status: "idle",
-};
-
-export default function SimulatorPage() {
-  const router = useRouter();
-  const t = useTranslations("simulator");
-
-  const [state, formAction, isPending] = useActionState(
-    startNmtSimulatorAction,
-    initialState,
-  );
-
-  useEffect(() => {
-    if (state.status === "success") {
-      router.push(`/session/${state.sessionId}?mode=nmt`);
-    }
-  }, [state, router]);
+export default async function SimulatorPage() {
+  const userId = await requireSessionUserId();
+  const variants = await getNmtVariantsForUser(userId);
+  const t = await getTranslations("simulator");
 
   return (
-    <section className={styles.page} aria-labelledby="simulator-title">
-      <div className={styles.card}>
-        <span className={styles.eyebrow}>{t("eyebrow")}</span>
-
-        <h1 id="simulator-title" className={styles.title}>
+    <section className={css.page} aria-labelledby="simulator-title">
+      <header className={css.intro}>
+        <p className={css.eyebrow}>{t("eyebrow")}</p>
+        <h1 id="simulator-title" className={css.title}>
           {t("title")}
         </h1>
+        <p className={css.description}>{t("description")}</p>
+      </header>
 
-        <p className={styles.description}>{t("description")}</p>
-
-        <div className={styles.info}>
-          <div>
-            <strong>22</strong>
-            <span>{t("tasks")}</span>
-          </div>
-
-          <div>
-            <strong>⏱</strong>
-            <span>{t("timer")}</span>
-          </div>
-
-          <div>
-            <strong>✓</strong>
-            <span>{t("result")}</span>
-          </div>
-        </div>
-
-        {state.status === "error" && (
-          <p className={styles.error}>{t(`errors.${state.code}`)}</p>
-        )}
-
-        <form action={formAction}>
-          <button
-            type="submit"
-            className={styles.startButton}
-            disabled={isPending}
-          >
-            {isPending ? t("preparing") : t("start")}
-          </button>
-        </form>
-      </div>
+      <SimulatorStart variants={variants} />
     </section>
   );
 }

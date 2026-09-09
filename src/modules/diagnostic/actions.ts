@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { isValidSelfScore } from "@/modules/self-score/types";
 import type {
+  CheckAnswerActionInput,
   CheckAnswerActionState,
   FinishTrainerSessionActionState,
   MarkSessionStartedActionState,
@@ -88,16 +89,15 @@ export async function startDiagnosticAction(
   }
 }
 
-export type CheckDiagnosticAnswerActionInput = {
-  sessionId: number;
-  mappingId: number;
-  answerNumber: 1 | 2 | 3 | 4;
-};
+export type CheckDiagnosticAnswerActionInput = CheckAnswerActionInput;
 
 export async function checkDiagnosticAnswerAction(
   input: CheckDiagnosticAnswerActionInput,
 ): Promise<CheckAnswerActionState> {
   try {
+    if (input.answerNumber == null) {
+      return { status: "error", code: "invalidInput" };
+    }
     const owner = await resolveOwnerForWrite();
     const result = await checkDiagnosticAnswer({
       owner,

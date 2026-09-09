@@ -2,10 +2,10 @@ import { getTranslations } from "next-intl/server";
 import type { ComponentType, SVGProps } from "react";
 import { Reveal } from "@/components/ui/Reveal";
 import {
+  BookIcon,
   ChartIcon,
   CompassIcon,
   ExamIcon,
-  TimerIcon,
   TopicsIcon,
   UsersIcon,
 } from "../icons";
@@ -15,10 +15,10 @@ type IconComponent = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
 
 const FEATURES: ReadonlyArray<{ key: string; Icon: IconComponent }> = [
   { key: "topics", Icon: TopicsIcon },
-  { key: "ultimate", Icon: TimerIcon },
+  { key: "simulator", Icon: ExamIcon },
+  { key: "materials", Icon: BookIcon },
   { key: "results", Icon: ChartIcon },
   { key: "recommendations", Icon: CompassIcon },
-  { key: "simulator", Icon: ExamIcon },
   { key: "sessions", Icon: UsersIcon },
 ];
 

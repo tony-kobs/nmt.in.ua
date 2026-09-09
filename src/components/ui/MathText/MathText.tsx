@@ -19,15 +19,25 @@ const RENDER_CACHE_LIMIT = 500;
 const renderCache = new Map<string, string>();
 
 function renderFormula(content: string, displayMode: boolean): string {
-  const key = `${displayMode ? "d" : "i"}:${content}`;
+  let formula = content.trim();
+  formula = formula
+    .replace(/^\\\(\s*/, "")
+    .replace(/\s*\\\)$/, "")
+    .replace(/^\\\[\s*/, "")
+    .replace(/\s*\\\]$/, "")
+    .trim();
+  const useDisplay =
+    displayMode || /\\begin\{(?:cases|aligned|array|matrix|pmatrix|bmatrix)\}/.test(formula);
+
+  const key = `${useDisplay ? "d" : "i"}:${formula}`;
   const cached = renderCache.get(key);
   if (cached !== undefined) return cached;
 
-  const html = katex.renderToString(content, {
-    displayMode,
+  const html = katex.renderToString(formula, {
+    displayMode: useDisplay,
     throwOnError: false,
     output: "htmlAndMathml",
-    strict: "warn",
+    strict: "ignore",
     trust: false,
   });
 
@@ -46,13 +56,16 @@ function Formula({
   content: string;
   displayMode: boolean;
 }) {
+  const useDisplay =
+    displayMode ||
+    /\\begin\{(?:cases|aligned|array|matrix|pmatrix|bmatrix)\}/.test(content);
   const html = renderFormula(content, displayMode);
 
   return (
     <span
       className={clsx(
         css.formula,
-        displayMode ? css.displayFormula : css.inlineFormula,
+        useDisplay ? css.displayFormula : css.inlineFormula,
       )}
       dangerouslySetInnerHTML={{ __html: html }}
     />

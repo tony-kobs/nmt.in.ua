@@ -1,5 +1,6 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
+import { TASK_TYPE_NMT } from "./startNmtSimulator";
 import {
   TASK_STATUS_CORRECT,
   TASK_STATUS_INCORRECT,
@@ -18,24 +19,48 @@ const SQL_SELECT_MAPPING = `
     t2s.session_id,
     t2s.status,
     t2s.user_id,
+    t2s.task_type,
     qt.right_answer_n,
+    NULL AS right_answer_text,
+    'mcq' AS task_kind,
     ts.session_status
   FROM tasks2session t2s
   INNER JOIN quiz_tasks qt ON qt.id = t2s.task_id
   INNER JOIN task_sessions ts ON ts.id = t2s.session_id
   WHERE t2s.id = ? AND t2s.session_id = ? AND t2s.user_id = ?
+    AND t2s.task_type <> ${TASK_TYPE_NMT}
+  FOR UPDATE
+`;
+
+const SQL_SELECT_NMT_MAPPING = `
+  SELECT
+    t2s.id,
+    t2s.session_id,
+    t2s.status,
+    t2s.user_id,
+    t2s.task_type,
+    qt.right_answer_n,
+    qt.right_answer_text,
+    qt.task_kind,
+    ts.session_status
+  FROM tasks2session t2s
+  INNER JOIN nmt_quiz_tasks qt ON qt.id = t2s.task_id
+  INNER JOIN task_sessions ts ON ts.id = t2s.session_id
+  WHERE t2s.id = ? AND t2s.session_id = ? AND t2s.user_id = ?
+    AND t2s.task_type = ${TASK_TYPE_NMT}
   FOR UPDATE
 `;
 
 const SQL_UPDATE_STATUS = "UPDATE tasks2session SET status = ? WHERE id = ?";
 
-export type AnswerNumber = 1 | 2 | 3 | 4;
+export type AnswerNumber = 1 | 2 | 3 | 4 | 5;
 
 export type CheckAnswerInput = {
   userId: number;
   sessionId: number;
   mappingId: number;
-  answerNumber: AnswerNumber;
+  answerNumber?: AnswerNumber;
+  answerText?: string;
 };
 
 export type CheckAnswerResult = {
@@ -67,7 +92,10 @@ type MappingRow = {
   session_id: number;
   status: number;
   user_id: number;
-  right_answer_n: number;
+  task_type: number;
+  right_answer_n: number | null;
+  right_answer_text: string | null;
+  task_kind: "mcq" | "match" | "open";
   session_status: number;
 };
 
@@ -76,7 +104,17 @@ function isPositiveInt(value: unknown): value is number {
 }
 
 function isAnswerNumber(value: unknown): value is AnswerNumber {
-  return value === 1 || value === 2 || value === 3 || value === 4;
+  return (
+    value === 1 ||
+    value === 2 ||
+    value === 3 ||
+    value === 4 ||
+    value === 5
+  );
+}
+
+function normalizeAnswerText(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, "").replace(/,/g, ".");
 }
 
 export function validateCheckAnswerInput(input: unknown): CheckAnswerInput {
@@ -86,26 +124,51 @@ export function validateCheckAnswerInput(input: unknown): CheckAnswerInput {
       "invalid_input",
     );
   }
-  const { userId, sessionId, mappingId, answerNumber } = input as Record<
-    string,
-    unknown
-  >;
+  const { userId, sessionId, mappingId, answerNumber, answerText } =
+    input as Record<string, unknown>;
+
+  const hasNumber = isAnswerNumber(answerNumber);
+  const hasText =
+    typeof answerText === "string" && answerText.trim().length > 0;
+
   if (
     !isPositiveInt(userId) ||
     !isPositiveInt(sessionId) ||
     !isPositiveInt(mappingId) ||
-    !isAnswerNumber(answerNumber)
+    (!hasNumber && !hasText)
   ) {
     throw new CheckAnswerError(
-      "sessionId, mappingId must be positive integers and answerNumber must be 1–4.",
+      "sessionId, mappingId must be positive integers and an answer must be provided.",
       "invalid_input",
     );
   }
-  return { userId, sessionId, mappingId, answerNumber };
+
+  return {
+    userId,
+    sessionId,
+    mappingId,
+    ...(hasNumber ? { answerNumber } : {}),
+    ...(hasText ? { answerText: String(answerText) } : {}),
+  };
 }
 
 function resultFromStatus(status: number): CheckAnswerResult {
   return { correct: status === TASK_STATUS_CORRECT };
+}
+
+function isCorrect(row: MappingRow, input: CheckAnswerInput): boolean {
+  if (row.task_kind === "mcq") {
+    return (
+      input.answerNumber != null &&
+      row.right_answer_n != null &&
+      input.answerNumber === row.right_answer_n
+    );
+  }
+  if (!input.answerText || !row.right_answer_text) return false;
+  return (
+    normalizeAnswerText(input.answerText) ===
+    normalizeAnswerText(row.right_answer_text)
+  );
 }
 
 async function loadDefaultConnection(): Promise<SqlConnection> {
@@ -114,10 +177,9 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
 }
 
 /**
- * Compares the chosen option with `quiz_tasks.right_answer_n` and writes
- * `tasks2session.status` (`1` correct / `-1` incorrect). Already-answered
- * rows are returned as-is (no second UPDATE). The result never includes
- * `right_answer_n`.
+ * Compares the chosen option / text with the server key and writes
+ * `tasks2session.status`. Already-answered rows are returned as-is.
+ * Topic tasks live in `quiz_tasks`; simulator tasks in `nmt_quiz_tasks`.
  */
 export async function checkAnswer(
   rawInput: unknown,
@@ -130,11 +192,18 @@ export async function checkAnswer(
     try {
       await connection.beginTransaction();
 
-      const rows = await connection.query<MappingRow>(SQL_SELECT_MAPPING, [
+      let rows = await connection.query<MappingRow>(SQL_SELECT_MAPPING, [
         input.mappingId,
         input.sessionId,
         input.userId,
       ]);
+      if (!rows[0]) {
+        rows = await connection.query<MappingRow>(SQL_SELECT_NMT_MAPPING, [
+          input.mappingId,
+          input.sessionId,
+          input.userId,
+        ]);
+      }
       const row = rows[0];
 
       if (!row) {
@@ -158,10 +227,9 @@ export async function checkAnswer(
         );
       }
 
-      const status =
-        input.answerNumber === row.right_answer_n
-          ? TASK_STATUS_CORRECT
-          : TASK_STATUS_INCORRECT;
+      const status = isCorrect(row, input)
+        ? TASK_STATUS_CORRECT
+        : TASK_STATUS_INCORRECT;
 
       const updated = await connection.execute(SQL_UPDATE_STATUS, [
         status,
@@ -186,9 +254,7 @@ export async function checkAnswer(
       connection.release();
     }
   } catch (error) {
-    if (error instanceof CheckAnswerError) {
-      throw error;
-    }
+    if (error instanceof CheckAnswerError) throw error;
     console.error("checkAnswer: unexpected database error", error);
     throw new CheckAnswerError("Database operation failed.", "db_error");
   }

@@ -33,6 +33,9 @@ export function TopicTrainerSummary({
   const t = useTranslations("TopicTrainerSummary");
   const isUltimate = mode === "ultimate";
   const isDiagnostic = mode === "diagnostic";
+  const isNmt = mode === "nmt";
+  const showMistakes =
+    (isUltimate || isNmt) && mistakes.length > 0;
 
   return (
     <section className={css.summary} aria-labelledby="trainer-summary-title">
@@ -42,27 +45,34 @@ export function TopicTrainerSummary({
             ? t("ultimateTitle")
             : isDiagnostic
               ? t("diagnosticTitle")
-              : t("title")}
+              : isNmt
+                ? t("nmtTitle")
+                : t("title")}
         </h1>
         <p className={css.lead}>
           {isDiagnostic
             ? t("diagnosticSummary", { sessionId: summary.sessionId })
-            : t.rich("summary", {
-                theme: summary.themeName,
-                sessionId: summary.sessionId,
-                themeLink: (children) =>
-                  summary.themeCode ? (
-                    <Link
-                      href={`/materials/textbook#topic-${summary.themeCode}`}
-                      className={css.themeLink}
-                    >
-                      {children}
-                    </Link>
-                  ) : (
-                    children
-                  ),
-              })}
-          {isUltimate ? (
+            : isNmt
+              ? t("nmtSummary", {
+                  theme: summary.themeName,
+                  sessionId: summary.sessionId,
+                })
+              : t.rich("summary", {
+                  theme: summary.themeName,
+                  sessionId: summary.sessionId,
+                  themeLink: (children) =>
+                    summary.themeCode ? (
+                      <Link
+                        href={`/materials/textbook?topic=${encodeURIComponent(summary.themeCode)}`}
+                        className={css.themeLink}
+                      >
+                        {children}
+                      </Link>
+                    ) : (
+                      children
+                    ),
+                })}
+          {isUltimate || isNmt ? (
             <>
               {" "}
               {timedOut ? t("timedOut") : t("completed")} {t("mistakesBelow")}
@@ -90,10 +100,11 @@ export function TopicTrainerSummary({
         </div>
       </dl>
 
-      {isUltimate && mistakes.length > 0 ? (
+      {showMistakes ? (
         <TopicTrainerMistakeReview
           mistakes={mistakes}
           title={t("mistakeReview", { count: mistakes.length })}
+          showThemeLinks={isNmt}
         />
       ) : null}
 
@@ -101,7 +112,9 @@ export function TopicTrainerSummary({
         <RecommendedActionsPanel
           actions={recommendations}
           title={t("recommendationsTitle")}
-          lead={t("recommendationsLead")}
+          lead={
+            isNmt ? t("nmtRecommendationsLead") : t("recommendationsLead")
+          }
           className={css.recommendations}
         />
       )}
@@ -123,8 +136,8 @@ export function TopicTrainerSummary({
           </>
         )}
 
-        <Link href="/" className={css.secondary}>
-          {t("newTest")}
+        <Link href={isNmt ? "/simulator" : "/"} className={css.secondary}>
+          {isNmt ? t("newNmt") : t("newTest")}
         </Link>
       </nav>
 

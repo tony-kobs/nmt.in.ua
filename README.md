@@ -37,15 +37,18 @@ npm run dev
 | --- | --- |
 | Дашборд | Header, Sidebar, SEO, `RecentResults` у sidebar |
 | Імпорт контенту | `POST /api/import` + форма на `/settings` |
-| Тест за темою | `/` → `/session/[id]` — звичайний (10 завдань) і **Ultimate** (20 завдань, 20 хв) |
+| Тест за темою | `/` → `/session/[id]` — тема + кількість завдань (видно банк) |
+| Симулятор НМТ | `/simulator` — офіційні варіанти, таймер, розбір |
+| Підручник | `/materials/textbook` — теорія за темами |
 | Результати | `/results` — таблиця прогресу + рекомендації |
 | Сесії | `/sessions` — історія, auto-сесії, mentor-сесії (Старт/×) |
 | Рекомендації | після finish, на `/results`, при reopen завершеної сесії |
 | Граф тем | `theme_connections` → наступна тема в рекомендаціях |
 | Mentor API | `POST /api/admin/sessions` — planned-сесія від ментора |
 | Auth | `/` вітальна (гость), `/login`, `/register`, ролі, демо-акаунти |
+| Консультації | `/consultations` — у меню; форма запису ще збирається |
 
-**Заглушки (скоро):** `/consultations`.
+**Заглушки більше не ховаємо за «скоро»:** консультації видно в сайдбарі.
 
 ## Змінні середовища
 
@@ -194,7 +197,7 @@ src/components/auth/              AuthShell, LoginForm, RegisterForm, DemoLoginB
 src/components/welcome/           публічний лендінг (секції + landing.module.css)
 src/components/ui/                Reveal, ModeTabs
 src/components/dashboard/         Header, Sidebar, PageFrame, таблиці
-src/components/testing/           TopicTrainer, summary, Ultimate UI
+src/components/testing/           TopicTrainer, summary, NMT trainer
 src/constants/                    навігація, SEO
 src/modules/auth/                 app_users, cookie-сесія, ролі
 src/modules/content-import/     модуль 2 — CSV/JSON → БД
@@ -297,14 +300,11 @@ JSON-схема:
 | Старт topic-test | `startTopicTest`, `startTopicTestAction` — [`src/modules/testing/`](src/modules/testing/) |
 | Planned-сесії | `startPlannedSession` — auto/mentor рядки на `/sessions` |
 | Тренажер | [`TopicTrainer`](src/components/testing/TopicTrainer/) на `/session/[id]` |
-| Ultimate | 20 завдань, 20 хв, без підказок до кінця, розбір помилок |
 | Симулятор НМТ | `/simulator` — `startNmtSimulatorAction` + `NmtTrainer` |
+| Підручник | `/materials/textbook` |
 | Задачник | `/problems` — друкований тест по темі |
 
-Режими на головній (`/`):
-
-- **Звичайний** — до 10 випадкових завдань, миттєвий розбір після кожної відповіді.
-- **Ultimate** — до 20 завдань, таймер 20 хв, підсумок і розбір помилок наприкінці.
+На головній (`/`): тест за темою — кількість завдань з поля (макс. розмір банку), миттєвий розбір після кожної відповіді.
 
 ```ts
 import {

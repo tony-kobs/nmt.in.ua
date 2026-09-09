@@ -12,8 +12,7 @@ export const DASHBOARD_NAV: NavItem[] = [
   {
     href: "/",
     label: "Тест за обраною темою",
-    description:
-      "Оберіть тему та режим: звичайний тест або Ultimate на час.",
+    description: "Оберіть тему та кількість завдань — і одразу тренуйтеся.",
     status: "ready",
   },
   {
@@ -36,9 +35,10 @@ export const DASHBOARD_NAV: NavItem[] = [
     status: "ready",
   },
   {
-    href: "/materials",
-    label: "Навчальні матеріали",
-    description: "Конспекти, формули та пояснення до тем сертифікаційної роботи.",
+    href: "/materials/textbook",
+    label: "Підручник",
+    description:
+      "Теорія й формули за темами сертифікаційної роботи — один підручник зі змістом.",
     status: "ready",
   },
   {
@@ -58,7 +58,7 @@ export const DASHBOARD_NAV: NavItem[] = [
     href: "/consultations",
     label: "Консультації викладачів",
     description: "Запис на консультацію та спілкування з викладачами.",
-    status: "soon",
+    status: "ready",
   },
 ];
 

@@ -10,9 +10,11 @@ export type AvailableTopicTheme = {
 
 /** One answer option exposed to the client (no correctness metadata). */
 export type SessionTaskAnswer = {
-  number: 1 | 2 | 3 | 4;
+  number: 1 | 2 | 3 | 4 | 5;
   text: string;
 };
+
+export type NmtTaskKind = "mcq" | "match" | "open";
 
 /** Quiz task payload safe to render before answer check / session finish. */
 export type SessionTask = {
@@ -20,13 +22,10 @@ export type SessionTask = {
   taskId: number;
   name: string;
   taskText: string;
-  answers: [
-    SessionTaskAnswer,
-    SessionTaskAnswer,
-    SessionTaskAnswer,
-    SessionTaskAnswer,
-  ];
+  answers: SessionTaskAnswer[];
   status: number;
+  /** Present on simulator tasks from `nmt_quiz_tasks`. Topic tests omit it. */
+  taskKind?: NmtTaskKind;
 };
 
 /** Client-safe session score after finish (no answer key). */
@@ -37,8 +36,7 @@ export type TrainerSessionSummary = {
   percent: number;
   timeSec: number;
   themeId: number;
-  /** `null` for a diagnostic attempt: it spans many themes, so there is no
-   * single textbook section to link to. */
+  /** `null` for a diagnostic attempt or NMT variant (no single textbook section). */
   themeCode: string | null;
   themeName: string;
 };
@@ -64,7 +62,9 @@ export const TASK_STATUS_INCORRECT = -1;
 export type CheckAnswerActionInput = {
   sessionId: number;
   mappingId: number;
-  answerNumber: 1 | 2 | 3 | 4;
+  answerNumber?: 1 | 2 | 3 | 4 | 5;
+  /** Open / matching NMT answers (e.g. "-35" or "1b;2c;3a"). */
+  answerText?: string;
 };
 
 export type CheckAnswerErrorCode =
@@ -115,10 +115,11 @@ export type SkipTaskAnswerActionState =
 
 export type { TopicTestMode } from "./topicTestMode";
 
-/** `TopicTestMode` plus the public diagnostic test. Diagnostic behaves like
+/** `TopicTestMode` plus diagnostic and NMT simulator. Diagnostic behaves like
  * "standard" in TopicTrainer (immediate feedback, no Ultimate timer) — it
- * only needs its own branch for copy/CTA differences in the summary. */
-export type TrainerMode = TopicTestMode | "diagnostic";
+ * only needs its own branch for copy/CTA differences in the summary.
+ * NMT shows per-task mistake review + theme recommendations after finish. */
+export type TrainerMode = TopicTestMode | "diagnostic" | "nmt";
 
 export type MarkSessionStartedActionInput = {
   sessionId: number;

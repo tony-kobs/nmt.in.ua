@@ -37,7 +37,7 @@
       "results": "Ergebnisse nach Themen",
       "sessions": "Lernsitzungen",
       "simulator": "NMT-Simulator",
-      "materials": "Lernmaterialien",
+      "materials": "Lehrbuch",
       "problems": "Aufgabenbank",
       "settings": "Einstellungen",
       "consultations": "Lehrerberatungen"
@@ -105,10 +105,12 @@
     }
   },
   "StubPage": {
-    "soon": "Demnächst",
-    "developmentTitle": "Bereich in Entwicklung",
-    "developmentDescription": "Übe vorerst auf der Startseite: Thementests, der Ultimate-Modus und die Ergebnisse sind bereits verfügbar.",
-    "goToTest": "Zum Thementest"
+    "developmentTitle": "Bereich in Arbeit",
+    "developmentDescription": "Das Buchungsformular wird noch vorbereitet. Nutze vorerst den NMT-Simulator oder die Theorie im Lehrbuch — und übe mit einem Thementest.",
+    "goToTest": "Thementest",
+    "kicker": "Kabinett",
+    "goToSimulator": "NMT-Simulator",
+    "goToMaterials": "Lehrbuch"
   },
   "Navigation": {
     "simulator": {
@@ -116,8 +118,8 @@
       "description": "Eine vollständige NMT-Simulation im UCEQA-Format mit Timer und Punktewertung."
     },
     "materials": {
-      "title": "Lernmaterialien",
-      "description": "Zusammenfassungen, Formeln und Erklärungen zu den Themen der Zertifizierungsprüfung."
+      "title": "Lehrbuch",
+      "description": "Theorie und Formeln nach Zertifizierungsthemen — ein Lehrbuch mit Inhaltsverzeichnis."
     },
     "problems": {
       "title": "Aufgabenbank",
@@ -159,16 +161,19 @@
     "untriedReason": "Du hast dieses Thema noch nicht bearbeitet — beginne mit einem kurzen Test.",
     "consultationTitle": "Buche eine Beratung",
     "consultationReason": "Mehrere Themen könnten zusätzliche Unterstützung durch eine Lehrkraft gebrauchen.",
-    "materialsTitle": "Wiederhole die Lernmaterialien",
-    "materialsReason": "Bei schwächeren Themen kann eine Wiederholung der Lernmaterialien vor dem nächsten Test helfen.",
+    "materialsTitle": "Wiederhole die Theorie im Lehrbuch",
+    "materialsReason": "Bei schwächeren Themen hilft vor dem nächsten Test ein Abschnitt im Lehrbuch.",
+    "nmtMaterialsTitle": "Materialien: „{theme}“",
+    "nmtMistakeReason": "Fehler in diesem Thema im Simulator: {count}.",
+    "nmtPracticeReason": "Übe den Themen-Test — Fehler im Simulator: {count}.",
     "simulatorTitle": "Probiere den vollständigen NMT-Simulator",
     "simulatorReason": "Du hast alle Themen auf einem guten Niveau bearbeitet — jetzt kannst du dein Wissen im vollständigen NMT-Format testen.",
     "problemsTitle": "Übe zusätzliche Aufgaben",
     "problemsReason": "Dein Fortschritt ist stabil — festige dein Wissen mit zusätzlichen Aufgaben."
   },
   "TopicTrainer": {
-    "confirmAbortUltimate": "Ultimate-Test beenden? Unbeantwortete Aufgaben werden als falsch gewertet.",
-    "ultimateTitle": "Ultimate — Test zum Thema",
+    "confirmAbortUltimate": "Zeittest beenden? Unbeantwortete Aufgaben werden als falsch gewertet.",
+    "ultimateTitle": "Zeittest",
     "title": "Test zum Thema",
     "diagnosticTitle": "Einstufungstest",
     "session": "Sitzung Nr. {id}",
@@ -211,11 +216,13 @@
     }
   },
   "TopicTrainerSummary": {
-    "ultimateTitle": "Ultimate — Zusammenfassung",
+    "ultimateTitle": "Zusammenfassung des Zeittests",
     "title": "Testzusammenfassung",
     "diagnosticTitle": "Ergebnis des Einstufungstests",
+    "nmtTitle": "NMT-Simulator — Zusammenfassung",
     "summary": "Thema „<themeLink>{theme}</themeLink>“. Sitzung Nr. {sessionId}.",
     "diagnosticSummary": "Einstufungstest Nr. {sessionId} abgeschlossen.",
+    "nmtSummary": "Variante „{theme}“. Sitzung Nr. {sessionId}.",
     "timedOut": "Die Zeit ist abgelaufen.",
     "completed": "Test abgeschlossen.",
     "mistakesBelow": "Die Fehleranalyse findest du unten.",
@@ -224,11 +231,17 @@
     "time": "Zeit",
     "recommendationsTitle": "Empfohlene nächste Schritte",
     "recommendationsLead": "Nächste Schritte basierend auf deinem Ergebnis.",
+    "nmtRecommendationsLead": "Themen mit Fehlern: Lehrbuchabschnitte und Themen-Test.",
     "nextSteps": "Wie geht es weiter?",
     "results": "Ergebnisse nach Thema",
     "sessions": "Meine Sitzungen",
     "newTest": "Neuer Test",
+    "newNmt": "Andere NMT-Variante",
     "mistakeReview": "Fehleranalyse ({count})",
+    "mistakeTheme": "Thema: {theme}",
+    "mistakeMaterials": "Materialien im Lehrbuch",
+    "mistakePractice": "Themen-Test",
+    "mistakeThemeUnknown": "Thema für diese Aufgabe ist noch nicht zugeordnet.",
     "saveDiagnosticProgress": "Fortschritt speichern — registrieren"
   },
   "DiagnosticResult": {
@@ -337,9 +350,9 @@
     "asideTitle": "Ihr Bereich für die NMT-Vorbereitung in Mathematik",
     "asideLead": "Eine Anmeldung — und Sie sehen Ihre Schwachstellen, den Verlauf der Versuche und die nächsten Schritte.",
     "asidePoints": {
-      "a": "Themen-Tests und Ultimate-Modus auf Zeit",
+      "a": "Thementests und ein Theorie-Lehrbuch",
       "b": "Ergebnisanalyse und persönliche Empfehlungen",
-      "c": "Simulator des vollständigen Bogens im offiziellen Format"
+      "c": "Vollständiger Simulator im offiziellen Format"
     }
   },
   "WelcomeLanding": {
@@ -365,24 +378,24 @@
       "stats": {
         "topics": {
           "value": "20+",
-          "label": "Themen des Prüfungsstoffs"
+          "label": "Themen der Zertifizierungsprüfung"
         },
-        "modes": {
-          "value": "2",
-          "label": "Modi: Training und Ultimate"
+        "simulator": {
+          "value": "13",
+          "label": "offizielle NMT-Varianten"
         },
-        "format": {
-          "value": "100%",
-          "label": "offizielles Prüfungsformat im Simulator"
+        "materials": {
+          "value": "1",
+          "label": "Lehrbuch nach Themen"
         }
       },
       "chipA": {
         "title": "Themenfortschritt",
-        "text": "Funktionen — 78% richtig"
+        "text": "Funktionen — 78 % richtig"
       },
       "chipB": {
-        "title": "Ultimate-Modus",
-        "text": "12 Aufgaben · 15 Minuten"
+        "title": "NMT-Simulator",
+        "text": "Variante · 60 Minuten"
       }
     },
     "features": {
@@ -391,28 +404,28 @@
       "lead": "Vom ersten Themen-Test bis zur vollständigen Prüfungssimulation.",
       "items": {
         "topics": {
-          "title": "Tests nach Themen",
-          "text": "Thema und Aufgabenzahl wählen und sofort üben. Jede Frage mit Erklärung der Antwort."
-        },
-        "ultimate": {
-          "title": "Ultimate-Modus",
-          "text": "Derselbe Stoff, aber auf Zeit. Trainiert das Tempo, das in der echten Prüfung nötig ist."
-        },
-        "results": {
-          "title": "Ergebnisse und Analyse",
-          "text": "Verlauf der Versuche, Anteil richtiger Antworten und Entwicklung je Thema."
-        },
-        "recommendations": {
-          "title": "Persönliche Empfehlungen",
-          "text": "Nach jedem Test schlägt das System vor, was zu wiederholen ist und womit die nächste Einheit beginnt."
+          "title": "Thementests",
+          "text": "Wähle ein Thema und die Anzahl der Aufgaben — und übe sofort. Jede Frage hat eine Erklärung."
         },
         "simulator": {
           "title": "NMT-Simulator",
-          "text": "Ein vollständiger Testbogen im offiziellen Format mit Timer und Punktzahl — die Generalprobe."
+          "text": "Offizielle Varianten im UCEQA-Format mit Timer und Punktewertung — eine echte Prüfungsprobe."
+        },
+        "materials": {
+          "title": "Lehrbuch",
+          "text": "Theorie und Formeln nach Zertifizierungsthemen — ein Lehrbuch mit Inhaltsverzeichnis."
+        },
+        "results": {
+          "title": "Ergebnisse und Analyse",
+          "text": "Versuchshistorie, Trefferquote und Dynamik für jedes Thema einzeln."
+        },
+        "recommendations": {
+          "title": "Persönliche Empfehlungen",
+          "text": "Nach jedem Test schlägt das System vor, was du wiederholen und als Nächstes üben solltest."
         },
         "sessions": {
           "title": "Lernsitzungen",
-          "text": "Geplante Übungen und Mentor-Sitzungen, die die Lehrkraft gezielt auf Ihre Lücken setzt."
+          "text": "Geplante Übungen und Mentor-Sitzungen, die Lehrkräfte für deine Lücken zuweisen."
         }
       }
     },
@@ -431,7 +444,7 @@
         },
         "train": {
           "title": "Nach Plan üben",
-          "text": "Themen, Ultimate oder Simulator — je nach Ziel."
+          "text": "Thementest, Lehrbuch oder NMT-Simulator — je nach Ziel."
         },
         "track": {
           "title": "Fortschritt verfolgen",
@@ -652,8 +665,8 @@
       "description": "Import von Lerninhalten und Kontoeinstellungen."
     },
     "materials": {
-      "title": "Lernmaterialien",
-      "description": "Zusammenfassungen, Formeln und Erklärungen zu den Themen der Zertifizierungsprüfung."
+      "title": "Lehrbuch",
+      "description": "Theorie und Formeln nach Zertifizierungsthemen — ein Lehrbuch mit Inhaltsverzeichnis."
     },
     "problems": {
       "title": "Aufgabensammlung",
@@ -679,15 +692,24 @@
   "simulator": {
     "eyebrow": "NMT",
     "title": "NMT-Simulator",
-    "description": "Versuche, den Test im NMT-Simulationsformat zu absolvieren.",
+    "description": "Offizielle Varianten der letzten Jahre: wähle eine konkrete oder eine zufällige. 60 Minuten, Auswertung am Ende.",
     "tasks": "Aufgaben",
-    "timer": "Timer",
+    "tasksCount": "{count} Aufgaben",
+    "timer": "60 Min.",
     "result": "Ergebnis",
-    "preparing": "Test wird vorbereitet...",
+    "preparing": "Test wird vorbereitet…",
     "start": "Test starten",
+    "startThis": "Diese Variante",
+    "randomStart": "Zufällige Variante",
+    "randomLead": "Unsicher, womit starten — nimm eine zufällige veröffentlichte Variante.",
+    "done": "Absolviert · {percent}%",
+    "notDone": "Noch nicht absolviert",
+    "empty": "NMT-Varianten sind noch nicht in die Datenbank geladen.",
     "errors": {
-      "insufficientTasks": "Es sind nicht genügend Aufgaben vorhanden, um den Simulator zu starten.",
+      "insufficientTasks": "Diese Variante hat keine Aufgaben.",
       "alreadyInProgress": "Die Anfrage wird bereits verarbeitet. Bitte warten Sie.",
+      "variantNotFound": "Variante nicht gefunden oder nicht veröffentlicht.",
+      "invalidInput": "Ungültige Variantenauswahl.",
       "generic": "Der Simulator konnte nicht gestartet werden. Bitte versuchen Sie es erneut."
     }
   },
@@ -696,10 +718,14 @@
     "taskProgress": "Aufgabe {current} von {total}",
     "tasks": "Aufgaben",
     "answered": "Beantwortet: {answered}/{total}",
-    "finishing": "Wird beendet...",
+    "finishing": "Wird beendet…",
     "finishTest": "Test beenden",
     "back": "Zurück",
     "next": "Weiter",
+    "openLabel": "Numerische Antwort",
+    "matchLabel": "Ordne jedem Eintrag (1–3) einen Buchstaben zu",
+    "matchPick": "Wählen",
+    "submitAnswer": "Antworten",
     "errors": {
       "unfinished": "Bearbeiten Sie alle Aufgaben, bevor Sie den Test beenden.",
       "invalidInput": "Ungültige Daten.",
