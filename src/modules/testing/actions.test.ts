@@ -329,6 +329,8 @@ test("finishTrainerSessionAction uses the trusted demo user and returns summary 
         ],
         hasCompletedSessions: true,
       }),
+      getSessionMistakeReview: async () => [],
+      recommendFromSessionMistakes: () => [],
       recommendNextActionsForStats: async () => recommendations,
       getRecommendationTranslator: async () => (key) => key,
       persistRecommendations: async (_userId, actions) => ({
@@ -361,6 +363,8 @@ test("finishTrainerSessionAction maps unfinished to a client-safe error", async 
         topicScores: [],
         hasCompletedSessions: false,
       }),
+      getSessionMistakeReview: async () => [],
+      recommendFromSessionMistakes: () => [],
       recommendNextActionsForStats: async () => [],
       persistRecommendations: async (_userId, actions) => ({
         actions,

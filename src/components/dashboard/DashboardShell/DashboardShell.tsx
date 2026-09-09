@@ -60,7 +60,7 @@ export function DashboardShell({
   const pathname = usePathname();
 
   const isMaterialsPage =
-  pathname === "/materials" || pathname.startsWith("/materials/");
+    pathname === "/materials" || pathname.startsWith("/materials/");
 
   const sidebarOpen = useSyncExternalStore(
     subscribeSidebar,

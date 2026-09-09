@@ -2,6 +2,7 @@
 
 import {
   recommendNextActionsForStats,
+  recommendFromSessionMistakes,
   persistRecommendations,
   type RecommendationTranslator,
 } from "@/modules/recommendations";
@@ -132,6 +133,8 @@ export async function startTopicTestAction(
 export type StartNmtSimulatorErrorCode =
   | "insufficientTasks"
   | "alreadyInProgress"
+  | "variantNotFound"
+  | "invalidInput"
   | "generic";
 
 export type StartNmtSimulatorActionState =
@@ -141,12 +144,15 @@ export type StartNmtSimulatorActionState =
 
 export async function startNmtSimulatorAction(
   _prevState: StartNmtSimulatorActionState,
-  _formData: FormData,
+  formData: FormData,
 ): Promise<StartNmtSimulatorActionState> {
   try {
     const userId = await requireSessionUserId();
+    const rawVariant = String(formData.get("variantId") ?? "random");
+    const variantId =
+      rawVariant === "random" ? ("random" as const) : Number(rawVariant);
 
-    const result = await startNmtSimulator(userId);
+    const result = await startNmtSimulator(userId, variantId);
 
     return {
       status: "success",
@@ -156,31 +162,20 @@ export async function startNmtSimulatorAction(
     if (error instanceof StartNmtSimulatorError) {
       switch (error.code) {
         case "insufficient_tasks":
-          return {
-            status: "error",
-            code: "insufficientTasks",
-          };
-
+          return { status: "error", code: "insufficientTasks" };
         case "already_in_progress":
-          return {
-            status: "error",
-            code: "alreadyInProgress",
-          };
-
+          return { status: "error", code: "alreadyInProgress" };
+        case "variant_not_found":
+          return { status: "error", code: "variantNotFound" };
+        case "invalid_input":
+          return { status: "error", code: "invalidInput" };
         default:
-          return {
-            status: "error",
-            code: "generic",
-          };
+          return { status: "error", code: "generic" };
       }
     }
 
     console.error("startNmtSimulatorAction: unexpected error", error);
-
-    return {
-      status: "error",
-      code: "generic",
-    };
+    return { status: "error", code: "generic" };
   }
 }
 
@@ -213,7 +208,12 @@ export async function checkAnswerAction(
       userId,
       sessionId: input.sessionId,
       mappingId: input.mappingId,
-      answerNumber: input.answerNumber,
+      ...(input.answerNumber !== undefined
+        ? { answerNumber: input.answerNumber }
+        : {}),
+      ...(input.answerText !== undefined
+        ? { answerText: input.answerText }
+        : {}),
     });
     return { status: "success", correct: result.correct };
   } catch (error) {
@@ -242,6 +242,8 @@ type FinishTrainerSessionActionDeps = AuthDeps & {
   finishTrainerSession: typeof finishTrainerSession;
   getStudentTopicStats: typeof getStudentTopicStats;
   recommendNextActionsForStats: typeof recommendNextActionsForStats;
+  recommendFromSessionMistakes: typeof recommendFromSessionMistakes;
+  getSessionMistakeReview: typeof getSessionMistakeReview;
   persistRecommendations: typeof persistRecommendations;
   getRecommendationTranslator?: (
     locale: "uk" | "en" | "de",
@@ -252,6 +254,8 @@ const defaultFinishDeps: FinishTrainerSessionActionDeps = {
   finishTrainerSession,
   getStudentTopicStats,
   recommendNextActionsForStats,
+  recommendFromSessionMistakes,
+  getSessionMistakeReview,
   persistRecommendations,
   getRecommendationTranslator,
   ...defaultAuthDeps,
@@ -274,8 +278,6 @@ export async function finishTrainerSessionAction(
       capTimeSec: input.capTimeSec,
     });
 
-    const stats = await deps.getStudentTopicStats(userId);
-
     const locale =
       input.locale === "en" || input.locale === "de" || input.locale === "uk"
         ? input.locale
@@ -286,7 +288,18 @@ export async function finishTrainerSessionAction(
 
     const t = await translatorFactory(locale);
 
-    const rawActions = await deps.recommendNextActionsForStats(stats, t);
+    const mistakes = await deps.getSessionMistakeReview(
+      input.sessionId,
+      userId,
+    );
+    const fromMistakes = deps.recommendFromSessionMistakes(mistakes, t);
+    const rawActions =
+      fromMistakes.length > 0
+        ? fromMistakes
+        : await deps.recommendNextActionsForStats(
+            await deps.getStudentTopicStats(userId),
+            t,
+          );
     const { actions: recommendations } = await deps.persistRecommendations(
       userId,
       rawActions,

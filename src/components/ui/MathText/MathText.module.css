@@ -1,22 +1,33 @@
 .root {
   min-width: 0;
+  max-width: 100%;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .formula {
   max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+  vertical-align: middle;
 }
 
 .inlineFormula {
-  display: inline;
+  display: inline-block;
+  max-width: 100%;
+}
+
+.inlineFormula :global(.katex) {
+  display: inline-block;
+  white-space: nowrap;
 }
 
 .displayFormula {
   display: block;
   width: 100%;
   margin: 0.65em 0;
-  overflow-x: auto;
-  overflow-y: hidden;
   text-align: center;
 }
 
@@ -24,4 +35,17 @@
   min-width: max-content;
   margin: 0;
   padding: 0.15rem 0;
+}
+
+/* Slightly tighter KaTeX on narrow screens so more fits before scroll. */
+.formula :global(.katex),
+.displayFormula :global(.katex-display) {
+  font-size: 1em;
+}
+
+@media (min-width: 768px) {
+  .formula :global(.katex),
+  .displayFormula :global(.katex-display) {
+    font-size: 1.21em;
+  }
 }

@@ -6,9 +6,13 @@
 
 .paragraph {
   margin: 0;
+  min-width: 0;
+  max-width: 100%;
   color: var(--muted);
   font-size: 0.94rem;
   line-height: 1.65;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
 }
 
 .paragraph[id] {
@@ -97,8 +101,13 @@
 }
 
 .tableScroll:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--green) 35%, transparent);
+  outline: 3px solid var(--ring);
   outline-offset: 3px;
+}
+
+/* Content grids: no horizontal scroll on mobile — rows become cards. */
+.cardTableScroll {
+  overflow: visible;
 }
 
 .table {
@@ -116,11 +125,11 @@
   text-align: left;
 }
 
-.topAligned>tbody>tr>td {
+.topAligned > tbody > tr > td {
   vertical-align: top;
 }
 
-.equalColumns>tbody>tr>td {
+.equalColumns > tbody > tr > td {
   height: 2.75rem;
   padding-top: 6px;
   padding-bottom: 6px;
@@ -161,39 +170,39 @@
   padding: 0;
 }
 
-.graphPaper>tbody>tr:nth-child(7)>td {
+.graphPaper > tbody > tr:nth-child(7) > td {
   box-shadow: inset 0 -2px 0 var(--ink);
 }
 
-.graphPaper>tbody>tr>td:nth-child(7) {
+.graphPaper > tbody > tr > td:nth-child(7) {
   box-shadow: inset -2px 0 0 var(--ink);
 }
 
-.graphPaper>tbody>tr:nth-child(7)>td:nth-child(7) {
+.graphPaper > tbody > tr:nth-child(7) > td:nth-child(7) {
   box-shadow:
     inset 0 -2px 0 var(--ink),
     inset -2px 0 0 var(--ink);
 }
 
-.tableMath>span {
-  max-width: none;
-  overflow-x: visible;
-  overflow-y: visible;
+.tableMath > span {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
   text-align: inherit;
 }
 
 .tableMath :global(.katex-display),
-.tableMath :global(.katex-display)> :global(.katex) {
+.tableMath :global(.katex-display) > :global(.katex) {
   text-align: inherit;
 }
 
-.graphExercise>tbody>tr>td>.paragraph:first-child {
+.graphExercise > tbody > tr > td > .paragraph:first-child {
   display: grid;
   min-height: 4rem;
   place-items: center;
 }
 
-.graphExercise>tbody>tr>td>.nestedTableScroll+.paragraph {
+.graphExercise > tbody > tr > td > .nestedTableScroll + .paragraph {
   margin-top: 24px;
 }
 
@@ -228,14 +237,20 @@
   display: inline;
 }
 
-.layoutTable colgroup {
+/* layout + grid content tables: stack as cards on base (mobile-first) */
+.layoutTable colgroup,
+.gridTable colgroup {
   display: none;
 }
 
 .layoutTable,
 .layoutTable tbody,
 .layoutTable tr,
-.layoutTable td {
+.layoutTable td,
+.gridTable,
+.gridTable tbody,
+.gridTable tr,
+.gridTable td {
   display: block;
   width: 100%;
 }
@@ -245,8 +260,48 @@
   padding-left: 0;
 }
 
-.layoutTable td+td {
+.layoutTable td + td {
   margin-top: 10px;
+}
+
+.gridTable {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.gridTable tbody {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.gridTable tr {
+  display: grid;
+  gap: var(--space-2xs);
+  padding: var(--space-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.gridTable td {
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.gridTable td + td {
+  margin-top: var(--space-2xs);
+  padding-top: var(--space-2xs);
+  border-top: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+}
+
+.gridTable .image {
+  max-height: 12rem;
+}
+
+.equalColumns > tbody > tr > td {
+  height: auto;
 }
 
 @media (min-width: 768px) {
@@ -262,32 +317,78 @@
     display: none;
   }
 
-  .layoutTable {
-    display: table;
-    width: 100%;
+  .cardTableScroll .table {
+    min-width: var(--table-min-width, 100%);
   }
 
-  .layoutTable colgroup {
+  .graphPaperScroll .table {
+    min-width: var(--table-min-width, 100%);
+  }
+
+  .layoutTable,
+  .gridTable {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
+  .layoutTable colgroup,
+  .gridTable colgroup {
     display: table-column-group;
   }
 
-  .layoutTable tbody {
+  .layoutTable tbody,
+  .gridTable tbody {
     display: table-row-group;
     width: auto;
+    gap: 0;
   }
 
-  .layoutTable tr {
+  .layoutTable tr,
+  .gridTable tr {
     display: table-row;
     width: auto;
+    gap: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
-  .layoutTable td {
+  .layoutTable td,
+  .gridTable td {
     display: table-cell;
     width: auto;
     padding: 10px;
+    margin-top: 0;
   }
 
-  .layoutTable td+td {
+  .gridTable td {
+    border: 1px solid var(--line);
+  }
+
+  .layoutTable td {
+    border: 0;
+  }
+
+  .layoutTable td + td,
+  .gridTable td + td {
     margin-top: 0;
+    padding-top: 10px;
+    border-top-width: 1px;
+  }
+
+  .layoutTable td + td {
+    border-top: 0;
+  }
+
+  .gridTable .image {
+    max-height: 34rem;
+  }
+
+  .equalColumns > tbody > tr > td {
+    height: 2.75rem;
   }
 }

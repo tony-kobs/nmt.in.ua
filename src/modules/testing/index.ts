@@ -6,7 +6,7 @@
  * - `/session/[id]` → TopicTrainer
  * - `/simulator` → симулятор НМТ (`NmtTrainer`)
  * - `/problems` → задачник (друкований тест по темі)
- * - `/materials` → конспекти
+ * - `/materials/textbook` → підручник за темами
  */
 
 export type TopicTestConfig = {
@@ -123,6 +123,15 @@ export type TrainerSession = {
 export {
   startNmtSimulator,
   StartNmtSimulatorError,
+  resolveNmtVariantId,
   NMT_SIMULATOR_TASK_COUNT,
   SESSION_TYPE_NMT_SIMULATOR,
+  TASK_TYPE_NMT,
 } from "./startNmtSimulator";
+export { getNmtVariantsForUser } from "./getNmtVariants";
+export type { NmtVariantListItem } from "./getNmtVariants";
+export { startNmtSimulatorAction } from "./actions";
+export type {
+  StartNmtSimulatorActionState,
+  StartNmtSimulatorErrorCode,
+} from "./actions";

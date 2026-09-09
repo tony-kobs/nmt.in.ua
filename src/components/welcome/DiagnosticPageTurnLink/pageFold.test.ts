@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getFoldTransform } from "./pageFold";
+import { getFoldPosition, getFoldTransform } from "./pageFold";
 
 const close = (actual: number, expected: number) =>
   assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
@@ -32,3 +32,30 @@ for (const [width, height] of [[320, 740], [375, 812], [768, 1024], [1440, 1104]
     }
   });
 }
+
+test("fold follows the existing path without stopping at intermediate poses", () => {
+  const poses = [[0, 100, 100], [0.12, 85, 100], [0.4, 30, 78], [0.75, -25, 35], [1, -70, -15]];
+  for (const [progress, top, bottom] of poses) {
+    const position = getFoldPosition(progress);
+    assert.ok(Math.abs(position.top - top) < 1e-8);
+    assert.ok(Math.abs(position.bottom - bottom) < 1e-8);
+  }
+  const step = 0.00001;
+  for (const progress of [0.12, 0.4, 0.75]) {
+    const before = getFoldPosition(progress - step);
+    const at = getFoldPosition(progress);
+    const after = getFoldPosition(progress + step);
+    for (const edge of ["top", "bottom"] as const) {
+      const incoming = (at[edge] - before[edge]) / step;
+      const outgoing = (after[edge] - at[edge]) / step;
+      assert.ok(Math.abs(incoming - outgoing) < 0.1);
+    }
+    assert.ok((after.top - before.top) / (2 * step) < -50);
+  }
+  let previous = getFoldPosition(0);
+  for (let frame = 1; frame <= 1000; frame++) {
+    const current = getFoldPosition(frame / 1000);
+    assert.ok(current.top <= previous.top && current.bottom <= previous.bottom);
+    previous = current;
+  }
+});

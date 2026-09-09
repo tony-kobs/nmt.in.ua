@@ -19,6 +19,8 @@ import {
 import {
   TASK_STATUS_CORRECT,
   TASK_STATUS_INCORRECT,
+  type CheckAnswerActionInput,
+  type CheckAnswerActionState,
   type SessionTask,
   type SessionTaskAnswer,
   type TrainerMode,
@@ -45,7 +47,9 @@ import css from "./TopicTrainer.module.css";
  * Actions without forking this component. Defaults to the standard
  * topic-test actions for every existing caller. */
 type TopicTrainerActionOverrides = {
-  checkAnswer: typeof checkAnswerAction;
+  checkAnswer: (
+    input: CheckAnswerActionInput,
+  ) => Promise<CheckAnswerActionState>;
   finishTrainerSession: typeof finishTrainerSessionAction;
   markSessionStarted: typeof markSessionStartedAction;
 };
@@ -387,7 +391,7 @@ export function TopicTrainer({
             {" · "}
             {themeCode ? (
               <Link
-                href={`/materials/textbook#topic-${themeCode}`}
+                href={`/materials/textbook?topic=${encodeURIComponent(themeCode)}`}
                 className={css.themeLink}
               >
                 {themeName}
@@ -399,7 +403,7 @@ export function TopicTrainer({
         </div>
         <div className={css.badges}>
           {isUltimate ? (
-            <p className={clsx(css.modeBadge, css.modeUltimate)}>Ultimate</p>
+            <p className={clsx(css.modeBadge, css.modeUltimate)}>{t("ultimateTitle")}</p>
           ) : null}
           <p
             className={clsx(css.progress, timerWarning && css.progressWarning)}

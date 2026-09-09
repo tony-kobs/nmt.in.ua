@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import clsx from "clsx";
 import { MathText } from "@/components/ui/MathText";
 import type {
@@ -135,6 +135,7 @@ function renderTable(
 ) {
   const totalWidth = block.columnWidths.reduce((sum, width) => sum + width, 0);
   const isScrollableTable = block.variant !== "layout";
+  const isCardOnMobile = block.variant === "grid";
   const columnExtraWidth = block.variant === "graphPaper" ? 0 : 20;
   const minimumWidth = block.columnWidths.reduce(
     (sum, width) => sum + width / 15 + columnExtraWidth,
@@ -150,16 +151,22 @@ function renderTable(
         inTable && css.nestedTableScroll,
         block.variant === "layout" && css.layoutTableScroll,
         block.variant === "graphPaper" && css.graphPaperScroll,
+        isCardOnMobile && css.cardTableScroll,
       )}
-      role={isScrollableTable ? "region" : undefined}
+      role={isScrollableTable && !isCardOnMobile ? "region" : undefined}
       aria-label={
-        isScrollableTable
+        isScrollableTable && !isCardOnMobile
           ? "Таблиця навчального матеріалу, доступне горизонтальне прокручування"
           : undefined
       }
-      tabIndex={isScrollableTable ? 0 : undefined}
+      tabIndex={isScrollableTable && !isCardOnMobile ? 0 : undefined}
+        style={
+          isScrollableTable && totalWidth > 0
+            ? ({ "--table-min-width": `${minimumWidth}px` } as CSSProperties)
+            : undefined
+        }
     >
-      {isScrollableTable ? (
+      {isScrollableTable && !isCardOnMobile ? (
         <span className={css.scrollHint} aria-hidden="true">
           Прокрутіть таблицю горизонтально →
         </span>
@@ -174,11 +181,6 @@ function renderTable(
           block.graphExercise && css.graphExercise,
           block.topAligned && css.topAligned,
         )}
-        style={
-          isScrollableTable && totalWidth > 0
-            ? { minWidth: `${minimumWidth}px` }
-            : undefined
-        }
       >
         {totalWidth > 0 ? (
           <colgroup>

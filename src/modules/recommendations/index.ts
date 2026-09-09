@@ -25,6 +25,7 @@ export type RecommendedAction = {
 
 export { persistRecommendations } from "./persistRecommendations";
 export type { PersistRecommendationsResult } from "./persistRecommendations";
+export { recommendFromSessionMistakes } from "./recommendFromSessionMistakes";
 
 const WEAK_THRESHOLD = 40;
 const SOLID_THRESHOLD = 70;
@@ -181,7 +182,7 @@ export function recommendNextActions(
       type: "materials",
       title: t("materialsTitle"),
       reason: t("materialsReason"),
-      href: "/materials",
+      href: "/materials/textbook",
       priority: priority++,
     });
   }

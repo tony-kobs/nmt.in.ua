@@ -46,3 +46,57 @@
   font-size: 0.9rem;
   font-weight: 600;
 }
+
+.themeLinks {
+  display: grid;
+  gap: var(--space-2xs);
+  margin-top: var(--space-2xs);
+  padding-top: var(--space-2xs);
+  border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+}
+
+.themeLabel {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--muted);
+}
+
+.themeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs) var(--space-sm);
+}
+
+.themeLink {
+  font-size: var(--fs-small);
+  font-weight: 650;
+  color: var(--green-dark);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.themeLink:hover {
+  color: var(--green);
+}
+
+.themeMissing {
+  margin: 0;
+  margin-top: var(--space-2xs);
+  padding-top: var(--space-2xs);
+  border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  font-size: var(--fs-small);
+  color: var(--subtle);
+}
+
+.taskImageWrap {
+  display: block;
+  margin-block: var(--space-2xs);
+}
+
+.taskImage {
+  display: block;
+  width: 100%;
+  max-width: min(100%, 28rem);
+  height: auto;
+  border-radius: var(--radius-md);
+}
