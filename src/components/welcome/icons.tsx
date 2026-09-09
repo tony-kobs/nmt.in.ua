@@ -91,6 +91,15 @@ export function ExamIcon(props: IconProps) {
   );
 }
 
+export function BookIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H12v15.5H5.5A1.5 1.5 0 0 1 4 18z" />
+      <path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H12v15.5h6.5a1.5 1.5 0 0 0 1.5-1.5z" />
+    </Icon>
+  );
+}
+
 export function UsersIcon(props: IconProps) {
   return (
     <Icon {...props}>

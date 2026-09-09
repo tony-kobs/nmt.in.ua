@@ -75,3 +75,23 @@ test("KaTeX renders the required formulas as HTML and accessible MathML", () => 
     assert.match(html, /<math/);
   }
 });
+
+test("parseMathText + KaTeX render nested-cases content after normalize", async () => {
+  const { normalizeNmtRichText } = await import(
+    "@/modules/testing/normalizeNmtRichText"
+  );
+  const text = normalizeNmtRichText(
+    String.raw`Система $$\( \begin{cases} x=1,\\ y=2. \end{cases} \)$$ кінець`,
+  );
+  const parts = parseMathText(text);
+  const formula = parts.find((p) => p.type === "formula");
+  assert.ok(formula && formula.type === "formula");
+  assert.match(formula.content, /\\begin\{cases\}/);
+  assert.doesNotMatch(formula.content, /\\\(/);
+  const html = katex.renderToString(formula.content, {
+    displayMode: true,
+    throwOnError: true,
+    strict: "ignore",
+  });
+  assert.doesNotMatch(html, /katex-error/);
+});

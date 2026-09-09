@@ -54,7 +54,7 @@ export async function TopicResultsTable({ rows }: TopicResultsTableProps) {
               <tr key={row.themeId}>
                 <td className={css.themeCell}>
                   <Link
-                    href={`/materials/textbook#topic-${row.themeCode}`}
+                    href={`/materials/textbook?topic=${encodeURIComponent(row.themeCode)}`}
                     className={css.themeLink}
                   >
                     {row.displayIndex}. {row.themeName}

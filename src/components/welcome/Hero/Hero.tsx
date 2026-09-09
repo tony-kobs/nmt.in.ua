@@ -6,7 +6,7 @@ import { DiagnosticPageTurnLink } from "@/components/welcome/DiagnosticPageTurnL
 import { ArrowRightIcon, CheckIcon, TimerIcon, TrendIcon } from "../icons";
 import css from "../landing.module.css";
 
-const STAT_KEYS = ["topics", "modes", "format"] as const;
+const STAT_KEYS = ["topics", "simulator", "materials"] as const;
 
 export async function Hero() {
   const t = await getTranslations("WelcomeLanding.hero");

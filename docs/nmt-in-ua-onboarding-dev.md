@@ -2,9 +2,9 @@
 
 Як увійти в роботу за перший день, а не блукати тиждень.
 
-Короткий онбординг команди Goldener Rechner. Беклог для PM — окремий файл ([md](./Goldener-Rechner-beklog-PM.md) / [docx](./Goldener-Rechner-beklog-PM.docx)). Тут лише те, що треба, щоб написати перший PR і не зламати чужий модуль.
+Короткий онбординг команди Goldener Rechner. Беклог для PM — [`Goldener-Rechner-beklog-PM.md`](./Goldener-Rechner-beklog-PM.md). Тут лише те, що треба, щоб написати перший PR і не зламати чужий модуль.
 
-Word-копія: [nmt-in-ua-onboarding-dev.docx](./nmt-in-ua-onboarding-dev.docx)
+Джерело правди — Markdown. Word/docx копій немає.
 
 Оновлено 8 вересня 2026.
 
@@ -179,7 +179,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `app_users` | Наші акаунти | `login`, `role`. Не плутати з legacy `users` |
 | `themes` | Теми тесту | `id`, `code` (unique, напр. `ALG-08-QUAD-EQ` — якір розділу підручника), `name`, `description`, `ord` |
 | `theme_connections` | Граф «наступна тема» | `vertex_start` → `vertex_finish` |
-| `quiz_tasks` | Банк тренажера (тест / Ultimate / симулятор / діагностика) | `right_answer_n` (1–4) лише на сервері в сесії |
+| `quiz_tasks` | Банк тренажера (тест / симулятор topic-bank / діагностика) | `right_answer_n` (1–4) лише на сервері в сесії |
 | `problems` | Банк задачника (друк) | 6.6, таблиця + seed з `src/content/workbookProblems.json` |
 | `task_sessions` | Спроба учня | `session_type` 1 user / 2 auto / 3 mentor / 4 NMT / **5 diagnostic**; status 1 done / 2 created / 3 planned. `user_id` і `theme_id` **nullable**, плюс `guest_token CHAR(36)` nullable — діагностична спроба гостя не має `user_id`, а охоплює кілька тем одразу тож не має і `theme_id` |
 | `tasks2session` | Мапінг завдання↔сесія | `status` 0 / 1 / −1. `user_id` **nullable** + `guest_token CHAR(36)` nullable, дзеркалить владельця з `task_sessions` |
@@ -198,10 +198,14 @@ EXISTS` у MySQL немає. **Застосована 08.09.2026**: `EXPLAIN` н
 з `type: ALL` (405 рядків) на `type: ref` + `Using index`.
 
 `scripts/sql/010_theme_codes.sql` додає `themes.code` (unique) і заповнює коди всім
-23 темам — це якір розділу підручника (`/materials/textbook#topic-<code>`). **Застосована
+23 темам — це розділ підручника (`/materials/textbook?topic=<code>`). **Застосована
 08.09.2026.** Імпорт (`content-import`) колонку приймає опційно: немає коду в CSV/JSON —
 тема лишається без нього, а підручник показує «Матеріал готується». Нумерація міграцій
-розійшлась (два різні `008`), тому підручник переїхав на `010`; наступна вільна — `011`.
+розійшлась (два різні `008`), тому підручник переїхав на `010`; наступна вільна була `011`.
+
+`scripts/sql/011_nmt_variants.sql` + `012_nmt_quiz_tasks.sql` — офіційні варіанти НМТ
+(окремий банк, **не** `quiz_tasks`). Залив контенту: `node scripts/fetch-nmt-variants.mjs --import`
+(13 свіжих відкритих варіантів з zno.osvita.ua). **Застосовані 09.09.2026.**
 
 ### Гостьова діагностика: модель власності
 
@@ -227,8 +231,7 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 | Режим | Де старт | Скільки | Поведінка |
 | --- | --- | --- | --- |
 | Звичайний тест | `/` → TopicTestStart | скільки впишеш (макс. банк теми) | Розбір одразу після відповіді |
-| Ultimate | не зі старту `/` | до 20, 20 хв | Лише вже відкрита сесія `?mode=ultimate` |
-| Симулятор НМТ | `/simulator` | 22, 60 хв | `session_type = 4` |
+| Симулятор НМТ | `/simulator` | варіант (офіційний), 60 хв | `session_type = 4`, банк `nmt_quiz_tasks` |
 | Авто-сесія | з’являється на `/sessions` | як тест | Створює recommend після фінішу |
 | Ментор-сесія | викладач на `/sessions` | як тест | `session_type = 3`, Старт / × |
 | Діагностика (гість/учень) | `/diagnostic` (публічний) | до 3 завдань з кожної теми з ≥3 завданнями, макс. 10 тем (30 завдань) | `session_type = 5`, `theme_id = NULL`, одна сесія на всю спробу; перед стартом — загальна самооцінка 1–10 |
@@ -241,13 +244,13 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 | `/login`, `/register` | Гість | Готово |
 | `/diagnostic`, `/diagnostic/session/[id]` | Усі (публічно, як `/welcome`) — гість або увійдений учень | Готово |
 | `/session/[id]` | Власник сесії | Готово |
-| `/results`, `/sessions`, `/simulator` | Учень+ | Готово |
+| `/simulator` | Учень+ | Готово — сітка офіційних варіантів НМТ (`nmt_variants`) |
 | `/settings` | Лише admin | Готово |
-| `/materials` | Учень+ | Готово |
-| `/materials/textbook` | Учень+ | Підручник: зміст + розділ на кожну тему БД, якір `#topic-<themes.code>` |
+| `/materials`, `/materials/[slug]` | Учень+ | Редірект → `/materials/textbook` |
+| `/materials/textbook` | Учень+ | Єдиний підручник: зміст + один розділ `?topic=<themes.code>` |
 | `/problems` | Учень+ | Задачник: друкований тест по темі |
 | `/account` | Учень+ | Особистий кабінет: пароль, останні результати, вихід |
-| `/consultations` | Учень+ | Заглушка `NavStubPage` |
+| `/consultations` | Учень+ | У меню; форма запису ще збирається (`StubPage` + CTA на симулятор / підручник) |
 
 ## 7. Як додавати фічу (шаблон)
 
@@ -294,16 +297,17 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 
 ## 11. З чого почати новому dev (вільні задачі)
 
-Повний розклад хвилі 6 — [`docs/mentor-tasks.md`](./mentor-tasks.md). Не чіпайте робочий topic-test без узгодження. Черга: **6.1 → 6.5 → 6.8 → 6.6 → 6.3–6.4**; **6.2** можна паралельно.
+Повний розклад хвилі 6 — [`docs/mentor-tasks.md`](./mentor-tasks.md). Не чіпайте робочий topic-test без узгодження. Відкрите: **6.5** (банк), форма консультацій, техборг `RAND` / діагностика >10 тем.
 
 | Задача | Де копати | Складність | Нотатка |
 | --- | --- | --- | --- |
-| 6.1 Підручник + `themes.code` | `src/content/learningMaterials`, `/materials`, імпорт `themes` | Середня | ✅ зроблено 08.09 (Марія, PR #60): `/materials/textbook`, конспекти по класах лишились, TOC з якорями |
+| 6.1 Підручник + `themes.code` | `src/content/learningMaterials`, `/materials/textbook` | Середня | ✅ 08–09.09: лише підручник; `/materials` і slug → редірект |
 | 6.5 Банк 30–40 / тему | `content-import`, `docs/content-review/` | Контент | Спочатку розширити `varchar(50)` у відповідях |
-| 6.8 Варіанти НМТ | `startNmtSimulator`, `/simulator`, нові таблиці | Середня | Не RAND по всій базі — випадковий *варіант* |
-| 6.6 Задачник | `src/app/problems`, таблиця `problems`, імпорт опційний | Середня | ✅ зроблено 08.09: друкований тест по темі; банк `problems`; 439 завдань зі старого сайту |
-| 6.3–6.4 Діагностика | `/diagnostic`, `Hero`, `TopicTestStart`, `TopicResultsTable` | Велика | ✅ зроблено (`feat/diagnostic-self-score`); guest-cookie `nmt_guest` (не тимчасовий `app_users`) → `claimGuestProgress()` при реєстрації. Відкрито: політика вибору тем при >10 eligible (зараз — порядок `ord`) |
-| 6.2 Відгук про сайт | `src/modules/feedback`, футер, модалка після finish | Мала | ✅ зроблено; оцінка 1–10, коментар лише якщо < 5; не хедер; не `/consultations` |
+| 6.8 Варіанти НМТ | `startNmtSimulator`, `/simulator`, `nmt_variants*` | Середня | ✅ 09.09 |
+| 6.6 Задачник | `src/app/problems`, таблиця `problems` | Середня | ✅ 08.09 |
+| 6.3–6.4 Діагностика | `/diagnostic` | Велика | ✅; відкрито: політика тем при >10 eligible |
+| 6.2 Відгук | `src/modules/feedback` | Мала | ✅ |
+| Консультації | `/consultations` | Мала | Частково: пункт у меню; треба форма / контакти |
 
 Поза першим релізом (не хапати «бо цікаво»): групи викладача, ДЗ, PDF, Google-логін, AI-перевірка, типи завдань окрім вибору з 4 варіантів, повноцінний PWA. Це версія 2 — питайте PM.
 

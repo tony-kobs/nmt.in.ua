@@ -37,7 +37,7 @@
       "results": "Results by topic",
       "sessions": "Learning sessions",
       "simulator": "NMT Simulator",
-      "materials": "Learning materials",
+      "materials": "Textbook",
       "problems": "Problem bank",
       "settings": "Settings",
       "consultations": "Teacher consultations"
@@ -105,10 +105,12 @@
     }
   },
   "StubPage": {
-    "soon": "Coming soon",
-    "developmentTitle": "Section under development",
-    "developmentDescription": "For now, you can practice on the home page: topic tests, Ultimate mode, and results are already available.",
-    "goToTest": "Go to topic test"
+    "developmentTitle": "Section in progress",
+    "developmentDescription": "The booking form is still being prepared. For now, try the NMT simulator or review theory in the textbook — and practise with a topic test.",
+    "goToTest": "Topic test",
+    "kicker": "Cabinet",
+    "goToSimulator": "NMT simulator",
+    "goToMaterials": "Textbook"
   },
   "Navigation": {
     "simulator": {
@@ -116,8 +118,8 @@
       "description": "A full NMT simulation in the UCEQA format with a timer and scoring."
     },
     "materials": {
-      "title": "Learning materials",
-      "description": "Notes, formulas, and explanations for the topics covered in the certification test."
+      "title": "Textbook",
+      "description": "Theory and formulas by certification topics — one textbook with a table of contents."
     },
     "problems": {
       "title": "Problem bank",
@@ -159,16 +161,19 @@
     "untriedReason": "You haven't tried this topic yet — start with a short test.",
     "consultationTitle": "Book a consultation",
     "consultationReason": "Several topics could benefit from additional support from a teacher.",
-    "materialsTitle": "Review the learning materials",
-    "materialsReason": "Reviewing the notes can help before retaking tests on weaker topics.",
+    "materialsTitle": "Review the textbook",
+    "materialsReason": "A textbook section can help before retaking tests on weaker topics.",
+    "nmtMaterialsTitle": "Materials: “{theme}”",
+    "nmtMistakeReason": "Mistakes on this topic in the simulator: {count}.",
+    "nmtPracticeReason": "Practice the topic test — simulator mistakes: {count}.",
     "simulatorTitle": "Try the full NMT simulator",
     "simulatorReason": "You've covered all topics well — it's time to test yourself in the full NMT format.",
     "problemsTitle": "Practice additional problems",
     "problemsReason": "Your progress is steady — reinforce it with additional practice."
   },
   "TopicTrainer": {
-    "confirmAbortUltimate": "Finish the Ultimate test? Unanswered tasks will be counted as incorrect.",
-    "ultimateTitle": "Ultimate — topic test",
+    "confirmAbortUltimate": "Finish the timed test? Unanswered tasks will be counted as incorrect.",
+    "ultimateTitle": "Timed test",
     "title": "Topic test",
     "diagnosticTitle": "Diagnostic test",
     "session": "Session #{id}",
@@ -211,11 +216,13 @@
     }
   },
   "TopicTrainerSummary": {
-    "ultimateTitle": "Ultimate — summary",
+    "ultimateTitle": "Timed test summary",
     "title": "Test summary",
     "diagnosticTitle": "Diagnostic test result",
+    "nmtTitle": "NMT simulator — summary",
     "summary": "Topic “<themeLink>{theme}</themeLink>”. Session #{sessionId}.",
     "diagnosticSummary": "Diagnostic test #{sessionId} completed.",
+    "nmtSummary": "Variant “{theme}”. Session #{sessionId}.",
     "timedOut": "Time is up.",
     "completed": "Test completed.",
     "mistakesBelow": "Review your mistakes below.",
@@ -224,11 +231,17 @@
     "time": "Time",
     "recommendationsTitle": "Recommended next steps",
     "recommendationsLead": "Next steps based on your result.",
+    "nmtRecommendationsLead": "Topics with mistakes: textbook sections and topic practice.",
     "nextSteps": "What's next",
     "results": "Results by topic",
     "sessions": "My sessions",
     "newTest": "New test",
+    "newNmt": "Another NMT variant",
     "mistakeReview": "Mistake review ({count})",
+    "mistakeTheme": "Topic: {theme}",
+    "mistakeMaterials": "Textbook materials",
+    "mistakePractice": "Topic test",
+    "mistakeThemeUnknown": "Topic for this task is not mapped yet.",
     "saveDiagnosticProgress": "Save progress — sign up"
   },
   "DiagnosticResult": {
@@ -337,9 +350,9 @@
     "asideTitle": "Your workspace for NMT maths preparation",
     "asideLead": "One login and you see your weak topics, attempt history and the plan for the next steps.",
     "asidePoints": {
-      "a": "Topic tests and timed Ultimate mode",
-      "b": "Result analytics and personal recommendations",
-      "c": "Full paper simulator in the official exam format"
+      "a": "Topic tests and a theory textbook",
+      "b": "Results analytics and personal recommendations",
+      "c": "Full-paper simulator in the official format"
     }
   },
   "WelcomeLanding": {
@@ -365,15 +378,15 @@
       "stats": {
         "topics": {
           "value": "20+",
-          "label": "topics of the exam syllabus"
+          "label": "certification topics"
         },
-        "modes": {
-          "value": "2",
-          "label": "modes: practice and Ultimate"
+        "simulator": {
+          "value": "13",
+          "label": "official NMT papers"
         },
-        "format": {
-          "value": "100%",
-          "label": "official exam format in the simulator"
+        "materials": {
+          "value": "1",
+          "label": "topic-based textbook"
         }
       },
       "chipA": {
@@ -381,8 +394,8 @@
         "text": "Functions — 78% correct"
       },
       "chipB": {
-        "title": "Ultimate mode",
-        "text": "12 tasks · 15 minutes"
+        "title": "NMT simulator",
+        "text": "Paper · 60 minutes"
       }
     },
     "features": {
@@ -392,27 +405,27 @@
       "items": {
         "topics": {
           "title": "Topic tests",
-          "text": "Pick a topic and the number of tasks, then start right away. Every question comes with an explanation."
-        },
-        "ultimate": {
-          "title": "Ultimate mode",
-          "text": "The same material, but against the clock. It teaches the pace you need on the real exam."
-        },
-        "results": {
-          "title": "Results and analytics",
-          "text": "Attempt history, share of correct answers and the trend for every topic separately."
-        },
-        "recommendations": {
-          "title": "Personal recommendations",
-          "text": "After each test the system suggests what to revise and where to start the next session."
+          "text": "Pick a topic and how many tasks to run — then practise right away. Every question comes with an explanation."
         },
         "simulator": {
           "title": "NMT simulator",
-          "text": "A full paper in the official format with a timer and scoring — a rehearsal of the real exam."
+          "text": "Official papers in the UCEQA format with a timer and scoring — a full exam rehearsal."
+        },
+        "materials": {
+          "title": "Textbook",
+          "text": "Theory and formulas by certification topics — one textbook with a table of contents."
+        },
+        "results": {
+          "title": "Results and analytics",
+          "text": "Attempt history, accuracy, and progress for each topic separately."
+        },
+        "recommendations": {
+          "title": "Personal recommendations",
+          "text": "After every test the system suggests what to review and what to practise next."
         },
         "sessions": {
           "title": "Learning sessions",
-          "text": "Planned practice and mentor sessions assigned by a teacher for your specific gaps."
+          "text": "Planned practice and mentor sessions that a teacher assigns for your gaps."
         }
       }
     },
@@ -431,7 +444,7 @@
         },
         "train": {
           "title": "Practise with a plan",
-          "text": "Topics, Ultimate or the simulator — depending on your goal."
+          "text": "A topic test, the textbook, or the NMT simulator — depending on your goal."
         },
         "track": {
           "title": "Track your progress",
@@ -652,8 +665,8 @@
       "description": "Learning content import and account settings."
     },
     "materials": {
-      "title": "Learning Materials",
-      "description": "Notes, formulas, and explanations for the certification test topics."
+      "title": "Textbook",
+      "description": "Theory and formulas by certification topics — one textbook with a table of contents."
     },
     "problems": {
       "title": "Problem Bank",
@@ -679,15 +692,24 @@
   "simulator": {
     "eyebrow": "NMT",
     "title": "NMT Simulator",
-    "description": "Try taking the test in the NMT simulation format.",
+    "description": "Official papers from recent years: pick one or a random variant. 60 minutes, review at the end.",
     "tasks": "Tasks",
-    "timer": "Timer",
+    "tasksCount": "{count} tasks",
+    "timer": "60 min",
     "result": "Result",
-    "preparing": "Preparing test...",
+    "preparing": "Preparing test…",
     "start": "Start test",
+    "startThis": "This variant",
+    "randomStart": "Random variant",
+    "randomLead": "Not sure where to start — take a random published paper.",
+    "done": "Done · {percent}%",
+    "notDone": "Not taken yet",
+    "empty": "NMT variants have not been loaded into the database yet.",
     "errors": {
-      "insufficientTasks": "There are not enough tasks to start the simulator.",
+      "insufficientTasks": "This variant has no tasks.",
       "alreadyInProgress": "The request is already in progress. Please wait.",
+      "variantNotFound": "Variant not found or not published.",
+      "invalidInput": "Invalid variant selection.",
       "generic": "Failed to start the simulator. Please try again."
     }
   },
@@ -696,10 +718,14 @@
     "taskProgress": "Task {current} of {total}",
     "tasks": "Tasks",
     "answered": "Answered: {answered}/{total}",
-    "finishing": "Finishing...",
+    "finishing": "Finishing…",
     "finishTest": "Finish test",
     "back": "Back",
     "next": "Next",
+    "openLabel": "Numeric answer",
+    "matchLabel": "Match a letter to each row (1–3)",
+    "matchPick": "Choose",
+    "submitAnswer": "Submit answer",
     "errors": {
       "unfinished": "Complete all tasks before finishing the test.",
       "invalidInput": "Invalid data.",

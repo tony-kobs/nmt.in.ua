@@ -5,14 +5,11 @@ import type { MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { DiagnosticDestinationPreview } from "./DiagnosticDestinationPreview";
-import { getFoldTransform } from "./pageFold";
+import { getFoldPosition, getFoldTransform } from "./pageFold";
 import landingCss from "../landing.module.css";
 import css from "./DiagnosticPageTurnLink.module.css";
 
 const TRANSITION_MS = 1450;
-// Fallback only — fires if `animationend` never reaches `.underlay` (tab
-// throttled in the background, or some other interruption). Real navigation
-// is driven by the animation finishing, see the `isTurning` effect below.
 const FALLBACK_NAVIGATE_MS = TRANSITION_MS + 300;
 
 type DiagnosticPageTurnLinkProps = {
@@ -42,12 +39,6 @@ export function DiagnosticPageTurnLink({ href, className, children }: Diagnostic
     router.prefetch(href);
   }, [router, href]);
 
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, []);
-
   const warmPreview = useCallback(() => {
     setIsPreviewMounted(true);
   }, []);
@@ -64,18 +55,9 @@ export function DiagnosticPageTurnLink({ href, className, children }: Diagnostic
 
   useEffect(() => {
     if (!isTurning) return;
-
-    const underlay = underlayRef.current;
-    const handleAnimationEnd = (event: AnimationEvent) => {
-      if (event.target !== underlay) return;
-      navigate();
-    };
-
-    underlay?.addEventListener("animationend", handleAnimationEnd, { once: true });
     timeoutRef.current = setTimeout(navigate, FALLBACK_NAVIGATE_MS);
-
     return () => {
-      underlay?.removeEventListener("animationend", handleAnimationEnd);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [isTurning, navigate]);
 
@@ -105,30 +87,35 @@ export function DiagnosticPageTurnLink({ href, className, children }: Diagnostic
       snapshotHeader.style.position = "relative";
       snapshotHeader.style.top = `${header.getBoundingClientRect().top - bounds.top}px`;
     }
+    // Read underlay's size before inserting the (large) snapshot: underlay
+    // is a fixed/absolute sibling whose box doesn't depend on sheet's
+    // content, but reading clientWidth/Height right after replaceChildren
+    // would force a synchronous layout of the whole freshly-inserted
+    // subtree — a one-time stall right at the start of every turn.
+    const width = underlay.clientWidth;
+    const height = underlay.clientHeight;
     sheet.replaceChildren(snapshot);
 
     let frame = 0;
-    const updateFold = () => {
-      const clip = getComputedStyle(underlay).clipPath;
-      const points = clip.match(/-?[\d.]+%/g)?.map(parseFloat);
-      if (points?.length === 8) {
-        flap.style.clipPath = clip;
-        flap.style.transform = getFoldTransform(
-          underlay.clientWidth,
-          underlay.clientHeight,
-          points[0],
-          points[6],
-        );
-      }
-      if (!pushedRef.current) frame = requestAnimationFrame(updateFold);
+    let startedAt: number | null = null;
+    const updateFold = (timestamp: number) => {
+      startedAt ??= timestamp;
+      const progress = Math.min((timestamp - startedAt) / TRANSITION_MS, 1);
+      const { top, bottom } = getFoldPosition(progress);
+      const clip = `polygon(${top}% 0%, 100% 0%, 100% 100%, ${bottom}% 100%)`;
+      underlay.style.clipPath = clip;
+      flap.style.clipPath = clip;
+      flap.style.transform = getFoldTransform(width, height, top, bottom);
+      if (progress < 1) frame = requestAnimationFrame(updateFold);
+      else navigate();
     };
-    updateFold();
+    frame = requestAnimationFrame(updateFold);
 
     return () => {
       cancelAnimationFrame(frame);
       sheet.replaceChildren();
     };
-  }, [isTurning]);
+  }, [isTurning, navigate]);
 
   const handleClick = (event: ReactMouseEvent<HTMLAnchorElement>) => {
     if (navigatingRef.current) {
