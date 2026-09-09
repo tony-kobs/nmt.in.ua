@@ -27,8 +27,9 @@ export function LanguageSwitcher() {
           <button
             key={item}
             type="button"
-            className={css.button}
+            className={`${css.languageButton} ${css[item]}`}
             data-active={active}
+            data-locale={item}
             aria-label={t(`${item}Full`)}
             aria-pressed={active}
             onClick={() => changeLocale(item)}
