@@ -8,30 +8,61 @@
   background: rgb(253 251 244 / 72%);
 }
 
-.button {
-  min-width: 36px;
-  min-height: 36px;
-  padding: 4px 6px;
+.languageButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
   border: 0;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--muted);
+  border-radius: 50%;
+  overflow: hidden;
   font: inherit;
   font-size: var(--fs-kicker);
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   cursor: pointer;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: transform var(--t), box-shadow var(--t), filter var(--t);
 }
 
-.button[data-active="true"] {
-  background: var(--grad-mint);
-  color: var(--green-dark);
+/* Ukraine: split flag puts the label across both halves, so neither flag color reads on
+   both — black is the best single-color compromise (clear on yellow, legible on blue). */
+.uk {
+  color: #14140f;
+  background-image: url("/icons/flags/ua.svg");
 }
 
-.button:disabled {
+/* English / UK: real Union Jack artwork. The flag's center is the red St George's
+   cross, so white stays readable for the label there. */
+.en {
+  color: #ffffff;
+  background-image: url("/icons/flags/uk.svg");
+}
+
+/* Germany: label sits on the red middle band, so white stays readable there. */
+.de {
+  color: #ffffff;
+  background-image: url("/icons/flags/de.svg");
+}
+
+.languageButton:disabled {
   cursor: default;
 }
 
-.button:hover:not(:disabled) {
-  color: var(--green-dark);
+.languageButton:hover:not(:disabled) {
+  transform: scale(1.08);
+  box-shadow: var(--shadow-sm);
+  filter: brightness(1.05);
+}
+
+.languageButton:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+/* current locale, kept legible against every flag background via a neutral gap + brand ring */
+.languageButton[data-active="true"] {
+  box-shadow: 0 0 0 2px var(--surface), var(--ring);
 }
