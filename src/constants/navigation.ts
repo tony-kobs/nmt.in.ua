@@ -57,7 +57,8 @@ export const DASHBOARD_NAV: NavItem[] = [
   {
     href: "/consultations",
     label: "Консультації викладачів",
-    description: "Запис на консультацію та спілкування з викладачами.",
+    description:
+      "Запит на консультацію: учень надсилає заявку, викладачі бачать її в кабінеті.",
     status: "ready",
   },
 ];

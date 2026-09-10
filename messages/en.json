@@ -127,7 +127,58 @@
     },
     "consultations": {
       "title": "Teacher consultations",
-      "description": "Book a consultation and communicate with teachers."
+      "description": "Ask for a consultation: students send a request, teachers see it in the cabinet."
+    }
+  },
+  "Consultations": {
+    "kicker": "Consultation",
+    "title": "Teacher consultations",
+    "studentLead": "Leave a request — every teacher will see it in the cabinet. There is no personal student–teacher link yet.",
+    "teacherLead": "All student requests. There is no student–teacher assignment yet — teachers and admins share this list.",
+    "formTitle": "New request",
+    "formLead": "Briefly describe what you need help with — or just send the request.",
+    "noteLabel": "Message (optional)",
+    "notePlaceholder": "For example, which topic you need help with",
+    "noteHint": "Up to 1000 characters. You can leave this blank.",
+    "submit": "Ask for a consultation",
+    "submitting": "Sending…",
+    "success": "Request sent. Teachers will see it shortly.",
+    "alreadyOpen": "You already have an open request.",
+    "noNote": "No message",
+    "sentAt": "Sent {when}",
+    "openTitle": {
+      "pending": "Your request is waiting for a teacher",
+      "acknowledged": "A teacher has seen your request",
+      "closed": "Request closed"
+    },
+    "openLead": {
+      "pending": "No new request is needed — this one is already in the queue.",
+      "acknowledged": "Please wait. You can send another request after this one is closed.",
+      "closed": "You can send a new request."
+    },
+    "inboxTitle": "Student requests",
+    "inboxLead": "Open requests appear first. Mark as seen, or close after the consultation.",
+    "empty": "There are no requests yet.",
+    "student": "Student",
+    "note": "Message",
+    "status": "Status",
+    "created": "When",
+    "actions": "Actions",
+    "acknowledge": "Seen",
+    "close": "Close",
+    "saving": "Saving…",
+    "alreadyClosed": "Closed",
+    "statuses": {
+      "pending": "Pending",
+      "acknowledged": "Seen",
+      "closed": "Closed"
+    },
+    "errors": {
+      "invalid_input": "Check the message and try again.",
+      "forbidden": "Only a student can send a request.",
+      "generic": "Could not save. Please try again.",
+      "notFound": "This request no longer exists.",
+      "invalidTransition": "That status change is not allowed."
     }
   },
   "TopicTestStart": {
@@ -686,7 +737,7 @@
     },
     "consultations": {
       "title": "Teacher Consultations",
-      "description": "Book a consultation and communicate with teachers."
+      "description": "Ask for a consultation: students send a request, teachers see it in the cabinet."
     },
     "account": {
       "title": "Personal account",

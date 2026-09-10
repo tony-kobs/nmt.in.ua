@@ -1,0 +1,1 @@
+export { ConsultationsStudentPanel } from "./ConsultationsStudentPanel";
