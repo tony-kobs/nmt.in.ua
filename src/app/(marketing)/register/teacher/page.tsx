@@ -3,6 +3,8 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { TeacherRegisterForm } from "@/components/auth/TeacherRegisterForm";
 import { createPageMetadata } from "@/constants/seo";
 import { isWayForPayConfigured } from "@/modules/payments/config";
+import { isTeacherPaymentTestBypassEnabled } from "@/modules/payments/testBypass";
+import { readPendingTeacherPayReferenceForTestBypass } from "@/modules/payments/actions";
 
 /** Runtime env: CI build has no token; hosting `.env.production` may. */
 export const dynamic = "force-dynamic";
@@ -19,6 +21,10 @@ export async function generateMetadata() {
 
 export default async function TeacherRegisterPage() {
   const t = await getTranslations("TeacherRegister");
+  const testBypassEnabled = isTeacherPaymentTestBypassEnabled();
+  const pendingPaymentReference = testBypassEnabled
+    ? await readPendingTeacherPayReferenceForTestBypass()
+    : null;
 
   return (
     <AuthShell
@@ -28,7 +34,11 @@ export default async function TeacherRegisterPage() {
         lead: t("asideLead"),
       }}
     >
-      <TeacherRegisterForm paymentConfigured={isWayForPayConfigured()} />
+      <TeacherRegisterForm
+        paymentConfigured={isWayForPayConfigured()}
+        testBypassEnabled={testBypassEnabled}
+        pendingPaymentReference={pendingPaymentReference}
+      />
     </AuthShell>
   );
 }

@@ -90,6 +90,7 @@ npm run dev
 4. `NEXT_PUBLIC_SITE_URL=https://nmt.in.ua` (HTTPS) для `returnUrl` і `serviceUrl`. Локально webhook не дійде на `localhost` — потрібен публічний тунель (ngrok тощо) і той самий URL у env.
 5. Webhook: `POST https://<домен>/api/payments/wayforpay/webhook` (підпис HMAC_MD5 `merchantSignature`). Після оплати браузер іде на `/api/payments/wayforpay/return` → `/register/teacher/success?ref=…`.
 6. Сума **500 грн**. WayForPay приймає major units з двома знаками (`amount=500.00`, `currency=UAH`); у БД лишаємо `50000` копійок. Без ключів застосунок **не** підписує checkout. CSP `form-action` дозволяє `https://secure.wayforpay.com`. Ключі лише в `.env.local` / хостинг `.env.production`, не в git.
+7. Локально / пісочниця `test_merch_n1`: після «Сплатити» сторінка **не** стрибає одразу на WayForPay. Є кнопка **«Оплата пройшла»** — той самий шлях, що Approved webhook (активує викладача + сесія на `/`). На живому мерчанті в `NODE_ENV=production` кнопки немає. Вимкнути локально: `TEACHER_PAYMENT_TEST_BYPASS=0`.
 
 **Скидання демо-даних:** старі тести до auth писалися з `user_id=1`, тому вони «прилипають» до demo-student. Очистити:
 
@@ -105,7 +106,7 @@ npm run reset-demo-student
 | --- | --- |
 | Вхід / вихід | `/login`, cookie `nmt_session` |
 | Реєстрація | `/register` — публічна, лише роль `student` |
-| Реєстрація викладача | `/register/teacher` — pending у `teacher_payments`, акаунт `role=teacher` лише після `transactionStatus=Approved` від WayForPay (500 грн). Без ключів — UI-заглушка, checkout не підписується |
+| Реєстрація викладача | `/register/teacher` — pending у `teacher_payments`, акаунт `role=teacher` лише після `transactionStatus=Approved` від WayForPay (500 грн). Без ключів — UI-заглушка, checkout не підписується. У dev / sandbox `test_merch_n1` є кнопка «Оплата пройшла» (той самий `activatePaidTeacher`). На живому мерчанті в production — ні |
 | Webhook оплати | `POST /api/payments/wayforpay/webhook` (публічний, перевірка HMAC_MD5) |
 | Ролі | `student`, `teacher`, `admin` |
 | Облікові записи | таблиця `app_users` (окремо від legacy `users` на хостингу) |

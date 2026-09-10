@@ -365,8 +365,11 @@ npm run lint && npm test && npm run build
 - Success `/register/teacher/success`, fail `/register/teacher/fail`.
 - Після рахунку клієнт POST-ить форму на WayForPay (`https://secure.wayforpay.com/pay`).
   CSP: `form-action 'self' https://secure.wayforpay.com`.
+- Dev / sandbox `test_merch_n1`: після «Сплатити» checkout **не** автосабмітиться;
+  панель `.testBypass` з кнопкою «Оплата пройшла» (`--green-bg`, dashed, пілюля).
+  Production + живий мерчант — як раніше, одразу POST на WayForPay.
 - Перевірити: 375 / 768 / 1240 / 1440 / 1920; на 1240+ маркетингова колонка;
-  без ключів WayForPay — банер «оплату ще не налаштовано».
+  без ключів WayForPay — банер «оплату ще не налаштовано»; локально — тестова кнопка.
 
 ### 2026-09-10 — WayForPay замість Mono
 

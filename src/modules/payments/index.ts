@@ -4,6 +4,7 @@ export {
   CCY_UAH,
   WAYFORPAY_CURRENCY,
   WAYFORPAY_DEFAULT_PAY_URL,
+  WAYFORPAY_SANDBOX_MERCHANT_ACCOUNT,
   TEACHER_PAY_COOKIE,
   isTeacherPaymentReference,
   isSafeCheckoutUrl,
@@ -34,7 +35,19 @@ export {
 export { startTeacherRegistration } from "./startTeacherRegistration";
 export type { RegisterTeacherErrorCode } from "./startTeacherRegistration";
 export {
+  isTeacherPaymentTestBypassEnabled,
+  simulateTeacherPaymentSuccess,
+} from "./testBypass";
+export type {
+  SimulateTeacherPaymentErrorCode,
+  SimulateTeacherPaymentSuccessResult,
+} from "./testBypass";
+export {
   registerTeacherAction,
   claimTeacherSessionAction,
+  simulateTeacherPaymentSuccessAction,
 } from "./actions";
-export type { RegisterTeacherActionState } from "./actions";
+export type {
+  RegisterTeacherActionState,
+  SimulateTeacherPaymentActionState,
+} from "./actions";

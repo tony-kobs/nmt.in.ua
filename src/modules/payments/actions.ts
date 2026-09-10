@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { findUserById } from "@/modules/auth/users";
 import { setSessionCookie } from "@/modules/auth/getCurrentUser";
@@ -13,6 +14,11 @@ import {
 import { startTeacherRegistration } from "./startTeacherRegistration";
 import type { RegisterTeacherErrorCode } from "./startTeacherRegistration";
 import { findTeacherPaymentByReference } from "./teacherPayments";
+import {
+  isTeacherPaymentTestBypassEnabled,
+  simulateTeacherPaymentSuccess,
+  type SimulateTeacherPaymentErrorCode,
+} from "./testBypass";
 import type { WayForPayCheckout } from "./wayforpayClient";
 
 export type RegisterTeacherActionState =
@@ -93,4 +99,72 @@ export async function readTeacherPayReferenceFromCookie(): Promise<string | null
   const value = cookieStore.get(TEACHER_PAY_COOKIE)?.value;
   if (!value || !isTeacherPaymentReference(value)) return null;
   return value.trim();
+}
+
+/** Cookie reference when bypass is allowed and the row is still pending. */
+export async function readPendingTeacherPayReferenceForTestBypass(): Promise<
+  string | null
+> {
+  if (!isTeacherPaymentTestBypassEnabled()) return null;
+  const reference = await readTeacherPayReferenceFromCookie();
+  if (!reference) return null;
+  const payment = await findTeacherPaymentByReference(reference);
+  return payment?.status === "pending" ? reference : null;
+}
+
+export type SimulateTeacherPaymentActionState =
+  | { status: "idle" }
+  | { status: "error"; code: SimulateTeacherPaymentErrorCode };
+
+async function clearTeacherPayCookie(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.set(TEACHER_PAY_COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
+}
+
+function resolveBypassReference(
+  cookieRef: string | null,
+  formRefRaw: string,
+): string | null {
+  const formRef = isTeacherPaymentReference(formRefRaw)
+    ? formRefRaw.trim()
+    : null;
+  if (cookieRef && formRef && cookieRef !== formRef) return null;
+  return cookieRef ?? formRef;
+}
+
+/**
+ * Dev/sandbox only: pretend WayForPay returned Approved, then sign in as the
+ * new teacher. Disabled for a live merchant in production.
+ */
+export async function simulateTeacherPaymentSuccessAction(
+  _prev: SimulateTeacherPaymentActionState,
+  formData: FormData,
+): Promise<SimulateTeacherPaymentActionState> {
+  if (!isTeacherPaymentTestBypassEnabled()) {
+    return { status: "error", code: "disabled" };
+  }
+
+  const cookieRef = await readTeacherPayReferenceFromCookie();
+  const reference = resolveBypassReference(
+    cookieRef,
+    String(formData.get("reference") ?? ""),
+  );
+  const result = await simulateTeacherPaymentSuccess({ reference });
+  if (!result.ok) {
+    return { status: "error", code: result.code };
+  }
+
+  await setSessionCookie(result.user);
+  try {
+    await clearTeacherPayCookie();
+  } catch (error) {
+    console.error("simulateTeacherPaymentSuccessAction: cookie clear failed", error);
+  }
+  redirect("/");
 }

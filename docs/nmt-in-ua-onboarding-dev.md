@@ -57,6 +57,7 @@ npm run dev
 | `WAYFORPAY_MERCHANT_ACCOUNT` | Еквайринг WayForPay для `/register/teacher` | Без ключів: «оплату ще не налаштовано», checkout не підписується. З ключами — HMAC_MD5 + POST на `secure.wayforpay.com/pay`. Пісочниця з docs: `test_merch_n1`. Лише `.env.local` / хостинг `.env.production` |
 | `WAYFORPAY_MERCHANT_SECRET_KEY` | SecretKey HMAC_MD5 (Purchase + serviceUrl) | Разом із account; ніколи в git |
 | `WAYFORPAY_MERCHANT_DOMAIN` | Домен мерчанта (опційно) | Hostname з `NEXT_PUBLIC_SITE_URL` |
+| `TEACHER_PAYMENT_TEST_BYPASS` | Кнопка «Оплата пройшла» на `/register/teacher` | За замовчуванням увімкнено в `development` і для `test_merch_n1`. У production на живому мерчанті завжди вимкнено, навіть якщо `=1`. Локально сховати: `=0` |
 | `CONTENT_IMPORT_API_KEY` | Bearer для `POST /api/import` | Усі імпорти — 401 (fail-closed) |
 | `ADMIN_API_KEY` | Bearer для `POST /api/admin/sessions` | Усі admin-запити — 401 |
 
@@ -171,7 +172,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | Модуль | Папка | Головні функції |
 | --- | --- | --- |
 | Auth | `src/modules/auth` | `requireUserId`, `getCurrentUser`, login/register/`changePassword` |
-| Оплата | `src/modules/payments` | `startTeacherRegistration`, `applyWayForPayWebhook`, `buildWayForPayCheckout` |
+| Оплата | `src/modules/payments` | `startTeacherRegistration`, `applyWayForPayWebhook`, `simulateTeacherPaymentSuccess`, `buildWayForPayCheckout` |
 | Імпорт | `src/modules/content-import` | parse + validate + транзакція `themes` → connections → `quiz_tasks` (+ опційно `problems`) |
 | Тест | `src/modules/testing` | `startTopicTest`, `startNmtSimulator`, `checkAnswer`, `finishTrainerSession` |
 | Рекомендації | `src/modules/recommendations` | `getStudentTopicStats`, `recommendNextActions`, `persistRecommendations` |
@@ -250,7 +251,7 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 | --- | --- | --- |
 | `/`, `/welcome` | Усі. `/` — лендінг для гостя, кабінет для учня; `/welcome` завжди лендінг | Готово |
 | `/login`, `/register` | Гість | Готово |
-| `/register/teacher` (+ `/success`, `/fail`) | Гість | Платна реєстрація викладача (WayForPay, 500 грн). Без ключів — заглушка |
+| `/register/teacher` (+ `/success`, `/fail`) | Гість | Платна реєстрація викладача (WayForPay, 500 грн). Без ключів — заглушка. Dev/sandbox: кнопка «Оплата пройшла» |
 | `/diagnostic`, `/diagnostic/session/[id]` | Усі (публічно, як `/welcome`) — гість або увійдений учень | Готово |
 | `/session/[id]` | Власник сесії | Готово |
 | `/simulator` | Учень+ | Готово — сітка офіційних варіантів НМТ (`nmt_variants`) |
@@ -317,7 +318,7 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 | 6.3–6.4 Діагностика | `/diagnostic` | Велика | ✅; відкрито: політика тем при >10 eligible |
 | 6.2 Відгук | `src/modules/feedback` | Мала | ✅ |
 | Консультації | `/consultations` | Мала | Частково: пункт у меню; треба форма / контакти |
-| Реєстрація викладача + WayForPay | `/register/teacher`, `src/modules/payments` | Середня | ✅ 10.09: pending у `teacher_payments`; з `WAYFORPAY_MERCHANT_*` — живий Purchase. Ключі не в git |
+| Реєстрація викладача + WayForPay | `/register/teacher`, `src/modules/payments` | Середня | ✅ 10.09: pending + WayForPay Purchase/webhook. Локально: кнопка «Оплата пройшла» (`simulateTeacherPaymentSuccess` → `activatePaidTeacher`). На живому мерчанті в production вимкнено |
 | Перф (TTFB / бандл) | `(app)`/`(marketing)` layouts, `catalogCache`, `sampleRandomIds` | — | ✅ 10.09: без `ORDER BY RAND()`, кеш довідників, cookie-профіль |
 
 Карта app router: `src/app/page.tsx` — `/` (гість легкий / учень → CabinetHome); `src/app/(marketing)/` — welcome / login / register / diagnostic; `src/app/(app)/` — кабінет (`force-dynamic`). Root layout лише `html`/`body` + `globals.css`.

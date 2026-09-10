@@ -585,6 +585,20 @@
     "signInLink": "Sign in",
     "studentPrompt": "Are you a student?",
     "studentLink": "Free registration",
+    "testBypass": {
+      "hint": "Testing only: this does not charge a card or open WayForPay.",
+      "payOk": "Payment succeeded",
+      "working": "Opening the cabinet…",
+      "payAtGateway": "Continue to WayForPay",
+      "pendingLead": "Application saved. Confirm payment here for local testing — or continue to WayForPay.",
+      "errors": {
+        "disabled": "Test payment confirmation is disabled in this environment.",
+        "missing_reference": "No payment application found. Fill in the form again.",
+        "not_found": "The application was not found. Fill in the form again.",
+        "not_pending": "This application has already been processed.",
+        "activate_failed": "Could not activate the cabinet. Try again later."
+      }
+    },
     "errors": {
       "requiredFields": "Fill in all fields.",
       "invalidLogin": "Invalid login. Use Latin letters, digits, ., _ or -.",

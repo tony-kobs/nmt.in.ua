@@ -11,6 +11,7 @@ import {
   isSafeCheckoutUrl,
   isTeacherPaymentReference,
   parseWayForPayAmountToKopiyky,
+  WAYFORPAY_SANDBOX_MERCHANT_ACCOUNT,
 } from "./constants";
 
 test("teacher fee is 500 UAH = 50000 kopiyky; WayForPay amount is major units", () => {
@@ -19,6 +20,7 @@ test("teacher fee is 500 UAH = 50000 kopiyky; WayForPay amount is major units", 
   assert.equal(TEACHER_FEE_KOPIYKY, TEACHER_FEE_UAH * 100);
   assert.equal(CCY_UAH, 980);
   assert.equal(WAYFORPAY_CURRENCY, "UAH");
+  assert.equal(WAYFORPAY_SANDBOX_MERCHANT_ACCOUNT, "test_merch_n1");
   assert.equal(formatWayForPayAmount(TEACHER_FEE_KOPIYKY), "500.00");
   assert.equal(parseWayForPayAmountToKopiyky(500), 50_000);
   assert.equal(parseWayForPayAmountToKopiyky("500.00"), 50_000);

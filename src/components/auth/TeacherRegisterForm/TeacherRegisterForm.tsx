@@ -17,27 +17,33 @@ import {
   PASSWORD_MAX_LEN,
   PASSWORD_MIN_LEN,
 } from "@/modules/auth/validateRegistration";
+import { TeacherPaymentTestBypass } from "../TeacherPaymentTestBypass";
 import css from "../auth.module.css";
 
 const INITIAL: RegisterTeacherActionState = { status: "idle" };
 
 type TeacherRegisterFormProps = {
   paymentConfigured: boolean;
+  testBypassEnabled?: boolean;
+  pendingPaymentReference?: string | null;
 };
 
 function CheckoutRedirect({
   checkout,
   submitLabel,
+  autoSubmit,
 }: {
   checkout: WayForPayCheckout;
   submitLabel: string;
+  autoSubmit: boolean;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
+    if (!autoSubmit) return;
     if (!isAllowedWayForPayCheckoutUrl(checkout.actionUrl)) return;
     formRef.current?.submit();
-  }, [checkout]);
+  }, [autoSubmit, checkout]);
 
   const { fields } = checkout;
 
@@ -98,6 +104,8 @@ function CheckoutRedirect({
 
 export function TeacherRegisterForm({
   paymentConfigured,
+  testBypassEnabled = false,
+  pendingPaymentReference = null,
 }: TeacherRegisterFormProps) {
   const t = useTranslations("TeacherRegister");
   const [state, formAction, pending] = useActionState(
@@ -106,6 +114,13 @@ export function TeacherRegisterForm({
   );
   const paying = state.status === "pay";
   const busy = pending || paying;
+  const pendingSavedError =
+    state.status === "error" &&
+    (state.code === "paymentNotConfigured" || state.code === "invoiceFailed");
+  const showTestBypass =
+    testBypassEnabled &&
+    (paying || pendingSavedError || Boolean(pendingPaymentReference));
+  const holdCheckout = paying && testBypassEnabled;
 
   return (
     <div className={css.card}>
@@ -127,8 +142,30 @@ export function TeacherRegisterForm({
         </p>
       )}
 
+      {holdCheckout ? (
+        <p className={clsx(css.alert, css.alertNotice)} role="status">
+          {t("testBypass.pendingLead")}
+        </p>
+      ) : null}
+
+      {showTestBypass ? (
+        <TeacherPaymentTestBypass
+          reference={
+            paying
+              ? state.checkout.fields.orderReference
+              : pendingPaymentReference
+          }
+        />
+      ) : null}
+
       {paying ? (
-        <CheckoutRedirect checkout={state.checkout} submitLabel={t("redirecting")} />
+        <CheckoutRedirect
+          checkout={state.checkout}
+          autoSubmit={!testBypassEnabled}
+          submitLabel={
+            testBypassEnabled ? t("testBypass.payAtGateway") : t("redirecting")
+          }
+        />
       ) : null}
 
       <form className={css.form} action={formAction}>

@@ -5,6 +5,7 @@ import { createPageMetadata } from "@/constants/seo";
 import { isTeacherPaymentReference } from "@/modules/payments/constants";
 import { readTeacherPayReferenceFromCookie } from "@/modules/payments/actions";
 import { findTeacherPaymentByReference } from "@/modules/payments/teacherPayments";
+import { isTeacherPaymentTestBypassEnabled } from "@/modules/payments/testBypass";
 
 export async function generateMetadata() {
   const t = await getTranslations("Metadata.teacherRegisterSuccess");
@@ -35,6 +36,7 @@ export default async function TeacherRegisterSuccessPage({
   const reference = fromQuery ?? fromCookie;
 
   let outcome: "success" | "pending" | "fail" = "pending";
+  let paymentPending = false;
   if (reference) {
     const payment = await findTeacherPaymentByReference(reference);
     if (payment?.status === "paid") outcome = "success";
@@ -44,6 +46,8 @@ export default async function TeacherRegisterSuccessPage({
       payment?.status === "cancelled"
     ) {
       outcome = "fail";
+    } else if (payment?.status === "pending") {
+      paymentPending = true;
     }
   }
 
@@ -55,7 +59,11 @@ export default async function TeacherRegisterSuccessPage({
         lead: t("asideLead"),
       }}
     >
-      <TeacherRegisterResult outcome={outcome} reference={reference} />
+      <TeacherRegisterResult
+        outcome={outcome}
+        reference={reference}
+        showTestBypass={isTeacherPaymentTestBypassEnabled() && paymentPending}
+      />
     </AuthShell>
   );
 }

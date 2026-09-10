@@ -9,6 +9,9 @@ export const WAYFORPAY_CURRENCY = "UAH";
 export const WAYFORPAY_DEFAULT_PAY_URL = "https://secure.wayforpay.com/pay";
 export const WAYFORPAY_PROVIDER = "wayforpay";
 
+/** Official WayForPay sandbox merchantAccount from their docs. */
+export const WAYFORPAY_SANDBOX_MERCHANT_ACCOUNT = "test_merch_n1";
+
 export const TEACHER_PAY_COOKIE = "nmt_teacher_pay";
 export const TEACHER_PAY_COOKIE_MAX_AGE_SEC = 60 * 60;
 

@@ -585,6 +585,20 @@
     "signInLink": "Anmelden",
     "studentPrompt": "Du bist Schüler?",
     "studentLink": "Kostenlose Registrierung",
+    "testBypass": {
+      "hint": "Nur zum Testen: Es wird nichts abgebucht und WayForPay nicht geöffnet.",
+      "payOk": "Zahlung erfolgreich",
+      "working": "Konto wird aktiviert…",
+      "payAtGateway": "Weiter zu WayForPay",
+      "pendingLead": "Anmeldung gespeichert. Zur lokalen Prüfung hier bestätigen — oder zu WayForPay wechseln.",
+      "errors": {
+        "disabled": "Die Testbestätigung der Zahlung ist in dieser Umgebung deaktiviert.",
+        "missing_reference": "Keine Zahlungsanmeldung gefunden. Bitte das Formular erneut ausfüllen.",
+        "not_found": "Die Anmeldung wurde nicht gefunden. Bitte das Formular erneut ausfüllen.",
+        "not_pending": "Diese Anmeldung wurde bereits verarbeitet.",
+        "activate_failed": "Das Konto konnte nicht aktiviert werden. Bitte später erneut versuchen."
+      }
+    },
     "errors": {
       "requiredFields": "Bitte alle Felder ausfüllen.",
       "invalidLogin": "Ungültiger Login. Nutze lateinische Buchstaben, Ziffern, ., _ oder -.",
