@@ -54,7 +54,7 @@ npm run dev
 | --- | --- | --- |
 | `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | Пул MySQL | Сторінки з даними падають |
 | `SESSION_SECRET` | Підпис cookie `nmt_session` | На проді вхід небезпечний / зламаний |
-| `MONO_ACQUIRING_TOKEN` | Еквайринг Mono для `/register/teacher` | Сторінка працює як scaffold, рахунок не створюється |
+| `MONO_ACQUIRING_TOKEN` | Еквайринг Mono для `/register/teacher` | Без токена: «оплату ще не налаштовано», рахунок не створюється. З токеном — invoice + `pageUrl`. Лише `.env.local` / хостинг `.env.production` |
 | `MONO_ACQUIRING_BASE_URL` | База API Mono (опційно) | `https://api.monobank.ua` |
 | `CONTENT_IMPORT_API_KEY` | Bearer для `POST /api/import` | Усі імпорти — 401 (fail-closed) |
 | `ADMIN_API_KEY` | Bearer для `POST /api/admin/sessions` | Усі admin-запити — 401 |
@@ -249,7 +249,7 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 | --- | --- | --- |
 | `/`, `/welcome` | Усі. `/` — лендінг для гостя, кабінет для учня; `/welcome` завжди лендінг | Готово |
 | `/login`, `/register` | Гість | Готово |
-| `/register/teacher` (+ `/success`, `/fail`) | Гість | Scaffold платної реєстрації викладача (Mono, 500 грн) |
+| `/register/teacher` (+ `/success`, `/fail`) | Гість | Платна реєстрація викладача (Mono, 500 грн). Без токена — заглушка |
 | `/diagnostic`, `/diagnostic/session/[id]` | Усі (публічно, як `/welcome`) — гість або увійдений учень | Готово |
 | `/session/[id]` | Власник сесії | Готово |
 | `/simulator` | Учень+ | Готово — сітка офіційних варіантів НМТ (`nmt_variants`) |
@@ -316,7 +316,7 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 | 6.3–6.4 Діагностика | `/diagnostic` | Велика | ✅; відкрито: політика тем при >10 eligible |
 | 6.2 Відгук | `src/modules/feedback` | Мала | ✅ |
 | Консультації | `/consultations` | Мала | Частково: пункт у меню; треба форма / контакти |
-| Реєстрація викладача + Mono | `/register/teacher`, `src/modules/payments` | Середня | ✅ scaffold 10.09: pending у `teacher_payments`, живий токен не обовʼязковий |
+| Реєстрація викладача + Mono | `/register/teacher`, `src/modules/payments` | Середня | ✅ 10.09: pending у `teacher_payments`; з `MONO_ACQUIRING_TOKEN` — живий рахунок. Токен не в git |
 | Перф (TTFB / бандл) | `(app)`/`(marketing)` layouts, `catalogCache`, `sampleRandomIds` | — | ✅ 10.09: без `ORDER BY RAND()`, кеш довідників, cookie-профіль |
 
 Карта app router: `src/app/page.tsx` — `/` (гість легкий / учень → CabinetHome); `src/app/(marketing)/` — welcome / login / register / diagnostic; `src/app/(app)/` — кабінет (`force-dynamic`). Root layout лише `html`/`body` + `globals.css`.

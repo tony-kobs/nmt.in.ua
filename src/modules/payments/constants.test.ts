@@ -5,6 +5,7 @@ import {
   MONO_CCY_UAH,
   TEACHER_FEE_KOPIYKY,
   TEACHER_FEE_UAH,
+  isSafeCheckoutUrl,
   isTeacherPaymentReference,
 } from "./constants";
 
@@ -20,4 +21,11 @@ test("isTeacherPaymentReference accepts 32 hex chars", () => {
   assert.equal(isTeacherPaymentReference("A1b2c3d4e5f60718293a4b5c6d7e8f90"), true);
   assert.equal(isTeacherPaymentReference("short"), false);
   assert.equal(isTeacherPaymentReference(""), false);
+});
+
+test("isSafeCheckoutUrl allows only https pageUrl", () => {
+  assert.equal(isSafeCheckoutUrl("https://pay.mbnk.biz/p2_abc"), true);
+  assert.equal(isSafeCheckoutUrl("http://pay.mbnk.biz/p2_abc"), false);
+  assert.equal(isSafeCheckoutUrl("javascript:alert(1)"), false);
+  assert.equal(isSafeCheckoutUrl("/register/teacher"), false);
 });

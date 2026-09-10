@@ -1,6 +1,7 @@
 import {
   MONO_CCY_UAH,
   TEACHER_FEE_KOPIYKY,
+  isSafeCheckoutUrl,
 } from "./constants";
 import {
   readMonoAcquiringConfig,
@@ -59,15 +60,6 @@ export function buildMonoInvoiceRequestBody(input: CreateMonoInvoiceInput): {
   };
 }
 
-function isSafeCheckoutUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "https:" || parsed.protocol === "http:";
-  } catch {
-    return false;
-  }
-}
-
 /**
  * POST /api/merchant/invoice/create
  * Never sends a request when the token is missing — scaffold must not crash.
@@ -100,6 +92,7 @@ export async function createMonoInvoice(
   );
 
   if (!response.ok) {
+    console.error("Mono invoice create failed", { status: response.status });
     throw new MonoClientError(
       `Mono invoice create failed with HTTP ${response.status}.`,
       "http_error",

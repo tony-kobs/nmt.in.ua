@@ -567,7 +567,7 @@
       "progress": "See results and topics that need more practice",
       "cabinet": "The same workspace as students, plus an assignment panel"
     },
-    "paymentNotConfigured": "Payments are not connected yet (no MONO_ACQUIRING_TOKEN). You can save the application; a Mono invoice is not created and the cabinet stays inactive.",
+    "paymentNotConfigured": "Payments are not set up yet. You can save the application; a Mono invoice is not created and the cabinet stays inactive.",
     "asideBadge": "Teachers · 500 UAH",
     "asideTitle": "A cabinet to guide students to the NMT",
     "asideLead": "After payment you see student progress and can assign practice for weak topics.",
@@ -578,6 +578,7 @@
     "passwordHint": "At least {min} characters.",
     "passwordConfirm": "Confirm password",
     "submitting": "Saving…",
+    "redirecting": "Opening payment…",
     "submitPay": "Pay {fee} UAH",
     "submitSave": "Save application",
     "haveAccount": "Already have an account?",

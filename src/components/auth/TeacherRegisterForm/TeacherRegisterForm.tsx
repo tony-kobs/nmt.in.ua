@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import clsx from "clsx";
 import {
   registerTeacherAction,
   type RegisterTeacherActionState,
 } from "@/modules/payments/actions";
-import { TEACHER_FEE_UAH } from "@/modules/payments/constants";
+import { TEACHER_FEE_UAH, isSafeCheckoutUrl } from "@/modules/payments/constants";
 import {
   PASSWORD_MAX_LEN,
   PASSWORD_MIN_LEN,
@@ -29,6 +29,14 @@ export function TeacherRegisterForm({
     registerTeacherAction,
     INITIAL,
   );
+  const paying = state.status === "pay";
+  const busy = pending || paying;
+
+  useEffect(() => {
+    if (state.status !== "pay") return;
+    if (!isSafeCheckoutUrl(state.pageUrl)) return;
+    window.location.assign(state.pageUrl);
+  }, [state]);
 
   return (
     <div className={css.card}>
@@ -60,7 +68,7 @@ export function TeacherRegisterForm({
             required
             minLength={2}
             maxLength={100}
-            disabled={pending}
+            disabled={busy}
           />
         </label>
 
@@ -75,7 +83,7 @@ export function TeacherRegisterForm({
             maxLength={50}
             pattern="[A-Za-z0-9][A-Za-z0-9._-]{1,48}[A-Za-z0-9]|[A-Za-z0-9]{3,50}"
             title={t("loginHint")}
-            disabled={pending}
+            disabled={busy}
           />
           <span className={css.hint}>{t("loginHint")}</span>
         </label>
@@ -90,7 +98,7 @@ export function TeacherRegisterForm({
             required
             minLength={PASSWORD_MIN_LEN}
             maxLength={PASSWORD_MAX_LEN}
-            disabled={pending}
+            disabled={busy}
           />
           <span className={css.hint}>
             {t("passwordHint", { min: PASSWORD_MIN_LEN })}
@@ -107,7 +115,7 @@ export function TeacherRegisterForm({
             required
             minLength={PASSWORD_MIN_LEN}
             maxLength={PASSWORD_MAX_LEN}
-            disabled={pending}
+            disabled={busy}
           />
         </label>
 
@@ -117,12 +125,14 @@ export function TeacherRegisterForm({
           </p>
         ) : null}
 
-        <button type="submit" className={css.submit} disabled={pending}>
-          {pending
-            ? t("submitting")
-            : paymentConfigured
-              ? t("submitPay", { fee: TEACHER_FEE_UAH })
-              : t("submitSave")}
+        <button type="submit" className={css.submit} disabled={busy}>
+          {paying
+            ? t("redirecting")
+            : pending
+              ? t("submitting")
+              : paymentConfigured
+                ? t("submitPay", { fee: TEACHER_FEE_UAH })
+                : t("submitSave")}
         </button>
       </form>
 

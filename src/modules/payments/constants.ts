@@ -25,3 +25,13 @@ const REFERENCE_PATTERN = /^[a-f0-9]{32}$/i;
 export function isTeacherPaymentReference(value: unknown): value is string {
   return typeof value === "string" && REFERENCE_PATTERN.test(value.trim());
 }
+
+/** Mono checkout `pageUrl` must be https (never javascript: / relative). */
+export function isSafeCheckoutUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}

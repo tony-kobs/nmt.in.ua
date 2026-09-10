@@ -1,11 +1,11 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 
 import { findUserById } from "@/modules/auth/users";
 import { setSessionCookie } from "@/modules/auth/getCurrentUser";
 import {
+  isSafeCheckoutUrl,
   isTeacherPaymentReference,
   TEACHER_PAY_COOKIE,
   TEACHER_PAY_COOKIE_MAX_AGE_SEC,
@@ -16,7 +16,8 @@ import { findTeacherPaymentByReference } from "./teacherPayments";
 
 export type RegisterTeacherActionState =
   | { status: "idle" }
-  | { status: "error"; code: RegisterTeacherErrorCode };
+  | { status: "error"; code: RegisterTeacherErrorCode }
+  | { status: "pay"; pageUrl: string };
 
 export type { RegisterTeacherErrorCode };
 
@@ -59,7 +60,13 @@ export async function registerTeacherAction(
     console.error("registerTeacherAction: cookie failed", error);
   }
 
-  redirect(result.pageUrl);
+  if (!isSafeCheckoutUrl(result.pageUrl)) {
+    return { status: "error", code: "invoiceFailed" };
+  }
+
+  // Navigate on the client — CSP `form-action 'self'` would block a
+  // form-POST redirect to Mono's checkout host.
+  return { status: "pay", pageUrl: result.pageUrl };
 }
 
 export async function claimTeacherSessionAction(

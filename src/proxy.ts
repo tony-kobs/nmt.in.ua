@@ -43,12 +43,12 @@ function take(key: string, limit: number, now: number): boolean {
 function limitFor(pathname: string): number {
   if (pathname.startsWith("/_next/static")) return LIMIT_STATIC;
   if (pathname.startsWith("/_next")) return LIMIT_OTHER;
+  if (pathname === "/api/payments/mono/webhook") return LIMIT_PAGE;
   if (
     pathname === "/login" ||
     pathname === "/register" ||
     pathname.startsWith("/login/") ||
     pathname.startsWith("/register/") ||
-    pathname === "/api/payments/mono/webhook" ||
     pathname.startsWith("/api/")
   ) {
     return LIMIT_AUTH;

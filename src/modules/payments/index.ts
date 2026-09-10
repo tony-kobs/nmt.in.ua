@@ -5,6 +5,7 @@ export {
   MONO_DEFAULT_BASE_URL,
   TEACHER_PAY_COOKIE,
   isTeacherPaymentReference,
+  isSafeCheckoutUrl,
 } from "./constants";
 export {
   readMonoAcquiringConfig,

@@ -53,6 +53,8 @@ bash scripts/rollback-hosting.sh --yes
 
 Без `SESSION_SECRET` у production вхід і реєстрація падають (`createSessionToken`). Ключ не комітити і не світити в логах. Згенерувати один раз: `openssl rand -hex 32` — і записати в обидва `.env.production` (store + `www`).
 
+Для платної реєстрації викладача (`/register/teacher`) на хості додати `MONO_ACQUIRING_TOKEN` у ті самі два `.env.production` (store + `www`). Не в git і не в GitHub Secrets. Без токена сторінка лишається заглушкою; з токеном створюється рахунок Mono на 500 грн і браузер іде на `pageUrl`. Таблиця: `scripts/sql/014_teacher_payments.sql` (або створюється сама при першому сабміті). `NEXT_PUBLIC_SITE_URL=https://nmt.in.ua` потрібен для `webHookUrl` / `redirectUrl`.
+
 ### Діагностика (`/diagnostic`) — одноразова міграція БД
 
 Прод MySQL уже має контент (`themes` + `quiz_tasks`) — діагностика перевикористовує його

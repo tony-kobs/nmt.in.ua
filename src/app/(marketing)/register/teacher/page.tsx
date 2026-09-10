@@ -4,6 +4,9 @@ import { TeacherRegisterForm } from "@/components/auth/TeacherRegisterForm";
 import { createPageMetadata } from "@/constants/seo";
 import { isMonoAcquiringConfigured } from "@/modules/payments/config";
 
+/** Runtime env: CI build has no token; hosting `.env.production` may. */
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata() {
   const t = await getTranslations("Metadata.teacherRegister");
 

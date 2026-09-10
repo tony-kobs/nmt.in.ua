@@ -16,9 +16,10 @@ export type EnvLike = {
 export function readMonoAcquiringConfig(
   env: EnvLike = process.env,
 ): MonoAcquiringConfig {
-  const token = env.MONO_ACQUIRING_TOKEN?.trim() ?? "";
+  // Bracket access so the bundler cannot inline an empty token from CI build.
+  const token = (env["MONO_ACQUIRING_TOKEN"] ?? "").trim();
   const rawBase =
-    env.MONO_ACQUIRING_BASE_URL?.trim() || MONO_DEFAULT_BASE_URL;
+    (env["MONO_ACQUIRING_BASE_URL"] ?? "").trim() || MONO_DEFAULT_BASE_URL;
   const baseUrl = rawBase.replace(/\/$/, "");
   return {
     token,

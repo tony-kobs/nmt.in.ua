@@ -90,3 +90,26 @@ test("createMonoInvoice shapes POST /api/merchant/invoice/create", async () => {
     pageUrl: "https://pay.mbnk.biz/p2_testInvoice",
   });
 });
+
+test("createMonoInvoice rejects a non-https pageUrl without exposing the token", async () => {
+  await assert.rejects(
+    () =>
+      createMonoInvoice(input, {
+        getConfig: () => ({
+          token: "test-token",
+          baseUrl: "https://api.monobank.ua",
+          configured: true,
+        }),
+        fetch: async () =>
+          new Response(
+            JSON.stringify({
+              invoiceId: "inv",
+              pageUrl: "http://evil.example/pay",
+            }),
+            { status: 200 },
+          ),
+      }),
+    (error: unknown) =>
+      error instanceof MonoClientError && error.code === "invalid_response",
+  );
+});

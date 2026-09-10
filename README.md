@@ -78,15 +78,15 @@ npm run dev
 | `demo-teacher` | `demo123` | Викладач | + призначення mentor-сесій на `/sessions` |
 | `demo-admin` | `demo123` | Адмін | + імпорт контенту на `/settings` |
 
-На `/login` є кнопки швидкого входу для кожної ролі. Нові учні реєструються на `/register` (роль `student`, авто-вхід після створення). Викладачі — окрема сторінка `/register/teacher` (500 грн, Mono); без `MONO_ACQUIRING_TOKEN` форма зберігає заявку й показує, що оплату ще не підключено. Адмін цим потоком не створюється.
+На `/login` є кнопки швидкого входу для кожної ролі. Нові учні реєструються на `/register` (роль `student`, авто-вхід після створення). Викладачі — окрема сторінка `/register/teacher` (500 грн, Mono); без `MONO_ACQUIRING_TOKEN` форма зберігає заявку й показує «оплату ще не налаштовано». З токеном створюється рахунок і браузер іде на `pageUrl`. Адмін цим потоком не створюється.
 
 ### Оплата кабінету викладача (Mono)
 
 1. Скопіюй `MONO_ACQUIRING_TOKEN` у `.env.local` / `.env.production` (кабінет https://web.monobank.ua/ або тест https://api.monobank.ua/).
 2. За бажанням `MONO_ACQUIRING_BASE_URL` (дефолт `https://api.monobank.ua`).
 3. SQL: `scripts/sql/014_teacher_payments.sql` — або нічого не запускай: таблиця створюється при першому сабміті.
-4. Webhook: `POST https://<домен>/api/payments/mono/webhook` (підпис `X-Sign`, ECDSA). `redirectUrl` — `/register/teacher/success?ref=…`.
-5. Сума завжди **500 грн = 50000 копійок**, `ccy: 980`. Без токена застосунок **не** ходить у Mono з порожнім `X-Token`.
+4. Webhook: `POST https://<домен>/api/payments/mono/webhook` (підпис `X-Sign`, ECDSA). Після оплати браузер іде на `/register/teacher/success?ref=…`.
+5. Сума завжди **500 грн = 50000 копійок**, `ccy: 980`. Без токена застосунок **не** ходить у Mono з порожнім `X-Token`. З токеном браузер переходить на `pageUrl` (клієнтський `location.assign`, бо CSP `form-action 'self'`). Токен лише в `.env.local` / хостинг `.env.production`, не в git.
 
 **Скидання демо-даних:** старі тести до auth писалися з `user_id=1`, тому вони «прилипають» до demo-student. Очистити:
 
