@@ -369,5 +369,5 @@ npm run lint && npm test && npm run build
   повідомлення), викладач/адмін бачить усі заявки й ставить **побачено** / **закрито**.
 - UI: скляна форма як у `/account`; інбокс — картки на base, таблиця з 768.
 - Логіка в `src/modules/consultations`; таблиця `consultation_requests`
-  (`scripts/sql/014_consultation_requests.sql` + lazy `ensureConsultationSchema`).
+  (`scripts/sql/016_consultation_requests.sql` + lazy `ensureConsultationSchema`).
 - Привʼязки учень↔викладач немає — список спільний для всіх teacher/admin.

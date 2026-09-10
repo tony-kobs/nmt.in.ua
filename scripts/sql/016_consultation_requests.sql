@@ -1,5 +1,5 @@
 -- Consultation requests (student → all teachers). Safe to re-run.
--- mysql ... < scripts/sql/014_consultation_requests.sql
+-- mysql ... < scripts/sql/016_consultation_requests.sql
 
 CREATE TABLE IF NOT EXISTS consultation_requests (
   id INT NOT NULL AUTO_INCREMENT,
