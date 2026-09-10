@@ -5,42 +5,52 @@ import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import clsx from "clsx";
 import {
-  registerAction,
-  type RegisterActionState,
-} from "@/modules/auth/actions";
+  registerTeacherAction,
+  type RegisterTeacherActionState,
+} from "@/modules/payments/actions";
+import { TEACHER_FEE_UAH } from "@/modules/payments/constants";
 import {
   PASSWORD_MAX_LEN,
   PASSWORD_MIN_LEN,
 } from "@/modules/auth/validateRegistration";
 import css from "../auth.module.css";
 
-const INITIAL: RegisterActionState = { status: "idle" };
+const INITIAL: RegisterTeacherActionState = { status: "idle" };
 
-type RegisterFormProps = {
-  nextPath: string;
-  /** Set when arriving via `/register?from=diagnostic` — lets `registerAction`
-   * claim the guest's diagnostic progress after a successful signup. */
-  from?: "diagnostic";
+type TeacherRegisterFormProps = {
+  paymentConfigured: boolean;
 };
 
-export function RegisterForm({ nextPath, from }: RegisterFormProps) {
-  const t = useTranslations("RegisterForm");
-  const [state, formAction, pending] = useActionState(registerAction, INITIAL);
+export function TeacherRegisterForm({
+  paymentConfigured,
+}: TeacherRegisterFormProps) {
+  const t = useTranslations("TeacherRegister");
+  const [state, formAction, pending] = useActionState(
+    registerTeacherAction,
+    INITIAL,
+  );
 
   return (
     <div className={css.card}>
       <header className={css.intro}>
         <p className={css.kicker}>{t("kicker")}</p>
         <h1 className={css.title}>{t("title")}</h1>
-        <p className={css.lead}>
-          {from === "diagnostic" ? t("leadFromDiagnostic") : t("lead")}
-        </p>
+        <p className={css.lead}>{t("lead")}</p>
+        <p className={css.feeChip}>{t("fee", { fee: TEACHER_FEE_UAH })}</p>
+        <ul className={css.benefits}>
+          <li>{t("benefits.mentor")}</li>
+          <li>{t("benefits.progress")}</li>
+          <li>{t("benefits.cabinet")}</li>
+        </ul>
       </header>
 
-      <form className={css.form} action={formAction}>
-        <input type="hidden" name="next" value={nextPath} />
-        <input type="hidden" name="from" value={from ?? ""} />
+      {paymentConfigured ? null : (
+        <p className={clsx(css.alert, css.alertNotice)} role="status">
+          {t("paymentNotConfigured")}
+        </p>
+      )}
 
+      <form className={css.form} action={formAction}>
         <label className={css.field}>
           <span className={css.label}>{t("displayName")}</span>
           <input
@@ -108,7 +118,11 @@ export function RegisterForm({ nextPath, from }: RegisterFormProps) {
         ) : null}
 
         <button type="submit" className={css.submit} disabled={pending}>
-          {pending ? t("submitting") : t("submit")}
+          {pending
+            ? t("submitting")
+            : paymentConfigured
+              ? t("submitPay", { fee: TEACHER_FEE_UAH })
+              : t("submitSave")}
         </button>
       </form>
 
@@ -119,9 +133,9 @@ export function RegisterForm({ nextPath, from }: RegisterFormProps) {
         </Link>
       </p>
       <p className={css.switch}>
-        {t("teacherPrompt")}{" "}
-        <Link href="/register/teacher" className={css.switchLink}>
-          {t("teacherLink")}
+        {t("studentPrompt")}{" "}
+        <Link href="/register" className={css.switchLink}>
+          {t("studentLink")}
         </Link>
       </p>
     </div>

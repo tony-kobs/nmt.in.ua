@@ -62,6 +62,8 @@ npm run dev
 | `CONTENT_IMPORT_API_KEY` | Bearer для `POST /api/import` і Server Action імпорту (admin) |
 | `ADMIN_API_KEY` | Bearer для `POST /api/admin/sessions` |
 | `SESSION_SECRET` | HMAC-секрет для cookie `nmt_session` (обовʼязково в production) |
+| `MONO_ACQUIRING_TOKEN` | токен еквайрингу Mono для `/register/teacher` (порожній = scaffold без живих платежів) |
+| `MONO_ACQUIRING_BASE_URL` | опційно, дефолт `https://api.monobank.ua` |
 | `MAX_BODY_BYTES` | ліміт тіла HTTP на `server.js` (дефолт 8388608) |
 
 Якщо `CONTENT_IMPORT_API_KEY` або `ADMIN_API_KEY` не задані — відповідні ендпоінти відхиляють **усі** запити (`401`, fail-closed).
@@ -76,7 +78,15 @@ npm run dev
 | `demo-teacher` | `demo123` | Викладач | + призначення mentor-сесій на `/sessions` |
 | `demo-admin` | `demo123` | Адмін | + імпорт контенту на `/settings` |
 
-На `/login` є кнопки швидкого входу для кожної ролі. Нові учні реєструються на `/register` (роль `student`, авто-вхід після створення).
+На `/login` є кнопки швидкого входу для кожної ролі. Нові учні реєструються на `/register` (роль `student`, авто-вхід після створення). Викладачі — окрема сторінка `/register/teacher` (500 грн, Mono); без `MONO_ACQUIRING_TOKEN` форма зберігає заявку й показує, що оплату ще не підключено. Адмін цим потоком не створюється.
+
+### Оплата кабінету викладача (Mono)
+
+1. Скопіюй `MONO_ACQUIRING_TOKEN` у `.env.local` / `.env.production` (кабінет https://web.monobank.ua/ або тест https://api.monobank.ua/).
+2. За бажанням `MONO_ACQUIRING_BASE_URL` (дефолт `https://api.monobank.ua`).
+3. SQL: `scripts/sql/014_teacher_payments.sql` — або нічого не запускай: таблиця створюється при першому сабміті.
+4. Webhook: `POST https://<домен>/api/payments/mono/webhook` (підпис `X-Sign`, ECDSA). `redirectUrl` — `/register/teacher/success?ref=…`.
+5. Сума завжди **500 грн = 50000 копійок**, `ccy: 980`. Без токена застосунок **не** ходить у Mono з порожнім `X-Token`.
 
 **Скидання демо-даних:** старі тести до auth писалися з `user_id=1`, тому вони «прилипають» до demo-student. Очистити:
 
@@ -92,9 +102,11 @@ npm run reset-demo-student
 | --- | --- |
 | Вхід / вихід | `/login`, cookie `nmt_session` |
 | Реєстрація | `/register` — публічна, лише роль `student` |
+| Реєстрація викладача | `/register/teacher` — pending у `teacher_payments`, акаунт `role=teacher` лише після `status=success` від Mono (500 грн). Без токена — UI-заглушка, Mono не викликається |
+| Webhook оплати | `POST /api/payments/mono/webhook` (публічний, перевірка `X-Sign`) |
 | Ролі | `student`, `teacher`, `admin` |
 | Облікові записи | таблиця `app_users` (окремо від legacy `users` на хостингу) |
-| Middleware | редірект на `/login`; публічні `/`, `/welcome`, `/login`, `/register` і статика з `public/`; `/settings` — лише admin |
+| Middleware | редірект на `/login`; публічні `/`, `/welcome`, `/login`, `/register`, `/register/teacher` і статика з `public/`; webhook `/api/payments/mono/webhook`; `/settings` — лише admin |
 | Mentor UI | `/sessions` — панель призначення для teacher/admin |
 
 `userId` у Server Actions береться з сесії (`requireUserId()`), не з FormData.

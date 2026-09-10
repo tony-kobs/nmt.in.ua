@@ -39,6 +39,8 @@ export {
   findUserByLogin,
   listStudents,
   createUser,
+  createUserRecord,
+  insertUserOnConnection,
   CreateUserError,
   updateUserPassword,
 } from "./users";
@@ -49,7 +51,7 @@ export type {
   ChangePasswordFieldError,
   ChangePasswordInput,
 } from "./validateChangePassword";
-export type { CreateUserInput } from "./users";
+export type { CreateUserInput, CreateUserRecordInput } from "./users";
 export {
   validateRegistrationInput,
   PASSWORD_MIN_LEN,

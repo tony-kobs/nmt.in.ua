@@ -524,12 +524,14 @@
       "invalidCredentials": "Ungültiger Login oder ungültiges Passwort."
     },
     "noAccount": "Noch kein Konto?",
-    "registerLink": "Registrieren"
+    "registerLink": "Registrieren",
+    "teacherPrompt": "Lehrkraft?",
+    "teacherLink": "Lehrer-Konto (500 UAH)"
   },
   "RegisterForm": {
     "kicker": "Registrierung",
     "title": "Schülerkonto erstellen",
-    "lead": "Registriere dich, um Tests zu absolvieren, Ergebnisse zu speichern und Empfehlungen zu erhalten. Lehrkraft- und Admin-Zugang bleiben vorerst über Demo-Login.",
+    "lead": "Registriere dich, um Tests zu absolvieren, Ergebnisse zu speichern und Empfehlungen zu erhalten. Lehrkräfte registrieren sich auf einer eigenen Seite.",
     "leadFromDiagnostic": "Registriere dich, um dein Einstufungstest-Ergebnis und deine Selbsteinschätzung in deinem Konto zu speichern.",
     "displayName": "Anzeigename",
     "login": "Login",
@@ -541,6 +543,8 @@
     "submit": "Registrieren",
     "haveAccount": "Bereits ein Konto?",
     "signInLink": "Anmelden",
+    "teacherPrompt": "Lehrkraft?",
+    "teacherLink": "Separate Registrierung",
     "errors": {
       "requiredFields": "Bitte alle Felder ausfüllen.",
       "invalidLogin": "Ungültiger Login. Nutze lateinische Buchstaben, Ziffern, ., _ oder -.",
@@ -551,6 +555,68 @@
       "loginTaken": "Dieser Login ist bereits vergeben.",
       "reservedLogin": "Dieser Login ist für Demos reserviert.",
       "serverError": "Konto konnte nicht erstellt werden. Bitte später erneut versuchen."
+    }
+  },
+  "TeacherRegister": {
+    "kicker": "Für Lehrkräfte",
+    "title": "Lehrer-Konto",
+    "lead": "Weise Mentor-Sitzungen zu und verfolge den Fortschritt der Schüler. Admins entstehen über diesen Weg nicht.",
+    "fee": "Einmalige Gebühr {fee} UAH — öffnet das Konto.",
+    "benefits": {
+      "mentor": "Mentor-Sitzungen zu konkreten Lücken",
+      "progress": "Ergebnisse und Themen sehen, die nachgearbeitet werden sollten",
+      "cabinet": "Derselbe Arbeitsbereich wie für Schüler, plus Zuweisungspanel"
+    },
+    "paymentNotConfigured": "Zahlungen sind noch nicht verbunden (kein MONO_ACQUIRING_TOKEN). Die Anmeldung kann gespeichert werden; eine Mono-Rechnung wird nicht erstellt, das Konto bleibt inaktiv.",
+    "asideBadge": "Lehrkräfte · 500 UAH",
+    "asideTitle": "Ein Konto, um Schüler zur NMT zu führen",
+    "asideLead": "Nach der Zahlung siehst du den Fortschritt und kannst Übungen für schwache Themen zuweisen.",
+    "displayName": "Anzeigename",
+    "login": "Login",
+    "loginHint": "Lateinische Buchstaben, Ziffern, Punkt, _ oder - (mindestens 3 Zeichen).",
+    "password": "Passwort",
+    "passwordHint": "Mindestens {min} Zeichen.",
+    "passwordConfirm": "Passwort bestätigen",
+    "submitting": "Wird gespeichert…",
+    "submitPay": "{fee} UAH zahlen",
+    "submitSave": "Anmeldung speichern",
+    "haveAccount": "Bereits ein Konto?",
+    "signInLink": "Anmelden",
+    "studentPrompt": "Du bist Schüler?",
+    "studentLink": "Kostenlose Registrierung",
+    "errors": {
+      "requiredFields": "Bitte alle Felder ausfüllen.",
+      "invalidLogin": "Ungültiger Login. Nutze lateinische Buchstaben, Ziffern, ., _ oder -.",
+      "invalidDisplayName": "Der Name muss 2–100 Zeichen haben.",
+      "passwordTooShort": "Das Passwort ist zu kurz.",
+      "passwordTooLong": "Das Passwort ist zu lang.",
+      "passwordMismatch": "Die Passwörter stimmen nicht überein.",
+      "loginTaken": "Dieser Login ist bereits vergeben.",
+      "reservedLogin": "Dieser Login ist für Demos reserviert.",
+      "serverError": "Anmeldung konnte nicht gespeichert werden. Bitte später erneut versuchen.",
+      "paymentNotConfigured": "Zahlungen sind noch nicht konfiguriert. Die Anmeldung wurde gespeichert; das Konto öffnet sich nach dem Anschluss von Mono-Acquiring.",
+      "invoiceFailed": "Mono-Rechnung konnte nicht erstellt werden. Bitte später erneut versuchen."
+    },
+    "result": {
+      "success": {
+        "kicker": "Zahlung",
+        "title": "Lehrer-Konto ist geöffnet",
+        "lead": "Die Zahlung ist bestätigt. Du kannst dich anmelden und Sitzungen zuweisen.",
+        "cta": "Zum Arbeitsbereich"
+      },
+      "pending": {
+        "kicker": "Zahlung wird erwartet",
+        "title": "Die Rechnung wird noch verarbeitet",
+        "lead": "Wenn du bereits gezahlt hast, warte einige Sekunden und aktualisiere die Seite. Das Konto erscheint nach der Bankbestätigung.",
+        "cta": "Später anmelden"
+      },
+      "fail": {
+        "kicker": "Zahlung",
+        "title": "Zahlung nicht abgeschlossen",
+        "lead": "Die Zahlung wurde abgebrochen oder ist fehlgeschlagen. Das Lehrer-Konto ist noch nicht aktiv.",
+        "hint": "Es wurde nichts abgebucht, oder die Bank hat abgelehnt. Du kannst es erneut versuchen.",
+        "retry": "Zurück zur Registrierung"
+      }
     }
   },
   "ContentImportForm": {
@@ -655,6 +721,18 @@
     "register": {
       "title": "Registrierung",
       "description": "Erstelle ein Schülerkonto für den NMT-Lernbereich."
+    },
+    "teacherRegister": {
+      "title": "Registrierung für Lehrkräfte",
+      "description": "Lehrer-Konto auf nmt.in.ua: Mentor-Sitzungen und Lernfortschritt. Einmalige Gebühr 500 UAH."
+    },
+    "teacherRegisterSuccess": {
+      "title": "Zahlung erfolgreich",
+      "description": "Das Lehrer-Konto ist nach der Zahlung aktiv."
+    },
+    "teacherRegisterFail": {
+      "title": "Zahlung nicht abgeschlossen",
+      "description": "Die Zahlung für das Lehrer-Konto wurde abgebrochen oder ist fehlgeschlagen."
     },
     "session": {
       "title": "Test durchführen",

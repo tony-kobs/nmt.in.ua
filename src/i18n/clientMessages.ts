@@ -33,6 +33,7 @@ export const PUBLIC_CLIENT_NAMESPACES = [
 
 const LOGIN_NAMESPACES = ["LoginForm"] as const;
 const REGISTER_NAMESPACES = ["RegisterForm"] as const;
+const TEACHER_REGISTER_NAMESPACES = ["TeacherRegister"] as const;
 const SETTINGS_NAMESPACES = ["ContentImportForm"] as const;
 const DIAGNOSTIC_NAMESPACES = ["Diagnostic", "DiagnosticResult"] as const;
 
@@ -41,6 +42,7 @@ export const CLIENT_MESSAGE_NAMESPACES = [
   ...CORE_CLIENT_NAMESPACES,
   ...LOGIN_NAMESPACES,
   ...REGISTER_NAMESPACES,
+  ...TEACHER_REGISTER_NAMESPACES,
   ...SETTINGS_NAMESPACES,
   ...DIAGNOSTIC_NAMESPACES,
 ] as const;
@@ -49,6 +51,7 @@ function namespacesForPath(pathname: string): readonly string[] {
   const isLogin = pathname === "/login" || pathname.startsWith("/login/");
   const isRegister =
     pathname === "/register" || pathname.startsWith("/register/");
+  const isTeacherRegister = pathname.startsWith("/register/teacher");
   const isPublicLanding = pathname === "/welcome" || pathname === "/";
   const isSettings =
     pathname === "/settings" || pathname.startsWith("/settings/");
@@ -62,7 +65,8 @@ function namespacesForPath(pathname: string): readonly string[] {
   if (isLogin || isRegister) {
     const keys = new Set<string>(["LanguageSwitcher", "Feedback"]);
     if (isLogin) keys.add("LoginForm");
-    if (isRegister) keys.add("RegisterForm");
+    if (isTeacherRegister) keys.add("TeacherRegister");
+    else if (isRegister) keys.add("RegisterForm");
     return [...keys];
   }
 

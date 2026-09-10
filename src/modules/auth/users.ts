@@ -194,6 +194,13 @@ export type CreateUserInput = {
   role?: UserRole;
 };
 
+export type CreateUserRecordInput = {
+  login: string;
+  displayName: string;
+  passwordHash: string;
+  role: UserRole;
+};
+
 export class CreateUserError extends Error {
   constructor(
     message: string,
@@ -201,6 +208,61 @@ export class CreateUserError extends Error {
   ) {
     super(message);
     this.name = "CreateUserError";
+  }
+}
+
+function mapDupOrThrow(error: unknown): never {
+  const errno =
+    typeof error === "object" && error !== null && "errno" in error
+      ? Number((error as { errno?: number }).errno)
+      : undefined;
+  // MySQL ER_DUP_ENTRY
+  if (errno === 1062) {
+    throw new CreateUserError("Login already taken.", "login_taken");
+  }
+  console.error("createUserRecord: unexpected database error", error);
+  throw new CreateUserError("Database operation failed.", "db_error");
+}
+
+/** Inserts on an already-open connection (caller owns the transaction / release). */
+export async function insertUserOnConnection(
+  connection: SqlConnection,
+  input: CreateUserRecordInput,
+): Promise<AuthUser> {
+  try {
+    const result = await connection.execute(SQL_INSERT_USER, [
+      input.login,
+      input.passwordHash,
+      input.displayName,
+      input.role,
+    ]);
+    return {
+      id: result.insertId,
+      login: input.login,
+      displayName: input.displayName,
+      role: input.role,
+    };
+  } catch (error) {
+    mapDupOrThrow(error);
+  }
+}
+
+/**
+ * Inserts a user with an already-hashed password (e.g. paid teacher activation).
+ * Public student registration should call `createUser` instead.
+ */
+export async function createUserRecord(
+  input: CreateUserRecordInput,
+  deps: { getConnection: () => Promise<SqlConnection> } = {
+    getConnection: loadDefaultConnection,
+  },
+): Promise<AuthUser> {
+  await ensureAuthSchema(deps);
+  const connection = await deps.getConnection();
+  try {
+    return await insertUserOnConnection(connection, input);
+  } finally {
+    connection.release();
   }
 }
 
@@ -214,37 +276,16 @@ export async function createUser(
     getConnection: loadDefaultConnection,
   },
 ): Promise<AuthUser> {
-  await ensureAuthSchema(deps);
   const role: UserRole = input.role ?? "student";
-  const connection = await deps.getConnection();
-  try {
-    const result = await connection.execute(SQL_INSERT_USER, [
-      input.login,
-      hashPassword(input.password),
-      input.displayName,
-      role,
-    ]);
-
-    return {
-      id: result.insertId,
+  return createUserRecord(
+    {
       login: input.login,
       displayName: input.displayName,
+      passwordHash: hashPassword(input.password),
       role,
-    };
-  } catch (error) {
-    const errno =
-      typeof error === "object" && error !== null && "errno" in error
-        ? Number((error as { errno?: number }).errno)
-        : undefined;
-    // MySQL ER_DUP_ENTRY
-    if (errno === 1062) {
-      throw new CreateUserError("Login already taken.", "login_taken");
-    }
-    console.error("createUser: unexpected database error", error);
-    throw new CreateUserError("Database operation failed.", "db_error");
-  } finally {
-    connection.release();
-  }
+    },
+    deps,
+  );
 }
 
 const SQL_UPDATE_PASSWORD = `
