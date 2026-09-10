@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { cachedCatalogQuery } from "@/lib/cache/catalogCache";
 
 export type Theme = {
   id: number;
@@ -23,9 +24,7 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-export async function getThemes(
-  deps: GetThemesDeps = { getConnection: loadDefaultConnection },
-): Promise<Theme[]> {
+async function loadThemes(deps: GetThemesDeps): Promise<Theme[]> {
   const connection = await deps.getConnection();
 
   try {
@@ -47,4 +46,15 @@ export async function getThemes(
   } finally {
     connection.release();
   }
+}
+
+export async function getThemes(
+  deps?: GetThemesDeps,
+): Promise<Theme[]> {
+  if (deps) {
+    return loadThemes(deps);
+  }
+  return cachedCatalogQuery("themes", () =>
+    loadThemes({ getConnection: loadDefaultConnection }),
+  );
 }

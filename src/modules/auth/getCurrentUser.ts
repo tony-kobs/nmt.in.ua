@@ -20,17 +20,49 @@ export async function getSessionPayload() {
   return verifySessionToken(token);
 }
 
+function userFromPayload(payload: {
+  userId: number;
+  role: UserRole;
+  displayName: string;
+  login: string;
+}): AuthUser {
+  return {
+    id: payload.userId,
+    role: payload.role,
+    displayName: payload.displayName,
+    login: payload.login,
+  };
+}
+
 /**
  * Returns the logged-in user or null.
  *
- * Memoised per request: layout, `generateMetadata` and the page all ask for the user,
- * and three parallel pool checkouts per render is what turns one dropped socket into a
- * cascade of connection errors.
+ * Prefer displayName/login from the signed cookie (no `app_users` round-trip).
+ * Legacy cookies without profile fields fall back to `findUserById`.
+ *
+ * Memoised per request: layout, `generateMetadata` and the page all ask for the user.
  */
 export const getCurrentUser = cache(async (): Promise<AuthUser | null> => {
   const payload = await getSessionPayload();
   if (!payload) return null;
+
+  if (payload.displayName && payload.login) {
+    return userFromPayload({
+      userId: payload.userId,
+      role: payload.role,
+      displayName: payload.displayName,
+      login: payload.login,
+    });
+  }
+
   return findUserById(payload.userId);
+});
+
+/** True when the cookie is valid but missing profile fields (pre-upgrade tokens). */
+export const sessionCookieNeedsUpgrade = cache(async (): Promise<boolean> => {
+  const payload = await getSessionPayload();
+  if (!payload) return false;
+  return !(payload.displayName && payload.login);
 });
 
 /** Returns user id or null — for optional auth contexts. */
@@ -77,7 +109,12 @@ export async function requireRole(roles: UserRole[]): Promise<AuthUser> {
 }
 
 export async function setSessionCookie(user: AuthUser): Promise<void> {
-  const token = await createSessionToken(user.id, user.role);
+  const token = await createSessionToken({
+    userId: user.id,
+    role: user.role,
+    displayName: user.displayName,
+    login: user.login,
+  });
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,

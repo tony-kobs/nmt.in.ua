@@ -13,6 +13,10 @@ export {
   TASK_STATUS_UNANSWERED,
 } from "./types";
 
+/**
+ * One round-trip: branch the answer key via LEFT JOIN on `task_type`
+ * instead of probing `quiz_tasks` then `nmt_quiz_tasks`.
+ */
 const SQL_SELECT_MAPPING = `
   SELECT
     t2s.id,
@@ -20,34 +24,17 @@ const SQL_SELECT_MAPPING = `
     t2s.status,
     t2s.user_id,
     t2s.task_type,
-    qt.right_answer_n,
-    NULL AS right_answer_text,
-    'mcq' AS task_kind,
+    COALESCE(qt.right_answer_n, nqt.right_answer_n) AS right_answer_n,
+    nqt.right_answer_text AS right_answer_text,
+    COALESCE(nqt.task_kind, 'mcq') AS task_kind,
     ts.session_status
   FROM tasks2session t2s
-  INNER JOIN quiz_tasks qt ON qt.id = t2s.task_id
   INNER JOIN task_sessions ts ON ts.id = t2s.session_id
+  LEFT JOIN quiz_tasks qt
+    ON qt.id = t2s.task_id AND t2s.task_type <> ${TASK_TYPE_NMT}
+  LEFT JOIN nmt_quiz_tasks nqt
+    ON nqt.id = t2s.task_id AND t2s.task_type = ${TASK_TYPE_NMT}
   WHERE t2s.id = ? AND t2s.session_id = ? AND t2s.user_id = ?
-    AND t2s.task_type <> ${TASK_TYPE_NMT}
-  FOR UPDATE
-`;
-
-const SQL_SELECT_NMT_MAPPING = `
-  SELECT
-    t2s.id,
-    t2s.session_id,
-    t2s.status,
-    t2s.user_id,
-    t2s.task_type,
-    qt.right_answer_n,
-    qt.right_answer_text,
-    qt.task_kind,
-    ts.session_status
-  FROM tasks2session t2s
-  INNER JOIN nmt_quiz_tasks qt ON qt.id = t2s.task_id
-  INNER JOIN task_sessions ts ON ts.id = t2s.session_id
-  WHERE t2s.id = ? AND t2s.session_id = ? AND t2s.user_id = ?
-    AND t2s.task_type = ${TASK_TYPE_NMT}
   FOR UPDATE
 `;
 
@@ -192,18 +179,11 @@ export async function checkAnswer(
     try {
       await connection.beginTransaction();
 
-      let rows = await connection.query<MappingRow>(SQL_SELECT_MAPPING, [
+      const rows = await connection.query<MappingRow>(SQL_SELECT_MAPPING, [
         input.mappingId,
         input.sessionId,
         input.userId,
       ]);
-      if (!rows[0]) {
-        rows = await connection.query<MappingRow>(SQL_SELECT_NMT_MAPPING, [
-          input.mappingId,
-          input.sessionId,
-          input.userId,
-        ]);
-      }
       const row = rows[0];
 
       if (!row) {
@@ -224,6 +204,15 @@ export async function checkAnswer(
         throw new CheckAnswerError(
           "This session is already completed.",
           "session_completed",
+        );
+      }
+
+      // Mapping row exists but neither bank table joined (orphan task_id).
+      if (row.right_answer_n == null && row.right_answer_text == null) {
+        await connection.rollback();
+        throw new CheckAnswerError(
+          "Task mapping was not found in this session.",
+          "not_found",
         );
       }
 

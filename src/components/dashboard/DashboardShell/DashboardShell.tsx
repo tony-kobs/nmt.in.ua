@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore, type ComponentType } from "react";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import type { AuthUser } from "@/modules/auth/client";
-import { AppHeader } from "@/components/dashboard/AppHeader";
-import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { useTranslations } from "next-intl";
 import css from "./DashboardShell.module.css";
 
@@ -15,6 +14,30 @@ type DashboardShellProps = {
   children: React.ReactNode;
   user: AuthUser | null;
 };
+
+type AppHeaderProps = {
+  sidebarOpen: boolean;
+  onToggleSidebar: () => void;
+  user: AuthUser;
+};
+
+type AppSidebarProps = {
+  open: boolean;
+  role: AuthUser["role"];
+  onNavigate: () => void;
+};
+
+const AppHeader = dynamic(
+  () =>
+    import("@/components/dashboard/AppHeader").then((mod) => mod.AppHeader),
+  { ssr: true },
+) as ComponentType<AppHeaderProps>;
+
+const AppSidebar = dynamic(
+  () =>
+    import("@/components/dashboard/AppSidebar").then((mod) => mod.AppSidebar),
+  { ssr: true },
+) as ComponentType<AppSidebarProps>;
 
 const listeners = new Set<() => void>();
 

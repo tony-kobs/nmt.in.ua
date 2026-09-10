@@ -154,9 +154,12 @@ test("ultimate mode selects up to 20 tasks", async () => {
 
   assert.equal(result.mode, "ultimate");
   assert.equal(result.taskIds.length, ULTIMATE_TASK_LIMIT);
+  assert.ok(result.taskIds.every((id) => tasks.some((task) => task.id === id)));
 
   const selectCall = mock.calls.find((c) => c.sql.startsWith("SELECT"));
-  assert.match(selectCall!.sql, new RegExp(`LIMIT ${ULTIMATE_TASK_LIMIT}$`));
+  assert.ok(selectCall);
+  assert.doesNotMatch(selectCall!.sql, /ORDER BY RAND/);
+  assert.doesNotMatch(selectCall!.sql, /LIMIT /);
 });
 
 test("taskCount selects that many tasks, ignoring the mode default", async () => {
@@ -173,7 +176,8 @@ test("taskCount selects that many tasks, ignoring the mode default", async () =>
   assert.equal(result.taskIds.length, 7);
 
   const selectCall = mock.calls.find((c) => c.sql.startsWith("SELECT"));
-  assert.match(selectCall!.sql, /LIMIT 7$/);
+  assert.ok(selectCall);
+  assert.doesNotMatch(selectCall!.sql, /LIMIT /);
 
   const sessionInsert = mock.calls.find((c) =>
     c.sql.startsWith("INSERT INTO task_sessions"),

@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { sampleRandomIds } from "@/lib/sampleRandomIds";
 import { ensureSelfScoreSchema } from "@/modules/self-score/schema";
 import { isValidSelfScore } from "@/modules/self-score/types";
 import {
@@ -22,13 +23,8 @@ const SESSION_INITIAL_TIME = 0;
 const TASK_TYPE_TOPIC = 1;
 const TASK_STATUS_UNANSWERED = 0;
 
-/**
- * Table and column names below match the schema verified directly against
- * the team's MySQL database.
- */
-function buildSelectTasksSql(limit: number): string {
-  return `SELECT id FROM quiz_tasks WHERE theme_id = ? ORDER BY RAND() LIMIT ${limit}`;
-}
+/** Indexed id list for the theme — sample in Node instead of `ORDER BY RAND()`. */
+const SQL_SELECT_TASK_IDS = `SELECT id FROM quiz_tasks WHERE theme_id = ?`;
 
 const SQL_INSERT_SESSION =
   "INSERT INTO task_sessions (user_id, session_type, theme_id, tasks_number, right_number, time, session_status, start_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
@@ -167,12 +163,15 @@ export async function startTopicTest(
     try {
       await connection.beginTransaction();
 
-      const tasks = await connection.query<{ id: number }>(
-        buildSelectTasksSql(taskLimit),
-        [input.themeId],
+      const pool = await connection.query<{ id: number }>(SQL_SELECT_TASK_IDS, [
+        input.themeId,
+      ]);
+      const taskIds = sampleRandomIds(
+        pool.map((row) => row.id),
+        taskLimit,
       );
 
-      const taskCount = tasks.length;
+      const taskCount = taskIds.length;
       if (taskCount === 0) {
         await connection.rollback();
         throw new StartTopicTestError(
@@ -192,10 +191,10 @@ export async function startTopicTest(
         SESSION_START_TIME,
       ]);
 
-      const placeholders = tasks.map(() => "(?, ?, ?, ?, ?)").join(", ");
-      const mappingParams = tasks.flatMap((task) => [
+      const placeholders = taskIds.map(() => "(?, ?, ?, ?, ?)").join(", ");
+      const mappingParams = taskIds.flatMap((taskId) => [
         TASK_TYPE_TOPIC,
-        task.id,
+        taskId,
         session.insertId,
         input.userId,
         TASK_STATUS_UNANSWERED,
@@ -232,7 +231,7 @@ export async function startTopicTest(
       return {
         sessionId: session.insertId,
         themeId: input.themeId,
-        taskIds: tasks.map((task) => task.id),
+        taskIds,
         mode: input.mode ?? "standard",
       };
     } catch (error) {

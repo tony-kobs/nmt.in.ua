@@ -106,7 +106,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 - `src/components/` — UI. Стилі — CSS Modules поруч із компонентом.
 - `src/lib/db/mysql.ts` — єдине місце, звідки ходимо в MySQL (`getConnection`).
 
-**Нове правило:** `userId` у Server Actions береться з auth-модуля, ніколи з FormData. Інакше учень A побачить сесії учня B. У «гарячих» діях тренажера (`checkAnswer`, `skip`, `markSessionStarted`, `finish`) беремо `requireSessionUserId()` — id з підписаної cookie, без запиту в `app_users`. Там, де потрібні ім'я чи роль, лишається `requireUser()` / `requireUserId()`.
+**Нове правило:** `userId` у Server Actions береться з auth-модуля, ніколи з FormData. Інакше учень A побачить сесії учня B. У «гарячих» діях тренажера (`checkAnswer`, `skip`, `markSessionStarted`, `finish`) беремо `requireSessionUserId()` — id з підписаної cookie, без запиту в `app_users`. `getCurrentUser` для layout теж читає `displayName`/`login`/`role` з cookie (нові токени); legacy-cookie без профілю — fallback на `findUserById`. Там, де потрібна свіжа роль з БД для чутливих дій, лишається `requireUser()` після логіну.
 
 ### 4.3. До кого йти
 
@@ -297,17 +297,20 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 
 ## 11. З чого почати новому dev (вільні задачі)
 
-Повний розклад хвилі 6 — [`docs/mentor-tasks.md`](./mentor-tasks.md). Не чіпайте робочий topic-test без узгодження. Відкрите: **6.5** (банк), форма консультацій, техборг `RAND` / діагностика >10 тем.
+Повний розклад хвилі 6 — [`docs/mentor-tasks.md`](./mentor-tasks.md). Не чіпайте робочий topic-test без узгодження. Відкрите: **6.5** (банк), форма консультацій, політика діагностики при >10 eligible темах.
 
 | Задача | Де копати | Складність | Нотатка |
 | --- | --- | --- | --- |
 | 6.1 Підручник + `themes.code` | `src/content/learningMaterials`, `/materials/textbook` | Середня | ✅ 08–09.09: лише підручник; `/materials` і slug → редірект |
 | 6.5 Банк 30–40 / тему | `content-import`, `docs/content-review/` | Контент | Спочатку розширити `varchar(50)` у відповідях |
 | 6.8 Варіанти НМТ | `startNmtSimulator`, `/simulator`, `nmt_variants*` | Середня | ✅ 09.09 |
-| 6.6 Задачник | `src/app/problems`, таблиця `problems` | Середня | ✅ 08.09 |
+| 6.6 Задачник | `src/app/problems`, таблиця `problems` | Середня | ✅ 08.09 (UI з JSON-каталогу, без MySQL на read) |
 | 6.3–6.4 Діагностика | `/diagnostic` | Велика | ✅; відкрито: політика тем при >10 eligible |
 | 6.2 Відгук | `src/modules/feedback` | Мала | ✅ |
 | Консультації | `/consultations` | Мала | Частково: пункт у меню; треба форма / контакти |
+| Перф (TTFB / бандл) | `(app)`/`(marketing)` layouts, `catalogCache`, `sampleRandomIds` | — | ✅ 10.09: без `ORDER BY RAND()`, кеш довідників, cookie-профіль |
+
+Карта app router: `src/app/page.tsx` — `/` (гість легкий / учень → CabinetHome); `src/app/(marketing)/` — welcome / login / register / diagnostic; `src/app/(app)/` — кабінет (`force-dynamic`). Root layout лише `html`/`body` + `globals.css`.
 
 Поза першим релізом (не хапати «бо цікаво»): групи викладача, ДЗ, PDF, Google-логін, AI-перевірка, типи завдань окрім вибору з 4 варіантів, повноцінний PWA. Це версія 2 — питайте PM.
 

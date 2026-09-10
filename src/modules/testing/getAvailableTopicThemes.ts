@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { cachedCatalogQuery } from "@/lib/cache/catalogCache";
 import type { AvailableTopicTheme } from "./types";
 
 export type { AvailableTopicTheme } from "./types";
@@ -21,9 +22,8 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-/** Themes that have at least one quiz task in the bank. */
-export async function getAvailableTopicThemes(
-  deps: GetAvailableTopicThemesDeps = { getConnection: loadDefaultConnection },
+async function loadAvailableTopicThemes(
+  deps: GetAvailableTopicThemesDeps,
 ): Promise<AvailableTopicTheme[]> {
   const connection = await deps.getConnection();
   try {
@@ -45,4 +45,16 @@ export async function getAvailableTopicThemes(
   } finally {
     connection.release();
   }
+}
+
+/** Themes that have at least one quiz task in the bank. */
+export async function getAvailableTopicThemes(
+  deps?: GetAvailableTopicThemesDeps,
+): Promise<AvailableTopicTheme[]> {
+  if (deps) {
+    return loadAvailableTopicThemes(deps);
+  }
+  return cachedCatalogQuery("available-topic-themes", () =>
+    loadAvailableTopicThemes({ getConnection: loadDefaultConnection }),
+  );
 }

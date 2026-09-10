@@ -53,6 +53,8 @@ export async function contentImportAction(
   try {
     const input = buildImportInputFromFormData(formData);
     const summary = await deps.runContentImport(input);
+    const { invalidateCatalogCache } = await import("@/lib/cache/catalogCache");
+    invalidateCatalogCache();
     return {
       status: "success",
       inserted: summary.inserted,

@@ -1,41 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { SqlConnection } from "@/lib/db/mysql";
 import {
   getWorkbookProblems,
   getWorkbookThemes,
   listWorkbookProblemsFromCatalog,
   listWorkbookThemesFromCatalog,
 } from "./getProblems";
-import { resetProblemsSchemaMemo } from "./workbookSchema";
-
-function makeConnection() {
-  const calls: Array<{ sql: string; params?: unknown[] }> = [];
-  let released = 0;
-
-  const connection: SqlConnection = {
-    beginTransaction: async () => {},
-    query: async (sql, params) => {
-      calls.push({ sql, params });
-      return [] as never[];
-    },
-    execute: async (sql, params) => {
-      calls.push({ sql, params });
-      return { insertId: 0, affectedRows: 0 };
-    },
-    commit: async () => {},
-    rollback: async () => {},
-    release: () => {
-      released += 1;
-    },
-  };
-
-  return {
-    connection,
-    calls,
-    released: () => released,
-  };
-}
 
 const ZADACHNYK_FIRST_PROMPTS: Record<number, { name: string; first: string }> =
   {
@@ -110,30 +80,16 @@ test("catalog maps all 22 zadachnyk themes to the screenshot first tasks", () =>
 });
 
 test("getWorkbookThemes uses zadachnyk names, not trainer themes", async () => {
-  resetProblemsSchemaMemo();
-  const mock = makeConnection();
-
-  const themes = await getWorkbookThemes({
-    getConnection: async () => mock.connection,
-    seedIfEmpty: false,
-  });
+  const themes = await getWorkbookThemes();
 
   assert.equal(themes[0]?.name, "Елементарна математика");
   assert.equal(themes[6]?.name, "Обрахункова геометрія");
   assert.equal(themes[7]?.name, "Рівняння");
   assert.equal(themes[9]?.name, "Координатна площина");
-  assert.ok(!mock.calls.some((call) => call.sql.includes("FROM themes")));
-  assert.ok(mock.released() >= 1);
 });
 
 test("getWorkbookProblems maps rows including the answer key", async () => {
-  resetProblemsSchemaMemo();
-  const mock = makeConnection();
-
-  const problems = await getWorkbookProblems(8, {
-    getConnection: async () => mock.connection,
-    seedIfEmpty: false,
-  });
+  const problems = await getWorkbookProblems(8);
 
   assert.equal(problems[0]?.problemText, "x + 7 = 15");
   assert.deepEqual(problems[0]?.answers, ["6", "7", "8", "9"]);

@@ -4,32 +4,35 @@ import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
 
 import { buildStudentTopicStats, type StudentTopicStats } from "./types";
 
-const SQL_THEMES_WITH_COMPLETED_SESSIONS = `
-  SELECT
-    t.id AS theme_id,
-    t.name AS theme_name,
-    t.ord AS theme_ord,
-    s.id AS session_id,
-    s.tasks_number AS tasks_number,
-    s.right_number AS right_number,
-    s.time AS time
-  FROM themes t
-  LEFT JOIN task_sessions s
-    ON s.theme_id = t.id
-   AND s.user_id = ?
-   AND s.session_status = ?
-  ORDER BY t.ord ASC, t.id ASC, s.id DESC
+/** Keep in sync with `getTopicResults` window — last N completed per theme. */
+const SESSIONS_PER_THEME = 12;
+
+const SQL_THEMES = `
+  SELECT id, name, ord
+  FROM themes
+  ORDER BY ord ASC, id ASC
 `;
 
-type ThemeSessionJoinRow = {
-  theme_id: number;
-  theme_name: string;
-  theme_ord: number;
-  session_id: number | null;
-  tasks_number: number | null;
-  right_number: number | null;
-  time: number | null;
-};
+const SQL_COMPLETED_SESSIONS = `
+  SELECT id, theme_id, tasks_number, right_number, time
+  FROM (
+    SELECT
+      id,
+      theme_id,
+      tasks_number,
+      right_number,
+      time,
+      ROW_NUMBER() OVER (
+        PARTITION BY theme_id
+        ORDER BY id DESC
+      ) AS rn
+    FROM task_sessions
+    WHERE user_id = ?
+      AND session_status = ?
+  ) ranked
+  WHERE rn <= ${SESSIONS_PER_THEME}
+  ORDER BY id DESC
+`;
 
 type GetStudentTopicStatsDeps = {
   getConnection: () => Promise<SqlConnection>;
@@ -47,33 +50,34 @@ export async function getStudentTopicStats(
 ): Promise<StudentTopicStats> {
   const connection = await deps.getConnection();
   try {
-    const rows = await connection.query<ThemeSessionJoinRow>(
-      SQL_THEMES_WITH_COMPLETED_SESSIONS,
-      [userId, SESSION_STATUS_COMPLETED],
-    );
+    const themeRows = await connection.query<{
+      id: number;
+      name: string;
+      ord: number;
+    }>(SQL_THEMES);
+    const sessionRows = await connection.query<{
+      id: number;
+      theme_id: number;
+      tasks_number: number;
+      right_number: number;
+      time: number;
+    }>(SQL_COMPLETED_SESSIONS, [userId, SESSION_STATUS_COMPLETED]);
 
-    const themesById = new Map<number, ThemeRow>();
-    const sessions: SessionRow[] = [];
-    for (const row of rows) {
-      if (!themesById.has(row.theme_id)) {
-        themesById.set(row.theme_id, {
-          id: row.theme_id,
-          name: row.theme_name,
-          ord: row.theme_ord,
-        });
-      }
-      if (row.session_id !== null) {
-        sessions.push({
-          id: row.session_id,
-          theme_id: row.theme_id,
-          tasks_number: row.tasks_number ?? 0,
-          right_number: row.right_number ?? 0,
-          time: row.time ?? 0,
-        });
-      }
-    }
+    const themes: ThemeRow[] = themeRows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      ord: row.ord,
+    }));
 
-    return buildStudentTopicStats(Array.from(themesById.values()), sessions);
+    const sessions: SessionRow[] = sessionRows.map((row) => ({
+      id: row.id,
+      theme_id: row.theme_id,
+      tasks_number: row.tasks_number,
+      right_number: row.right_number,
+      time: row.time,
+    }));
+
+    return buildStudentTopicStats(themes, sessions);
   } finally {
     connection.release();
   }

@@ -10,17 +10,15 @@ import {
   createPageMetadata,
   siteIcons,
 } from "@/constants/seo";
-import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { pickClientMessages } from "@/i18n/clientMessages";
-import { getCurrentUser } from "@/modules/auth/getCurrentUser";
-import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getMessages } from "next-intl/server";
-import "katex/dist/katex.min.css";
+import { getLocale } from "next-intl/server";
 import "./globals.css";
 
-/** MySQL env is for runtime on the host; skip static prerender that hits the DB at build. */
-export const dynamic = "force-dynamic";
-
+/**
+ * Root shell only: html/body + global CSS.
+ * Locale providers and DashboardShell live in (marketing) / (app) layouts so
+ * guests do not hydrate cabinet chrome or pull a session DB lookup.
+ * force-dynamic stays on (app) only.
+ */
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: THEME_COLOR },
@@ -61,18 +59,10 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getLocale();
-  const messages = pickClientMessages(await getMessages());
-  const user = await getCurrentUser();
 
   return (
     <html lang={locale}>
-      <body>
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          <DashboardShell user={user}>
-            {children}
-          </DashboardShell>
-        </NextIntlClientProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

@@ -1,8 +1,6 @@
 import "server-only";
 
 import catalog from "@/content/workbookProblems.json";
-import type { SqlConnection } from "@/lib/db/mysql";
-import { ensureProblemsSchema } from "./workbookSchema";
 
 export type WorkbookTheme = {
   id: number;
@@ -17,16 +15,6 @@ export type WorkbookProblem = {
   answers: [string, string, string, string];
   rightAnswerN: 1 | 2 | 3 | 4;
 };
-
-type GetProblemsDeps = {
-  getConnection: () => Promise<SqlConnection>;
-  seedIfEmpty?: boolean;
-};
-
-async function loadDefaultConnection(): Promise<SqlConnection> {
-  const { getConnection } = await import("@/lib/db/mysql");
-  return getConnection();
-}
 
 function asAnswerN(value: number): 1 | 2 | 3 | 4 {
   if (value === 1 || value === 2 || value === 3 || value === 4) return value;
@@ -60,31 +48,14 @@ export function listWorkbookProblemsFromCatalog(
     }));
 }
 
-/** Themes that have at least one printable workbook task. */
-export async function getWorkbookThemes(
-  deps: GetProblemsDeps = {
-    getConnection: loadDefaultConnection,
-    seedIfEmpty: true,
-  },
-): Promise<WorkbookTheme[]> {
-  await ensureProblemsSchema({
-    getConnection: deps.getConnection,
-    seedIfEmpty: deps.seedIfEmpty !== false,
-  });
+/** Themes that have at least one printable workbook task — JSON only, no MySQL. */
+export async function getWorkbookThemes(): Promise<WorkbookTheme[]> {
   return listWorkbookThemesFromCatalog();
 }
 
-/** All printable tasks for one theme, including the answer key. */
+/** All printable tasks for one theme, including the answer key — JSON only. */
 export async function getWorkbookProblems(
   themeId: number,
-  deps: GetProblemsDeps = {
-    getConnection: loadDefaultConnection,
-    seedIfEmpty: true,
-  },
 ): Promise<WorkbookProblem[]> {
-  await ensureProblemsSchema({
-    getConnection: deps.getConnection,
-    seedIfEmpty: deps.seedIfEmpty !== false,
-  });
   return listWorkbookProblemsFromCatalog(themeId);
 }

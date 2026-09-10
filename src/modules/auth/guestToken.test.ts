@@ -31,7 +31,15 @@ test("verifyGuestToken rejects a tampered payload", async () => {
 });
 
 test("verifyGuestToken rejects a well-formed nmt_session token", async () => {
-  const sessionToken = await createSessionToken(1, "student", NOW);
+  const sessionToken = await createSessionToken(
+    {
+      userId: 1,
+      role: "student",
+      displayName: "Олена",
+      login: "demo-student",
+    },
+    NOW,
+  );
   assert.equal(await verifyGuestToken(sessionToken, NOW), null);
 });
 

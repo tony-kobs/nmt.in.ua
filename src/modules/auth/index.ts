@@ -19,6 +19,7 @@ export {
   requireRole,
   requireUser,
   requireUserId,
+  sessionCookieNeedsUpgrade,
 } from "./getCurrentUser";
 export type {
   LoginActionState,

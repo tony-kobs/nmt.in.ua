@@ -3,6 +3,9 @@ import { getLatestSelfScoresForResults } from "@/modules/self-score/getLatestSel
 import { resolveDisplaySelfScore, type LatestSelfScores } from "@/modules/self-score/types";
 import { buildTopicResultRows, type TopicResultRow } from "./types";
 
+/** Newest N attempts per theme — enough for overall / last-three without full history. */
+export const TOPIC_RESULTS_SESSIONS_PER_THEME = 12;
+
 const SQL_THEMES = `
   SELECT id, code, name, ord
   FROM themes
@@ -11,8 +14,21 @@ const SQL_THEMES = `
 
 const SQL_USER_SESSIONS = `
   SELECT id, theme_id, tasks_number, right_number, time
-  FROM task_sessions
-  WHERE user_id = ?
+  FROM (
+    SELECT
+      id,
+      theme_id,
+      tasks_number,
+      right_number,
+      time,
+      ROW_NUMBER() OVER (
+        PARTITION BY theme_id
+        ORDER BY id DESC
+      ) AS rn
+    FROM task_sessions
+    WHERE user_id = ?
+  ) ranked
+  WHERE rn <= ${TOPIC_RESULTS_SESSIONS_PER_THEME}
   ORDER BY id DESC
 `;
 
@@ -45,30 +61,26 @@ export async function getTopicResults(
   deps: GetTopicResultsDeps = { getConnection: loadDefaultConnection },
 ): Promise<TopicResultRow[]> {
   const connection = await deps.getConnection();
+  let themes: { id: number; code: string; name: string; ord: number }[];
+  let sessions: {
+    id: number;
+    theme_id: number;
+    tasks_number: number;
+    right_number: number;
+    time: number;
+  }[];
   try {
-    const themes = await connection.query<{
-      id: number;
-      code: string;
-      name: string;
-      ord: number;
-    }>(SQL_THEMES);
-
-    const sessions = await connection.query<{
-      id: number;
-      theme_id: number;
-      tasks_number: number;
-      right_number: number;
-      time: number;
-    }>(SQL_USER_SESSIONS, [userId]);
-
-    const rows = buildTopicResultRows(themes, sessions);
-    const latestSelfScores = await getLatestSelfScoresForResults(userId, {
-      getConnection: deps.getConnection,
-    });
-    return attachSelfScores(rows, latestSelfScores);
+    themes = await connection.query(SQL_THEMES);
+    sessions = await connection.query(SQL_USER_SESSIONS, [userId]);
   } finally {
     connection.release();
   }
+
+  const rows = buildTopicResultRows(themes, sessions);
+  const latestSelfScores = await getLatestSelfScoresForResults(userId, {
+    getConnection: deps.getConnection,
+  });
+  return attachSelfScores(rows, latestSelfScores);
 }
 
 export {

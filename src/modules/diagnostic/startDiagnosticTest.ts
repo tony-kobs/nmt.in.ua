@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { sampleRandomIds } from "@/lib/sampleRandomIds";
 import { ensureSelfScoreSchema } from "@/modules/self-score/schema";
 import { isValidSelfScore } from "@/modules/self-score/types";
 import { isValidOwner, ownerKey, type SessionOwner } from "./sessionOwner";
@@ -31,9 +32,11 @@ export const SQL_ELIGIBLE_THEMES = `
   LIMIT ${DIAGNOSTIC_MAX_THEMES}
 `;
 
-function buildSelectThemeTasksSql(): string {
-  return `SELECT id FROM quiz_tasks WHERE theme_id = ? ORDER BY RAND() LIMIT ${DIAGNOSTIC_TASKS_PER_THEME}`;
-}
+const SQL_SELECT_TASK_IDS_FOR_THEMES = `
+  SELECT id, theme_id
+  FROM quiz_tasks
+  WHERE theme_id IN
+`;
 
 const SQL_INSERT_SELF_SCORE = `
   INSERT INTO user_self_scores (user_id, guest_token, theme_id, score, source)
@@ -163,15 +166,26 @@ export async function startDiagnosticTest(
         input.selfScore,
       ]);
 
+      const placeholders = themeIds.map(() => "?").join(", ");
+      const pool = await connection.query<{ id: number; theme_id: number }>(
+        `${SQL_SELECT_TASK_IDS_FOR_THEMES} (${placeholders})`,
+        themeIds,
+      );
+
+      const idsByTheme = new Map<number, number[]>();
+      for (const row of pool) {
+        const list = idsByTheme.get(row.theme_id) ?? [];
+        list.push(row.id);
+        idsByTheme.set(row.theme_id, list);
+      }
+
       const taskIds: number[] = [];
       for (const themeId of themeIds) {
-        const tasks = await connection.query<{ id: number }>(
-          buildSelectThemeTasksSql(),
-          [themeId],
+        const sampled = sampleRandomIds(
+          idsByTheme.get(themeId) ?? [],
+          DIAGNOSTIC_TASKS_PER_THEME,
         );
-        for (const task of tasks) {
-          taskIds.push(task.id);
-        }
+        for (const id of sampled) taskIds.push(id);
       }
 
       if (taskIds.length === 0) {
@@ -193,7 +207,9 @@ export async function startDiagnosticTest(
         SESSION_START_TIME,
       ]);
 
-      const placeholders = taskIds.map(() => "(?, ?, ?, ?, ?, ?)").join(", ");
+      const mappingPlaceholders = taskIds
+        .map(() => "(?, ?, ?, ?, ?, ?)")
+        .join(", ");
       const mappingParams = taskIds.flatMap((taskId) => [
         TASK_TYPE_TOPIC,
         taskId,
@@ -203,7 +219,7 @@ export async function startDiagnosticTest(
         TASK_STATUS_UNANSWERED,
       ]);
       const mapping = await connection.execute(
-        SQL_INSERT_MAPPING_PREFIX + placeholders,
+        SQL_INSERT_MAPPING_PREFIX + mappingPlaceholders,
         mappingParams,
       );
 

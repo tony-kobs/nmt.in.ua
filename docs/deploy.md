@@ -92,6 +92,37 @@ mysql ... < scripts/sql/007_user_self_scores.sql
 
 Хост: Node `/usr/local/node24/bin`, bind `127.1.10.37:3000`. Інші сайти на цьому акаунті теж слухають `:3000`, але **інший** `127.x` — їх не чіпати.
 
+## Rate limit і IP за проксі
+
+Node бачить лише `127.1.10.37`, тому клієнтський IP для лімітів береться з заголовків
+(`src/lib/security.ts` → `clientIp`):
+
+1. `CF-Connecting-IP` (якщо є Cloudflare)
+2. `X-Real-IP` (бажано: nginx `proxy_set_header X-Real-IP $remote_addr;`)
+3. інакше **правий** елемент `X-Forwarded-For` (не лівий — його підставляє клієнт)
+
+`TRUSTED_PROXY_HOPS` у `.env.production` (дефолт `1` на проді). У dev XFF ігнорується.
+
+**Перевірка на проді** (з машини з відомим IP):
+
+```bash
+# Без підміни — має рахуватись ваш реальний IP (або X-Real-IP від панелі)
+curl -sI https://nmt.in.ua/login | head -5
+
+# З підміною — rate limit НЕ повинен бачити 203.0.113.9 як окремий бакет
+# (якщо після ~20 швидких /login з цим заголовком ви все ще не в 429,
+# а без нього потрапляєте — edge досі довіряє клієнтському XFF і треба
+# виставити X-Real-IP з $remote_addr у панелі / nginx)
+curl -sI -H "X-Forwarded-For: 203.0.113.9" https://nmt.in.ua/login | head -5
+```
+
+Ідеал на nginx перед Node:
+
+```nginx
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $remote_addr;
+```
+
 ## Граблі, які вже були
 
 1. **Шляхи GitHub runner у `.next`.** Next 16 webpack пише в RSC-маніфест `/home/runner/work/nmt.in.ua/nmt.in.ua/...`. На хості цього немає — кожна сторінка 500. Після `npm run build` обов’язково `rewrite-next-build-paths.sh`. Перевірка дивиться лише runtime-файли (`js` / `json` / `rsc`); `.next/trace` лишає шляхи раннера — це телеметрія, не причина 500. У tar їде **весь `src`**, не лише `src/i18n`.

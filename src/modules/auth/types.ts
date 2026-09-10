@@ -18,6 +18,9 @@ export type SessionPayload = {
   userId: number;
   role: UserRole;
   exp: number;
+  /** Present on tokens issued after the layout-DB skip; older cookies omit these. */
+  displayName?: string;
+  login?: string;
 };
 
 export const DEMO_ACCOUNTS = [

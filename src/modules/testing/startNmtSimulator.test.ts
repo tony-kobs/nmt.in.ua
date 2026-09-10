@@ -21,7 +21,7 @@ function makeConnection(options: {
     beginTransaction: async () => {},
     query: async <T,>(sql: string, params: unknown[] = []) => {
       calls.push({ sql, params });
-      if (sql.includes("ORDER BY RAND()")) {
+      if (sql.includes("FROM nmt_variants") && sql.includes("is_published = 1") && !sql.includes("id = ?")) {
         return (options.randomEmpty ? [] : [{ id: variantId }]) as T[];
       }
       if (sql.includes("FROM nmt_variants") && sql.includes("id = ?")) {

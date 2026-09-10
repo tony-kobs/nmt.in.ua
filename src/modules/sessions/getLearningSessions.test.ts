@@ -44,6 +44,7 @@ test("getLearningSessions filters by the requesting user's id", async () => {
 
   assert.equal(calls.length, 1);
   assert.match(calls[0]!.sql, /WHERE ts\.user_id = \?/);
+  assert.match(calls[0]!.sql, /LIMIT 50\b/);
   assert.deepEqual(calls[0]!.params, [42]);
 });
 
