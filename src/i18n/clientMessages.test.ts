@@ -38,6 +38,12 @@ test("cabinet /home keeps Header.goHomeShort and CORE namespaces", () => {
 test("pickClientMessages adds route-only namespaces on auth and settings", () => {
   assert.ok("LoginForm" in pickClientMessages(uk, "/login"));
   assert.ok("RegisterForm" in pickClientMessages(uk, "/register"));
+  assert.ok("TeacherRegister" in pickClientMessages(uk, "/register/teacher"));
+  assert.ok(
+    "TeacherRegister" in pickClientMessages(uk, "/register/teacher/success"),
+  );
+  assert.equal("RegisterForm" in pickClientMessages(uk, "/register/teacher"), false);
+  assert.equal("TeacherRegister" in pickClientMessages(uk, "/register"), false);
   assert.ok("ContentImportForm" in pickClientMessages(uk, "/settings"));
   assert.ok("Diagnostic" in pickClientMessages(uk, "/diagnostic"));
   assert.ok("DiagnosticResult" in pickClientMessages(uk, "/diagnostic"));
@@ -47,5 +53,6 @@ test("pickClientMessages adds route-only namespaces on auth and settings", () =>
 
 test("CLIENT_MESSAGE_NAMESPACES still lists the full union for docs/tests", () => {
   assert.ok(CLIENT_MESSAGE_NAMESPACES.includes("LoginForm"));
+  assert.ok(CLIENT_MESSAGE_NAMESPACES.includes("TeacherRegister"));
   assert.ok(CLIENT_MESSAGE_NAMESPACES.includes("Header"));
 });

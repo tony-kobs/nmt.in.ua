@@ -1,0 +1,1 @@
+export { TeacherRegisterResult } from "./TeacherRegisterResult";

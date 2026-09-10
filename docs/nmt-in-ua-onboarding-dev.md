@@ -54,6 +54,8 @@ npm run dev
 | --- | --- | --- |
 | `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | Пул MySQL | Сторінки з даними падають |
 | `SESSION_SECRET` | Підпис cookie `nmt_session` | На проді вхід небезпечний / зламаний |
+| `MONO_ACQUIRING_TOKEN` | Еквайринг Mono для `/register/teacher` | Без токена: «оплату ще не налаштовано», рахунок не створюється. З токеном — invoice + `pageUrl`. Лише `.env.local` / хостинг `.env.production` |
+| `MONO_ACQUIRING_BASE_URL` | База API Mono (опційно) | `https://api.monobank.ua` |
 | `CONTENT_IMPORT_API_KEY` | Bearer для `POST /api/import` | Усі імпорти — 401 (fail-closed) |
 | `ADMIN_API_KEY` | Bearer для `POST /api/admin/sessions` | Усі admin-запити — 401 |
 
@@ -128,6 +130,8 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `src/app/` | Маршрути App Router + metadata |
 | `src/app/welcome/` | Лендінг (завжди, навіть для увійшлих) |
 | `src/app/login/` і `register/` | Вхід і реєстрація учня |
+| `src/app/(marketing)/register/teacher/` | Платна реєстрація викладача (Mono) |
+| `src/app/api/payments/mono/webhook/` | Webhook еквайрингу |
 | `src/app/session/[id]/` | Тренажер однієї сесії |
 | `src/app/simulator/` | Старт симулятора НМТ |
 | `src/app/results/` і `sessions/` | Прогрес і історія |
@@ -140,6 +144,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `src/components/auth/` | AuthShell, форми входу / реєстрації |
 | `src/components/ui/` | Reveal, ModeTabs, MathText |
 | `src/modules/auth/` | Користувачі, cookie, паролі, ролі |
+| `src/modules/payments/` | Реєстрація викладача, клієнт Mono, webhook |
 | `src/modules/content-import/` | CSV/JSON → БД |
 | `src/modules/testing/` | Старт, checkAnswer, finish, симулятор, таймер |
 | `src/modules/recommendations/` | Статистика, правила, граф тем, авто-сесії |
@@ -165,6 +170,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | Модуль | Папка | Головні функції |
 | --- | --- | --- |
 | Auth | `src/modules/auth` | `requireUserId`, `getCurrentUser`, login/register/`changePassword` |
+| Оплата | `src/modules/payments` | `startTeacherRegistration`, `applyMonoWebhook`, `createMonoInvoice` |
 | Імпорт | `src/modules/content-import` | parse + validate + транзакція `themes` → connections → `quiz_tasks` (+ опційно `problems`) |
 | Тест | `src/modules/testing` | `startTopicTest`, `startNmtSimulator`, `checkAnswer`, `finishTrainerSession` |
 | Рекомендації | `src/modules/recommendations` | `getStudentTopicStats`, `recommendNextActions`, `persistRecommendations` |
@@ -177,6 +183,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | Таблиця | Навіщо | Важливі поля |
 | --- | --- | --- |
 | `app_users` | Наші акаунти | `login`, `role`. Не плутати з legacy `users` |
+| `teacher_payments` | Pending реєстрація викладача до оплати Mono | `reference`, hashed пароль, `status` pending/paid/failed; `user_id` після success. SQL `014_teacher_payments.sql` |
 | `themes` | Теми тесту | `id`, `code` (unique, напр. `ALG-08-QUAD-EQ` — якір розділу підручника), `name`, `description`, `ord` |
 | `theme_connections` | Граф «наступна тема» | `vertex_start` → `vertex_finish` |
 | `quiz_tasks` | Банк тренажера (тест / симулятор topic-bank / діагностика) | `right_answer_n` (1–4) лише на сервері в сесії |
@@ -242,6 +249,7 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 | --- | --- | --- |
 | `/`, `/welcome` | Усі. `/` — лендінг для гостя, кабінет для учня; `/welcome` завжди лендінг | Готово |
 | `/login`, `/register` | Гість | Готово |
+| `/register/teacher` (+ `/success`, `/fail`) | Гість | Платна реєстрація викладача (Mono, 500 грн). Без токена — заглушка |
 | `/diagnostic`, `/diagnostic/session/[id]` | Усі (публічно, як `/welcome`) — гість або увійдений учень | Готово |
 | `/session/[id]` | Власник сесії | Готово |
 | `/simulator` | Учень+ | Готово — сітка офіційних варіантів НМТ (`nmt_variants`) |
@@ -308,6 +316,7 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 | 6.3–6.4 Діагностика | `/diagnostic` | Велика | ✅; відкрито: політика тем при >10 eligible |
 | 6.2 Відгук | `src/modules/feedback` | Мала | ✅ |
 | Консультації | `/consultations` | Мала | Частково: пункт у меню; треба форма / контакти |
+| Реєстрація викладача + Mono | `/register/teacher`, `src/modules/payments` | Середня | ✅ 10.09: pending у `teacher_payments`; з `MONO_ACQUIRING_TOKEN` — живий рахунок. Токен не в git |
 | Перф (TTFB / бандл) | `(app)`/`(marketing)` layouts, `catalogCache`, `sampleRandomIds` | — | ✅ 10.09: без `ORDER BY RAND()`, кеш довідників, cookie-профіль |
 
 Карта app router: `src/app/page.tsx` — `/` (гість легкий / учень → CabinetHome); `src/app/(marketing)/` — welcome / login / register / diagnostic; `src/app/(app)/` — кабінет (`force-dynamic`). Root layout лише `html`/`body` + `globals.css`.

@@ -208,6 +208,7 @@
 
 .intro {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-xs);
 }
 
@@ -338,6 +339,37 @@
   border: 1px solid rgb(200 30 60 / 35%);
   background: rgb(200 30 60 / 8%);
   color: #b3213f;
+}
+
+.alertNotice {
+  border: 1px solid rgb(31 143 69 / 30%);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.feeChip {
+  justify-self: start;
+  margin: 0;
+  padding: 7px 14px;
+  border: 1px solid rgb(31 143 69 / 26%);
+  border-radius: var(--radius-pill);
+  background: var(--green-bg);
+  color: var(--green-dark);
+  font-size: var(--fs-kicker);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.benefits {
+  margin: 0;
+  padding-inline-start: 1.15em;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 1.55;
+}
+
+.benefits li + li {
+  margin-top: 4px;
 }
 
 .switch {

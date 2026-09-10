@@ -2,45 +2,63 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import clsx from "clsx";
 import {
-  registerAction,
-  type RegisterActionState,
-} from "@/modules/auth/actions";
+  registerTeacherAction,
+  type RegisterTeacherActionState,
+} from "@/modules/payments/actions";
+import { TEACHER_FEE_UAH, isSafeCheckoutUrl } from "@/modules/payments/constants";
 import {
   PASSWORD_MAX_LEN,
   PASSWORD_MIN_LEN,
 } from "@/modules/auth/validateRegistration";
 import css from "../auth.module.css";
 
-const INITIAL: RegisterActionState = { status: "idle" };
+const INITIAL: RegisterTeacherActionState = { status: "idle" };
 
-type RegisterFormProps = {
-  nextPath: string;
-  /** Set when arriving via `/register?from=diagnostic` — lets `registerAction`
-   * claim the guest's diagnostic progress after a successful signup. */
-  from?: "diagnostic";
+type TeacherRegisterFormProps = {
+  paymentConfigured: boolean;
 };
 
-export function RegisterForm({ nextPath, from }: RegisterFormProps) {
-  const t = useTranslations("RegisterForm");
-  const [state, formAction, pending] = useActionState(registerAction, INITIAL);
+export function TeacherRegisterForm({
+  paymentConfigured,
+}: TeacherRegisterFormProps) {
+  const t = useTranslations("TeacherRegister");
+  const [state, formAction, pending] = useActionState(
+    registerTeacherAction,
+    INITIAL,
+  );
+  const paying = state.status === "pay";
+  const busy = pending || paying;
+
+  useEffect(() => {
+    if (state.status !== "pay") return;
+    if (!isSafeCheckoutUrl(state.pageUrl)) return;
+    window.location.assign(state.pageUrl);
+  }, [state]);
 
   return (
     <div className={css.card}>
       <header className={css.intro}>
         <p className={css.kicker}>{t("kicker")}</p>
         <h1 className={css.title}>{t("title")}</h1>
-        <p className={css.lead}>
-          {from === "diagnostic" ? t("leadFromDiagnostic") : t("lead")}
-        </p>
+        <p className={css.lead}>{t("lead")}</p>
+        <p className={css.feeChip}>{t("fee", { fee: TEACHER_FEE_UAH })}</p>
+        <ul className={css.benefits}>
+          <li>{t("benefits.mentor")}</li>
+          <li>{t("benefits.progress")}</li>
+          <li>{t("benefits.cabinet")}</li>
+        </ul>
       </header>
 
-      <form className={css.form} action={formAction}>
-        <input type="hidden" name="next" value={nextPath} />
-        <input type="hidden" name="from" value={from ?? ""} />
+      {paymentConfigured ? null : (
+        <p className={clsx(css.alert, css.alertNotice)} role="status">
+          {t("paymentNotConfigured")}
+        </p>
+      )}
 
+      <form className={css.form} action={formAction}>
         <label className={css.field}>
           <span className={css.label}>{t("displayName")}</span>
           <input
@@ -50,7 +68,7 @@ export function RegisterForm({ nextPath, from }: RegisterFormProps) {
             required
             minLength={2}
             maxLength={100}
-            disabled={pending}
+            disabled={busy}
           />
         </label>
 
@@ -65,7 +83,7 @@ export function RegisterForm({ nextPath, from }: RegisterFormProps) {
             maxLength={50}
             pattern="[A-Za-z0-9][A-Za-z0-9._-]{1,48}[A-Za-z0-9]|[A-Za-z0-9]{3,50}"
             title={t("loginHint")}
-            disabled={pending}
+            disabled={busy}
           />
           <span className={css.hint}>{t("loginHint")}</span>
         </label>
@@ -80,7 +98,7 @@ export function RegisterForm({ nextPath, from }: RegisterFormProps) {
             required
             minLength={PASSWORD_MIN_LEN}
             maxLength={PASSWORD_MAX_LEN}
-            disabled={pending}
+            disabled={busy}
           />
           <span className={css.hint}>
             {t("passwordHint", { min: PASSWORD_MIN_LEN })}
@@ -97,7 +115,7 @@ export function RegisterForm({ nextPath, from }: RegisterFormProps) {
             required
             minLength={PASSWORD_MIN_LEN}
             maxLength={PASSWORD_MAX_LEN}
-            disabled={pending}
+            disabled={busy}
           />
         </label>
 
@@ -107,8 +125,14 @@ export function RegisterForm({ nextPath, from }: RegisterFormProps) {
           </p>
         ) : null}
 
-        <button type="submit" className={css.submit} disabled={pending}>
-          {pending ? t("submitting") : t("submit")}
+        <button type="submit" className={css.submit} disabled={busy}>
+          {paying
+            ? t("redirecting")
+            : pending
+              ? t("submitting")
+              : paymentConfigured
+                ? t("submitPay", { fee: TEACHER_FEE_UAH })
+                : t("submitSave")}
         </button>
       </form>
 
@@ -119,9 +143,9 @@ export function RegisterForm({ nextPath, from }: RegisterFormProps) {
         </Link>
       </p>
       <p className={css.switch}>
-        {t("teacherPrompt")}{" "}
-        <Link href="/register/teacher" className={css.switchLink}>
-          {t("teacherLink")}
+        {t("studentPrompt")}{" "}
+        <Link href="/register" className={css.switchLink}>
+          {t("studentLink")}
         </Link>
       </p>
     </div>
