@@ -136,12 +136,17 @@ function renderTable(
   const totalWidth = block.columnWidths.reduce((sum, width) => sum + width, 0);
   const isScrollableTable = block.variant !== "layout";
   const isCardOnMobile = block.variant === "grid";
-  const columnExtraWidth = block.variant === "graphPaper" ? 0 : 20;
+  const isGraphPaper = block.variant === "graphPaper";
+  // graphPaper is a square exercise grid, not scrollable tabular data: it
+  // must always fit its card, so its columns stay proportional (percentage)
+  // like grid/layout tables rather than forcing the literal px width this
+  // --table-min-width floor still reserves for it on wider screens.
+  const showsScrollAffordance = isScrollableTable && !isCardOnMobile && !isGraphPaper;
+  const columnExtraWidth = isGraphPaper ? 0 : 20;
   const minimumWidth = block.columnWidths.reduce(
     (sum, width) => sum + width / 15 + columnExtraWidth,
     0,
   );
-  const equalColumnWidth = minimumWidth / block.columnWidths.length;
 
   return (
     <div
@@ -153,20 +158,20 @@ function renderTable(
         block.variant === "graphPaper" && css.graphPaperScroll,
         isCardOnMobile && css.cardTableScroll,
       )}
-      role={isScrollableTable && !isCardOnMobile ? "region" : undefined}
+      role={showsScrollAffordance ? "region" : undefined}
       aria-label={
-        isScrollableTable && !isCardOnMobile
+        showsScrollAffordance
           ? "Таблиця навчального матеріалу, доступне горизонтальне прокручування"
           : undefined
       }
-      tabIndex={isScrollableTable && !isCardOnMobile ? 0 : undefined}
+      tabIndex={showsScrollAffordance ? 0 : undefined}
         style={
           isScrollableTable && totalWidth > 0
             ? ({ "--table-min-width": `${minimumWidth}px` } as CSSProperties)
             : undefined
         }
     >
-      {isScrollableTable && !isCardOnMobile ? (
+      {showsScrollAffordance ? (
         <span className={css.scrollHint} aria-hidden="true">
           Прокрутіть таблицю горизонтально →
         </span>
@@ -188,11 +193,11 @@ function renderTable(
               <col
                 key={key + "-column-" + index}
                 style={{
-                  width: block.equalColumns
-                    ? `${equalColumnWidth}px`
-                    : isScrollableTable
-                      ? `${width / 15 + columnExtraWidth}px`
-                      : `${(width / totalWidth) * 100}%`,
+                  width: `${
+                    block.equalColumns
+                      ? 100 / block.columnWidths.length
+                      : (width / totalWidth) * 100
+                  }%`,
                 }}
               />
             ))}
