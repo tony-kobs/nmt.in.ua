@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   registerTeacherAction,
   type RegisterTeacherActionState,
 } from "@/modules/payments/actions";
+import { pickTeacherRegisterBypassReference } from "@/modules/payments/bypassReference";
 import {
   TEACHER_FEE_UAH,
   isAllowedWayForPayCheckoutUrl,
@@ -32,10 +33,12 @@ function CheckoutRedirect({
   checkout,
   submitLabel,
   autoSubmit,
+  variant = "primary",
 }: {
   checkout: WayForPayCheckout;
   submitLabel: string;
   autoSubmit: boolean;
+  variant?: "primary" | "quiet";
 }) {
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -95,10 +98,42 @@ function CheckoutRedirect({
           value={price}
         />
       ))}
-      <button type="submit" className={css.submit}>
+      <button
+        type="submit"
+        className={variant === "quiet" ? css.checkoutQuiet : css.submit}
+      >
         {submitLabel}
       </button>
     </form>
+  );
+}
+
+function OptionalGatewayCheckout({
+  checkout,
+  summaryLabel,
+  submitLabel,
+}: {
+  checkout: WayForPayCheckout;
+  summaryLabel: string;
+  submitLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <details
+      className={css.gatewayDetails}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary className={css.gatewaySummary}>{summaryLabel}</summary>
+      {open ? (
+        <CheckoutRedirect
+          checkout={checkout}
+          autoSubmit={false}
+          variant="quiet"
+          submitLabel={submitLabel}
+        />
+      ) : null}
+    </details>
   );
 }
 
@@ -113,14 +148,14 @@ export function TeacherRegisterForm({
     INITIAL,
   );
   const paying = state.status === "pay";
-  const busy = pending || paying;
-  const pendingSavedError =
-    state.status === "error" &&
-    (state.code === "paymentNotConfigured" || state.code === "invoiceFailed");
-  const showTestBypass =
-    testBypassEnabled &&
-    (paying || pendingSavedError || Boolean(pendingPaymentReference));
-  const holdCheckout = paying && testBypassEnabled;
+  const lockForm = paying && !testBypassEnabled;
+  const busy = pending || lockForm;
+  const bypassReference = pickTeacherRegisterBypassReference({
+    checkoutReference: paying ? state.checkout.fields.orderReference : null,
+    errorReference: state.status === "error" ? state.reference : null,
+    pendingCookieReference: pendingPaymentReference,
+  });
+  const showTestBypass = testBypassEnabled && Boolean(bypassReference);
 
   return (
     <div className={css.card}>
@@ -142,7 +177,7 @@ export function TeacherRegisterForm({
         </p>
       )}
 
-      {holdCheckout ? (
+      {showTestBypass ? (
         <p className={clsx(css.alert, css.alertNotice)} role="status">
           {t("testBypass.pendingLead")}
         </p>
@@ -150,21 +185,24 @@ export function TeacherRegisterForm({
 
       {showTestBypass ? (
         <TeacherPaymentTestBypass
-          reference={
-            paying
-              ? state.checkout.fields.orderReference
-              : pendingPaymentReference
-          }
+          key={bypassReference}
+          reference={bypassReference}
         />
       ) : null}
 
-      {paying ? (
+      {paying && !testBypassEnabled ? (
         <CheckoutRedirect
           checkout={state.checkout}
-          autoSubmit={!testBypassEnabled}
-          submitLabel={
-            testBypassEnabled ? t("testBypass.payAtGateway") : t("redirecting")
-          }
+          autoSubmit
+          submitLabel={t("redirecting")}
+        />
+      ) : null}
+
+      {paying && testBypassEnabled ? (
+        <OptionalGatewayCheckout
+          checkout={state.checkout}
+          summaryLabel={t("testBypass.openGateway")}
+          submitLabel={t("testBypass.payAtGateway")}
         />
       ) : null}
 
@@ -235,7 +273,7 @@ export function TeacherRegisterForm({
           </p>
         ) : null}
 
-        {paying ? null : (
+        {lockForm ? null : (
           <button type="submit" className={css.submit} disabled={busy}>
             {pending
               ? t("submitting")

@@ -35,6 +35,11 @@ export {
 export { startTeacherRegistration } from "./startTeacherRegistration";
 export type { RegisterTeacherErrorCode } from "./startTeacherRegistration";
 export {
+  firstValidTeacherPaymentReference,
+  pickTeacherRegisterBypassReference,
+  resolveBypassReference,
+} from "./bypassReference";
+export {
   isTeacherPaymentTestBypassEnabled,
   simulateTeacherPaymentSuccess,
 } from "./testBypass";

@@ -13,6 +13,7 @@ import {
 } from "./constants";
 import { startTeacherRegistration } from "./startTeacherRegistration";
 import type { RegisterTeacherErrorCode } from "./startTeacherRegistration";
+import { resolveBypassReference } from "./bypassReference";
 import { findTeacherPaymentByReference } from "./teacherPayments";
 import {
   isTeacherPaymentTestBypassEnabled,
@@ -23,8 +24,18 @@ import type { WayForPayCheckout } from "./wayforpayClient";
 
 export type RegisterTeacherActionState =
   | { status: "idle" }
-  | { status: "error"; code: RegisterTeacherErrorCode }
+  | { status: "error"; code: RegisterTeacherErrorCode; reference?: string }
   | { status: "pay"; checkout: WayForPayCheckout };
+
+function errorState(
+  code: RegisterTeacherErrorCode,
+  reference?: string,
+): Extract<RegisterTeacherActionState, { status: "error" }> {
+  if (reference && isTeacherPaymentReference(reference)) {
+    return { status: "error", code, reference: reference.trim() };
+  }
+  return { status: "error", code };
+}
 
 export type { RegisterTeacherErrorCode };
 
@@ -58,7 +69,7 @@ export async function registerTeacherAction(
         console.error("registerTeacherAction: cookie failed", error);
       }
     }
-    return { status: "error", code: result.code };
+    return errorState(result.code, result.reference);
   }
 
   try {
@@ -68,7 +79,7 @@ export async function registerTeacherAction(
   }
 
   if (!isAllowedWayForPayCheckoutUrl(result.checkout.actionUrl)) {
-    return { status: "error", code: "invoiceFailed" };
+    return errorState("invoiceFailed", result.reference);
   }
 
   // Client auto-submits a POST form. CSP allows https://secure.wayforpay.com
@@ -125,17 +136,6 @@ async function clearTeacherPayCookie(): Promise<void> {
     path: "/",
     maxAge: 0,
   });
-}
-
-function resolveBypassReference(
-  cookieRef: string | null,
-  formRefRaw: string,
-): string | null {
-  const formRef = isTeacherPaymentReference(formRefRaw)
-    ? formRefRaw.trim()
-    : null;
-  if (cookieRef && formRef && cookieRef !== formRef) return null;
-  return cookieRef ?? formRef;
 }
 
 /**

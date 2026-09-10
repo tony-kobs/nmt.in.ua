@@ -590,7 +590,8 @@
       "payOk": "Zahlung erfolgreich",
       "working": "Konto wird aktiviert…",
       "payAtGateway": "Weiter zu WayForPay",
-      "pendingLead": "Anmeldung gespeichert. Zur lokalen Prüfung hier bestätigen — oder zu WayForPay wechseln.",
+      "openGateway": "Echtes WayForPay-Gateway öffnen (für den Test nicht nötig)",
+      "pendingLead": "Anmeldung gespeichert. Zur lokalen Prüfung auf „Zahlung erfolgreich“ tippen — WayForPay ist nicht nötig.",
       "errors": {
         "disabled": "Die Testbestätigung der Zahlung ist in dieser Umgebung deaktiviert.",
         "missing_reference": "Keine Zahlungsanmeldung gefunden. Bitte das Formular erneut ausfüllen.",

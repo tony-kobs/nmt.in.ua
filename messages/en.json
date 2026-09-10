@@ -590,7 +590,8 @@
       "payOk": "Payment succeeded",
       "working": "Opening the cabinet…",
       "payAtGateway": "Continue to WayForPay",
-      "pendingLead": "Application saved. Confirm payment here for local testing — or continue to WayForPay.",
+      "openGateway": "Open the real WayForPay gateway (not needed for testing)",
+      "pendingLead": "Application saved. For local testing, tap “Payment succeeded” — you do not need WayForPay.",
       "errors": {
         "disabled": "Test payment confirmation is disabled in this environment.",
         "missing_reference": "No payment application found. Fill in the form again.",
