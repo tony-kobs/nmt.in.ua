@@ -56,7 +56,17 @@ test("parseMathText keeps escaped and unclosed dollars as text", () => {
   ]);
 });
 
-test("KaTeX renders the required formulas as HTML and accessible MathML", () => {
+function katexHtml(formula: string, displayMode = true): string {
+  return katex.renderToString(formula, {
+    displayMode,
+    output: "html",
+    throwOnError: true,
+    strict: "ignore",
+    trust: false,
+  });
+}
+
+test("KaTeX renders formulas as HTML without duplicate MathML text", () => {
   const formulas = [
     String.raw`E = mc^2`,
     String.raw`x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}`,
@@ -64,16 +74,17 @@ test("KaTeX renders the required formulas as HTML and accessible MathML", () => 
   ];
 
   for (const formula of formulas) {
-    const html = katex.renderToString(formula, {
-      displayMode: true,
-      output: "htmlAndMathml",
-      throwOnError: true,
-      trust: false,
-    });
-
+    const html = katexHtml(formula);
     assert.match(html, /class="katex"/);
-    assert.match(html, /<math/);
+    assert.doesNotMatch(html, /<math/);
+    assert.doesNotMatch(html, /katex-mathml/);
   }
+});
+
+test("KaTeX HTML output does not duplicate a simple numeric answer", () => {
+  const html = katexHtml("20", false);
+  const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  assert.equal(text, "20");
 });
 
 test("parseMathText + KaTeX render nested-cases content after normalize", async () => {
@@ -90,6 +101,7 @@ test("parseMathText + KaTeX render nested-cases content after normalize", async 
   assert.doesNotMatch(formula.content, /\\\(/);
   const html = katex.renderToString(formula.content, {
     displayMode: true,
+    output: "html",
     throwOnError: true,
     strict: "ignore",
   });

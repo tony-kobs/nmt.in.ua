@@ -121,12 +121,12 @@ test("all positioned learning material formulas render as KaTeX", () => {
     const formula = text.slice(2, -2);
     const html = katex.renderToString(formula, {
       displayMode,
-      output: "htmlAndMathml",
+      output: "html",
       throwOnError: true,
       trust: false,
     });
 
     assert.match(html, /class="katex"/);
-    assert.match(html, /class="katex-mathml"/);
+    assert.doesNotMatch(html, /katex-mathml/);
   });
 });
