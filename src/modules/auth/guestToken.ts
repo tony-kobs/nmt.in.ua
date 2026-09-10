@@ -12,7 +12,7 @@ import { cookies } from "next/headers";
  * module in this repo owns its own signing helpers).
  */
 export const GUEST_COOKIE_NAME = "nmt_guest";
-export const GUEST_MAX_AGE_SEC = 60 * 60 * 24 * 30;
+export const GUEST_MAX_AGE_SEC = 60 * 60 * 24;
 
 type GuestPayload = {
   typ: "guest";
