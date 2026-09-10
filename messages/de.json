@@ -567,7 +567,7 @@
       "progress": "Ergebnisse und Themen sehen, die nachgearbeitet werden sollten",
       "cabinet": "Derselbe Arbeitsbereich wie für Schüler, plus Zuweisungspanel"
     },
-    "paymentNotConfigured": "Zahlungen sind noch nicht eingerichtet. Die Anmeldung kann gespeichert werden; eine Mono-Rechnung wird nicht erstellt, das Konto bleibt inaktiv.",
+    "paymentNotConfigured": "Zahlungen sind noch nicht eingerichtet. Die Anmeldung kann gespeichert werden; ein WayForPay-Checkout wird nicht erstellt, das Konto bleibt inaktiv.",
     "asideBadge": "Lehrkräfte · 500 UAH",
     "asideTitle": "Ein Konto, um Schüler zur NMT zu führen",
     "asideLead": "Nach der Zahlung siehst du den Fortschritt und kannst Übungen für schwache Themen zuweisen.",
@@ -595,8 +595,8 @@
       "loginTaken": "Dieser Login ist bereits vergeben.",
       "reservedLogin": "Dieser Login ist für Demos reserviert.",
       "serverError": "Anmeldung konnte nicht gespeichert werden. Bitte später erneut versuchen.",
-      "paymentNotConfigured": "Zahlungen sind noch nicht konfiguriert. Die Anmeldung wurde gespeichert; das Konto öffnet sich nach dem Anschluss von Mono-Acquiring.",
-      "invoiceFailed": "Mono-Rechnung konnte nicht erstellt werden. Bitte später erneut versuchen."
+      "paymentNotConfigured": "Zahlungen sind noch nicht konfiguriert. Die Anmeldung wurde gespeichert; das Konto öffnet sich nach dem Anschluss von WayForPay.",
+      "invoiceFailed": "WayForPay-Zahlung konnte nicht gestartet werden. Bitte später erneut versuchen."
     },
     "result": {
       "success": {

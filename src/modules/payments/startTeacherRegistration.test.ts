@@ -4,7 +4,8 @@ import test from "node:test";
 import type { AuthUser } from "@/modules/auth/types";
 import { startTeacherRegistration } from "./startTeacherRegistration";
 import type { TeacherPayment } from "./teacherPayments";
-import { MONO_CCY_UAH, TEACHER_FEE_KOPIYKY } from "./constants";
+import { CCY_UAH, TEACHER_FEE_KOPIYKY } from "./constants";
+import type { WayForPayCheckout } from "./wayforpayClient";
 
 const validInput = {
   login: "math_tutor",
@@ -21,9 +22,55 @@ const pending: TeacherPayment = {
   passwordHash: "scrypt:salt:hash",
   status: "pending",
   amountKopiyky: TEACHER_FEE_KOPIYKY,
-  ccy: MONO_CCY_UAH,
-  monoInvoiceId: null,
+  ccy: CCY_UAH,
+  provider: "wayforpay",
+  externalOrderId: null,
   userId: null,
+};
+
+const checkout: WayForPayCheckout = {
+  actionUrl: "https://secure.wayforpay.com/pay",
+  fields: {
+    merchantAccount: "nmt_account",
+    merchantAuthType: "SimpleSignature",
+    merchantDomainName: "nmt.in.ua",
+    merchantTransactionSecureType: "AUTO",
+    merchantSignature: "sig",
+    language: "UA",
+    returnUrl: `https://nmt.in.ua/api/payments/wayforpay/return?ref=${pending.reference}`,
+    serviceUrl: "https://nmt.in.ua/api/payments/wayforpay/webhook",
+    orderReference: pending.reference,
+    orderDate: "1",
+    amount: "500.00",
+    currency: "UAH",
+    orderLifetime: "3600",
+    productName: ["Кабінет викладача nmt.in.ua"],
+    productCount: ["1"],
+    productPrice: ["500.00"],
+  },
+};
+
+const liveConfig = {
+  merchantAccount: "nmt_account",
+  merchantSecretKey: "nmt-secret",
+  merchantDomainName: "nmt.in.ua",
+  payUrl: "https://secure.wayforpay.com/pay",
+  configured: true,
+};
+
+const emptyConfig = {
+  merchantAccount: "",
+  merchantSecretKey: "",
+  merchantDomainName: "nmt.in.ua",
+  payUrl: "https://secure.wayforpay.com/pay",
+  configured: false,
+};
+
+const urls = {
+  returnUrl: (ref: string) =>
+    `https://nmt.in.ua/api/payments/wayforpay/return?ref=${ref}`,
+  failUrl: "https://nmt.in.ua/register/teacher/fail",
+  serviceUrl: "https://nmt.in.ua/api/payments/wayforpay/webhook",
 };
 
 test("startTeacherRegistration rejects invalid login without touching storage", async () => {
@@ -38,95 +85,67 @@ test("startTeacherRegistration rejects invalid login without touching storage", 
         created = true;
         return pending;
       },
-      attachMonoInvoice: async () => {},
-      createMonoInvoice: async () => {
-        throw new Error("should not call Mono");
+      attachExternalOrder: async () => {},
+      buildCheckout: () => {
+        throw new Error("should not build checkout");
       },
-      getConfig: () => ({
-        token: "x",
-        baseUrl: "https://api.monobank.ua",
-        configured: true,
-      }),
-      checkoutUrls: () => ({
-        successUrl: (ref) => `https://nmt.in.ua/register/teacher/success?ref=${ref}`,
-        failUrl: "https://nmt.in.ua/register/teacher/fail",
-        webhookUrl: "https://nmt.in.ua/api/payments/mono/webhook",
-      }),
+      getConfig: () => liveConfig,
+      checkoutUrls: () => urls,
     },
   );
   assert.deepEqual(result, { ok: false, code: "invalidLogin" });
   assert.equal(created, false);
 });
 
-test("startTeacherRegistration without token saves pending and never calls Mono", async () => {
-  let fetchLikeCalled = false;
+test("startTeacherRegistration without credentials saves pending and never signs", async () => {
+  let built = false;
   const result = await startTeacherRegistration(validInput, {
     findUserByLogin: async () => null,
     createPendingTeacherPayment: async (input) => {
       assert.equal(input.login, "math_tutor");
       return pending;
     },
-    attachMonoInvoice: async () => {
-      throw new Error("should not attach invoice");
+    attachExternalOrder: async () => {
+      throw new Error("should not attach order");
     },
-    createMonoInvoice: async () => {
-      fetchLikeCalled = true;
-      throw new Error("should not call Mono");
+    buildCheckout: () => {
+      built = true;
+      throw new Error("should not build checkout");
     },
-    getConfig: () => ({
-      token: "",
-      baseUrl: "https://api.monobank.ua",
-      configured: false,
-    }),
-    checkoutUrls: () => ({
-      successUrl: (ref) => `https://nmt.in.ua/register/teacher/success?ref=${ref}`,
-      failUrl: "https://nmt.in.ua/register/teacher/fail",
-      webhookUrl: "https://nmt.in.ua/api/payments/mono/webhook",
-    }),
+    getConfig: () => emptyConfig,
+    checkoutUrls: () => urls,
   });
   assert.equal(result.ok, false);
   if (!result.ok) {
     assert.equal(result.code, "paymentNotConfigured");
     assert.equal(result.reference, pending.reference);
   }
-  assert.equal(fetchLikeCalled, false);
+  assert.equal(built, false);
 });
 
-test("startTeacherRegistration with token creates an invoice and returns pageUrl", async () => {
-  let attached: { id: number; invoiceId: string } | null = null;
+test("startTeacherRegistration with credentials returns a signed checkout form", async () => {
+  let attached: { id: number; externalOrderId: string } | null = null;
   const result = await startTeacherRegistration(validInput, {
     findUserByLogin: async () => null,
     createPendingTeacherPayment: async () => pending,
-    attachMonoInvoice: async (id, invoiceId) => {
-      attached = { id, invoiceId };
+    attachExternalOrder: async (id, externalOrderId) => {
+      attached = { id, externalOrderId };
     },
-    createMonoInvoice: async (invoiceInput) => {
-      assert.equal(invoiceInput.reference, pending.reference);
-      assert.match(invoiceInput.redirectUrl, /\/register\/teacher\/success/);
-      assert.match(invoiceInput.webHookUrl, /\/api\/payments\/mono\/webhook/);
-      return {
-        invoiceId: "inv-99",
-        pageUrl: "https://pay.mbnk.biz/inv-99",
-      };
+    buildCheckout: (checkoutInput) => {
+      assert.equal(checkoutInput.reference, pending.reference);
+      assert.match(checkoutInput.returnUrl, /\/api\/payments\/wayforpay\/return/);
+      assert.match(checkoutInput.serviceUrl, /\/api\/payments\/wayforpay\/webhook/);
+      return checkout;
     },
-    getConfig: () => ({
-      token: "live-token",
-      baseUrl: "https://api.monobank.ua",
-      configured: true,
-    }),
-    checkoutUrls: () => ({
-      successUrl: (ref) =>
-        `https://nmt.in.ua/register/teacher/success?ref=${ref}`,
-      failUrl: "https://nmt.in.ua/register/teacher/fail",
-      webhookUrl: "https://nmt.in.ua/api/payments/mono/webhook",
-    }),
+    getConfig: () => liveConfig,
+    checkoutUrls: () => urls,
   });
   assert.deepEqual(result, {
     ok: true,
-    pageUrl: "https://pay.mbnk.biz/inv-99",
+    checkout,
     reference: pending.reference,
   });
-  assert.deepEqual(attached, { id: 11, invoiceId: "inv-99" });
+  assert.deepEqual(attached, { id: 11, externalOrderId: pending.reference });
 });
 
 test("startTeacherRegistration maps an existing app_users login to loginTaken", async () => {
@@ -142,20 +161,12 @@ test("startTeacherRegistration maps an existing app_users login to loginTaken", 
     createPendingTeacherPayment: async () => {
       throw new Error("should not insert pending");
     },
-    attachMonoInvoice: async () => {},
-    createMonoInvoice: async () => {
-      throw new Error("should not call Mono");
+    attachExternalOrder: async () => {},
+    buildCheckout: () => {
+      throw new Error("should not build checkout");
     },
-    getConfig: () => ({
-      token: "x",
-      baseUrl: "https://api.monobank.ua",
-      configured: true,
-    }),
-    checkoutUrls: () => ({
-      successUrl: (ref) => `https://nmt.in.ua/register/teacher/success?ref=${ref}`,
-      failUrl: "https://nmt.in.ua/register/teacher/fail",
-      webhookUrl: "https://nmt.in.ua/api/payments/mono/webhook",
-    }),
+    getConfig: () => liveConfig,
+    checkoutUrls: () => urls,
   });
   assert.deepEqual(result, { ok: false, code: "loginTaken" });
 });

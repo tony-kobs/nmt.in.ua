@@ -53,7 +53,7 @@ bash scripts/rollback-hosting.sh --yes
 
 Без `SESSION_SECRET` у production вхід і реєстрація падають (`createSessionToken`). Ключ не комітити і не світити в логах. Згенерувати один раз: `openssl rand -hex 32` — і записати в обидва `.env.production` (store + `www`).
 
-Для платної реєстрації викладача (`/register/teacher`) на хості додати `MONO_ACQUIRING_TOKEN` у ті самі два `.env.production` (store + `www`). Не в git і не в GitHub Secrets. Без токена сторінка лишається заглушкою; з токеном створюється рахунок Mono на 500 грн і браузер іде на `pageUrl`. Таблиця: `scripts/sql/014_teacher_payments.sql` (або створюється сама при першому сабміті). `NEXT_PUBLIC_SITE_URL=https://nmt.in.ua` потрібен для `webHookUrl` / `redirectUrl`.
+Для платної реєстрації викладача (`/register/teacher`) на хості додати `WAYFORPAY_MERCHANT_ACCOUNT` і `WAYFORPAY_MERCHANT_SECRET_KEY` у ті самі два `.env.production` (store + `www`). Не в git і не в GitHub Secrets. Без ключів сторінка лишається заглушкою; з ключами підписується Purchase (500.00 UAH) і браузер POST-ить на `https://secure.wayforpay.com/pay`. Таблиця: `scripts/sql/014_teacher_payments.sql` (або створюється сама при першому сабміті). `NEXT_PUBLIC_SITE_URL=https://nmt.in.ua` потрібен для `serviceUrl` / `returnUrl` (HTTPS). Локальний `localhost` для webhook не підходить — потрібен публічний тунель.
 
 ### Діагностика (`/diagnostic`) — одноразова міграція БД
 

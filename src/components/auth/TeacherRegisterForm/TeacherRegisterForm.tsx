@@ -2,13 +2,17 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import clsx from "clsx";
 import {
   registerTeacherAction,
   type RegisterTeacherActionState,
 } from "@/modules/payments/actions";
-import { TEACHER_FEE_UAH, isSafeCheckoutUrl } from "@/modules/payments/constants";
+import {
+  TEACHER_FEE_UAH,
+  isAllowedWayForPayCheckoutUrl,
+} from "@/modules/payments/constants";
+import type { WayForPayCheckout } from "@/modules/payments/wayforpayClient";
 import {
   PASSWORD_MAX_LEN,
   PASSWORD_MIN_LEN,
@@ -21,6 +25,77 @@ type TeacherRegisterFormProps = {
   paymentConfigured: boolean;
 };
 
+function CheckoutRedirect({
+  checkout,
+  submitLabel,
+}: {
+  checkout: WayForPayCheckout;
+  submitLabel: string;
+}) {
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (!isAllowedWayForPayCheckoutUrl(checkout.actionUrl)) return;
+    formRef.current?.submit();
+  }, [checkout]);
+
+  const { fields } = checkout;
+
+  return (
+    <form
+      ref={formRef}
+      className={css.checkoutForm}
+      method="post"
+      action={checkout.actionUrl}
+      acceptCharset="utf-8"
+    >
+      <input type="hidden" name="merchantAccount" value={fields.merchantAccount} />
+      <input type="hidden" name="merchantAuthType" value={fields.merchantAuthType} />
+      <input
+        type="hidden"
+        name="merchantDomainName"
+        value={fields.merchantDomainName}
+      />
+      <input
+        type="hidden"
+        name="merchantTransactionSecureType"
+        value={fields.merchantTransactionSecureType}
+      />
+      <input type="hidden" name="merchantSignature" value={fields.merchantSignature} />
+      <input type="hidden" name="language" value={fields.language} />
+      <input type="hidden" name="returnUrl" value={fields.returnUrl} />
+      <input type="hidden" name="serviceUrl" value={fields.serviceUrl} />
+      <input type="hidden" name="orderReference" value={fields.orderReference} />
+      <input type="hidden" name="orderDate" value={fields.orderDate} />
+      <input type="hidden" name="amount" value={fields.amount} />
+      <input type="hidden" name="currency" value={fields.currency} />
+      <input type="hidden" name="orderLifetime" value={fields.orderLifetime} />
+      {fields.productName.map((name, index) => (
+        <input key={`name-${index}`} type="hidden" name="productName[]" value={name} />
+      ))}
+      {fields.productCount.map((count, index) => (
+        <input
+          key={`count-${index}`}
+          type="hidden"
+          name="productCount[]"
+          value={count}
+        />
+      ))}
+      {fields.productPrice.map((price, index) => (
+        <input
+          key={`price-${index}`}
+          type="hidden"
+          name="productPrice[]"
+          value={price}
+        />
+      ))}
+      <button type="submit" className={css.submit}>
+        {submitLabel}
+      </button>
+    </form>
+  );
+}
+
 export function TeacherRegisterForm({
   paymentConfigured,
 }: TeacherRegisterFormProps) {
@@ -31,12 +106,6 @@ export function TeacherRegisterForm({
   );
   const paying = state.status === "pay";
   const busy = pending || paying;
-
-  useEffect(() => {
-    if (state.status !== "pay") return;
-    if (!isSafeCheckoutUrl(state.pageUrl)) return;
-    window.location.assign(state.pageUrl);
-  }, [state]);
 
   return (
     <div className={css.card}>
@@ -57,6 +126,10 @@ export function TeacherRegisterForm({
           {t("paymentNotConfigured")}
         </p>
       )}
+
+      {paying ? (
+        <CheckoutRedirect checkout={state.checkout} submitLabel={t("redirecting")} />
+      ) : null}
 
       <form className={css.form} action={formAction}>
         <label className={css.field}>
@@ -125,15 +198,15 @@ export function TeacherRegisterForm({
           </p>
         ) : null}
 
-        <button type="submit" className={css.submit} disabled={busy}>
-          {paying
-            ? t("redirecting")
-            : pending
+        {paying ? null : (
+          <button type="submit" className={css.submit} disabled={busy}>
+            {pending
               ? t("submitting")
               : paymentConfigured
                 ? t("submitPay", { fee: TEACHER_FEE_UAH })
                 : t("submitSave")}
-        </button>
+          </button>
+        )}
       </form>
 
       <p className={css.switch}>

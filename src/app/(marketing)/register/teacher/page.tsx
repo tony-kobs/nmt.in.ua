@@ -2,7 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { TeacherRegisterForm } from "@/components/auth/TeacherRegisterForm";
 import { createPageMetadata } from "@/constants/seo";
-import { isMonoAcquiringConfigured } from "@/modules/payments/config";
+import { isWayForPayConfigured } from "@/modules/payments/config";
 
 /** Runtime env: CI build has no token; hosting `.env.production` may. */
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export default async function TeacherRegisterPage() {
         lead: t("asideLead"),
       }}
     >
-      <TeacherRegisterForm paymentConfigured={isMonoAcquiringConfigured()} />
+      <TeacherRegisterForm paymentConfigured={isWayForPayConfigured()} />
     </AuthShell>
   );
 }

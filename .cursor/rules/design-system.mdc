@@ -363,7 +363,13 @@ npm run lint && npm test && npm run build
 - Окрема публічна сторінка для реклами (не picker ролі на `/register`).
 - AuthShell + `auth.module.css`: `.feeChip`, `.benefits`, `.alertNotice` (папір / `--green-bg`).
 - Success `/register/teacher/success`, fail `/register/teacher/fail`.
-- Після рахунку клієнт іде на Mono `pageUrl` (`window.location.assign`):
-  CSP `form-action 'self'` блокує Server Action `redirect()` на чужий хост.
+- Після рахунку клієнт POST-ить форму на WayForPay (`https://secure.wayforpay.com/pay`).
+  CSP: `form-action 'self' https://secure.wayforpay.com`.
 - Перевірити: 375 / 768 / 1240 / 1440 / 1920; на 1240+ маркетингова колонка;
-  без токена — банер «оплату ще не налаштовано».
+  без ключів WayForPay — банер «оплату ще не налаштовано».
+
+### 2026-09-10 — WayForPay замість Mono
+
+- Checkout: HMAC_MD5 Purchase, `amount=500.00` UAH (не копійки).
+- Webhook: `POST /api/payments/wayforpay/webhook`; return `303` через
+  `/api/payments/wayforpay/return`.

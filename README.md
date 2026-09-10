@@ -58,12 +58,14 @@ npm run dev
 | --- | --- |
 | `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | MySQL |
 | `DB_CONNECTION_LIMIT`, `DB_CONNECT_TIMEOUT_MS`, `DB_MAX_IDLE`, `DB_IDLE_TIMEOUT_MS` | тюнінг пулу; `DB_IDLE_TIMEOUT_MS` тримати нижче `wait_timeout` сервера |
-| `NEXT_PUBLIC_SITE_URL` | canonical URL для SEO |
+| `NEXT_PUBLIC_SITE_URL` | canonical URL для SEO, `returnUrl` / `serviceUrl` WayForPay |
 | `CONTENT_IMPORT_API_KEY` | Bearer для `POST /api/import` і Server Action імпорту (admin) |
 | `ADMIN_API_KEY` | Bearer для `POST /api/admin/sessions` |
 | `SESSION_SECRET` | HMAC-секрет для cookie `nmt_session` (обовʼязково в production) |
-| `MONO_ACQUIRING_TOKEN` | токен еквайрингу Mono для `/register/teacher` (порожній = scaffold без живих платежів) |
-| `MONO_ACQUIRING_BASE_URL` | опційно, дефолт `https://api.monobank.ua` |
+| `WAYFORPAY_MERCHANT_ACCOUNT` | merchantAccount WayForPay для `/register/teacher` (порожній = scaffold без живих платежів) |
+| `WAYFORPAY_MERCHANT_SECRET_KEY` | SecretKey для HMAC_MD5 підпису Purchase / serviceUrl |
+| `WAYFORPAY_MERCHANT_DOMAIN` | опційно; дефолт — hostname з `NEXT_PUBLIC_SITE_URL` |
+| `WAYFORPAY_PAY_URL` | опційно, дефолт `https://secure.wayforpay.com/pay` |
 | `MAX_BODY_BYTES` | ліміт тіла HTTP на `server.js` (дефолт 8388608) |
 
 Якщо `CONTENT_IMPORT_API_KEY` або `ADMIN_API_KEY` не задані — відповідні ендпоінти відхиляють **усі** запити (`401`, fail-closed).
@@ -78,15 +80,16 @@ npm run dev
 | `demo-teacher` | `demo123` | Викладач | + призначення mentor-сесій на `/sessions` |
 | `demo-admin` | `demo123` | Адмін | + імпорт контенту на `/settings` |
 
-На `/login` є кнопки швидкого входу для кожної ролі. Нові учні реєструються на `/register` (роль `student`, авто-вхід після створення). Викладачі — окрема сторінка `/register/teacher` (500 грн, Mono); без `MONO_ACQUIRING_TOKEN` форма зберігає заявку й показує «оплату ще не налаштовано». З токеном створюється рахунок і браузер іде на `pageUrl`. Адмін цим потоком не створюється.
+На `/login` є кнопки швидкого входу для кожної ролі. Нові учні реєструються на `/register` (роль `student`, авто-вхід після створення). Викладачі — окрема сторінка `/register/teacher` (500 грн, WayForPay); без `WAYFORPAY_MERCHANT_ACCOUNT` / `WAYFORPAY_MERCHANT_SECRET_KEY` форма зберігає заявку й показує «оплату ще не налаштовано». З ключами браузер робить POST на `https://secure.wayforpay.com/pay`. Адмін цим потоком не створюється.
 
-### Оплата кабінету викладача (Mono)
+### Оплата кабінету викладача (WayForPay)
 
-1. Скопіюй `MONO_ACQUIRING_TOKEN` у `.env.local` / `.env.production` (кабінет https://web.monobank.ua/ або тест https://api.monobank.ua/).
-2. За бажанням `MONO_ACQUIRING_BASE_URL` (дефолт `https://api.monobank.ua`).
-3. SQL: `scripts/sql/014_teacher_payments.sql` — або нічого не запускай: таблиця створюється при першому сабміті.
-4. Webhook: `POST https://<домен>/api/payments/mono/webhook` (підпис `X-Sign`, ECDSA). Після оплати браузер іде на `/register/teacher/success?ref=…`.
-5. Сума завжди **500 грн = 50000 копійок**, `ccy: 980`. Без токена застосунок **не** ходить у Mono з порожнім `X-Token`. З токеном браузер переходить на `pageUrl` (клієнтський `location.assign`, бо CSP `form-action 'self'`). Токен лише в `.env.local` / хостинг `.env.production`, не в git.
+1. Скопіюй `WAYFORPAY_MERCHANT_ACCOUNT` і `WAYFORPAY_MERCHANT_SECRET_KEY` у `.env.local` / `.env.production` (кабінет WayForPay).
+2. За бажанням `WAYFORPAY_MERCHANT_DOMAIN` (дефолт — hostname `NEXT_PUBLIC_SITE_URL`, на проді `nmt.in.ua`). Домен має збігатися з кабінетом WayForPay.
+3. SQL: `scripts/sql/014_teacher_payments.sql` — або нічого не запускай: таблиця створюється при першому сабміті. Якщо вже була Mono-версія з `mono_invoice_id`, колонки мігрують самі.
+4. `NEXT_PUBLIC_SITE_URL=https://nmt.in.ua` (HTTPS) для `returnUrl` і `serviceUrl`. Локально webhook не дійде на `localhost` — потрібен публічний тунель (ngrok тощо) і той самий URL у env.
+5. Webhook: `POST https://<домен>/api/payments/wayforpay/webhook` (підпис HMAC_MD5 `merchantSignature`). Після оплати браузер іде на `/api/payments/wayforpay/return` → `/register/teacher/success?ref=…`.
+6. Сума **500 грн**. WayForPay приймає major units з двома знаками (`amount=500.00`, `currency=UAH`); у БД лишаємо `50000` копійок. Без ключів застосунок **не** підписує checkout. CSP `form-action` дозволяє `https://secure.wayforpay.com`. Ключі лише в `.env.local` / хостинг `.env.production`, не в git.
 
 **Скидання демо-даних:** старі тести до auth писалися з `user_id=1`, тому вони «прилипають» до demo-student. Очистити:
 
@@ -102,11 +105,11 @@ npm run reset-demo-student
 | --- | --- |
 | Вхід / вихід | `/login`, cookie `nmt_session` |
 | Реєстрація | `/register` — публічна, лише роль `student` |
-| Реєстрація викладача | `/register/teacher` — pending у `teacher_payments`, акаунт `role=teacher` лише після `status=success` від Mono (500 грн). Без токена — UI-заглушка, Mono не викликається |
-| Webhook оплати | `POST /api/payments/mono/webhook` (публічний, перевірка `X-Sign`) |
+| Реєстрація викладача | `/register/teacher` — pending у `teacher_payments`, акаунт `role=teacher` лише після `transactionStatus=Approved` від WayForPay (500 грн). Без ключів — UI-заглушка, checkout не підписується |
+| Webhook оплати | `POST /api/payments/wayforpay/webhook` (публічний, перевірка HMAC_MD5) |
 | Ролі | `student`, `teacher`, `admin` |
 | Облікові записи | таблиця `app_users` (окремо від legacy `users` на хостингу) |
-| Middleware | редірект на `/login`; публічні `/`, `/welcome`, `/login`, `/register`, `/register/teacher` і статика з `public/`; webhook `/api/payments/mono/webhook`; `/settings` — лише admin |
+| Middleware | редірект на `/login`; публічні `/`, `/welcome`, `/login`, `/register`, `/register/teacher` і статика з `public/`; webhook `/api/payments/wayforpay/webhook`; return `/api/payments/wayforpay/return`; `/settings` — лише admin |
 | Mentor UI | `/sessions` — панель призначення для teacher/admin |
 
 `userId` у Server Actions береться з сесії (`requireUserId()`), не з FormData.

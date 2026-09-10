@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { SqlConnection } from "@/lib/db/mysql";
-import { MONO_CCY_UAH, TEACHER_FEE_KOPIYKY } from "./constants";
+import { CCY_UAH, TEACHER_FEE_KOPIYKY } from "./constants";
 import { resetTeacherPaymentsSchemaCache } from "./schema";
 import {
   activatePaidTeacher,
-  applyMonoWebhook,
+  applyWayForPayWebhook,
   type TeacherPayment,
 } from "./teacherPayments";
 
@@ -22,7 +22,8 @@ type PaymentRowFixture = {
   status: string;
   amount_kopiyky: number;
   ccy: number;
-  mono_invoice_id: string;
+  provider: string;
+  external_order_id: string;
   user_id: number | null;
 };
 
@@ -34,8 +35,9 @@ const pendingRow: PaymentRowFixture = {
   password_hash: passwordHash,
   status: "pending" as const,
   amount_kopiyky: TEACHER_FEE_KOPIYKY,
-  ccy: MONO_CCY_UAH,
-  mono_invoice_id: "inv-7",
+  ccy: CCY_UAH,
+  provider: "wayforpay",
+  external_order_id: reference,
   user_id: null as number | null,
 };
 
@@ -47,8 +49,9 @@ const pendingPayment: TeacherPayment = {
   passwordHash,
   status: "pending",
   amountKopiyky: TEACHER_FEE_KOPIYKY,
-  ccy: MONO_CCY_UAH,
-  monoInvoiceId: "inv-7",
+  ccy: CCY_UAH,
+  provider: "wayforpay",
+  externalOrderId: reference,
   userId: null,
 };
 
@@ -63,6 +66,7 @@ function connectionForActivation(options: {
   } | null;
   onInsertUser?: (params: unknown[]) => void;
   onMarkPaid?: (params: unknown[]) => void;
+  onMarkStatus?: (params: unknown[]) => void;
 }): SqlConnection {
   const paymentRow = options.paymentRow ?? pendingRow;
   return {
@@ -71,6 +75,12 @@ function connectionForActivation(options: {
     rollback: async () => {},
     release: () => {},
     query: async <T,>(sql: string) => {
+      if (sql.includes("information_schema")) {
+        return [
+          { COLUMN_NAME: "external_order_id" },
+          { COLUMN_NAME: "provider" },
+        ] as T[];
+      }
       if (sql.includes("COUNT(*)")) {
         return [{ count: 3 }] as T[];
       }
@@ -89,6 +99,10 @@ function connectionForActivation(options: {
       }
       if (sql.includes("status = 'paid'") || sql.includes("SET status = 'paid'")) {
         options.onMarkPaid?.(params);
+        return { insertId: 0, affectedRows: 1 };
+      }
+      if (sql.includes("SET status = ?")) {
+        options.onMarkStatus?.(params);
         return { insertId: 0, affectedRows: 1 };
       }
       return { insertId: 0, affectedRows: 0 };
@@ -111,7 +125,7 @@ test("activatePaidTeacher inserts a teacher from the pending hash and marks paid
 
   const result = await activatePaidTeacher(
     pendingPayment,
-    { invoiceId: "inv-7" },
+    { externalOrderId: reference },
     { getConnection: async () => connection },
   );
 
@@ -164,7 +178,7 @@ test("activatePaidTeacher is idempotent when the payment is already paid", async
   assert.equal(inserted, false);
 });
 
-test("applyMonoWebhook on success activates the pending teacher", async () => {
+test("applyWayForPayWebhook on Approved activates the pending teacher", async () => {
   resetTeacherPaymentsSchemaCache();
   let inserted = false;
   const connection = connectionForActivation({
@@ -173,13 +187,12 @@ test("applyMonoWebhook on success activates the pending teacher", async () => {
     },
   });
 
-  const result = await applyMonoWebhook(
+  const result = await applyWayForPayWebhook(
     {
-      invoiceId: "inv-7",
-      status: "success",
-      amount: TEACHER_FEE_KOPIYKY,
-      ccy: MONO_CCY_UAH,
-      reference,
+      orderReference: reference,
+      transactionStatus: "Approved",
+      amount: 500,
+      currency: "UAH",
     },
     { getConnection: async () => connection },
   );
@@ -187,7 +200,34 @@ test("applyMonoWebhook on success activates the pending teacher", async () => {
   assert.deepEqual(result, {
     handled: true,
     activated: true,
-    status: "success",
+    status: "Approved",
   });
   assert.equal(inserted, true);
+});
+
+test("applyWayForPayWebhook on Declined marks pending as failed", async () => {
+  resetTeacherPaymentsSchemaCache();
+  let marked: unknown[] | undefined;
+  const connection = connectionForActivation({
+    onMarkStatus: (params) => {
+      marked = params;
+    },
+  });
+
+  const result = await applyWayForPayWebhook(
+    {
+      orderReference: reference,
+      transactionStatus: "Declined",
+      amount: 500,
+      currency: "UAH",
+    },
+    { getConnection: async () => connection },
+  );
+
+  assert.deepEqual(result, {
+    handled: true,
+    activated: false,
+    status: "Declined",
+  });
+  assert.deepEqual(marked, ["failed", 7]);
 });

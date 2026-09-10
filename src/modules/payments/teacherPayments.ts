@@ -11,8 +11,11 @@ import {
 } from "@/modules/auth/users";
 import { hashPassword } from "@/modules/auth/password";
 import {
-  MONO_CCY_UAH,
+  CCY_UAH,
   TEACHER_FEE_KOPIYKY,
+  WAYFORPAY_CURRENCY,
+  WAYFORPAY_PROVIDER,
+  parseWayForPayAmountToKopiyky,
   type TeacherPaymentStatus,
 } from "./constants";
 import { ensureTeacherPaymentsSchema } from "./schema";
@@ -26,7 +29,8 @@ export type TeacherPayment = {
   status: TeacherPaymentStatus;
   amountKopiyky: number;
   ccy: number;
-  monoInvoiceId: string | null;
+  provider: string;
+  externalOrderId: string | null;
   userId: number | null;
 };
 
@@ -39,7 +43,8 @@ type PaymentRow = {
   status: TeacherPaymentStatus;
   amount_kopiyky: number;
   ccy: number;
-  mono_invoice_id: string | null;
+  provider: string;
+  external_order_id: string | null;
   user_id: number | null;
 };
 
@@ -49,13 +54,13 @@ export type PaymentsDbDeps = {
 
 const PAYMENT_COLUMNS = `
   id, reference, login, display_name, password_hash, status,
-  amount_kopiyky, ccy, mono_invoice_id, user_id
+  amount_kopiyky, ccy, provider, external_order_id, user_id
 `;
 
 const SQL_INSERT_PENDING = `
   INSERT INTO teacher_payments
-    (reference, login, display_name, password_hash, status, amount_kopiyky, ccy)
-  VALUES (?, ?, ?, ?, 'pending', ?, ?)
+    (reference, login, display_name, password_hash, status, amount_kopiyky, ccy, provider)
+  VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)
 `;
 
 const SQL_FIND_BY_REFERENCE = `
@@ -73,10 +78,10 @@ const SQL_FIND_BY_REFERENCE_FOR_UPDATE = `
   FOR UPDATE
 `;
 
-const SQL_FIND_BY_INVOICE = `
+const SQL_FIND_BY_EXTERNAL = `
   SELECT ${PAYMENT_COLUMNS}
   FROM teacher_payments
-  WHERE mono_invoice_id = ?
+  WHERE external_order_id = ?
   LIMIT 1
 `;
 
@@ -90,19 +95,20 @@ const SQL_FIND_PENDING_BY_LOGIN = `
 
 const SQL_UPDATE_PENDING_CREDENTIALS = `
   UPDATE teacher_payments
-  SET display_name = ?, password_hash = ?, amount_kopiyky = ?, ccy = ?
+  SET display_name = ?, password_hash = ?, amount_kopiyky = ?, ccy = ?, provider = ?
   WHERE id = ? AND status = 'pending'
 `;
 
-const SQL_SET_INVOICE = `
+const SQL_SET_EXTERNAL = `
   UPDATE teacher_payments
-  SET mono_invoice_id = ?
+  SET external_order_id = ?, provider = ?
   WHERE id = ? AND status = 'pending'
 `;
 
 const SQL_MARK_PAID = `
   UPDATE teacher_payments
-  SET status = 'paid', user_id = ?, paid_at = CURRENT_TIMESTAMP, mono_invoice_id = COALESCE(?, mono_invoice_id)
+  SET status = 'paid', user_id = ?, paid_at = CURRENT_TIMESTAMP,
+      external_order_id = COALESCE(?, external_order_id)
   WHERE id = ?
 `;
 
@@ -129,7 +135,8 @@ function mapPayment(row: PaymentRow): TeacherPayment {
     status: row.status,
     amountKopiyky: Number(row.amount_kopiyky),
     ccy: Number(row.ccy),
-    monoInvoiceId: row.mono_invoice_id,
+    provider: row.provider || WAYFORPAY_PROVIDER,
+    externalOrderId: row.external_order_id,
     userId: row.user_id,
   };
 }
@@ -155,15 +162,15 @@ export async function findTeacherPaymentByReference(
   }
 }
 
-export async function findTeacherPaymentByInvoiceId(
-  invoiceId: string,
+export async function findTeacherPaymentByExternalOrderId(
+  externalOrderId: string,
   deps: PaymentsDbDeps = defaultDeps,
 ): Promise<TeacherPayment | null> {
   await ensureTeacherPaymentsSchema(deps.getConnection);
   const connection = await deps.getConnection();
   try {
-    const rows = await connection.query<PaymentRow>(SQL_FIND_BY_INVOICE, [
-      invoiceId.trim(),
+    const rows = await connection.query<PaymentRow>(SQL_FIND_BY_EXTERNAL, [
+      externalOrderId.trim(),
     ]);
     const row = rows[0];
     return row ? mapPayment(row) : null;
@@ -201,7 +208,7 @@ export async function createPendingTeacherPayment(
 ): Promise<TeacherPayment> {
   await ensureTeacherPaymentsSchema(deps.getConnection);
   const amount = input.amountKopiyky ?? TEACHER_FEE_KOPIYKY;
-  const ccy = input.ccy ?? MONO_CCY_UAH;
+  const ccy = input.ccy ?? CCY_UAH;
   const passwordHash = hashPassword(input.password);
 
   const existing = await findPendingTeacherPaymentByLogin(input.login, deps);
@@ -213,6 +220,7 @@ export async function createPendingTeacherPayment(
         passwordHash,
         amount,
         ccy,
+        WAYFORPAY_PROVIDER,
         existing.id,
       ]);
     } finally {
@@ -224,6 +232,7 @@ export async function createPendingTeacherPayment(
       passwordHash,
       amountKopiyky: amount,
       ccy,
+      provider: WAYFORPAY_PROVIDER,
     };
   }
 
@@ -237,6 +246,7 @@ export async function createPendingTeacherPayment(
       passwordHash,
       amount,
       ccy,
+      WAYFORPAY_PROVIDER,
     ]);
     return {
       id: result.insertId,
@@ -247,7 +257,8 @@ export async function createPendingTeacherPayment(
       status: "pending",
       amountKopiyky: amount,
       ccy,
-      monoInvoiceId: null,
+      provider: WAYFORPAY_PROVIDER,
+      externalOrderId: null,
       userId: null,
     };
   } finally {
@@ -255,15 +266,19 @@ export async function createPendingTeacherPayment(
   }
 }
 
-export async function attachMonoInvoice(
+export async function attachExternalOrder(
   paymentId: number,
-  invoiceId: string,
+  externalOrderId: string,
   deps: PaymentsDbDeps = defaultDeps,
 ): Promise<void> {
   await ensureTeacherPaymentsSchema(deps.getConnection);
   const connection = await deps.getConnection();
   try {
-    await connection.execute(SQL_SET_INVOICE, [invoiceId, paymentId]);
+    await connection.execute(SQL_SET_EXTERNAL, [
+      externalOrderId,
+      WAYFORPAY_PROVIDER,
+      paymentId,
+    ]);
   } finally {
     connection.release();
   }
@@ -279,13 +294,10 @@ export type ActivateTeacherResult =
  */
 export async function activatePaidTeacher(
   payment: TeacherPayment,
-  options: { invoiceId?: string | null } = {},
+  options: { externalOrderId?: string | null } = {},
   deps: PaymentsDbDeps = defaultDeps,
 ): Promise<ActivateTeacherResult> {
-  if (
-    payment.amountKopiyky !== TEACHER_FEE_KOPIYKY ||
-    payment.ccy !== MONO_CCY_UAH
-  ) {
+  if (payment.amountKopiyky !== TEACHER_FEE_KOPIYKY || payment.ccy !== CCY_UAH) {
     return { ok: false, code: "amount_mismatch" };
   }
 
@@ -323,7 +335,7 @@ export async function activatePaidTeacher(
       if (existing.role === "teacher") {
         await connection.execute(SQL_MARK_PAID, [
           existing.id,
-          options.invoiceId ?? current.monoInvoiceId,
+          options.externalOrderId ?? current.externalOrderId,
           current.id,
         ]);
         await connection.commit();
@@ -363,7 +375,7 @@ export async function activatePaidTeacher(
 
     await connection.execute(SQL_MARK_PAID, [
       user.id,
-      options.invoiceId ?? current.monoInvoiceId,
+      options.externalOrderId ?? current.externalOrderId,
       current.id,
     ]);
     await connection.commit();
@@ -381,76 +393,119 @@ export async function activatePaidTeacher(
   }
 }
 
-export type MonoWebhookPayload = {
-  invoiceId?: string;
-  status?: string;
-  amount?: number;
-  ccy?: number;
-  reference?: string;
-  modifiedDate?: string;
+export type WayForPayWebhookPayload = {
+  merchantAccount?: string;
+  orderReference?: string;
+  merchantSignature?: string;
+  amount?: number | string;
+  currency?: string;
+  authCode?: string;
+  cardPan?: string;
+  transactionStatus?: string;
+  reasonCode?: string | number;
+  reason?: string;
 };
 
-export function parseMonoWebhookPayload(raw: unknown): MonoWebhookPayload | null {
+function asOptionalString(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return undefined;
+}
+
+export function parseWayForPayWebhookPayload(
+  raw: unknown,
+): WayForPayWebhookPayload | null {
   if (!raw || typeof raw !== "object") return null;
   const record = raw as Record<string, unknown>;
-  const payload: MonoWebhookPayload = {};
-  if (typeof record.invoiceId === "string") payload.invoiceId = record.invoiceId;
-  if (typeof record.status === "string") payload.status = record.status;
-  if (typeof record.amount === "number") payload.amount = record.amount;
-  if (typeof record.ccy === "number") payload.ccy = record.ccy;
-  if (typeof record.reference === "string") payload.reference = record.reference;
-  if (typeof record.modifiedDate === "string") {
-    payload.modifiedDate = record.modifiedDate;
+  const payload: WayForPayWebhookPayload = {};
+  if (typeof record.merchantAccount === "string") {
+    payload.merchantAccount = record.merchantAccount;
   }
+  if (typeof record.orderReference === "string") {
+    payload.orderReference = record.orderReference;
+  }
+  if (typeof record.merchantSignature === "string") {
+    payload.merchantSignature = record.merchantSignature;
+  }
+  if (typeof record.amount === "number" || typeof record.amount === "string") {
+    payload.amount = record.amount;
+  }
+  if (typeof record.currency === "string") payload.currency = record.currency;
+  const authCode = asOptionalString(record.authCode);
+  if (authCode !== undefined) payload.authCode = authCode;
+  if (typeof record.cardPan === "string") payload.cardPan = record.cardPan;
+  if (typeof record.transactionStatus === "string") {
+    payload.transactionStatus = record.transactionStatus;
+  }
+  if (
+    typeof record.reasonCode === "string" ||
+    typeof record.reasonCode === "number"
+  ) {
+    payload.reasonCode = record.reasonCode;
+  }
+  if (typeof record.reason === "string") payload.reason = record.reason;
   return payload;
 }
 
-const FAILURE_STATUSES = new Set(["failure", "expired", "reversed"]);
+const FAILURE_STATUSES: Record<string, TeacherPaymentStatus> = {
+  declined: "failed",
+  expired: "expired",
+  refunded: "cancelled",
+  voided: "cancelled",
+};
 
-export type ApplyMonoWebhookResult = {
+export type ApplyWayForPayWebhookResult = {
   handled: boolean;
   activated: boolean;
   status: string | null;
 };
 
 /**
- * Apply a verified Mono webhook. Only `status=success` creates the teacher.
+ * Apply a verified WayForPay serviceUrl callback.
+ * Only `transactionStatus=Approved` creates the teacher.
  */
-export async function applyMonoWebhook(
-  payload: MonoWebhookPayload,
+export async function applyWayForPayWebhook(
+  payload: WayForPayWebhookPayload,
   deps: PaymentsDbDeps = defaultDeps,
-): Promise<ApplyMonoWebhookResult> {
-  const status = payload.status?.trim().toLowerCase() ?? "";
+): Promise<ApplyWayForPayWebhookResult> {
+  const status = payload.transactionStatus?.trim() ?? "";
+  const statusKey = status.toLowerCase();
   let payment: TeacherPayment | null = null;
-  if (payload.reference) {
-    payment = await findTeacherPaymentByReference(payload.reference, deps);
+  if (payload.orderReference) {
+    payment = await findTeacherPaymentByReference(payload.orderReference, deps);
   }
-  if (!payment && payload.invoiceId) {
-    payment = await findTeacherPaymentByInvoiceId(payload.invoiceId, deps);
+  if (!payment && payload.orderReference) {
+    payment = await findTeacherPaymentByExternalOrderId(
+      payload.orderReference,
+      deps,
+    );
   }
   if (!payment) {
     return { handled: false, activated: false, status: status || null };
   }
 
-  if (status === "success") {
-    if (
-      typeof payload.amount === "number" &&
-      payload.amount !== TEACHER_FEE_KOPIYKY
-    ) {
-      console.error("applyMonoWebhook: amount mismatch", {
+  if (statusKey === "approved") {
+    const amountKopiyky = parseWayForPayAmountToKopiyky(payload.amount);
+    if (amountKopiyky !== null && amountKopiyky !== TEACHER_FEE_KOPIYKY) {
+      console.error("applyWayForPayWebhook: amount mismatch", {
         expected: TEACHER_FEE_KOPIYKY,
         received: payload.amount,
         reference: payment.reference,
       });
       return { handled: true, activated: false, status };
     }
-    if (typeof payload.ccy === "number" && payload.ccy !== MONO_CCY_UAH) {
-      console.error("applyMonoWebhook: currency mismatch", payload.ccy);
+    if (
+      payload.currency &&
+      payload.currency.trim().toUpperCase() !== WAYFORPAY_CURRENCY
+    ) {
+      console.error("applyWayForPayWebhook: currency mismatch", payload.currency);
       return { handled: true, activated: false, status };
     }
     const result = await activatePaidTeacher(
       payment,
-      { invoiceId: payload.invoiceId ?? payment.monoInvoiceId },
+      {
+        externalOrderId: payload.orderReference ?? payment.externalOrderId,
+      },
       deps,
     );
     return {
@@ -460,9 +515,8 @@ export async function applyMonoWebhook(
     };
   }
 
-  if (FAILURE_STATUSES.has(status) && payment.status === "pending") {
-    const mapped: TeacherPaymentStatus =
-      status === "expired" ? "expired" : "failed";
+  const mapped = FAILURE_STATUSES[statusKey];
+  if (mapped && payment.status === "pending") {
     const connection = await deps.getConnection();
     try {
       await connection.execute(SQL_MARK_STATUS, [mapped, payment.id]);
@@ -471,5 +525,5 @@ export async function applyMonoWebhook(
     }
   }
 
-  return { handled: true, activated: false, status };
+  return { handled: true, activated: false, status: status || null };
 }

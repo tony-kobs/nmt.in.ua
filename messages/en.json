@@ -567,7 +567,7 @@
       "progress": "See results and topics that need more practice",
       "cabinet": "The same workspace as students, plus an assignment panel"
     },
-    "paymentNotConfigured": "Payments are not set up yet. You can save the application; a Mono invoice is not created and the cabinet stays inactive.",
+    "paymentNotConfigured": "Payments are not set up yet. You can save the application; a WayForPay checkout is not created and the cabinet stays inactive.",
     "asideBadge": "Teachers · 500 UAH",
     "asideTitle": "A cabinet to guide students to the NMT",
     "asideLead": "After payment you see student progress and can assign practice for weak topics.",
@@ -595,8 +595,8 @@
       "loginTaken": "This login is already taken.",
       "reservedLogin": "This login is reserved for demos.",
       "serverError": "Could not save the application. Try again later.",
-      "paymentNotConfigured": "Payments are not configured yet. Your application was saved; the cabinet will open after Mono acquiring is connected.",
-      "invoiceFailed": "Could not create a Mono invoice. Try again later."
+      "paymentNotConfigured": "Payments are not configured yet. Your application was saved; the cabinet will open after WayForPay acquiring is connected.",
+      "invoiceFailed": "Could not start WayForPay checkout. Try again later."
     },
     "result": {
       "success": {

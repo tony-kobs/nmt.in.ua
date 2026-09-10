@@ -453,3 +453,9 @@
     transform: none;
   }
 }
+
+.checkoutForm {
+  display: grid;
+  gap: var(--space-sm);
+  margin-block: var(--space-md);
+}

@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { findUserById } from "@/modules/auth/users";
 import { setSessionCookie } from "@/modules/auth/getCurrentUser";
 import {
-  isSafeCheckoutUrl,
+  isAllowedWayForPayCheckoutUrl,
   isTeacherPaymentReference,
   TEACHER_PAY_COOKIE,
   TEACHER_PAY_COOKIE_MAX_AGE_SEC,
@@ -13,11 +13,12 @@ import {
 import { startTeacherRegistration } from "./startTeacherRegistration";
 import type { RegisterTeacherErrorCode } from "./startTeacherRegistration";
 import { findTeacherPaymentByReference } from "./teacherPayments";
+import type { WayForPayCheckout } from "./wayforpayClient";
 
 export type RegisterTeacherActionState =
   | { status: "idle" }
   | { status: "error"; code: RegisterTeacherErrorCode }
-  | { status: "pay"; pageUrl: string };
+  | { status: "pay"; checkout: WayForPayCheckout };
 
 export type { RegisterTeacherErrorCode };
 
@@ -60,13 +61,13 @@ export async function registerTeacherAction(
     console.error("registerTeacherAction: cookie failed", error);
   }
 
-  if (!isSafeCheckoutUrl(result.pageUrl)) {
+  if (!isAllowedWayForPayCheckoutUrl(result.checkout.actionUrl)) {
     return { status: "error", code: "invoiceFailed" };
   }
 
-  // Navigate on the client — CSP `form-action 'self'` would block a
-  // form-POST redirect to Mono's checkout host.
-  return { status: "pay", pageUrl: result.pageUrl };
+  // Client auto-submits a POST form. CSP allows https://secure.wayforpay.com
+  // (Purchase is a form POST, not a GET invoice URL).
+  return { status: "pay", checkout: result.checkout };
 }
 
 export async function claimTeacherSessionAction(

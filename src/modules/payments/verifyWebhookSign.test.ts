@@ -1,30 +1,71 @@
 import assert from "node:assert/strict";
-import { generateKeyPairSync, sign } from "node:crypto";
 import test from "node:test";
 
 import {
-  parseMonoPublicKey,
-  verifyMonoWebhookSignature,
+  verifyIncomingWayForPayWebhook,
+  WayForPayWebhookSignError,
 } from "./verifyWebhookSign";
+import { signCallback } from "./signature";
 
-const body = JSON.stringify({
-  invoiceId: "p2_9ZgpZVsl3",
-  status: "success",
-  amount: 50000,
-  ccy: 980,
-  reference: "a".repeat(32),
+const payload = {
+  merchantAccount: "nmt_account",
+  orderReference: "a".repeat(32),
+  amount: "500.00",
+  currency: "UAH",
+  authCode: "541963",
+  cardPan: "41****8217",
+  transactionStatus: "Approved",
+  reasonCode: "1100",
+};
+
+test("verifyIncomingWayForPayWebhook accepts HMAC_MD5 merchantSignature", () => {
+  const merchantSignature = signCallback("nmt-secret", payload);
+  assert.equal(
+    verifyIncomingWayForPayWebhook(
+      { ...payload, merchantSignature },
+      {
+        getConfig: () => ({
+          merchantAccount: "nmt_account",
+          merchantSecretKey: "nmt-secret",
+          merchantDomainName: "nmt.in.ua",
+          payUrl: "https://secure.wayforpay.com/pay",
+          configured: true,
+        }),
+      },
+    ),
+    true,
+  );
+  assert.equal(
+    verifyIncomingWayForPayWebhook(
+      { ...payload, merchantSignature: "deadbeef" },
+      {
+        getConfig: () => ({
+          merchantAccount: "nmt_account",
+          merchantSecretKey: "nmt-secret",
+          merchantDomainName: "nmt.in.ua",
+          payUrl: "https://secure.wayforpay.com/pay",
+          configured: true,
+        }),
+      },
+    ),
+    false,
+  );
 });
 
-test("verifyMonoWebhookSignature accepts a matching ECDSA SHA-256 signature", () => {
-  const { publicKey, privateKey } = generateKeyPairSync("ec", {
-    namedCurve: "prime256v1",
-  });
-  const pem = publicKey.export({ type: "spki", format: "pem" }).toString();
-  const pubKeyBase64 = Buffer.from(pem).toString("base64");
-  const xSign = sign("SHA256", Buffer.from(body), privateKey).toString("base64");
-
-  assert.equal(verifyMonoWebhookSignature(body, xSign, pubKeyBase64), true);
-  assert.equal(verifyMonoWebhookSignature(body + "x", xSign, pubKeyBase64), false);
-  assert.equal(verifyMonoWebhookSignature(body, "AAAA", pubKeyBase64), false);
-  assert.ok(parseMonoPublicKey(pubKeyBase64));
+test("verifyIncomingWayForPayWebhook throws not_configured without secrets", () => {
+  assert.throws(
+    () =>
+      verifyIncomingWayForPayWebhook(payload, {
+        getConfig: () => ({
+          merchantAccount: "",
+          merchantSecretKey: "",
+          merchantDomainName: "nmt.in.ua",
+          payUrl: "https://secure.wayforpay.com/pay",
+          configured: false,
+        }),
+      }),
+    (error: unknown) =>
+      error instanceof WayForPayWebhookSignError &&
+      error.code === "not_configured",
+  );
 });

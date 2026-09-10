@@ -1,47 +1,70 @@
 import { getSiteUrl } from "@/constants/seo";
-import { MONO_DEFAULT_BASE_URL } from "./constants";
+import { WAYFORPAY_DEFAULT_PAY_URL } from "./constants";
 
-export type MonoAcquiringConfig = {
-  token: string;
-  baseUrl: string;
+export type WayForPayConfig = {
+  merchantAccount: string;
+  merchantSecretKey: string;
+  merchantDomainName: string;
+  payUrl: string;
   configured: boolean;
 };
 
 export type EnvLike = {
-  MONO_ACQUIRING_TOKEN?: string;
-  MONO_ACQUIRING_BASE_URL?: string;
+  WAYFORPAY_MERCHANT_ACCOUNT?: string;
+  WAYFORPAY_MERCHANT_SECRET_KEY?: string;
+  WAYFORPAY_MERCHANT_DOMAIN?: string;
+  WAYFORPAY_PAY_URL?: string;
+  NEXT_PUBLIC_SITE_URL?: string;
   [key: string]: string | undefined;
 };
 
-export function readMonoAcquiringConfig(
+function hostnameFromSiteUrl(siteUrl: string): string {
+  try {
+    return new URL(siteUrl).hostname;
+  } catch {
+    return "";
+  }
+}
+
+export function readWayForPayConfig(
   env: EnvLike = process.env,
-): MonoAcquiringConfig {
-  // Bracket access so the bundler cannot inline an empty token from CI build.
-  const token = (env["MONO_ACQUIRING_TOKEN"] ?? "").trim();
-  const rawBase =
-    (env["MONO_ACQUIRING_BASE_URL"] ?? "").trim() || MONO_DEFAULT_BASE_URL;
-  const baseUrl = rawBase.replace(/\/$/, "");
+): WayForPayConfig {
+  // Bracket access so the bundler cannot inline empty secrets from a CI build.
+  const merchantAccount = (env["WAYFORPAY_MERCHANT_ACCOUNT"] ?? "").trim();
+  const merchantSecretKey = (env["WAYFORPAY_MERCHANT_SECRET_KEY"] ?? "").trim();
+  const explicitDomain = (env["WAYFORPAY_MERCHANT_DOMAIN"] ?? "").trim();
+  const siteUrl = (env["NEXT_PUBLIC_SITE_URL"] ?? "").trim() || getSiteUrl();
+  const merchantDomainName =
+    explicitDomain || hostnameFromSiteUrl(siteUrl.replace(/\/$/, ""));
+  const rawPay = (env["WAYFORPAY_PAY_URL"] ?? "").trim() || WAYFORPAY_DEFAULT_PAY_URL;
+  const payUrl = rawPay.replace(/\/$/, "");
+
   return {
-    token,
-    baseUrl,
-    configured: token.length > 0,
+    merchantAccount,
+    merchantSecretKey,
+    merchantDomainName,
+    payUrl,
+    configured:
+      merchantAccount.length > 0 &&
+      merchantSecretKey.length > 0 &&
+      merchantDomainName.length > 0,
   };
 }
 
-export function isMonoAcquiringConfigured(env: EnvLike = process.env): boolean {
-  return readMonoAcquiringConfig(env).configured;
+export function isWayForPayConfigured(env: EnvLike = process.env): boolean {
+  return readWayForPayConfig(env).configured;
 }
 
 export function teacherCheckoutUrls(origin = getSiteUrl()): {
-  successUrl: (reference: string) => string;
+  returnUrl: (reference: string) => string;
   failUrl: string;
-  webhookUrl: string;
+  serviceUrl: string;
 } {
   const base = origin.replace(/\/$/, "");
   return {
-    successUrl: (reference: string) =>
-      `${base}/register/teacher/success?ref=${encodeURIComponent(reference)}`,
+    returnUrl: (reference: string) =>
+      `${base}/api/payments/wayforpay/return?ref=${encodeURIComponent(reference)}`,
     failUrl: `${base}/register/teacher/fail`,
-    webhookUrl: `${base}/api/payments/mono/webhook`,
+    serviceUrl: `${base}/api/payments/wayforpay/webhook`,
   };
 }
