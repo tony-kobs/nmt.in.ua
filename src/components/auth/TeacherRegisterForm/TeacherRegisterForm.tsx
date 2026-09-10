@@ -200,6 +200,7 @@ export function TeacherRegisterForm({
 
       {paying && testBypassEnabled ? (
         <OptionalGatewayCheckout
+          key={state.checkout.fields.orderReference}
           checkout={state.checkout}
           summaryLabel={t("testBypass.openGateway")}
           submitLabel={t("testBypass.payAtGateway")}
