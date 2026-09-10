@@ -87,9 +87,8 @@ export function DiagnosticResultSummary({
       ) : priority.length > 0 ? (
         <section className={css.priority} aria-labelledby="diagnostic-priority-title">
           <h2 id="diagnostic-priority-title" className={css.sectionTitle}>
-            {t("priorityTitle", { count: priority.length })}
+            {t("priorityTitle")}
           </h2>
-          <p className={css.sectionLead}>{t("priorityLead")}</p>
           <ul className={css.topicList}>
             {priority.map((topic) => (
               <TopicCard key={topic.themeId} topic={topic} tone="priority" />
@@ -134,17 +133,36 @@ export function DiagnosticResultSummary({
 
       {isGuest ? (
         <section className={css.registerPanel} aria-labelledby="diagnostic-register-title">
+          <p className={css.lead}>{t("explanationIntro")}</p>
+          <p className={css.lead}>{t("explanationDetail")}</p>
           <p className={css.registerKicker}>{t("registerKicker")}</p>
           <h2 id="diagnostic-register-title" className={css.registerTitle}>
             {t("registerTitle")}
           </h2>
+          <p className={css.sectionLead}>{t("registerLead")}</p>
           <ul className={css.benefits}>
-            <li>{t("registerBenefitSave")}</li>
-            <li>{t("registerBenefitPlan")}</li>
-            <li>{t("registerBenefitProgress")}</li>
-            <li>{t("registerBenefitHistory")}</li>
-            <li>{t("registerBenefitNext")}</li>
+            <li>
+              <p className={css.benefitTitle}>{t("registerBenefit1Title")}</p>
+              <p className={css.benefitText}>{t("registerBenefit1Text")}</p>
+            </li>
+            <li>
+              <p className={css.benefitTitle}>{t("registerBenefit2Title")}</p>
+              <p className={css.benefitText}>{t("registerBenefit2Text")}</p>
+            </li>
+            <li>
+              <p className={css.benefitTitle}>{t("registerBenefit3Title")}</p>
+              <p className={css.benefitText}>{t("registerBenefit3Text")}</p>
+            </li>
+            <li>
+              <p className={css.benefitTitle}>{t("registerBenefit4Title")}</p>
+              <p className={css.benefitText}>{t("registerBenefit4Text")}</p>
+            </li>
+            <li>
+              <p className={css.benefitTitle}>{t("registerBenefit5Title")}</p>
+              <p className={css.benefitText}>{t("registerBenefit5Text")}</p>
+            </li>
           </ul>
+          <p className={css.registerClosing}>{t("registerClosing")}</p>
           <Link href="/register?from=diagnostic" className={css.registerCta}>
             {t("registerCta")}
           </Link>
