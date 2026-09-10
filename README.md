@@ -84,7 +84,7 @@ npm run dev
 
 ### Оплата кабінету викладача (WayForPay)
 
-1. Скопіюй `WAYFORPAY_MERCHANT_ACCOUNT` і `WAYFORPAY_MERCHANT_SECRET_KEY` у `.env.local` / `.env.production` (кабінет WayForPay).
+1. Скопіюй `WAYFORPAY_MERCHANT_ACCOUNT` і `WAYFORPAY_MERCHANT_SECRET_KEY` у `.env.local` / `.env.production` (кабінет WayForPay). Для пісочниці з документації WayForPay `merchantAccount` = `test_merch_n1`; SecretKey лише локально, не в git.
 2. За бажанням `WAYFORPAY_MERCHANT_DOMAIN` (дефолт — hostname `NEXT_PUBLIC_SITE_URL`, на проді `nmt.in.ua`). Домен має збігатися з кабінетом WayForPay.
 3. SQL: `scripts/sql/014_teacher_payments.sql` — або нічого не запускай: таблиця створюється при першому сабміті. Якщо вже була Mono-версія з `mono_invoice_id`, колонки мігрують самі.
 4. `NEXT_PUBLIC_SITE_URL=https://nmt.in.ua` (HTTPS) для `returnUrl` і `serviceUrl`. Локально webhook не дійде на `localhost` — потрібен публічний тунель (ngrok тощо) і той самий URL у env.
