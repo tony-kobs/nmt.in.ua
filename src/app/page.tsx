@@ -1,11 +1,20 @@
 import { Suspense } from "react";
-import { getTranslations } from "next-intl/server";
-import { TopicTestStart } from "@/components/dashboard/TopicTestStart";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
+import { NextIntlClientProvider } from "next-intl";
 import { WelcomeLanding } from "@/components/welcome/WelcomeLanding";
 import { createPageMetadata } from "@/constants/seo";
-import { getCurrentUser } from "@/modules/auth/getCurrentUser";
-import { getAvailableTopicThemes } from "@/modules/testing/getAvailableTopicThemes";
+import { pickClientMessages } from "@/i18n/clientMessages";
+import {
+  getCurrentUser,
+  sessionCookieNeedsUpgrade,
+} from "@/modules/auth/getCurrentUser";
 import { parseThemeQueryParam } from "@/modules/testing/parseThemeQueryParam";
+
+/**
+ * Root `/` lives outside `(app)` / `(marketing)` so guests skip
+ * `force-dynamic` cabinet layout and fat CORE i18n.
+ * Logged-in users load the cabinet chunk only via dynamic import.
+ */
 
 export async function generateMetadata() {
   const user = await getCurrentUser();
@@ -42,21 +51,31 @@ function readThemeParam(
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const user = await getCurrentUser();
+  const locale = await getLocale();
 
   if (!user) {
-    return <WelcomeLanding />;
+    const messages = pickClientMessages(await getMessages(), "/");
+    return (
+      <NextIntlClientProvider locale={locale} messages={messages}>
+        <WelcomeLanding />
+      </NextIntlClientProvider>
+    );
   }
 
   const params = await searchParams;
-  const themes = await getAvailableTopicThemes();
   const initialThemeId = parseThemeQueryParam(readThemeParam(params.theme));
+  const needsCookieUpgrade = await sessionCookieNeedsUpgrade();
+
+  const { CabinetHome } = await import("./_home/CabinetHome");
 
   return (
     <Suspense fallback={null}>
-      <TopicTestStart
-        themes={themes}
-        initialThemeId={initialThemeId}
+      <CabinetHome
+        locale={locale}
         displayName={user.displayName}
+        user={user}
+        initialThemeId={initialThemeId}
+        needsCookieUpgrade={needsCookieUpgrade}
       />
     </Suspense>
   );

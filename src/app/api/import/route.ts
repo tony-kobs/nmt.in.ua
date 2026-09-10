@@ -81,6 +81,8 @@ export async function POST(
   try {
     const input = await buildImportInput(request);
     const summary = await deps.runContentImport(input);
+    const { invalidateCatalogCache } = await import("@/lib/cache/catalogCache");
+    invalidateCatalogCache();
     return NextResponse.json(
       {
         ok: true,

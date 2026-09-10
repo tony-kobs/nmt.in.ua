@@ -36,15 +36,20 @@ function makeConnection(options: {
           theme_id: id,
         })) as unknown as T[];
       }
-      if (sql.includes("FROM quiz_tasks")) {
-        const themeId = params[0] as number;
-        const ids =
-          options.tasksPerTheme?.get(themeId) ??
-          Array.from(
-            { length: DIAGNOSTIC_TASKS_PER_THEME },
-            (_, i) => themeId * 1000 + i,
-          );
-        return ids.map((id) => ({ id })) as unknown as T[];
+      if (sql.includes("FROM quiz_tasks") && sql.includes("theme_id IN")) {
+        const rows: { id: number; theme_id: number }[] = [];
+        for (const themeId of options.eligibleThemeIds) {
+          const ids =
+            options.tasksPerTheme?.get(themeId) ??
+            Array.from(
+              { length: DIAGNOSTIC_TASKS_PER_THEME },
+              (_, i) => themeId * 1000 + i,
+            );
+          for (const id of ids) {
+            rows.push({ id, theme_id: themeId });
+          }
+        }
+        return rows as unknown as T[];
       }
       return [] as T[];
     },
@@ -112,11 +117,12 @@ test("selects exactly 3 tasks per eligible theme", async () => {
   assert.equal(result.taskIds.length, 3 * DIAGNOSTIC_TASKS_PER_THEME);
   assert.deepEqual(result.themeIds, [1, 2, 3]);
 
-  const taskSelects = mock.calls.filter((c) => c.sql.includes("FROM quiz_tasks"));
-  assert.equal(taskSelects.length, 3);
-  for (const call of taskSelects) {
-    assert.match(call.sql, new RegExp(`LIMIT ${DIAGNOSTIC_TASKS_PER_THEME}$`));
-  }
+  const taskSelects = mock.calls.filter(
+    (c) => c.sql.includes("FROM quiz_tasks") && c.sql.includes("theme_id IN"),
+  );
+  assert.equal(taskSelects.length, 1);
+  assert.doesNotMatch(taskSelects[0]!.sql, /ORDER BY RAND/);
+  assert.deepEqual(taskSelects[0]!.params, [1, 2, 3]);
 });
 
 test("caps at DIAGNOSTIC_MAX_THEMES themes and DIAGNOSTIC_MAX_THEMES*3 tasks", async () => {

@@ -116,6 +116,7 @@ export async function proxy(request: NextRequest) {
     });
   }
 
+  // Prefer X-Real-IP / CF / rightmost XFF — never leftmost client spoof.
   const ip = clientIp(request.headers);
   const now = Date.now();
   const limit = limitFor(pathname);

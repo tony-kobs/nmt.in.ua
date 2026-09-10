@@ -342,3 +342,18 @@ npm run lint && npm test && npm run build
 - `MathText`: формули в `max-width: 100%` + власний `overflow-x: auto` (сторінка
   з `overflow-x: clip` більше не обрізає їх без скролу). На вузькому екрані
   трохи менший KaTeX (`1em` → `1.21em` з 768).
+
+### 2026-09-10 — перф: layouts, KaTeX, кеш, SQL
+
+- Root layout лише `html`/`body` + `globals.css` (без `force-dynamic`, без shell).
+  `(marketing)` — welcome/login/register/**diagnostic**; `(app)` — кабінет + `force-dynamic` +
+  `DashboardShell` лише для авторизованих.
+- `/` на root (поза групами): гість — slim i18n + `WelcomeLanding`; учень — dynamic
+  `CabinetHome` (shell + старт тесту).
+- KaTeX: `MathText` (client) + dynamic `KatexFormula` chunk; CSS не в root.
+- Client i18n: `pickClientMessages(pathname)` — публічні маршрути без CORE кабінету.
+- Сесія: `displayName`/`login` у cookie; `UpgradeSessionCookie` для legacy токенів.
+- Каталог: `unstable_cache` + tag `catalog`; інвалідація після імпорту.
+- Старт тестів: `sampleRandomIds`; `getNmtVariants` — `ROW_NUMBER`; `checkAnswer` — один JOIN.
+- `/problems` — JSON; `/sessions` — `LIMIT 50`; `/results` — ≤12 сесій на тему.
+- Стиснуто OG/apple-touch і найбільші `public/nmt/osvita/*`.

@@ -89,45 +89,35 @@ test("buildStudentTopicStats: empty user keeps all themes with null metrics and 
   }
 });
 
-test("getStudentTopicStats: filters non-completed sessions in the JOIN condition and releases the connection", async () => {
-  const themes = [
-    { theme_id: 1, theme_name: "Тема A", theme_ord: 0 },
-    { theme_id: 2, theme_name: "Тема B", theme_ord: 1 },
-  ];
-
-  let capturedParams: unknown[] | undefined;
+test("getStudentTopicStats: loads themes + completed sessions separately and releases", async () => {
+  let sessionParams: unknown[] | undefined;
   const connection = fakeConnection((sql, params) => {
-    capturedParams = params;
-    // Simulate the LEFT JOIN: theme A has one completed session, theme B has none
-    // (its only session is non-completed and filtered out by the JOIN predicate).
-    return [
-      {
-        theme_id: 1,
-        theme_name: "Тема A",
-        theme_ord: 0,
-        session_id: 10,
-        tasks_number: 10,
-        right_number: 8,
-        time: 50,
-      },
-      {
-        theme_id: 2,
-        theme_name: "Тема B",
-        theme_ord: 1,
-        session_id: null,
-        tasks_number: null,
-        right_number: null,
-        time: null,
-      },
-    ];
+    if (sql.includes("FROM themes")) {
+      return [
+        { id: 1, name: "Тема A", ord: 0 },
+        { id: 2, name: "Тема B", ord: 1 },
+      ];
+    }
+    if (sql.includes("FROM task_sessions")) {
+      sessionParams = params;
+      return [
+        {
+          id: 10,
+          theme_id: 1,
+          tasks_number: 10,
+          right_number: 8,
+          time: 50,
+        },
+      ];
+    }
+    return [];
   });
-  void themes;
 
   const stats = await getStudentTopicStats(1, {
     getConnection: async () => connection,
   });
 
-  assert.deepEqual(capturedParams, [1, SESSION_STATUS_COMPLETED]);
+  assert.deepEqual(sessionParams, [1, SESSION_STATUS_COMPLETED]);
   assert.equal(stats.hasCompletedSessions, true);
   assert.deepEqual(stats.topicScores, [
     { themeId: 1, themeName: "Тема A", overallPercent: 80, lastPercent: 80 },

@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { sampleRandomIds } from "@/lib/sampleRandomIds";
 import {
   SESSION_STATUS_CREATED,
   SESSION_STATUS_PLANNED,
@@ -22,7 +23,7 @@ const SQL_COUNT_MAPPINGS = `
   WHERE session_id = ?
 `;
 
-const SQL_SELECT_TASKS = `SELECT id FROM quiz_tasks WHERE theme_id = ? ORDER BY RAND() LIMIT ${TOPIC_TEST_TASK_COUNT}`;
+const SQL_SELECT_TASK_IDS = `SELECT id FROM quiz_tasks WHERE theme_id = ?`;
 
 const SQL_INSERT_MAPPING_PREFIX =
   "INSERT INTO tasks2session (task_type, task_id, session_id, user_id, status) VALUES ";
@@ -155,10 +156,14 @@ export async function startPlannedSession(
         );
       }
 
-      const tasks = await connection.query<{ id: number }>(SQL_SELECT_TASKS, [
+      const pool = await connection.query<{ id: number }>(SQL_SELECT_TASK_IDS, [
         session.theme_id,
       ]);
-      const taskCount = tasks.length;
+      const taskIds = sampleRandomIds(
+        pool.map((row) => row.id),
+        TOPIC_TEST_TASK_COUNT,
+      );
+      const taskCount = taskIds.length;
 
       if (taskCount === 0) {
         await connection.rollback();
@@ -168,10 +173,10 @@ export async function startPlannedSession(
         );
       }
 
-      const placeholders = tasks.map(() => "(?, ?, ?, ?, ?)").join(", ");
-      const mappingParams = tasks.flatMap((task) => [
+      const placeholders = taskIds.map(() => "(?, ?, ?, ?, ?)").join(", ");
+      const mappingParams = taskIds.flatMap((taskId) => [
         TASK_TYPE_TOPIC,
-        task.id,
+        taskId,
         session.id,
         input.userId,
         TASK_STATUS_UNANSWERED,
@@ -206,7 +211,7 @@ export async function startPlannedSession(
       return {
         sessionId: session.id,
         themeId: session.theme_id,
-        taskIds: tasks.map((task) => task.id),
+        taskIds,
       };
     } catch (error) {
       if (!(error instanceof StartPlannedSessionError)) {

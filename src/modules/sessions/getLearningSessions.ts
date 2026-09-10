@@ -4,7 +4,36 @@ import {
   type LearningSessionRow,
 } from "./types";
 
-const SQL_LEARNING_SESSIONS = `
+/** Default page size for `/sessions` — avoids unbounded history growth. */
+export const LEARNING_SESSIONS_PAGE_SIZE = 50;
+
+type GetLearningSessionsDeps = {
+  getConnection: () => Promise<SqlConnection>;
+};
+
+export type GetLearningSessionsOptions = {
+  /** Max rows (newest first). Capped at 200. */
+  limit?: number;
+};
+
+async function loadDefaultConnection(): Promise<SqlConnection> {
+  const { getConnection } = await import("@/lib/db/mysql");
+  return getConnection();
+}
+
+function resolveLimit(limit: number | undefined): number {
+  const raw = limit ?? LEARNING_SESSIONS_PAGE_SIZE;
+  if (!Number.isInteger(raw) || raw <= 0) return LEARNING_SESSIONS_PAGE_SIZE;
+  return Math.min(raw, 200);
+}
+
+export async function getLearningSessions(
+  userId: number,
+  deps: GetLearningSessionsDeps = { getConnection: loadDefaultConnection },
+  options: GetLearningSessionsOptions = {},
+): Promise<LearningSessionRow[]> {
+  const limit = resolveLimit(options.limit);
+  const sql = `
   SELECT
     ts.id,
     ts.theme_id,
@@ -19,21 +48,9 @@ const SQL_LEARNING_SESSIONS = `
   INNER JOIN themes t ON t.id = ts.theme_id
   WHERE ts.user_id = ?
   ORDER BY ts.id DESC
+  LIMIT ${limit}
 `;
 
-type GetLearningSessionsDeps = {
-  getConnection: () => Promise<SqlConnection>;
-};
-
-async function loadDefaultConnection(): Promise<SqlConnection> {
-  const { getConnection } = await import("@/lib/db/mysql");
-  return getConnection();
-}
-
-export async function getLearningSessions(
-  userId: number,
-  deps: GetLearningSessionsDeps = { getConnection: loadDefaultConnection },
-): Promise<LearningSessionRow[]> {
   const connection = await deps.getConnection();
   try {
     const rows = await connection.query<{
@@ -46,7 +63,7 @@ export async function getLearningSessions(
       session_status: number;
       session_type: number;
       start_time: number;
-    }>(SQL_LEARNING_SESSIONS, [userId]);
+    }>(sql, [userId]);
 
     return buildLearningSessionRows(rows);
   } finally {

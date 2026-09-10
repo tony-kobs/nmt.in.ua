@@ -14,7 +14,7 @@ import {
 } from "./getCurrentUser";
 import { changePassword, ChangePasswordError } from "./changePassword";
 import type { ChangePasswordErrorCode } from "./changePassword";
-import { createUser, CreateUserError, findUserByLogin } from "./users";
+import { createUser, CreateUserError, findUserById, findUserByLogin } from "./users";
 import {
   PASSWORD_MAX_LEN,
   validateRegistrationInput,
@@ -161,4 +161,22 @@ export async function changePasswordAction(
     console.error("changePasswordAction: unexpected error", error);
     return { status: "error", code: "serverError" };
   }
+}
+
+/**
+ * Re-issues the session cookie with displayName/login for legacy tokens.
+ * Safe to call repeatedly; no-ops when the cookie is already upgraded.
+ */
+export async function upgradeSessionCookieAction(): Promise<{ ok: boolean }> {
+  const { getSessionPayload, setSessionCookie } = await import(
+    "./getCurrentUser"
+  );
+  const payload = await getSessionPayload();
+  if (!payload) return { ok: false };
+  if (payload.displayName && payload.login) return { ok: true };
+
+  const user = await findUserById(payload.userId);
+  if (!user) return { ok: false };
+  await setSessionCookie(user);
+  return { ok: true };
 }

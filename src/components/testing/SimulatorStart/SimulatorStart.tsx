@@ -8,7 +8,7 @@ import {
   type StartNmtSimulatorActionState,
 } from "@/modules/testing/actions";
 import type { NmtVariantListItem } from "@/modules/testing/getNmtVariants";
-import css from "@/app/simulator/page.module.css";
+import css from "./SimulatorStart.module.css";
 
 const initialState: StartNmtSimulatorActionState = { status: "idle" };
 

@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { pickRandomId } from "@/lib/sampleRandomIds";
 
 /** `tasks2session.task_type` for rows that point at `nmt_quiz_tasks`. */
 export const TASK_TYPE_NMT = 4;
@@ -51,11 +52,9 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-const SQL_RANDOM_VARIANT = `
+const SQL_PUBLISHED_VARIANT_IDS = `
   SELECT id FROM nmt_variants
   WHERE is_published = 1
-  ORDER BY RAND()
-  LIMIT 1
 `;
 
 const SQL_VARIANT = `
@@ -145,15 +144,18 @@ export async function startNmtSimulator(
 
       let variantPk: number;
       if (resolvedVariant === "random") {
-        const picked = await connection.query<{ id: number }>(SQL_RANDOM_VARIANT);
-        if (!picked[0]) {
+        const published = await connection.query<{ id: number }>(
+          SQL_PUBLISHED_VARIANT_IDS,
+        );
+        const picked = pickRandomId(published.map((row) => row.id));
+        if (picked == null) {
           await connection.rollback();
           throw new StartNmtSimulatorError(
             "Немає опублікованих варіантів НМТ.",
             "variant_not_found",
           );
         }
-        variantPk = picked[0].id;
+        variantPk = picked;
       } else {
         const found = await connection.query<{ id: number; tasks_number: number }>(
           SQL_VARIANT,

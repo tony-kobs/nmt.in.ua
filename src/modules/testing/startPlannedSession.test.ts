@@ -81,11 +81,9 @@ test("startPlannedSession inserts mappings and activates planned session", async
     { getConnection: async () => connection },
   );
 
-  assert.deepEqual(result, {
-    sessionId: 12,
-    themeId: 4,
-    taskIds: [10, 11],
-  });
+  assert.equal(result.sessionId, 12);
+  assert.equal(result.themeId, 4);
+  assert.deepEqual([...result.taskIds].sort((a, b) => a - b), [10, 11]);
 
   const mappingInsert = executeCalls.find((call) =>
     call.sql.includes("INSERT INTO tasks2session"),

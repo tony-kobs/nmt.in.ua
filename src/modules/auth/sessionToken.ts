@@ -3,6 +3,13 @@ import type { SessionPayload, UserRole } from "./types";
 export const SESSION_COOKIE_NAME = "nmt_session";
 export const SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 7;
 
+export type SessionTokenInput = {
+  userId: number;
+  role: UserRole;
+  displayName: string;
+  login: string;
+};
+
 function readSecret(): string {
   const secret = process.env.SESSION_SECRET;
   if (!secret) {
@@ -77,14 +84,19 @@ function isUserRole(value: unknown): value is UserRole {
   return value === "student" || value === "teacher" || value === "admin";
 }
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 export async function createSessionToken(
-  userId: number,
-  role: UserRole,
+  input: SessionTokenInput,
   nowSec: number = Math.floor(Date.now() / 1000),
 ): Promise<string> {
   const payload: SessionPayload = {
-    userId,
-    role,
+    userId: input.userId,
+    role: input.role,
+    displayName: input.displayName.trim(),
+    login: input.login.trim(),
     exp: nowSec + SESSION_MAX_AGE_SEC,
   };
   const body = toBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
@@ -128,9 +140,16 @@ export async function verifySessionToken(
 
   if (record.exp <= nowSec) return null;
 
-  return {
+  const payload: SessionPayload = {
     userId: record.userId,
     role: record.role,
     exp: record.exp,
   };
+
+  if (isNonEmptyString(record.displayName) && isNonEmptyString(record.login)) {
+    payload.displayName = record.displayName.trim();
+    payload.login = record.login.trim();
+  }
+
+  return payload;
 }
