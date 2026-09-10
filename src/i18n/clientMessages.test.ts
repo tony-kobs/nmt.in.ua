@@ -24,7 +24,7 @@ test("cabinet /home keeps Header.goHomeShort and CORE namespaces", () => {
 
   assert.equal(
     (picked.Header as { goHomeShort: string }).goHomeShort,
-    "Головна",
+    "Вітальна",
   );
   assert.ok(
     CORE_CLIENT_NAMESPACES.every((key) => key in picked),
