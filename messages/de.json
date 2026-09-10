@@ -127,7 +127,58 @@
     },
     "consultations": {
       "title": "Lehrerberatungen",
-      "description": "Buche eine Beratung und tausche dich mit Lehrkräften aus."
+      "description": "Beratung anfragen: Schüler senden eine Anfrage, Lehrkräfte sehen sie im Kabinett."
+    }
+  },
+  "Consultations": {
+    "kicker": "Beratung",
+    "title": "Lehrerberatungen",
+    "studentLead": "Hinterlasse eine Anfrage — alle Lehrkräfte sehen sie im Kabinett. Eine persönliche Zuordnung Schüler–Lehrkraft gibt es noch nicht.",
+    "teacherLead": "Alle Schüleranfragen. Eine Zuordnung Schüler–Lehrkraft gibt es noch nicht — die Liste ist für Lehrkräfte und Admins gemeinsam.",
+    "formTitle": "Neue Anfrage",
+    "formLead": "Beschreibe kurz, wobei du Hilfe brauchst — oder sende die Anfrage einfach so.",
+    "noteLabel": "Nachricht (optional)",
+    "notePlaceholder": "Zum Beispiel, zu welchem Thema du Hilfe brauchst",
+    "noteHint": "Bis zu 1000 Zeichen. Das Feld darf leer bleiben.",
+    "submit": "Beratung anfragen",
+    "submitting": "Senden…",
+    "success": "Anfrage gesendet. Lehrkräfte sehen sie in Kürze.",
+    "alreadyOpen": "Du hast bereits eine offene Anfrage.",
+    "noNote": "Keine Nachricht",
+    "sentAt": "Gesendet {when}",
+    "openTitle": {
+      "pending": "Deine Anfrage wartet auf eine Lehrkraft",
+      "acknowledged": "Eine Lehrkraft hat deine Anfrage gesehen",
+      "closed": "Anfrage geschlossen"
+    },
+    "openLead": {
+      "pending": "Eine neue Anfrage ist nicht nötig — diese steht bereits in der Warteschlange.",
+      "acknowledged": "Bitte warten. Eine weitere Anfrage kannst du senden, wenn diese geschlossen ist.",
+      "closed": "Du kannst eine neue Anfrage senden."
+    },
+    "inboxTitle": "Schüleranfragen",
+    "inboxLead": "Offene Anfragen stehen oben. Als gesehen markieren oder nach der Beratung schließen.",
+    "empty": "Es gibt noch keine Anfragen.",
+    "student": "Schüler",
+    "note": "Nachricht",
+    "status": "Status",
+    "created": "Wann",
+    "actions": "Aktionen",
+    "acknowledge": "Gesehen",
+    "close": "Schließen",
+    "saving": "Speichern…",
+    "alreadyClosed": "Geschlossen",
+    "statuses": {
+      "pending": "Offen",
+      "acknowledged": "Gesehen",
+      "closed": "Geschlossen"
+    },
+    "errors": {
+      "invalid_input": "Prüfe die Nachricht und versuche es erneut.",
+      "forbidden": "Nur ein Schüler kann eine Anfrage senden.",
+      "generic": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+      "notFound": "Diese Anfrage existiert nicht mehr.",
+      "invalidTransition": "Diese Statusänderung ist nicht erlaubt."
     }
   },
   "TopicTestStart": {
@@ -686,7 +737,7 @@
     },
     "consultations": {
       "title": "Lehrerberatung",
-      "description": "Buche eine Beratung und kommuniziere mit Lehrkräften."
+      "description": "Beratung anfragen: Schüler senden eine Anfrage, Lehrkräfte sehen sie im Kabinett."
     },
     "account": {
       "title": "Persönliches Konto",

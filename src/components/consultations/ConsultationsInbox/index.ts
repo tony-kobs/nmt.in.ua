@@ -1,0 +1,1 @@
+export { ConsultationsInbox } from "./ConsultationsInbox";

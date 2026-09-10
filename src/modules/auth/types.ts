@@ -75,3 +75,7 @@ export function canImportContent(role: UserRole): boolean {
 export function canAssignMentorSessions(role: UserRole): boolean {
   return role === "teacher" || role === "admin";
 }
+
+export function canReviewConsultationRequests(role: UserRole): boolean {
+  return role === "teacher" || role === "admin";
+}

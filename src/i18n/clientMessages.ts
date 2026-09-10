@@ -35,6 +35,7 @@ const LOGIN_NAMESPACES = ["LoginForm"] as const;
 const REGISTER_NAMESPACES = ["RegisterForm"] as const;
 const SETTINGS_NAMESPACES = ["ContentImportForm"] as const;
 const DIAGNOSTIC_NAMESPACES = ["Diagnostic", "DiagnosticResult"] as const;
+const CONSULTATIONS_NAMESPACES = ["Consultations"] as const;
 
 /** Full set — useful for tests / docs. Prefer pickClientMessages(pathname). */
 export const CLIENT_MESSAGE_NAMESPACES = [
@@ -43,6 +44,7 @@ export const CLIENT_MESSAGE_NAMESPACES = [
   ...REGISTER_NAMESPACES,
   ...SETTINGS_NAMESPACES,
   ...DIAGNOSTIC_NAMESPACES,
+  ...CONSULTATIONS_NAMESPACES,
 ] as const;
 
 function namespacesForPath(pathname: string): readonly string[] {
@@ -54,6 +56,8 @@ function namespacesForPath(pathname: string): readonly string[] {
     pathname === "/settings" || pathname.startsWith("/settings/");
   const isDiagnostic =
     pathname === "/diagnostic" || pathname.startsWith("/diagnostic/");
+  const isConsultations =
+    pathname === "/consultations" || pathname.startsWith("/consultations/");
 
   if (isPublicLanding) {
     return [...PUBLIC_CLIENT_NAMESPACES];
@@ -73,6 +77,9 @@ function namespacesForPath(pathname: string): readonly string[] {
   const keys = new Set<string>(CORE_CLIENT_NAMESPACES);
   if (isSettings) {
     for (const key of SETTINGS_NAMESPACES) keys.add(key);
+  }
+  if (isConsultations) {
+    for (const key of CONSULTATIONS_NAMESPACES) keys.add(key);
   }
   return [...keys];
 }

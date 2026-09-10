@@ -122,6 +122,11 @@ alwaysApply: true
 - `TopicTestStart` — домашня робоча сторінка: вітання + тема + кількість завдань (поле / розмір банку). Без Ultimate і без самооцінки.
 - `AccountCabinet` — особистий кабінет: пароль, останні результати, заглушки (фото / досягнення / час), вихід.
 
+`src/components/consultations/` — заявки на консультацію:
+
+- `ConsultationsStudentPanel` — форма «Запитати консультацію» + стан відкритого запиту.
+- `ConsultationsInbox` — черга для викладача/адміна: картки на base, таблиця з 768.
+
 Брейкпоінти кабінету ті самі: сайдбар з 768. Не використовувати 1280.
 
 ## Перевірка перед здачею
@@ -357,3 +362,12 @@ npm run lint && npm test && npm run build
 - Старт тестів: `sampleRandomIds`; `getNmtVariants` — `ROW_NUMBER`; `checkAnswer` — один JOIN.
 - `/problems` — JSON; `/sessions` — `LIMIT 50`; `/results` — ≤12 сесій на тему.
 - Стиснуто OG/apple-touch і найбільші `public/nmt/osvita/*`.
+
+### 2026-09-10 — консультації: заявки учнів
+
+- `/consultations` більше не stub: учень надсилає один відкритий запит (опційне
+  повідомлення), викладач/адмін бачить усі заявки й ставить **побачено** / **закрито**.
+- UI: скляна форма як у `/account`; інбокс — картки на base, таблиця з 768.
+- Логіка в `src/modules/consultations`; таблиця `consultation_requests`
+  (`scripts/sql/016_consultation_requests.sql` + lazy `ensureConsultationSchema`).
+- Привʼязки учень↔викладач немає — список спільний для всіх teacher/admin.
