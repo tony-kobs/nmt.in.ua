@@ -206,6 +206,7 @@
 
 .avatar {
   display: grid;
+  overflow: hidden;
   place-items: center;
   width: 32px;
   height: 32px;

@@ -25,13 +25,18 @@ function userFromPayload(payload: {
   role: UserRole;
   displayName: string;
   login: string;
+  avatarRev?: number;
 }): AuthUser {
-  return {
+  const user: AuthUser = {
     id: payload.userId,
     role: payload.role,
     displayName: payload.displayName,
     login: payload.login,
   };
+  if (payload.avatarRev) {
+    user.avatarRev = payload.avatarRev;
+  }
+  return user;
 }
 
 /**
@@ -52,6 +57,7 @@ export const getCurrentUser = cache(async (): Promise<AuthUser | null> => {
       role: payload.role,
       displayName: payload.displayName,
       login: payload.login,
+      avatarRev: payload.avatarRev,
     });
   }
 
@@ -114,6 +120,7 @@ export async function setSessionCookie(user: AuthUser): Promise<void> {
     role: user.role,
     displayName: user.displayName,
     login: user.login,
+    avatarRev: user.avatarRev,
   });
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, token, {

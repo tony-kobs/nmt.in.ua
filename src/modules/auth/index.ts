@@ -1,6 +1,7 @@
 export type { AuthUser, SessionPayload, UserRole, StudentOption } from "./types";
 export {
   DEMO_ACCOUNTS,
+  avatarSrc,
   canAssignMentorSessions,
   canImportContent,
   roleLabel,
@@ -25,6 +26,7 @@ export type {
   LoginActionState,
   RegisterActionState,
   ChangePasswordActionState,
+  UploadAvatarActionState,
 } from "./actions";
 export {
   loginAction,
@@ -32,6 +34,8 @@ export {
   logoutAction,
   demoLoginAction,
   changePasswordAction,
+  uploadAvatarAction,
+  removeAvatarAction,
 } from "./actions";
 export {
   ensureAuthSchema,

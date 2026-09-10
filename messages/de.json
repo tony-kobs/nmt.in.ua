@@ -50,9 +50,18 @@
   "AccountCabinet": {
     "kicker": "Profil",
     "title": "Persönliches Konto",
-    "lead": "Passwort, Ergebnisse und Platzhalter für Foto, Erfolge und Lernzeit.",
+    "lead": "Profilfoto, Passwort, Ergebnisse und Platzhalter für Erfolge und Lernzeit.",
     "photoTitle": "Profilfoto",
-    "photoLead": "Das Hochladen eines Fotos kommt später. In der Kopfzeile stehen vorerst die Initialen.",
+    "photoLead": "JPEG, PNG oder WebP. Ein quadratisches Foto wird mittig zugeschnitten und erscheint in der Kopfzeile.",
+    "photoHint": "Bis {maxKb} KB. Ein quadratisches Foto wird mittig zugeschnitten und ersetzt die Initialen in der Kopfzeile.",
+    "photoChoose": "Foto wählen",
+    "photoSave": "Foto speichern",
+    "photoSaving": "Wird gespeichert…",
+    "photoSaved": "Foto aktualisiert.",
+    "photoRemove": "Foto entfernen",
+    "photoRemoving": "Wird entfernt…",
+    "photoRemoved": "Foto entfernt.",
+    "demoLockedPhoto": "Auf dem Demo-Konto kann das Foto nicht geändert werden.",
     "achievementsTitle": "Erfolge",
     "achievementsLead": "Abzeichen für Tests und den Simulator erscheinen in einer späteren Version.",
     "timeTitle": "Gesamte Lernzeit",
@@ -79,6 +88,13 @@
       "wrongCurrent": "Das aktuelle Passwort ist falsch.",
       "demoAccount": "Auf dem Demo-Konto kann das Passwort nicht geändert werden.",
       "serverError": "Das Passwort konnte nicht geändert werden. Bitte erneut versuchen."
+    },
+    "photoErrors": {
+      "requiredFile": "Bitte eine Bilddatei wählen.",
+      "invalidType": "JPEG, PNG oder WebP verwenden.",
+      "tooLarge": "Die Datei ist zu groß.",
+      "demoAccount": "Auf dem Demo-Konto kann das Foto nicht geändert werden.",
+      "serverError": "Das Foto konnte nicht gespeichert werden. Bitte erneut versuchen."
     }
   },
   "Common": {
@@ -690,7 +706,7 @@
     },
     "account": {
       "title": "Persönliches Konto",
-      "description": "Profil, Passwortänderung, letzte Ergebnisse und Abmeldung."
+      "description": "Profilfoto, Passwortänderung, letzte Ergebnisse und Abmeldung."
     }
   },
   "SettingsPage": {

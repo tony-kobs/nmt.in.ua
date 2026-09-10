@@ -46,6 +46,9 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["mysql2"],
   experimental: {
     optimizePackageImports: ["clsx"],
+    serverActions: {
+      bodySizeLimit: "2mb",
+    },
   },
   async headers() {
     return [

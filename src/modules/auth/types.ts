@@ -12,6 +12,8 @@ export type AuthUser = {
   login: string;
   displayName: string;
   role: UserRole;
+  /** Unix seconds of the stored avatar; omitted when the user has none. */
+  avatarRev?: number;
 };
 
 export type SessionPayload = {
@@ -21,7 +23,16 @@ export type SessionPayload = {
   /** Present on tokens issued after the layout-DB skip; older cookies omit these. */
   displayName?: string;
   login?: string;
+  /** Present on tokens issued after avatar upload landed; older cookies omit it. */
+  avatarRev?: number;
 };
+
+export function avatarSrc(
+  user: Pick<AuthUser, "id" | "avatarRev">,
+): string | null {
+  if (!user.avatarRev) return null;
+  return `/api/avatar/${user.id}?v=${user.avatarRev}`;
+}
 
 export const DEMO_ACCOUNTS = [
   {
