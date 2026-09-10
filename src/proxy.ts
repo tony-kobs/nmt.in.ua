@@ -44,6 +44,12 @@ function limitFor(pathname: string): number {
   if (pathname.startsWith("/_next/static")) return LIMIT_STATIC;
   if (pathname.startsWith("/_next")) return LIMIT_OTHER;
   if (
+    pathname === "/api/payments/wayforpay/webhook" ||
+    pathname === "/api/payments/wayforpay/return"
+  ) {
+    return LIMIT_PAGE;
+  }
+  if (
     pathname === "/login" ||
     pathname === "/register" ||
     pathname.startsWith("/login/") ||
@@ -55,7 +61,16 @@ function limitFor(pathname: string): number {
   return LIMIT_PAGE;
 }
 
-const PUBLIC_PATHS = ["/", "/welcome", "/login", "/register", "/diagnostic"];
+const PUBLIC_PATHS = [
+  "/",
+  "/welcome",
+  "/login",
+  "/register",
+  "/register/teacher",
+  "/diagnostic",
+  "/api/payments/wayforpay/webhook",
+  "/api/payments/wayforpay/return",
+];
 
 /** Files shipped in /public — images, fonts, manifest. Never behind the auth guard. */
 const PUBLIC_ASSET =

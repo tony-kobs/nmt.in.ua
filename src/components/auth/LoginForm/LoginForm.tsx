@@ -75,6 +75,12 @@ export function LoginForm({ nextPath }: LoginFormProps) {
           {t("registerLink")}
         </Link>
       </p>
+      <p className={css.switch}>
+        {t("teacherPrompt")}{" "}
+        <Link href="/register/teacher" className={css.switchLink}>
+          {t("teacherLink")}
+        </Link>
+      </p>
     </div>
   );
 }

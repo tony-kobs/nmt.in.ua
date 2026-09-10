@@ -208,6 +208,7 @@
 
 .intro {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-xs);
 }
 
@@ -340,6 +341,37 @@
   color: #b3213f;
 }
 
+.alertNotice {
+  border: 1px solid rgb(31 143 69 / 30%);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.feeChip {
+  justify-self: start;
+  margin: 0;
+  padding: 7px 14px;
+  border: 1px solid rgb(31 143 69 / 26%);
+  border-radius: var(--radius-pill);
+  background: var(--green-bg);
+  color: var(--green-dark);
+  font-size: var(--fs-kicker);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.benefits {
+  margin: 0;
+  padding-inline-start: 1.15em;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 1.55;
+}
+
+.benefits li + li {
+  margin-top: 4px;
+}
+
 .switch {
   margin: 0;
   color: var(--muted);
@@ -417,7 +449,112 @@
 
 @media (prefers-reduced-motion: reduce) {
   .backLink:hover,
-  .submit:hover:not(:disabled) {
+  .submit:hover:not(:disabled),
+  .testBypassButton:hover:not(:disabled) {
     transform: none;
   }
+}
+
+.checkoutForm {
+  display: grid;
+  gap: var(--space-sm);
+  margin-block: var(--space-md);
+}
+
+.gatewayDetails {
+  margin-block: var(--space-sm);
+}
+
+.gatewaySummary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  line-height: 1.5;
+  list-style: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.gatewaySummary::-webkit-details-marker {
+  display: none;
+}
+
+.gatewaySummary:hover,
+.gatewaySummary:focus-visible {
+  color: var(--green-dark);
+  text-decoration-thickness: 2px;
+}
+
+.checkoutQuiet {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: var(--space-2xs);
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.checkoutQuiet:hover:not(:disabled),
+.checkoutQuiet:focus-visible:not(:disabled) {
+  color: var(--green-dark);
+  border-color: rgb(31 143 69 / 40%);
+}
+
+.testBypass {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
+  margin-block: var(--space-md);
+  padding: var(--space-md);
+  border: 1px dashed rgb(31 143 69 / 40%);
+  border-radius: var(--radius-lg);
+  background: var(--green-bg);
+}
+
+.testBypassHint {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+.testBypassButton {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 20px;
+  border: 1px solid rgb(31 143 69 / 40%);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--green-dark);
+  font-size: var(--fs-body);
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--t) var(--ease),
+    box-shadow var(--t) var(--ease),
+    opacity var(--t) var(--ease);
+}
+
+.testBypassButton:hover:not(:disabled),
+.testBypassButton:focus-visible:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.testBypassButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }

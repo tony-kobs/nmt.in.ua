@@ -26,7 +26,7 @@ const securityHeaders = [
       "default-src 'self'",
       "base-uri 'self'",
       "frame-ancestors 'none'",
-      "form-action 'self'",
+      "form-action 'self' https://secure.wayforpay.com",
       "object-src 'none'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
