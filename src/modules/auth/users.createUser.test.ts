@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { SqlConnection } from "@/lib/db/mysql";
-import { createUser, CreateUserError } from "./users";
+import { createUser, CreateUserError, findUserById } from "./users";
 
 test("createUser inserts a student and returns AuthUser", async () => {
   let released = false;
@@ -86,4 +86,40 @@ test("createUser maps MySQL duplicate key to login_taken", async () => {
     (error: unknown) =>
       error instanceof CreateUserError && error.code === "login_taken",
   );
+});
+
+test("findUserById maps avatar_rev onto AuthUser", async () => {
+  const connection: SqlConnection = {
+    beginTransaction: async () => {},
+    query: async <T,>(sql: string) => {
+      if (sql.includes("COUNT(*)")) {
+        return [{ count: 3 }] as T[];
+      }
+      return [
+        {
+          id: 42,
+          login: "maria_k",
+          display_name: "Марія Коваленко",
+          role: "student",
+          avatar_rev: "1700000111",
+        },
+      ] as T[];
+    },
+    execute: async () => ({ insertId: 0, affectedRows: 0 }),
+    commit: async () => {},
+    rollback: async () => {},
+    release: () => {},
+  };
+
+  const user = await findUserById(42, {
+    getConnection: async () => connection,
+  });
+
+  assert.deepEqual(user, {
+    id: 42,
+    login: "maria_k",
+    displayName: "Марія Коваленко",
+    role: "student",
+    avatarRev: 1_700_000_111,
+  });
 });

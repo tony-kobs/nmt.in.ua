@@ -50,9 +50,18 @@
   "AccountCabinet": {
     "kicker": "Profile",
     "title": "Personal account",
-    "lead": "Password, results, and placeholders for photo, achievements, and study time.",
+    "lead": "Profile photo, password, results, and placeholders for achievements and study time.",
     "photoTitle": "Profile photo",
-    "photoLead": "Photo upload will come later. For now the header shows your initials.",
+    "photoLead": "JPEG, PNG, or WebP. A square photo is cropped from the center and appears in the header.",
+    "photoHint": "Up to {maxKb} KB. A square photo is cropped from the center and replaces the initials in the header.",
+    "photoChoose": "Choose photo",
+    "photoSave": "Save photo",
+    "photoSaving": "Saving…",
+    "photoSaved": "Photo updated.",
+    "photoRemove": "Remove photo",
+    "photoRemoving": "Removing…",
+    "photoRemoved": "Photo removed.",
+    "demoLockedPhoto": "The photo cannot be changed on a demo account.",
     "achievementsTitle": "Achievements",
     "achievementsLead": "Badges for tests and the simulator will appear in a later version.",
     "timeTitle": "Total study time",
@@ -79,6 +88,13 @@
       "wrongCurrent": "The current password is incorrect.",
       "demoAccount": "The password cannot be changed on a demo account.",
       "serverError": "Could not change the password. Try again."
+    },
+    "photoErrors": {
+      "requiredFile": "Choose an image file.",
+      "invalidType": "Use JPEG, PNG, or WebP.",
+      "tooLarge": "The file is too large.",
+      "demoAccount": "The photo cannot be changed on a demo account.",
+      "serverError": "Could not save the photo. Try again."
     }
   },
   "Common": {
@@ -690,7 +706,7 @@
     },
     "account": {
       "title": "Personal account",
-      "description": "Profile, password change, recent results, and sign out."
+      "description": "Profile photo, password change, recent results, and sign out."
     }
   },
   "SettingsPage": {

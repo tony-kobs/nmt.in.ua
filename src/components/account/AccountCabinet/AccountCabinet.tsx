@@ -4,7 +4,6 @@ import clsx from "clsx";
 import { useActionState } from "react";
 import { useTranslations } from "next-intl";
 import type { AuthUser } from "@/modules/auth/client";
-import { userInitials } from "@/modules/auth/client";
 import {
   changePasswordAction,
   logoutAction,
@@ -12,6 +11,8 @@ import {
 } from "@/modules/auth/actions";
 import { PASSWORD_MAX_LEN, PASSWORD_MIN_LEN } from "@/modules/auth/validateRegistration";
 import { RecentResults } from "@/components/dashboard/RecentResults";
+import { UserAvatar } from "@/components/account/UserAvatar";
+import { AccountPhotoPanel } from "./AccountPhotoPanel";
 import type { RecentResultItem } from "@/modules/results/getRecentResults";
 import css from "./AccountCabinet.module.css";
 
@@ -39,9 +40,7 @@ export function AccountCabinet({
   return (
     <div className={css.layout}>
       <section className={css.identity} aria-labelledby="account-identity-title">
-        <span className={css.avatar} aria-hidden>
-          {userInitials(user.displayName)}
-        </span>
+        <UserAvatar user={user} className={css.avatar} />
         <div className={css.identityCopy}>
           <h2 id="account-identity-title" className={css.identityName}>
             {user.displayName}
@@ -52,16 +51,11 @@ export function AccountCabinet({
         </div>
       </section>
 
+      <AccountPhotoPanel user={user} demoLocked={demoLocked} />
+
       <RecentResults items={recentResults} />
 
       <div className={css.stubs}>
-        <article className={css.stub} aria-labelledby="account-photo-title">
-          <p className={css.soon}>{tCommon("soon")}</p>
-          <h2 id="account-photo-title" className={css.stubTitle}>
-            {t("photoTitle")}
-          </h2>
-          <p className={css.stubLead}>{t("photoLead")}</p>
-        </article>
         <article className={css.stub} aria-labelledby="account-achievements-title">
           <p className={css.soon}>{tCommon("soon")}</p>
           <h2 id="account-achievements-title" className={css.stubTitle}>

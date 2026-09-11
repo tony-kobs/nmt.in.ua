@@ -120,7 +120,7 @@ alwaysApply: true
 - `AppSidebar` — скляна навігація, активний пункт `--grad-mint`.
 - `PageFrame` / `PagePanel` — kicker-пілюля (не на старті тесту), `--fs-h1` display, скляна картка.
 - `TopicTestStart` — домашня робоча сторінка: вітання + тема + кількість завдань (поле / розмір банку). Без Ultimate і без самооцінки.
-- `AccountCabinet` — особистий кабінет: пароль, останні результати, заглушки (фото / досягнення / час), вихід.
+- `AccountCabinet` — особистий кабінет: фото профілю, пароль, останні результати, заглушки (досягнення / час), вихід.
 
 Брейкпоінти кабінету ті самі: сайдбар з 768. Не використовувати 1280.
 
@@ -357,3 +357,9 @@ npm run lint && npm test && npm run build
 - Старт тестів: `sampleRandomIds`; `getNmtVariants` — `ROW_NUMBER`; `checkAnswer` — один JOIN.
 - `/problems` — JSON; `/sessions` — `LIMIT 50`; `/results` — ≤12 сесій на тему.
 - Стиснуто OG/apple-touch і найбільші `public/nmt/osvita/*`.
+
+### 2026-09-10 — фото профілю
+
+- `UserAvatar` у хедері й `/account`: JPEG/PNG/WebP з `/api/avatar/{id}?v=rev`, інакше ініціали.
+- Кроп 256×256 у браузері; рядок у `user_avatars` (MEDIUMBLOB), ліміт 512 КБ.
+- Демо-акаунти фото не змінюють.

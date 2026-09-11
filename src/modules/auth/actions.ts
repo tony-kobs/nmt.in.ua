@@ -16,6 +16,14 @@ import { changePassword, ChangePasswordError } from "./changePassword";
 import type { ChangePasswordErrorCode } from "./changePassword";
 import { createUser, CreateUserError, findUserById, findUserByLogin } from "./users";
 import {
+  removeAvatar,
+  uploadAvatar,
+  UploadAvatarError,
+  type UploadAvatarErrorCode,
+} from "./avatar/upload";
+import { revalidatePath } from "next/cache";
+import type { AuthUser } from "./types";
+import {
   PASSWORD_MAX_LEN,
   validateRegistrationInput,
   type RegistrationFieldError,
@@ -179,4 +187,61 @@ export async function upgradeSessionCookieAction(): Promise<{ ok: boolean }> {
   if (!user) return { ok: false };
   await setSessionCookie(user);
   return { ok: true };
+}
+
+export type UploadAvatarActionState =
+  | { status: "idle" }
+  | { status: "ok" }
+  | { status: "error"; code: UploadAvatarErrorCode };
+
+function profileWithoutAvatar(user: AuthUser): AuthUser {
+  return {
+    id: user.id,
+    login: user.login,
+    displayName: user.displayName,
+    role: user.role,
+  };
+}
+
+export async function uploadAvatarAction(
+  _prev: UploadAvatarActionState,
+  formData: FormData,
+): Promise<UploadAvatarActionState> {
+  const user = await requireUser();
+
+  try {
+    const avatarRev = await uploadAvatar({
+      user,
+      file: formData.get("avatar"),
+    });
+    await setSessionCookie({ ...user, avatarRev });
+    revalidatePath("/", "layout");
+    return { status: "ok" };
+  } catch (error) {
+    if (error instanceof UploadAvatarError) {
+      return { status: "error", code: error.code };
+    }
+    console.error("uploadAvatarAction: unexpected error", error);
+    return { status: "error", code: "serverError" };
+  }
+}
+
+export async function removeAvatarAction(
+  _prev: UploadAvatarActionState,
+  _formData: FormData,
+): Promise<UploadAvatarActionState> {
+  const user = await requireUser();
+
+  try {
+    await removeAvatar(user);
+    await setSessionCookie(profileWithoutAvatar(user));
+    revalidatePath("/", "layout");
+    return { status: "ok" };
+  } catch (error) {
+    if (error instanceof UploadAvatarError) {
+      return { status: "error", code: error.code };
+    }
+    console.error("removeAvatarAction: unexpected error", error);
+    return { status: "error", code: "serverError" };
+  }
 }

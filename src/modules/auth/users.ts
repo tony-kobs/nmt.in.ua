@@ -3,6 +3,7 @@ import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
 import type { AuthUser, UserRole, StudentOption } from "./types";
 import { DEMO_ACCOUNTS } from "./types";
+import { SQL_CREATE_USER_AVATARS } from "./avatar/schema";
 import { hashPassword } from "./password";
 
 const AUTH_USERS_TABLE = "app_users";
@@ -21,16 +22,20 @@ const SQL_CREATE_USERS = `
 `;
 
 const SQL_FIND_BY_LOGIN = `
-  SELECT id, login, password_hash, display_name, role
-  FROM ${AUTH_USERS_TABLE}
-  WHERE login = ?
+  SELECT u.id, u.login, u.password_hash, u.display_name, u.role,
+         UNIX_TIMESTAMP(a.updated_at) AS avatar_rev
+  FROM ${AUTH_USERS_TABLE} u
+  LEFT JOIN user_avatars a ON a.user_id = u.id
+  WHERE u.login = ?
   LIMIT 1
 `;
 
 const SQL_FIND_BY_ID = `
-  SELECT id, login, display_name, role
-  FROM ${AUTH_USERS_TABLE}
-  WHERE id = ?
+  SELECT u.id, u.login, u.display_name, u.role,
+         UNIX_TIMESTAMP(a.updated_at) AS avatar_rev
+  FROM ${AUTH_USERS_TABLE} u
+  LEFT JOIN user_avatars a ON a.user_id = u.id
+  WHERE u.id = ?
   LIMIT 1
 `;
 
@@ -52,17 +57,30 @@ type UserRow = {
   password_hash?: string;
   display_name: string;
   role: UserRole;
+  avatar_rev?: number | string | null;
 };
 
 type CountRow = { count: number };
 
+function mapAvatarRev(value: unknown): number | undefined {
+  if (value == null || value === "") return undefined;
+  const numeric = typeof value === "bigint" ? Number(value) : Number(value);
+  if (!Number.isInteger(numeric) || numeric <= 0) return undefined;
+  return numeric;
+}
+
 function mapUser(row: UserRow): AuthUser {
-  return {
+  const user: AuthUser = {
     id: row.id,
     login: row.login,
     displayName: row.display_name.trim(),
     role: row.role,
   };
+  const avatarRev = mapAvatarRev(row.avatar_rev);
+  if (avatarRev) {
+    user.avatarRev = avatarRev;
+  }
+  return user;
 }
 
 async function loadDefaultConnection(): Promise<SqlConnection> {
@@ -78,6 +96,7 @@ async function runAuthSchemaMigration(
   const connection = await deps.getConnection();
   try {
     await connection.execute(SQL_CREATE_USERS, []);
+    await connection.execute(SQL_CREATE_USER_AVATARS, []);
     await seedDemoUsers(connection);
   } finally {
     connection.release();

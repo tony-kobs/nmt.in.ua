@@ -8,6 +8,7 @@ export type SessionTokenInput = {
   role: UserRole;
   displayName: string;
   login: string;
+  avatarRev?: number;
 };
 
 function readSecret(): string {
@@ -88,6 +89,10 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function isPositiveInt(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
 export async function createSessionToken(
   input: SessionTokenInput,
   nowSec: number = Math.floor(Date.now() / 1000),
@@ -99,6 +104,9 @@ export async function createSessionToken(
     login: input.login.trim(),
     exp: nowSec + SESSION_MAX_AGE_SEC,
   };
+  if (isPositiveInt(input.avatarRev)) {
+    payload.avatarRev = input.avatarRev;
+  }
   const body = toBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
   const signature = await hmacSign(body);
   return `${body}.${signature}`;
@@ -149,6 +157,10 @@ export async function verifySessionToken(
   if (isNonEmptyString(record.displayName) && isNonEmptyString(record.login)) {
     payload.displayName = record.displayName.trim();
     payload.login = record.login.trim();
+  }
+
+  if (isPositiveInt(record.avatarRev)) {
+    payload.avatarRev = record.avatarRev;
   }
 
   return payload;

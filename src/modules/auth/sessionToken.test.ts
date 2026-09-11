@@ -56,3 +56,32 @@ test("verifySessionToken rejects tampered tokens", async () => {
   const tampered = `${token}x`;
   assert.equal(await verifySessionToken(tampered, NOW), null);
 });
+
+test("createSessionToken round-trips an optional avatarRev", async () => {
+  const token = await createSessionToken(
+    {
+      userId: 4,
+      role: "student",
+      displayName: "Марія",
+      login: "maria_k",
+      avatarRev: 1_700_000_111,
+    },
+    NOW,
+  );
+  const payload = await verifySessionToken(token, NOW);
+  assert.equal(payload?.avatarRev, 1_700_000_111);
+});
+
+test("createSessionToken omits avatarRev when the user has no photo", async () => {
+  const token = await createSessionToken(
+    {
+      userId: 4,
+      role: "student",
+      displayName: "Марія",
+      login: "maria_k",
+    },
+    NOW,
+  );
+  const payload = await verifySessionToken(token, NOW);
+  assert.equal(payload?.avatarRev, undefined);
+});
