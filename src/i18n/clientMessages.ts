@@ -22,19 +22,25 @@ export const CORE_CLIENT_NAMESPACES = [
   "simulator",
   "nmtTrainer",
   "Feedback",
+  "FractionPractice",
 ] as const;
 
 /**
  * Slim public surface for `(marketing)` layout + guest `/`.
  * Must cover every client namespace any sibling route may need: soft
  * navigations reuse the parent layout's NextIntlClientProvider, so a
- * `/welcome` → `/register` click cannot pick up RegisterForm later.
+ * `/welcome` → `/register` click cannot pick up RegisterForm later. Same
+ * reason `TopicTrainer` is unconditional here rather than gated behind
+ * `isDiagnosticPath` below — `/welcome` → `/diagnostic` → session is a
+ * soft-navigation chain too, and the layout never re-picks messages
+ * mid-chain, so a path-gated namespace never actually arrives.
  */
 export const PUBLIC_CLIENT_NAMESPACES = [
   "LanguageSwitcher",
   "Feedback",
   "Diagnostic",
   "DiagnosticResult",
+  "TopicTrainer",
   "LoginForm",
   "RegisterForm",
 ] as const;
@@ -42,16 +48,11 @@ export const PUBLIC_CLIENT_NAMESPACES = [
 const SETTINGS_NAMESPACES = ["ContentImportForm"] as const;
 
 /**
- * `/diagnostic` renders the same TopicTrainer used by cabinet practice
- * sessions, so its namespace has to ride along on top of the shared
- * marketing payload — but only there, not on `/`, `/welcome`, `/login`,
- * or `/register`.
+ * Redundant with `PUBLIC_CLIENT_NAMESPACES` now that `TopicTrainer` moved
+ * there too, but harmless — `pickClientMessages` dedupes via `Set`. Kept so
+ * `isDiagnosticPath` still documents which route needs this namespace set.
  */
-const DIAGNOSTIC_NAMESPACES = [
-  "Diagnostic",
-  "DiagnosticResult",
-  "TopicTrainer",
-] as const;
+const DIAGNOSTIC_NAMESPACES = ["Diagnostic", "DiagnosticResult"] as const;
 
 /** Full set — useful for tests / docs. Prefer pickClientMessages(pathname). */
 export const CLIENT_MESSAGE_NAMESPACES = [

@@ -199,6 +199,30 @@
   font-weight: 600;
 }
 
+.fractionPromo {
+  gap: var(--space-sm);
+}
+
+.fractionPromoLead {
+  margin: 0;
+  max-width: 40rem;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+.fractionPromoLink {
+  justify-self: start;
+  color: var(--green-dark);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.fractionPromoLink:hover,
+.fractionPromoLink:focus-visible {
+  text-decoration: underline;
+}
+
 @media (min-width: 768px) {
   .fields {
     grid-template-columns: minmax(0, 1fr) auto;

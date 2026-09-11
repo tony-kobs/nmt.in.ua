@@ -1,0 +1,208 @@
+.frame {
+  width: 100%;
+  max-width: var(--content-narrow);
+  margin-inline: auto;
+}
+
+.field {
+  display: grid;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+}
+
+.label {
+  color: var(--subtle);
+  font-size: var(--fs-kicker);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hint {
+  margin: 0;
+  color: var(--subtle);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.countInput {
+  width: 100%;
+  max-width: 8rem;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-sizing: border-box;
+  color: var(--green-dark);
+  caret-color: var(--green);
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.countInput::-webkit-outer-spin-button,
+.countInput::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.countInput[type="number"] {
+  appearance: textfield;
+}
+
+.countInput:focus-visible {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: var(--ring);
+}
+
+.primaryButton {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 22px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--grad-brand);
+  box-shadow: 0 12px 26px rgb(17 83 42 / 28%);
+  color: #fdfbf4;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    transform var(--t) var(--ease),
+    box-shadow var(--t) var(--ease);
+}
+
+.primaryButton:hover:not(:disabled),
+.primaryButton:focus-visible:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 34px rgb(17 83 42 / 34%);
+}
+
+.primaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+  transform: none;
+  box-shadow: none;
+}
+
+.scoreLine {
+  margin: 0 0 var(--space-md);
+  color: var(--subtle);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.questionMath {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-lg);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg);
+  background: rgb(253 251 244 / 72%);
+  font-size: 1.3em;
+  text-align: center;
+}
+
+.answerForm {
+  display: grid;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.answerLabel {
+  color: var(--subtle);
+  font-size: var(--fs-kicker);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.answerInput {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-sizing: border-box;
+  color: var(--ink);
+  font-size: var(--fs-h4);
+  font-weight: 650;
+  text-align: center;
+}
+
+.answerInput:focus-visible {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: var(--ring);
+}
+
+.answerInput:disabled {
+  opacity: 0.72;
+}
+
+.feedbackOk,
+.feedbackBad,
+.feedbackWarn {
+  margin: 0 0 var(--space-md);
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.feedbackOk {
+  border: 1px solid rgb(31 143 69 / 35%);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.feedbackWarn {
+  border: 1px solid color-mix(in srgb, #b5871f 45%, var(--line));
+  background: color-mix(in srgb, #b5871f 12%, var(--surface));
+  color: #7a5a12;
+}
+
+.feedbackBad {
+  border: 1px solid color-mix(in srgb, crimson 45%, var(--line));
+  background: color-mix(in srgb, crimson 10%, var(--surface));
+  color: #8f1d1d;
+}
+
+.summaryPanel {
+  text-align: center;
+}
+
+.summaryScore {
+  margin: 0 0 var(--space-lg);
+  font-family: var(--font-display);
+  font-size: var(--fs-h1);
+  font-weight: 700;
+  color: var(--green-dark);
+}
+
+.summaryActions {
+  display: grid;
+  gap: var(--space-md);
+  justify-items: center;
+}
+
+.backLink {
+  color: var(--muted);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: var(--green-dark);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primaryButton:hover:not(:disabled) {
+    transform: none;
+  }
+}
