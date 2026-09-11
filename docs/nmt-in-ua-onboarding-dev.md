@@ -139,9 +139,12 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `src/components/testing/` | TopicTrainer, NmtTrainer, підсумок, розбір помилок |
 | `src/components/auth/` | AuthShell, форми входу / реєстрації |
 | `src/components/ui/` | Reveal, ModeTabs, MathText |
+| `src/components/practice/` | `FractionPracticeTrainer` — генерована практика дробів (11.09) |
 | `src/modules/auth/` | Користувачі, cookie, паролі, ролі |
 | `src/modules/content-import/` | CSV/JSON → БД |
 | `src/modules/testing/` | Старт, checkAnswer, finish, симулятор, таймер |
+| `src/modules/problemGenerators/` | Чисті генератори завдань (без БД); поки лише `fractionAddition` — 5 рівнів додавання дробів з однаковим знаменником |
+| `src/modules/fractionPractice/` | Server Actions, що підключають `problemGenerators/fractionAddition` до `/practice/fractions` — жодного запису в БД (11.09) |
 | `src/modules/recommendations/` | Статистика, правила, граф тем, авто-сесії |
 | `src/modules/sessions/` | Список сесій, createMentorSession |
 | `src/modules/results/` | Агрегати для `/results` і сайдбару |
@@ -171,6 +174,8 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | Сесії | `src/modules/sessions` | `getLearningSessions`, `createMentorSession`, cancel |
 | Самооцінка | `src/modules/self-score` | `recordSelfScore`, `saveThemeSelfScoreAction` (колонка на `/results`), `getLatestSelfScoresForResults` — історія 1–10, ніколи не перезаписується |
 | Діагностика (гість) | `src/modules/diagnostic` | `startDiagnosticTest`, owner-aware `checkDiagnosticAnswer`/`finishDiagnosticSession`/`getDiagnosticSessionTasks`/`markDiagnosticSessionStarted`, `claimGuestProgress` — усе окремо від `testing`, щоб не чіпати протестований topic-test код |
+| Генератори завдань | `src/modules/problemGenerators` | Чисті функції, без БД/Next. `fractionAddition`: `generateFractionAdditionTask`, `validateFractionAdditionAnswer`, seed-based RNG |
+| Практика дробів | `src/modules/fractionPractice` | `startFractionPracticeTaskAction`/`nextFractionPracticeTaskAction`/`checkFractionPracticeAnswerAction` — обгортка над `problemGenerators/fractionAddition` для `/practice/fractions`, без запису в `task_sessions`/`tasks2session` |
 
 ### 6.2. Таблиці MySQL, які чіпаємо
 
@@ -312,6 +317,38 @@ Ultimate/НМТ/діагностика лишились без змін. Зар�
 | `/problems` | Учень+ | Задачник: друкований тест по темі |
 | `/account` | Учень+ | Особистий кабінет: фото / ініціали, пароль, результати, вихід |
 | `/consultations` | Учень+ | У меню; форма запису ще збирається (`StubPage` + CTA на симулятор / підручник) |
+| `/practice/fractions` | Учень+ | Генерована практика: додавання дробів, 5 рівнів. Посилання з `TopicTestStart` (`/`) |
+
+### 6.5. Генеровані завдання: `fractionAddition` → Practice mode (11.09.2026)
+
+Перший генератор завдань (`src/modules/problemGenerators/fractionAddition`) підключено
+до окремого практичного режиму на `/practice/fractions`, а не до звичайного topic-test
+(`/session/[id]` + `quiz_tasks`). Свідоме архітектурне рішення, не тимчасовий хак:
+
+- **Задачі ефемерні.** Жодного рядка в `quiz_tasks`, `task_sessions` чи `tasks2session`.
+  Сервер генерує задачу через `generateFractionAdditionTask({ level, seed })`, віддає
+  клієнту лише «публічну» частину (`buildFractionPracticeQuestion` — доданки, без
+  відповіді) разом із `{ level, seed }`. Коли учень надсилає відповідь,
+  `checkFractionPracticeAnswerAction` **регенерує той самий таск з того самого seed**
+  (генератор детермінований — `rng.ts`, mulberry32) і перевіряє через уже наявний
+  `validateFractionAdditionAnswer`. Ключ відповіді ніколи не йде на клієнт — той самий
+  принцип, що й `right_answer_n` у звичайному тесті, просто без проміжної таблиці.
+- **Чому не `quiz_tasks`/`tasks2session`:** довелося б або зберігати згенерований контент
+  (втрачаючи сенс «генератора»), або заводити `task_type = GENERATED` і нову nullable
+  колонку під `{level, seed}` на `tasks2session` — зміна схеми заради фічі, яка й без
+  цього прекрасно живе без сесії в БД. Якщо колись знадобиться показувати прогрес по
+  дробах на `/results` поряд зі звичайними темами — це і буде той момент, коли варто
+  переглянути рішення.
+- **Не чіпає existing flow.** `TopicTrainer`, `checkAnswer`, `finishTrainerSession`,
+  `getSessionTasks` — жодних змін. Новий модуль `src/modules/fractionPractice` живе
+  поруч, має свій `requireSessionUserId()` (той самий guard, що й усюди), власний
+  клієнтський компонент `FractionPracticeTrainer` (стан «старт → задача → підсумок»
+  повністю в React, без сторінкових переходів).
+- **Рівні.** П’ять рівнів генератора (1 — прості дроби, 2 — більші чисельники,
+  3 — обов’язкове скорочення, 4 — неправильний дріб, 5 — три доданки або невідомий
+  чисельник) прокинуті як є, без дублювання правил у UI — рівень лише передається в
+  `{ level }`.
+- **Вхід:** картка в `TopicTestStart` (`/`) веде на `/practice/fractions`.
 
 ## 7. Як додавати фічу (шаблон)
 

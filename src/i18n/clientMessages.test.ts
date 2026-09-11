@@ -14,7 +14,6 @@ test("guest / and /welcome stay on the slim public client payload", () => {
     const picked = pickClientMessages(uk, path);
     assert.ok(PUBLIC_CLIENT_NAMESPACES.every((key) => key in picked));
     assert.equal("Header" in picked, false);
-    assert.equal("TopicTrainer" in picked, false);
     assert.ok("LoginForm" in picked);
     assert.ok("RegisterForm" in picked);
   }
@@ -45,8 +44,19 @@ test("pickClientMessages keeps shared marketing namespaces on auth and diagnosti
   assert.ok("ContentImportForm" in pickClientMessages(uk, "/settings"));
 });
 
-test("/diagnostic ships the TopicTrainer namespace the session page renders", () => {
-  for (const path of ["/diagnostic", "/diagnostic/session/1"] as const) {
+test("TopicTrainer ships on every marketing path, not just /diagnostic*", () => {
+  // The (marketing) layout doesn't re-pick messages on client soft
+  // navigation, so a real user's first mount — /welcome, /login,
+  // /register — must already carry every namespace a later /diagnostic/
+  // session/[id] soft-nav will render, TopicTrainer included.
+  for (const path of [
+    "/",
+    "/welcome",
+    "/login",
+    "/register",
+    "/diagnostic",
+    "/diagnostic/session/1",
+  ] as const) {
     const picked = pickClientMessages(uk, path);
     assert.ok(
       "TopicTrainer" in picked,
