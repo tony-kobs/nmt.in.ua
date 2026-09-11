@@ -1,7 +1,7 @@
 import type { SessionPayload, UserRole } from "./types";
 
 export const SESSION_COOKIE_NAME = "nmt_session";
-export const SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 7;
+export const SESSION_MAX_AGE_SEC = 60 * 60 * 24;
 
 export type SessionTokenInput = {
   userId: number;

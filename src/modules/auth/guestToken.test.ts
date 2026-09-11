@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createGuestToken, verifyGuestToken } from "./guestToken";
+import { GUEST_MAX_AGE_SEC, createGuestToken, verifyGuestToken } from "./guestToken";
 import { createSessionToken, verifySessionToken } from "./sessionToken";
 
 const NOW = 1_700_000_000;
@@ -14,7 +14,7 @@ test("createGuestToken and verifyGuestToken round-trip", async () => {
 
 test("verifyGuestToken rejects expired tokens", async () => {
   const token = await createGuestToken("guest-a", NOW);
-  const payload = await verifyGuestToken(token, NOW + 60 * 60 * 24 * 30);
+  const payload = await verifyGuestToken(token, NOW + GUEST_MAX_AGE_SEC);
   assert.equal(payload, null);
 });
 

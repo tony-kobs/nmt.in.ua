@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  SESSION_MAX_AGE_SEC,
   createSessionToken,
   verifySessionToken,
 } from "./sessionToken";
@@ -24,7 +25,7 @@ test("createSessionToken and verifySessionToken round-trip", async () => {
     role: "admin",
     displayName: "Адміністратор",
     login: "demo-admin",
-    exp: NOW + 60 * 60 * 24 * 7,
+    exp: NOW + SESSION_MAX_AGE_SEC,
   });
 });
 
@@ -38,7 +39,7 @@ test("verifySessionToken rejects expired tokens", async () => {
     },
     NOW,
   );
-  const payload = await verifySessionToken(token, NOW + 60 * 60 * 24 * 7);
+  const payload = await verifySessionToken(token, NOW + SESSION_MAX_AGE_SEC);
   assert.equal(payload, null);
 });
 
