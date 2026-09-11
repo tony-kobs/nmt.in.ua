@@ -41,6 +41,18 @@ export const PUBLIC_CLIENT_NAMESPACES = [
 
 const SETTINGS_NAMESPACES = ["ContentImportForm"] as const;
 
+/**
+ * `/diagnostic` renders the same TopicTrainer used by cabinet practice
+ * sessions, so its namespace has to ride along on top of the shared
+ * marketing payload — but only there, not on `/`, `/welcome`, `/login`,
+ * or `/register`.
+ */
+const DIAGNOSTIC_NAMESPACES = [
+  "Diagnostic",
+  "DiagnosticResult",
+  "TopicTrainer",
+] as const;
+
 /** Full set — useful for tests / docs. Prefer pickClientMessages(pathname). */
 export const CLIENT_MESSAGE_NAMESPACES = [
   ...CORE_CLIENT_NAMESPACES,
@@ -62,11 +74,20 @@ function isMarketingPath(pathname: string): boolean {
   );
 }
 
+function isDiagnosticPath(pathname: string): boolean {
+  return pathname === "/diagnostic" || pathname.startsWith("/diagnostic/");
+}
+
 function namespacesForPath(pathname: string): readonly string[] {
   const isSettings =
     pathname === "/settings" || pathname.startsWith("/settings/");
 
   if (isMarketingPath(pathname)) {
+    if (isDiagnosticPath(pathname)) {
+      return [
+        ...new Set([...PUBLIC_CLIENT_NAMESPACES, ...DIAGNOSTIC_NAMESPACES]),
+      ];
+    }
     return [...PUBLIC_CLIENT_NAMESPACES];
   }
 

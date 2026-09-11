@@ -166,7 +166,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | --- | --- | --- |
 | Auth | `src/modules/auth` | `requireUserId`, `getCurrentUser`, login/register/`changePassword` |
 | Імпорт | `src/modules/content-import` | parse + validate + транзакція `themes` → connections → `quiz_tasks` (+ опційно `problems`) |
-| Тест | `src/modules/testing` | `startTopicTest`, `startNmtSimulator`, `checkAnswer`, `finishTrainerSession` |
+| Тест | `src/modules/testing` | `startTopicTest`, `startNmtSimulator`, `checkAnswer`, `finishTrainerSession`, `getTaskHint`, `addSimilarPracticeTask` (Практика, 11.09) |
 | Рекомендації | `src/modules/recommendations` | `getStudentTopicStats`, `recommendNextActions`, `persistRecommendations` |
 | Сесії | `src/modules/sessions` | `getLearningSessions`, `createMentorSession`, cancel |
 | Самооцінка | `src/modules/self-score` | `recordSelfScore`, `saveThemeSelfScoreAction` (колонка на `/results`), `getLatestSelfScoresForResults` — історія 1–10, ніколи не перезаписується |
@@ -240,6 +240,62 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 | Авто-сесія | з’являється на `/sessions` | як тест | Створює recommend після фінішу |
 | Ментор-сесія | викладач на `/sessions` | як тест | `session_type = 3`, Старт / × |
 | Діагностика (гість/учень) | `/diagnostic` (публічний) | до 3 завдань з кожної теми з ≥3 завданнями, макс. 10 тем (30 завдань) | `session_type = 5`, `theme_id = NULL`, одна сесія на всю спробу; перед стартом — загальна самооцінка 1–10 |
+
+**Практика vs Діагностика (11.09.2026).** `src/modules/testing/sessionMode.ts` дає
+`resolveSessionMode(TrainerMode): "diagnostic" | "practice" | "exam"` — єдине місце,
+де `TrainerMode` («standard» / «ultimate» / «diagnostic» / «nmt») мапиться на
+поведінку фідбеку, а не розкидані `if (mode === "diagnostic")` по компоненту.
+«Практика» — це звичайний тест за темою (`mode: "standard"`, той самий код для
+user/auto/mentor сесій). У `TopicTrainer` для практики після невірної відповіді:
+
+- **Підказка** («Показати підказку» / i18n) — `getTaskHint` віддає вже наявне поле
+  `quiz_tasks.comments` (те саме, що йде в розбір помилок після фінішу), але лише
+  після перевірки відповіді і лише коли текст не порожній. Нової міграції нема.
+- **Схоже завдання** («Схоже завдання») — `addSimilarPracticeTask` бере інше
+  завдання з тієї самої теми (не з уже використаних у сесії) і **додає його як
+  ще один рядок `tasks2session` у ту саму сесію** — `finishTrainerSession` і так
+  рахує `tasksNumber`/`rightNumber` з живих рядків, тож рахунок не ламається.
+  Вибір завдання — `pickPracticeFollowUpTask.ts` (чиста функція
+  `selectFollowUpCandidate` + обгортка з БД), поза UI.
+- **Адаптивна складність** — `practiceAdaptive.ts`: 3 правильні поспіль → наступне
+  схоже завдання пробує `difficulty + 1` (є в схемі, `quiz_tasks.difficulty` 1–3,
+  перевіряється при імпорті); без такого стріку — звичайний випадковий вибір.
+  «Схоже завдання» лишається доступним, коли важчого варіанта в темі нема.
+
+Ultimate і NMT («exam» у `resolveSessionMode`) не отримують жодної з цих фіч —
+вони й так ховають фідбек по кожному завданню, як діагностика, але не мають DB-
+прапорця «це Ultimate» (лише `?mode=ultimate` в URL, `session_type` той самий,
+що й у звичайного тесту) — це відома межа, а не діра: гірше, що можливо
+крафченим запитом — побачити підказку у власному таймованому тесті.
+Діагностика (`session_type = 5`) і симулятор (`= 4`) відсічені на рівні SQL
+у `getTaskHint`/`addSimilarPracticeTask`, не лише в UI.
+
+**Фікс «Схоже завдання» виходило в список тем (11.09.2026).** Корінь бага:
+`TopicTrainer` додавав нове завдання в **кінець** `taskList`, а не одразу
+після поточного індексу — воно ставало формально «останнім» (`isLast`), тож
+кнопка «Наступне завдання» ховалась (тому що воно нібито останнє), а
+«Завершити» ще не з'являлась (не всі завдання дали відповідь) — лишався лише
+лінк «До вибору теми», який учень і сприймав як вихід із тесту. Фікс —
+`insertFollowUpTask.ts` (`src/modules/testing`): вставляє нове завдання
+одразу після поточного, решта оригінальних завдань лишаються досяжними через
+«Наступне». Рахунок не чіпали — `finishTrainerSession` і так бере
+`tasksNumber`/`rightNumber` з живих рядків `tasks2session`, тож доданий рядок
+автоматично враховується.
+
+**Розширений підсумок практики (11.09.2026).** `buildPracticeResultInsight`
+(`src/modules/recommendations`) — чиста функція над уже наявними даними
+(`TrainerSessionSummary`, `SessionMistakeItem[]` цієї сесії,
+`StudentTopicStats` учня загалом): «сильні теми» (загальний % ≥ 70, не з
+помилок цієї сесії) і «теми, що потребують уваги» (помилки цієї сесії,
+згруповані за темою — `groupMistakesByTheme`, спільна з
+`recommendFromSessionMistakes`). `finishTrainerSessionAction` рахує це разом
+із рекомендаціями (без окремого запиту) і віддає в `TopicTrainerSummary`,
+яка показує блок лише для `isPracticeMode(mode)` і лише коли є дані —
+Ultimate/НМТ/діагностика лишились без змін. Заразом виправлено копірайт
+`recommendFromSessionMistakes` (`nmtMistakeReason` тощо): ключі й текст
+згадували «симулятор», хоча функція вже викликалась для будь-якої сесії —
+перейменовано на `sessionMistakeReason`/`sessionMistakeMaterialsTitle`/
+`sessionMistakePracticeReason`.
 
 ### 6.4. Маршрути
 

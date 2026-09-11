@@ -179,9 +179,9 @@
     "consultationReason": "Mehrere Themen könnten zusätzliche Unterstützung durch eine Lehrkraft gebrauchen.",
     "materialsTitle": "Wiederhole die Theorie im Lehrbuch",
     "materialsReason": "Bei schwächeren Themen hilft vor dem nächsten Test ein Abschnitt im Lehrbuch.",
-    "nmtMaterialsTitle": "Materialien: „{theme}“",
-    "nmtMistakeReason": "Fehler in diesem Thema im Simulator: {count}.",
-    "nmtPracticeReason": "Übe den Themen-Test — Fehler im Simulator: {count}.",
+    "sessionMistakeMaterialsTitle": "Materialien: „{theme}“",
+    "sessionMistakeReason": "Fehler in diesem Thema dieses Mal: {count}.",
+    "sessionMistakePracticeReason": "Übe den Themen-Test — Fehler dieses Mal: {count}.",
     "simulatorTitle": "Probiere den vollständigen NMT-Simulator",
     "simulatorReason": "Du hast alle Themen auf einem guten Niveau bearbeitet — jetzt kannst du dein Wissen im vollständigen NMT-Format testen.",
     "problemsTitle": "Übe zusätzliche Aufgaben",
@@ -211,6 +211,11 @@
     "finishing": "Wird beendet…",
     "finish": "Test beenden",
     "backToTopics": "Zur Themenauswahl",
+    "showHint": "Hinweis anzeigen",
+    "hintLoading": "Hinweis wird geladen…",
+    "hintUnavailable": "Für diese Aufgabe ist kein Hinweis verfügbar.",
+    "similarTask": "Ähnliche Aufgabe",
+    "similarTaskLoading": "Aufgabe wird gesucht…",
     "errors": {
       "checkAnswer": {
         "invalidInput": "Wähle eine der Antwortmöglichkeiten aus.",
@@ -228,6 +233,14 @@
         "notFound": "Die Aufgabe wurde in dieser Sitzung nicht gefunden.",
         "sessionCompleted": "Dieser Test wurde bereits abgeschlossen.",
         "generic": "Die Aufgabe konnte nicht übersprungen werden."
+      },
+      "similarTask": {
+        "invalidInput": "Es konnte keine Aufgabe gefunden werden. Bitte versuche es erneut.",
+        "notFound": "Die Aufgabe wurde in dieser Sitzung nicht gefunden.",
+        "notEligible": "Nur im Übungstest zum Thema verfügbar.",
+        "notIncorrect": "Beantworte zuerst diese Aufgabe.",
+        "noSimilarTask": "Keine weiteren ähnlichen Aufgaben zu diesem Thema.",
+        "generic": "Es konnte keine Aufgabe gefunden werden. Bitte versuche es erneut."
       }
     }
   },
@@ -248,6 +261,11 @@
     "recommendationsTitle": "Empfohlene nächste Schritte",
     "recommendationsLead": "Nächste Schritte basierend auf deinem Ergebnis.",
     "nmtRecommendationsLead": "Themen mit Fehlern: Lehrbuchabschnitte und Themen-Test.",
+    "wentWellTitle": "Was gut lief",
+    "wentWellItem": "Thema „{theme}“: {percent} %",
+    "needsAttentionTitle": "Worauf zu achten ist",
+    "needsAttentionItem": "Thema „{theme}“: {count} Fehler",
+    "repeatedMistakesNote": "Mehrere Fehler hintereinander bei diesem Thema — es lohnt sich, die Theorie vor dem nächsten Versuch zu wiederholen.",
     "nextSteps": "Wie geht es weiter?",
     "results": "Ergebnisse nach Thema",
     "sessions": "Meine Sitzungen",

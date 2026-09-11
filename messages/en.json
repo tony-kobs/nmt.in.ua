@@ -179,9 +179,9 @@
     "consultationReason": "Several topics could benefit from additional support from a teacher.",
     "materialsTitle": "Review the textbook",
     "materialsReason": "A textbook section can help before retaking tests on weaker topics.",
-    "nmtMaterialsTitle": "Materials: “{theme}”",
-    "nmtMistakeReason": "Mistakes on this topic in the simulator: {count}.",
-    "nmtPracticeReason": "Practice the topic test — simulator mistakes: {count}.",
+    "sessionMistakeMaterialsTitle": "Materials: “{theme}”",
+    "sessionMistakeReason": "Mistakes on this topic this time: {count}.",
+    "sessionMistakePracticeReason": "Practice the topic test — mistakes this time: {count}.",
     "simulatorTitle": "Try the full NMT simulator",
     "simulatorReason": "You've covered all topics well — it's time to test yourself in the full NMT format.",
     "problemsTitle": "Practice additional problems",
@@ -211,6 +211,11 @@
     "finishing": "Finishing…",
     "finish": "Finish test",
     "backToTopics": "Back to topic selection",
+    "showHint": "Show hint",
+    "hintLoading": "Loading hint…",
+    "hintUnavailable": "No hint is available for this task.",
+    "similarTask": "Similar task",
+    "similarTaskLoading": "Finding a task…",
     "errors": {
       "checkAnswer": {
         "invalidInput": "Select one of the answer options.",
@@ -228,6 +233,14 @@
         "notFound": "The task was not found in this session.",
         "sessionCompleted": "This test has already been completed.",
         "generic": "Could not skip the task."
+      },
+      "similarTask": {
+        "invalidInput": "Could not find a task. Please try again.",
+        "notFound": "The task was not found in this session.",
+        "notEligible": "Only available in Practice-mode topic tests.",
+        "notIncorrect": "Answer this task first.",
+        "noSimilarTask": "No more similar tasks in this theme.",
+        "generic": "Could not find a task. Please try again."
       }
     }
   },
@@ -248,6 +261,11 @@
     "recommendationsTitle": "Recommended next steps",
     "recommendationsLead": "Next steps based on your result.",
     "nmtRecommendationsLead": "Topics with mistakes: textbook sections and topic practice.",
+    "wentWellTitle": "What went well",
+    "wentWellItem": "Topic “{theme}”: {percent}%",
+    "needsAttentionTitle": "What needs attention",
+    "needsAttentionItem": "Topic “{theme}”: {count} mistakes",
+    "repeatedMistakesNote": "Several mistakes in a row on this topic — it's worth reviewing the theory before trying again.",
     "nextSteps": "What's next",
     "results": "Results by topic",
     "sessions": "My sessions",

@@ -105,8 +105,51 @@
   margin: 0;
 }
 
+.insight {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.insightPanel {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.insightTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.insightList {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.insightItem {
+  color: var(--muted);
+}
+
+.insightNote {
+  margin: 0;
+  font-weight: 600;
+}
+
 @media (min-width: 768px) {
   .stats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .insight {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 }

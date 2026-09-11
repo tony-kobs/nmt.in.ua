@@ -83,7 +83,10 @@ export type FinishTrainerSessionActionInput = {
   capTimeSec?: number;
 };
 
-import type { RecommendedAction } from "@/modules/recommendations";
+import type {
+  PracticeResultInsight,
+  RecommendedAction,
+} from "@/modules/recommendations";
 
 export type FinishTrainerSessionErrorCode =
   | "invalidInput"
@@ -96,6 +99,11 @@ export type FinishTrainerSessionActionState =
       status: "success";
       summary: TrainerSessionSummary;
       recommendations: RecommendedAction[];
+      /** Went-well/needs-attention breakdown for the Practice result screen
+       * (see `buildPracticeResultInsight`). Computed for every mode but only
+       * rendered for Practice — Ultimate/NMT/diagnostic keep their existing
+       * summaries unchanged. */
+      insight: PracticeResultInsight;
     }
   | { status: "error"; code: FinishTrainerSessionErrorCode };
 
@@ -133,3 +141,34 @@ export type MarkSessionStartedErrorCode =
 export type MarkSessionStartedActionState =
   | { status: "success"; startTime: number }
   | { status: "error"; code: MarkSessionStartedErrorCode };
+
+export type GetTaskHintActionInput = {
+  sessionId: number;
+  mappingId: number;
+};
+
+export type GetTaskHintErrorCode = "invalidInput" | "notFound" | "generic";
+
+export type GetTaskHintActionState =
+  | { status: "success"; available: boolean; hint: string | null }
+  | { status: "error"; code: GetTaskHintErrorCode };
+
+export type AddSimilarPracticeTaskActionInput = {
+  sessionId: number;
+  mappingId: number;
+  /** Consecutive-correct streak going into the task just answered
+   * incorrectly — see `practiceAdaptive.ts`. */
+  streak: number;
+};
+
+export type AddSimilarPracticeTaskErrorCode =
+  | "invalidInput"
+  | "notFound"
+  | "notEligible"
+  | "notIncorrect"
+  | "noSimilarTask"
+  | "generic";
+
+export type AddSimilarPracticeTaskActionState =
+  | { status: "success"; mappingId: number; task: SessionTask }
+  | { status: "error"; code: AddSimilarPracticeTaskErrorCode };
