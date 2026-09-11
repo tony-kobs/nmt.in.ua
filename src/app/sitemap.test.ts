@@ -11,10 +11,15 @@ test("sitemap lists only public pages that do not require login", () => {
 
   assert.deepEqual(paths, [...PUBLIC_PAGE_PATHS].sort());
 
+  const publicPaths = new Set<string>(paths);
   const cabinetHrefs = DASHBOARD_NAV.map((item) => item.href).filter(
     (href) => href !== "/",
   );
   for (const href of cabinetHrefs) {
-    assert.equal(paths.includes(href), false, `cabinet route ${href} in sitemap`);
+    assert.equal(
+      publicPaths.has(href),
+      false,
+      `cabinet route ${href} in sitemap`,
+    );
   }
 });
