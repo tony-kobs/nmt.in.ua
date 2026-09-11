@@ -33,6 +33,8 @@ export function AccountPhotoPanel({ user, demoLocked }: AccountPhotoPanelProps) 
     uploadAvatarAction,
     INITIAL,
   );
+  const [handledUploadState, setHandledUploadState] =
+    useState<UploadAvatarActionState>(uploadState);
   const [removeState, removeAction, removePending] = useActionState(
     removeAvatarAction,
     INITIAL,
@@ -54,13 +56,19 @@ export function AccountPhotoPanel({ user, demoLocked }: AccountPhotoPanelProps) 
     }
   }, [uploadState, removeState, router]);
 
-  useEffect(() => {
+  if (uploadState !== handledUploadState) {
+    setHandledUploadState(uploadState);
     if (uploadState.status === "ok") {
       setPreviewUrl((current) => {
         if (current) URL.revokeObjectURL(current);
         return null;
       });
-      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  useEffect(() => {
+    if (uploadState.status === "ok" && inputRef.current) {
+      inputRef.current.value = "";
     }
   }, [uploadState]);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import clsx from "clsx";
 import { saveThemeSelfScoreAction } from "@/modules/self-score/actions";
 import css from "./TopicResultsTable.module.css";
@@ -32,12 +32,14 @@ export function ThemeSelfScoreCell({
   const [score, setScore] = useState<number | null>(() =>
     toSelectableScore(value),
   );
+  const [prevValue, setPrevValue] = useState(value);
   const [error, setError] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  useEffect(() => {
+  if (value !== prevValue) {
+    setPrevValue(value);
     setScore(toSelectableScore(value));
-  }, [value]);
+  }
 
   function onChange(nextRaw: string) {
     const next = Number(nextRaw);
