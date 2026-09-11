@@ -121,14 +121,12 @@ export function TopicTestStart({
               </label>
 
               <div className={css.fieldCount}>
-                <span className={css.label} id="topic-task-count-label">
+                <label className={css.label} htmlFor="topic-task-count">
                   {t("tasks")}
-                </span>
-                <div
-                  className={css.countWrap}
-                  aria-labelledby="topic-task-count-label"
-                >
+                </label>
+                <div className={css.countWrap}>
                   <input
+                    id="topic-task-count"
                     className={css.countInput}
                     type="number"
                     name="taskCount"
@@ -141,18 +139,19 @@ export function TopicTestStart({
                       setTaskCountInput(event.currentTarget.value)
                     }
                     disabled={controlsDisabled || bankSize === 0}
+                    aria-describedby="topic-task-count-hint"
                     aria-label={t("taskCountAria", {
                       count: countValid ? parsedCount : 0,
                       total: bankSize,
                     })}
                     autoComplete="off"
                   />
-                  <span className={css.countSlash} aria-hidden>
-                    /
+                  <span className={css.countBank} aria-hidden>
+                    <span className={css.countSlash}>/</span>
+                    <span className={css.countTotal}>{bankSize}</span>
                   </span>
-                  <span className={css.countTotal}>{bankSize}</span>
                 </div>
-                <span className={css.hint}>
+                <span className={css.hint} id="topic-task-count-hint">
                   {t("tasksHint", { total: bankSize })}
                 </span>
               </div>

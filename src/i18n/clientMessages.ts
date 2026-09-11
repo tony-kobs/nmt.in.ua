@@ -24,50 +24,50 @@ export const CORE_CLIENT_NAMESPACES = [
   "Feedback",
 ] as const;
 
-/** Slim public surface: landing + auth + diagnostic (no cabinet chrome). */
+/**
+ * Slim public surface for `(marketing)` layout + guest `/`.
+ * Must cover every client namespace any sibling route may need: soft
+ * navigations reuse the parent layout's NextIntlClientProvider, so a
+ * `/welcome` → `/register` click cannot pick up RegisterForm later.
+ */
 export const PUBLIC_CLIENT_NAMESPACES = [
   "LanguageSwitcher",
   "Feedback",
   "Diagnostic",
+  "DiagnosticResult",
+  "LoginForm",
+  "RegisterForm",
 ] as const;
 
-const LOGIN_NAMESPACES = ["LoginForm"] as const;
-const REGISTER_NAMESPACES = ["RegisterForm"] as const;
 const SETTINGS_NAMESPACES = ["ContentImportForm"] as const;
-const DIAGNOSTIC_NAMESPACES = ["Diagnostic", "DiagnosticResult"] as const;
 
 /** Full set — useful for tests / docs. Prefer pickClientMessages(pathname). */
 export const CLIENT_MESSAGE_NAMESPACES = [
   ...CORE_CLIENT_NAMESPACES,
-  ...LOGIN_NAMESPACES,
-  ...REGISTER_NAMESPACES,
+  ...PUBLIC_CLIENT_NAMESPACES,
   ...SETTINGS_NAMESPACES,
-  ...DIAGNOSTIC_NAMESPACES,
 ] as const;
 
+function isMarketingPath(pathname: string): boolean {
+  return (
+    pathname === "/" ||
+    pathname === "/welcome" ||
+    pathname.startsWith("/welcome/") ||
+    pathname === "/login" ||
+    pathname.startsWith("/login/") ||
+    pathname === "/register" ||
+    pathname.startsWith("/register/") ||
+    pathname === "/diagnostic" ||
+    pathname.startsWith("/diagnostic/")
+  );
+}
+
 function namespacesForPath(pathname: string): readonly string[] {
-  const isLogin = pathname === "/login" || pathname.startsWith("/login/");
-  const isRegister =
-    pathname === "/register" || pathname.startsWith("/register/");
-  const isPublicLanding = pathname === "/welcome" || pathname === "/";
   const isSettings =
     pathname === "/settings" || pathname.startsWith("/settings/");
-  const isDiagnostic =
-    pathname === "/diagnostic" || pathname.startsWith("/diagnostic/");
 
-  if (isPublicLanding) {
+  if (isMarketingPath(pathname)) {
     return [...PUBLIC_CLIENT_NAMESPACES];
-  }
-
-  if (isLogin || isRegister) {
-    const keys = new Set<string>(["LanguageSwitcher", "Feedback"]);
-    if (isLogin) keys.add("LoginForm");
-    if (isRegister) keys.add("RegisterForm");
-    return [...keys];
-  }
-
-  if (isDiagnostic) {
-    return ["LanguageSwitcher", "Feedback", ...DIAGNOSTIC_NAMESPACES];
   }
 
   const keys = new Set<string>(CORE_CLIENT_NAMESPACES);

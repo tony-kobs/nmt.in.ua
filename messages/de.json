@@ -154,8 +154,8 @@
     "noThemes": "Themen und Aufgaben werden vorbereitet. Das Testen wird bald verfügbar sein.",
     "selectTopic": "Thema auswählen",
     "tasks": "Aufgaben",
-    "taskCountAria": "Anzahl der Aufgaben: {count} von {total}",
-    "tasksHint": "von 1 bis {total}",
+    "taskCountAria": "Anzahl der Aufgaben eingeben: {count} von {total}",
+    "tasksHint": "1–{total} eingeben",
     "redirecting": "Test wird geöffnet…",
     "loading": "Wird geladen…",
     "start": "Start",
@@ -298,13 +298,15 @@
   },
   "TopicResultsTable": {
     "title": "Ergebnisse nach Thema",
-    "lead": "Fortschritt nach Thema: Gesamtergebnis, letzte Versuche und durchschnittliche Antwortgeschwindigkeit.",
+    "lead": "Fortschritt nach Thema: Ergebnis, letzte Versuche, Tempo und Selbsteinschätzung.",
     "topic": "Thema",
     "overall": "Gesamt",
     "lastThree": "Letzte 3 Tests",
     "speed": "Geschwindigkeit, Sek./Aufgabe",
     "selfScore": "Selbsteinschätzung",
-    "hint": "Leere Felder zeigen Themen ohne abgeschlossene Versuche. Farben: Grün ≥70%, Gelb 40–69%, Rot <40%."
+    "selfScoreAria": "Selbsteinschätzung für «{theme}» von 1 bis 5",
+    "selfScoreError": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+    "hint": "Leere Felder zeigen Themen ohne abgeschlossene Versuche. Selbsteinschätzung 1–5 in der rechten Spalte. Farben: Grün ≥70%, Gelb 40–69%, Rot <40%."
   },
   "Diagnostic": {
     "kicker": "Einstufungstest",

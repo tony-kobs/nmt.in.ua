@@ -58,6 +58,8 @@
   background: var(--overlay);
   backdrop-filter: blur(2px);
   cursor: pointer;
+  touch-action: none;
+  overscroll-behavior: none;
   animation: fadeIn var(--t) var(--ease);
 }
 

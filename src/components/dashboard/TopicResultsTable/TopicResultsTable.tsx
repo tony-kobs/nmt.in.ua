@@ -7,6 +7,7 @@ import {
   type TopicResultRow,
 } from "@/modules/results/types";
 import { getTranslations } from "next-intl/server";
+import { ThemeSelfScoreCell } from "./ThemeSelfScoreCell";
 import css from "./TopicResultsTable.module.css";
 
 type TopicResultsTableProps = {
@@ -76,8 +77,15 @@ export async function TopicResultsTable({ rows }: TopicResultsTableProps) {
                 <td className={clsx(css.metric, css.metricNone)}>
                   {formatSpeed(row.avgSecondsPerTask)}
                 </td>
-                <td className={clsx(css.metric, css.metricNone, css.metricSelfScore)}>
-                  {row.selfScore != null ? `${row.selfScore} / 10` : "—"}
+                <td className={css.selfScoreTd}>
+                  <ThemeSelfScoreCell
+                    themeId={row.themeId}
+                    value={row.selfScore ?? null}
+                    labels={{
+                      aria: t("selfScoreAria", { theme: row.themeName }),
+                      errorGeneric: t("selfScoreError"),
+                    }}
+                  />
                 </td>
               </tr>
             ))}

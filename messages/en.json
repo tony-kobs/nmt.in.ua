@@ -154,8 +154,8 @@
     "noThemes": "Topics and tasks are being prepared. Testing will be available soon.",
     "selectTopic": "Choose a topic",
     "tasks": "Tasks",
-    "taskCountAria": "Number of tasks: {count} of {total}",
-    "tasksHint": "from 1 to {total}",
+    "taskCountAria": "Enter number of tasks: {count} of {total}",
+    "tasksHint": "enter 1–{total}",
     "redirecting": "Opening the test…",
     "loading": "Loading…",
     "start": "Start",
@@ -298,13 +298,15 @@
   },
   "TopicResultsTable": {
     "title": "Results by topic",
-    "lead": "Progress by topic: overall score, recent attempts, and average response speed.",
+    "lead": "Progress by topic: score, recent attempts, speed, and self-assessment.",
     "topic": "Topic",
     "overall": "Overall",
     "lastThree": "Last 3 tests",
     "speed": "Speed, sec/task",
     "selfScore": "Self-assessment",
-    "hint": "Empty cells indicate topics without completed attempts. Colors: green ≥70%, yellow 40–69%, red <40%."
+    "selfScoreAria": "Self-assessment for «{theme}» from 1 to 5",
+    "selfScoreError": "Could not save. Try again.",
+    "hint": "Empty cells mean topics with no completed attempts. Set a 1–5 self-assessment in the rightmost column. Colors: green ≥70%, yellow 40–69%, red <40%."
   },
   "Diagnostic": {
     "kicker": "Diagnostic test",

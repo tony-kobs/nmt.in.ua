@@ -7,6 +7,7 @@
   height: calc(100dvh - var(--header-h));
   padding: 0;
   overflow: hidden auto;
+  overscroll-behavior: contain;
   border-right: 1px solid var(--line-soft);
   background: var(--paper);
   box-shadow: var(--shadow-md);
