@@ -29,6 +29,12 @@ export const DASHBOARD_NAV: NavItem[] = [
     status: "ready",
   },
   {
+    href: "/students",
+    label: "Мої учні",
+    description: "Список учнів викладача: додати за логіном або відв’язати.",
+    status: "ready",
+  },
+  {
     href: "/simulator",
     label: "Симулятор НМТ",
     description: "Повний варіант НМТ у форматі УЦОЯО з таймером і балами.",

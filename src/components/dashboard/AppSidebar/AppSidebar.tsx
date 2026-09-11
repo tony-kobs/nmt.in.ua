@@ -6,7 +6,7 @@ import clsx from "clsx";
 import { FeedbackEntry } from "@/components/feedback/FeedbackDialog";
 import { DASHBOARD_NAV } from "@/constants/navigation";
 import type { UserRole } from "@/modules/auth/client";
-import { canImportContent } from "@/modules/auth/client";
+import { canImportContent, canManageStudents } from "@/modules/auth/client";
 import { useTranslations } from "next-intl";
 import css from "./AppSidebar.module.css";
 
@@ -20,6 +20,7 @@ const NAV_ICONS: Record<string, string> = {
   "/": "∑",
   "/results": "%",
   "/sessions": "⏱",
+  "/students": "◈",
   "/simulator": "◎",
   "/materials/textbook": "▣",
   "/problems": "ƒ",
@@ -31,6 +32,7 @@ const NAV_KEYS: Record<string, string> = {
   "/": "home",
   "/results": "results",
   "/sessions": "sessions",
+  "/students": "students",
   "/simulator": "simulator",
   "/materials/textbook": "materials",
   "/problems": "problems",
@@ -41,9 +43,11 @@ const NAV_KEYS: Record<string, string> = {
 export function AppSidebar({ open, onNavigate, role }: AppSidebarProps) {
   const t = useTranslations("Sidebar");
   const pathname = usePathname();
-  const navItems = DASHBOARD_NAV.filter(
-    (item) => item.href !== "/settings" || canImportContent(role),
-  );
+  const navItems = DASHBOARD_NAV.filter((item) => {
+    if (item.href === "/settings") return canImportContent(role);
+    if (item.href === "/students") return canManageStudents(role);
+    return true;
+  });
 
   return (
     <aside

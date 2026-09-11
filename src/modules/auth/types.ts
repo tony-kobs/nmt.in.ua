@@ -75,3 +75,8 @@ export function canImportContent(role: UserRole): boolean {
 export function canAssignMentorSessions(role: UserRole): boolean {
   return role === "teacher" || role === "admin";
 }
+
+/** Teacher roster («Мої учні») — same staff roles as mentor assign. */
+export function canManageStudents(role: UserRole): boolean {
+  return role === "teacher" || role === "admin";
+}

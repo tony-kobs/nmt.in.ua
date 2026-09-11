@@ -3,6 +3,7 @@ export {
   DEMO_ACCOUNTS,
   canAssignMentorSessions,
   canImportContent,
+  canManageStudents,
   roleLabel,
   userInitials,
 } from "./types";

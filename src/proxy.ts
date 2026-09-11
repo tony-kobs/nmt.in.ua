@@ -72,6 +72,10 @@ function requiresAdmin(pathname: string): boolean {
   return pathname === "/settings" || pathname.startsWith("/settings/");
 }
 
+function requiresTeacherOrAdmin(pathname: string): boolean {
+  return pathname === "/students" || pathname.startsWith("/students/");
+}
+
 async function authGuard(request: NextRequest): Promise<NextResponse | null> {
   const { pathname } = request.nextUrl;
 
@@ -94,6 +98,17 @@ async function authGuard(request: NextRequest): Promise<NextResponse | null> {
   }
 
   if (requiresAdmin(pathname) && session.role !== "admin") {
+    const home = request.nextUrl.clone();
+    home.pathname = "/";
+    home.search = "";
+    return NextResponse.redirect(home);
+  }
+
+  if (
+    requiresTeacherOrAdmin(pathname) &&
+    session.role !== "teacher" &&
+    session.role !== "admin"
+  ) {
     const home = request.nextUrl.clone();
     home.pathname = "/";
     home.search = "";

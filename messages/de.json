@@ -36,6 +36,7 @@
       "home": "Test zum ausgewählten Thema",
       "results": "Ergebnisse nach Themen",
       "sessions": "Lernsitzungen",
+      "students": "Meine Schüler",
       "simulator": "NMT-Simulator",
       "materials": "Lehrbuch",
       "problems": "Aufgabenbank",
@@ -102,6 +103,34 @@
     "alreadyPlanned": "Mentor-Sitzung #{sessionId} war bereits geplant.",
     "errors": {
       "generic": "Die Mentor-Sitzung konnte nicht zugewiesen werden. Überprüfe das Thema und den Schüler."
+    }
+  },
+  "TeacherStudents": {
+    "kicker": "Lehrkraft",
+    "title": "Meine Schüler",
+    "lead": "Verknüpfe einen Schüler über den Login. Die Liste enthält nur deine Verbindungen — nicht alle Konten der Website.",
+    "addTitle": "Schüler hinzufügen",
+    "addLead": "Der Login muss zu einem Konto mit der Rolle „Schüler“ gehören.",
+    "login": "Schüler-Login",
+    "loginPlaceholder": "demo-student",
+    "loginHint": "Genau der Login wie beim Anmelden.",
+    "add": "Hinzufügen",
+    "adding": "Wird hinzugefügt…",
+    "added": "{name} wurde zur Liste hinzugefügt.",
+    "listTitle": "Liste",
+    "listLead": "Das Aufheben der Verknüpfung löscht das Schülerkonto nicht.",
+    "empty": "Noch keine verknüpften Schüler. Füge den ersten über den Login hinzu.",
+    "unlink": "Verknüpfung aufheben",
+    "unlinking": "Wird entfernt…",
+    "unlinked": "Verknüpfung aufgehoben.",
+    "errors": {
+      "invalid_input": "Gib den Login des Schülers ein.",
+      "not_found": "Kein Benutzer mit diesem Login gefunden.",
+      "not_a_student": "Dieser Login gehört keinem Schüler.",
+      "already_linked": "Dieser Schüler steht bereits auf deiner Liste.",
+      "not_linked": "Dieser Schüler steht nicht auf deiner Liste.",
+      "forbidden": "Nur Lehrkraft oder Admin können die Schülerliste verwalten.",
+      "generic": "Speichern fehlgeschlagen. Bitte erneut versuchen."
     }
   },
   "StubPage": {
@@ -691,6 +720,10 @@
     "account": {
       "title": "Persönliches Konto",
       "description": "Profil, Passwortänderung, letzte Ergebnisse und Abmeldung."
+    },
+    "students": {
+      "title": "Meine Schüler",
+      "description": "Schülerliste der Lehrkraft: per Login hinzufügen oder Verknüpfung aufheben."
     }
   },
   "SettingsPage": {
