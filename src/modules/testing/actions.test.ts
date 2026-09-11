@@ -3,8 +3,10 @@ import assert from "node:assert/strict";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { startTopicTest, TOPIC_TEST_TASK_COUNT } from "./startTopicTest";
 import {
+  addSimilarPracticeTaskAction,
   checkAnswerAction,
   finishTrainerSessionAction,
+  getTaskHintAction,
   markSessionStartedAction,
   startTopicTestAction,
   type StartTopicTestActionState,
@@ -18,6 +20,12 @@ import {
   markSessionStarted,
   MarkSessionStartedError,
 } from "./markSessionStarted";
+import { getTaskHint, GetTaskHintError } from "./getTaskHint";
+import {
+  addSimilarPracticeTask,
+  AddSimilarPracticeTaskError,
+} from "./addSimilarPracticeTask";
+import { TASK_STATUS_UNANSWERED } from "./types";
 
 const IDLE_STATE: StartTopicTestActionState = { status: "idle" };
 
@@ -174,6 +182,102 @@ test("the created session receives user_id = 1", async () => {
     assert.equal(taskType, 1);
     assert.equal(userId, 1);
     assert.equal(status, 0);
+  }
+});
+
+test("getTaskHintAction trusts the session userId, never a client-supplied one", async () => {
+  let capturedInput: unknown;
+  const spy = (async (input: {
+    userId: number;
+    sessionId: number;
+    mappingId: number;
+  }) => {
+    capturedInput = input;
+    return { available: true, hint: "Bo x = 2." };
+  }) as typeof getTaskHint;
+
+  const state = await getTaskHintAction(
+    { sessionId: 5, mappingId: 10 },
+    { getTaskHint: spy, ...mockAuth },
+  );
+
+  assert.deepEqual(capturedInput, { userId: 1, sessionId: 5, mappingId: 10 });
+  assert.deepEqual(state, { status: "success", available: true, hint: "Bo x = 2." });
+});
+
+test("getTaskHintAction maps domain errors to action error codes", async () => {
+  const spy = (async () => {
+    throw new GetTaskHintError("nope", "not_found");
+  }) as typeof getTaskHint;
+
+  const state = await getTaskHintAction(
+    { sessionId: 5, mappingId: 10 },
+    { getTaskHint: spy, ...mockAuth },
+  );
+
+  assert.deepEqual(state, { status: "error", code: "notFound" });
+});
+
+test("addSimilarPracticeTaskAction trusts the session userId and forwards the streak", async () => {
+  let capturedInput: unknown;
+  const spy = (async (input: {
+    userId: number;
+    sessionId: number;
+    mappingId: number;
+    streak: number;
+  }) => {
+    capturedInput = input;
+    return {
+      mappingId: 42,
+      task: {
+        mappingId: 42,
+        taskId: 200,
+        name: "Similar task",
+        taskText: "2x = 4",
+        answers: [{ number: 1 as const, text: "2" }],
+        status: TASK_STATUS_UNANSWERED,
+      },
+    };
+  }) as typeof addSimilarPracticeTask;
+
+  const state = await addSimilarPracticeTaskAction(
+    { sessionId: 5, mappingId: 10, streak: 3 },
+    { addSimilarPracticeTask: spy, ...mockAuth },
+  );
+
+  assert.deepEqual(capturedInput, {
+    userId: 1,
+    sessionId: 5,
+    mappingId: 10,
+    streak: 3,
+  });
+  assert.equal(state.status, "success");
+});
+
+test("addSimilarPracticeTaskAction maps every domain error code", async () => {
+  const cases: Array<[
+    import("./addSimilarPracticeTask").AddSimilarPracticeTaskErrorCode,
+    string,
+  ]> = [
+    ["not_found", "notFound"],
+    ["not_eligible", "notEligible"],
+    ["not_incorrect", "notIncorrect"],
+    ["no_similar_task", "noSimilarTask"],
+    ["invalid_input", "invalidInput"],
+    ["db_error", "generic"],
+  ];
+
+  for (const [domainCode, actionCode] of cases) {
+    const spy = (async () => {
+      throw new AddSimilarPracticeTaskError("nope", domainCode);
+    }) as typeof addSimilarPracticeTask;
+
+    const state = await addSimilarPracticeTaskAction(
+      { sessionId: 5, mappingId: 10, streak: 0 },
+      { addSimilarPracticeTask: spy, ...mockAuth },
+    );
+
+    assert.deepEqual(state, { status: "error", code: actionCode });
   }
 });
 
@@ -347,7 +451,22 @@ test("finishTrainerSessionAction uses the trusted demo user and returns summary 
     markUnansweredAsIncorrect: undefined,
     capTimeSec: undefined,
   });
-  assert.deepEqual(state, { status: "success", summary, recommendations });
+  assert.deepEqual(state, {
+    status: "success",
+    summary,
+    recommendations,
+    insight: {
+      correctCount: 7,
+      totalCount: 10,
+      percent: 70,
+      strongThemes: [
+        { themeId: 1, themeName: "A", percent: 90 },
+        { themeId: 2, themeName: "B", percent: 75 },
+      ],
+      weakThemes: [],
+      hasRepeatedMistakes: false,
+    },
+  });
 });
 
 test("finishTrainerSessionAction maps unfinished to a client-safe error", async () => {

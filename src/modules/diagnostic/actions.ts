@@ -142,7 +142,24 @@ export async function finishDiagnosticSessionAction(
       // No-op outside a Next.js request context (unit tests).
     }
 
-    return { status: "success", summary, recommendations: [] };
+    // `insight` (went-well/needs-attention) is a Practice-only summary
+    // feature — `DiagnosticResultSummary` never reads it. Filled with a
+    // neutral, data-only shape purely to satisfy the shared
+    // `FinishTrainerSessionActionState` type; diagnostic keeps its own
+    // dedicated summary/breakdown (`toDiagnosticTopicInsight`) unchanged.
+    return {
+      status: "success",
+      summary,
+      recommendations: [],
+      insight: {
+        correctCount: summary.rightNumber,
+        totalCount: summary.tasksNumber,
+        percent: summary.percent,
+        strongThemes: [],
+        weakThemes: [],
+        hasRepeatedMistakes: false,
+      },
+    };
   } catch (error) {
     if (error instanceof FinishDiagnosticSessionError) {
       switch (error.code) {

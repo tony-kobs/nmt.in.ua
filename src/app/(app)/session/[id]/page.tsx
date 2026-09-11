@@ -5,6 +5,7 @@ import { createPageMetadata } from "@/constants/seo";
 import {
   recommendFromSessionMistakes,
   recommendNextActionsForStats,
+  buildPracticeResultInsight,
 } from "@/modules/recommendations";
 import { getStudentTopicStats } from "@/modules/recommendations/getStudentTopicStats";
 import { requireSessionUserId } from "@/modules/auth/getCurrentUser";
@@ -119,15 +120,21 @@ export default async function SessionPage({
     ? await getSessionMistakeReview(sessionId, userId)
     : [];
 
+  const topicStats = completed ? await getStudentTopicStats(userId) : null;
   const fromMistakes = recommendFromSessionMistakes(initialMistakes, t);
   const initialRecommendations = completed
     ? fromMistakes.length > 0
       ? fromMistakes
-      : await recommendNextActionsForStats(
-          await getStudentTopicStats(userId),
-          t,
-        )
+      : await recommendNextActionsForStats(topicStats!, t)
     : [];
+  const initialInsight =
+    completed && session.summary && topicStats
+      ? buildPracticeResultInsight({
+          summary: session.summary,
+          mistakes: initialMistakes,
+          topicStats,
+        })
+      : null;
 
   return isNmtSession ? (
     <NmtTrainer
@@ -145,6 +152,7 @@ export default async function SessionPage({
       tasks={session.tasks}
       initialSummary={session.summary}
       initialRecommendations={initialRecommendations}
+      initialInsight={initialInsight}
       mode={mode}
     />
   );

@@ -25,7 +25,17 @@ export type RecommendedAction = {
 
 export { persistRecommendations } from "./persistRecommendations";
 export type { PersistRecommendationsResult } from "./persistRecommendations";
-export { recommendFromSessionMistakes } from "./recommendFromSessionMistakes";
+export {
+  recommendFromSessionMistakes,
+  groupMistakesByTheme,
+} from "./recommendFromSessionMistakes";
+export type { ThemeMistakeBucket } from "./recommendFromSessionMistakes";
+export { buildPracticeResultInsight } from "./buildPracticeResultInsight";
+export type {
+  PracticeResultInsight,
+  PracticeThemePerformance,
+  PracticeThemeMistakes,
+} from "./buildPracticeResultInsight";
 
 const WEAK_THRESHOLD = 40;
 const SOLID_THRESHOLD = 70;

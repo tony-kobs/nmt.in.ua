@@ -45,6 +45,16 @@ test("pickClientMessages keeps shared marketing namespaces on auth and diagnosti
   assert.ok("ContentImportForm" in pickClientMessages(uk, "/settings"));
 });
 
+test("/diagnostic ships the TopicTrainer namespace the session page renders", () => {
+  for (const path of ["/diagnostic", "/diagnostic/session/1"] as const) {
+    const picked = pickClientMessages(uk, path);
+    assert.ok(
+      "TopicTrainer" in picked,
+      `${path} must include TopicTrainer or its header/actions render raw keys`,
+    );
+  }
+});
+
 test("CLIENT_MESSAGE_NAMESPACES still lists the full union for docs/tests", () => {
   assert.ok(CLIENT_MESSAGE_NAMESPACES.includes("LoginForm"));
   assert.ok(CLIENT_MESSAGE_NAMESPACES.includes("Header"));
