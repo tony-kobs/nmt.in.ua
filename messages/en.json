@@ -36,6 +36,7 @@
       "home": "Test by selected topic",
       "results": "Results by topic",
       "sessions": "Learning sessions",
+      "students": "My students",
       "simulator": "NMT Simulator",
       "materials": "Textbook",
       "problems": "Problem bank",
@@ -102,6 +103,34 @@
     "alreadyPlanned": "Mentor session #{sessionId} was already planned.",
     "errors": {
       "generic": "Could not assign the mentor session. Check the topic and student."
+    }
+  },
+  "TeacherStudents": {
+    "kicker": "Teacher",
+    "title": "My students",
+    "lead": "Link a student by login. This list is only your links — not every account on the site.",
+    "addTitle": "Add a student",
+    "addLead": "The login must match an account with the student role.",
+    "login": "Student login",
+    "loginPlaceholder": "demo-student",
+    "loginHint": "Exact login, as used at sign-in.",
+    "add": "Add",
+    "adding": "Adding…",
+    "added": "{name} has been added to your list.",
+    "listTitle": "List",
+    "listLead": "Unlinking does not delete the student’s account.",
+    "empty": "No linked students yet. Add the first one by login.",
+    "unlink": "Unlink",
+    "unlinking": "Removing…",
+    "unlinked": "Student unlinked.",
+    "errors": {
+      "invalid_input": "Enter the student’s login.",
+      "not_found": "No user with that login was found.",
+      "not_a_student": "That login does not belong to a student.",
+      "already_linked": "This student is already on your list.",
+      "not_linked": "This student is not on your list.",
+      "forbidden": "Only a teacher or admin can manage the student list.",
+      "generic": "Could not save. Please try again."
     }
   },
   "StubPage": {
@@ -691,6 +720,10 @@
     "account": {
       "title": "Personal account",
       "description": "Profile, password change, recent results, and sign out."
+    },
+    "students": {
+      "title": "My students",
+      "description": "The teacher’s student list: add by login or unlink."
     }
   },
   "SettingsPage": {

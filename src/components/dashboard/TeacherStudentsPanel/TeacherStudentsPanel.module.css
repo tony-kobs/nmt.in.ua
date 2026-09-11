@@ -1,0 +1,222 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-lg);
+}
+
+.panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg);
+  background: var(--grad-glass);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px);
+}
+
+@supports not (backdrop-filter: blur(4px)) {
+  .panel {
+    background: rgb(253 251 244 / 92%);
+  }
+}
+
+.panelTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink-deep);
+}
+
+.panelLead {
+  margin: 0;
+  max-width: 40rem;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2xs);
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
+}
+
+.field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2xs);
+}
+
+.label {
+  color: var(--subtle);
+  font-size: var(--fs-kicker);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  transition:
+    border-color var(--t) var(--ease),
+    box-shadow var(--t) var(--ease);
+}
+
+.input:hover {
+  border-color: rgb(31 143 69 / 40%);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: var(--ring);
+}
+
+.input:disabled {
+  background: var(--surface-muted);
+  cursor: not-allowed;
+}
+
+.hint {
+  color: var(--subtle);
+  font-size: var(--fs-kicker);
+}
+
+.submit,
+.unlink {
+  justify-self: start;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform var(--t) var(--ease),
+    opacity var(--t) var(--ease);
+}
+
+.submit {
+  background: var(--grad-brand);
+  color: #f6f1e2;
+}
+
+.submit:disabled,
+.unlink:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.unlink {
+  border-color: var(--line-soft);
+  background: rgb(253 251 244 / 78%);
+  color: var(--green-dark);
+}
+
+.submit:hover:not(:disabled),
+.submit:focus-visible:not(:disabled),
+.unlink:hover:not(:disabled),
+.unlink:focus-visible:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.alert {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.alertError {
+  border: 1px solid color-mix(in srgb, crimson 45%, var(--line));
+  background: color-mix(in srgb, crimson 10%, var(--surface));
+  color: crimson;
+}
+
+.alertSuccess {
+  border: 1px solid var(--green);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-small);
+}
+
+.list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg);
+  background: rgb(253 251 244 / 78%);
+}
+
+.identity {
+  min-width: 0;
+}
+
+.name {
+  margin: 0;
+  font-weight: 700;
+}
+
+.login {
+  margin: 4px 0 0;
+  color: var(--subtle);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+@media (min-width: 768px) {
+  .panel {
+    padding: var(--space-xl);
+  }
+
+  .formRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .item {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .submit:hover:not(:disabled),
+  .unlink:hover:not(:disabled) {
+    transform: none;
+  }
+}

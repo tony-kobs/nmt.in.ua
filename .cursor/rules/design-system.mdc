@@ -121,6 +121,7 @@ alwaysApply: true
 - `PageFrame` / `PagePanel` — kicker-пілюля (не на старті тесту), `--fs-h1` display, скляна картка.
 - `TopicTestStart` — домашня робоча сторінка: вітання + тема + кількість завдань (поле / розмір банку). Без Ultimate і без самооцінки.
 - `AccountCabinet` — особистий кабінет: пароль, останні результати, заглушки (фото / досягнення / час), вихід.
+- `TeacherStudentsPanel` — `/students` для teacher/admin: додати учня за логіном, список, відв’язати. Учні пункт меню не бачать.
 
 Брейкпоінти кабінету ті самі: сайдбар з 768. Не використовувати 1280.
 
@@ -357,3 +358,10 @@ npm run lint && npm test && npm run build
 - Старт тестів: `sampleRandomIds`; `getNmtVariants` — `ROW_NUMBER`; `checkAnswer` — один JOIN.
 - `/problems` — JSON; `/sessions` — `LIMIT 50`; `/results` — ≤12 сесій на тему.
 - Стиснуто OG/apple-touch і найбільші `public/nmt/osvita/*`.
+
+### 2026-09-11 — «Мої учні» `/students`
+
+- Викладач / адмін додає учня **за логіном** (точний збіг після trim + lowercase).
+  Таблиця `teacher_students` (`017_teacher_students.sql` + `ensureTeacherStudentsSchema`).
+- Сайдбар показує пункт лише teacher/admin (як `/settings` лише admin). Учень — редірект на `/`.
+- Форма + список карток (1 кол. → рядок ім’я / відв’язати з 768). Без CRM і без авто-лінку з консультацій.

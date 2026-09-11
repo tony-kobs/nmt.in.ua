@@ -39,6 +39,8 @@ test("pickClientMessages adds route-only namespaces on auth and settings", () =>
   assert.ok("LoginForm" in pickClientMessages(uk, "/login"));
   assert.ok("RegisterForm" in pickClientMessages(uk, "/register"));
   assert.ok("ContentImportForm" in pickClientMessages(uk, "/settings"));
+  assert.ok("TeacherStudents" in pickClientMessages(uk, "/students"));
+  assert.equal("TeacherStudents" in pickClientMessages(uk, "/"), false);
   assert.ok("Diagnostic" in pickClientMessages(uk, "/diagnostic"));
   assert.ok("DiagnosticResult" in pickClientMessages(uk, "/diagnostic"));
   assert.equal("Header" in pickClientMessages(uk, "/login"), false);
