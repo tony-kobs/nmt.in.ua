@@ -101,10 +101,47 @@ export function DashboardShell({
   }, [sidebarOpen]);
 
   useEffect(() => {
-    const isMobile = window.matchMedia("(max-width: 767px)").matches;
-    document.body.style.overflow = sidebarOpen && isMobile ? "hidden" : "";
+    const mq = window.matchMedia("(max-width: 767px)");
+    const html = document.documentElement;
+    const { body } = document;
+
+    const unlock = () => {
+      html.style.overflow = "";
+      body.style.overflow = "";
+      body.style.position = "";
+      body.style.insetInline = "";
+      body.style.top = "";
+      body.style.width = "";
+      if (body.dataset.sidebarScrollY != null) {
+        const y = Number(body.dataset.sidebarScrollY) || 0;
+        delete body.dataset.sidebarScrollY;
+        window.scrollTo(0, y);
+      }
+    };
+
+    const sync = () => {
+      const shouldLock = sidebarOpen && mq.matches;
+      if (!shouldLock) {
+        unlock();
+        return;
+      }
+      if (body.dataset.sidebarScrollY == null) {
+        const lockedY = window.scrollY;
+        body.dataset.sidebarScrollY = String(lockedY);
+        html.style.overflow = "hidden";
+        body.style.overflow = "hidden";
+        body.style.position = "fixed";
+        body.style.insetInline = "0";
+        body.style.top = `-${lockedY}px`;
+        body.style.width = "100%";
+      }
+    };
+
+    sync();
+    mq.addEventListener("change", sync);
     return () => {
-      document.body.style.overflow = "";
+      mq.removeEventListener("change", sync);
+      unlock();
     };
   }, [sidebarOpen]);
 

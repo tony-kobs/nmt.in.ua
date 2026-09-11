@@ -15,7 +15,8 @@ test("guest / and /welcome stay on the slim public client payload", () => {
     assert.ok(PUBLIC_CLIENT_NAMESPACES.every((key) => key in picked));
     assert.equal("Header" in picked, false);
     assert.equal("TopicTrainer" in picked, false);
-    assert.equal("LoginForm" in picked, false);
+    assert.ok("LoginForm" in picked);
+    assert.ok("RegisterForm" in picked);
   }
 });
 
@@ -24,7 +25,7 @@ test("cabinet /home keeps Header.goHomeShort and CORE namespaces", () => {
 
   assert.equal(
     (picked.Header as { goHomeShort: string }).goHomeShort,
-    "Головна",
+    "Вітальна",
   );
   assert.ok(
     CORE_CLIENT_NAMESPACES.every((key) => key in picked),
@@ -35,14 +36,13 @@ test("cabinet /home keeps Header.goHomeShort and CORE namespaces", () => {
   assert.equal("Metadata" in picked, false);
 });
 
-test("pickClientMessages adds route-only namespaces on auth and settings", () => {
-  assert.ok("LoginForm" in pickClientMessages(uk, "/login"));
-  assert.ok("RegisterForm" in pickClientMessages(uk, "/register"));
+test("pickClientMessages keeps shared marketing namespaces on auth and diagnostic", () => {
+  for (const path of ["/login", "/register", "/diagnostic"] as const) {
+    const picked = pickClientMessages(uk, path);
+    assert.ok(PUBLIC_CLIENT_NAMESPACES.every((key) => key in picked));
+    assert.equal("Header" in picked, false);
+  }
   assert.ok("ContentImportForm" in pickClientMessages(uk, "/settings"));
-  assert.ok("Diagnostic" in pickClientMessages(uk, "/diagnostic"));
-  assert.ok("DiagnosticResult" in pickClientMessages(uk, "/diagnostic"));
-  assert.equal("Header" in pickClientMessages(uk, "/login"), false);
-  assert.equal("Header" in pickClientMessages(uk, "/diagnostic"), false);
 });
 
 test("CLIENT_MESSAGE_NAMESPACES still lists the full union for docs/tests", () => {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import type { AuthUser } from "@/modules/auth/client";
-import { userInitials } from "@/modules/auth/client";
+import { UserAvatar } from "@/components/account/UserAvatar";
 import { useTranslations } from "next-intl";
 import css from "./AppHeader.module.css";
 
@@ -68,9 +68,7 @@ export function AppHeader({
             aria-label={t("openAccount", { name: user.displayName })}
             title={t("openAccount", { name: user.displayName })}
           >
-            <span className={css.avatar} aria-hidden>
-              {userInitials(user.displayName)}
-            </span>
+            <UserAvatar user={user} className={css.avatar} />
             <span className={css.profileMeta}>
               <span className={css.profileName}>{user.displayName}</span>
               <span className={css.profileRole}>

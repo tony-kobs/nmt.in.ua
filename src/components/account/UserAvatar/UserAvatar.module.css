@@ -1,0 +1,15 @@
+.face {
+  display: grid;
+  flex: none;
+  overflow: hidden;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  /* Explicit size comes from className (header / account). */
+}
+
+.photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

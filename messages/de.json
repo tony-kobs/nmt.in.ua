@@ -7,8 +7,8 @@
     "showSidebar": "Seitenleiste anzeigen",
     "hideMenu": "Menü ausblenden",
     "showMenu": "Menü anzeigen",
-    "goHome": "Zur Startseite",
-    "goHomeShort": "Start",
+    "goHome": "Über die Website",
+    "goHomeShort": "Info",
     "tagline": "Mathematik · Übung · Fortschritt",
     "logout": "abmelden",
     "openAccount": "Persönliches Konto: {name}",
@@ -50,9 +50,18 @@
   "AccountCabinet": {
     "kicker": "Profil",
     "title": "Persönliches Konto",
-    "lead": "Passwort, Ergebnisse und Platzhalter für Foto, Erfolge und Lernzeit.",
+    "lead": "Profilfoto, Passwort, Ergebnisse und Platzhalter für Erfolge und Lernzeit.",
     "photoTitle": "Profilfoto",
-    "photoLead": "Das Hochladen eines Fotos kommt später. In der Kopfzeile stehen vorerst die Initialen.",
+    "photoLead": "JPEG, PNG oder WebP. Ein quadratisches Foto wird mittig zugeschnitten und erscheint in der Kopfzeile.",
+    "photoHint": "Bis {maxKb} KB. Ein quadratisches Foto wird mittig zugeschnitten und ersetzt die Initialen in der Kopfzeile.",
+    "photoChoose": "Foto wählen",
+    "photoSave": "Foto speichern",
+    "photoSaving": "Wird gespeichert…",
+    "photoSaved": "Foto aktualisiert.",
+    "photoRemove": "Foto entfernen",
+    "photoRemoving": "Wird entfernt…",
+    "photoRemoved": "Foto entfernt.",
+    "demoLockedPhoto": "Auf dem Demo-Konto kann das Foto nicht geändert werden.",
     "achievementsTitle": "Erfolge",
     "achievementsLead": "Abzeichen für Tests und den Simulator erscheinen in einer späteren Version.",
     "timeTitle": "Gesamte Lernzeit",
@@ -79,6 +88,13 @@
       "wrongCurrent": "Das aktuelle Passwort ist falsch.",
       "demoAccount": "Auf dem Demo-Konto kann das Passwort nicht geändert werden.",
       "serverError": "Das Passwort konnte nicht geändert werden. Bitte erneut versuchen."
+    },
+    "photoErrors": {
+      "requiredFile": "Bitte eine Bilddatei wählen.",
+      "invalidType": "JPEG, PNG oder WebP verwenden.",
+      "tooLarge": "Die Datei ist zu groß.",
+      "demoAccount": "Auf dem Demo-Konto kann das Foto nicht geändert werden.",
+      "serverError": "Das Foto konnte nicht gespeichert werden. Bitte erneut versuchen."
     }
   },
   "Common": {
@@ -138,8 +154,8 @@
     "noThemes": "Themen und Aufgaben werden vorbereitet. Das Testen wird bald verfügbar sein.",
     "selectTopic": "Thema auswählen",
     "tasks": "Aufgaben",
-    "taskCountAria": "Anzahl der Aufgaben: {count} von {total}",
-    "tasksHint": "von 1 bis {total}",
+    "taskCountAria": "Anzahl der Aufgaben eingeben: {count} von {total}",
+    "tasksHint": "1–{total} eingeben",
     "redirecting": "Test wird geöffnet…",
     "loading": "Wird geladen…",
     "start": "Start",
@@ -282,13 +298,15 @@
   },
   "TopicResultsTable": {
     "title": "Ergebnisse nach Thema",
-    "lead": "Fortschritt nach Thema: Gesamtergebnis, letzte Versuche und durchschnittliche Antwortgeschwindigkeit.",
+    "lead": "Fortschritt nach Thema: Ergebnis, letzte Versuche, Tempo und Selbsteinschätzung.",
     "topic": "Thema",
     "overall": "Gesamt",
     "lastThree": "Letzte 3 Tests",
     "speed": "Geschwindigkeit, Sek./Aufgabe",
     "selfScore": "Selbsteinschätzung",
-    "hint": "Leere Felder zeigen Themen ohne abgeschlossene Versuche. Farben: Grün ≥70%, Gelb 40–69%, Rot <40%."
+    "selfScoreAria": "Selbsteinschätzung für «{theme}» von 1 bis 5",
+    "selfScoreError": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+    "hint": "Leere Felder zeigen Themen ohne abgeschlossene Versuche. Selbsteinschätzung 1–5 in der rechten Spalte. Farben: Grün ≥70%, Gelb 40–69%, Rot <40%."
   },
   "Diagnostic": {
     "kicker": "Einstufungstest",
@@ -690,7 +708,7 @@
     },
     "account": {
       "title": "Persönliches Konto",
-      "description": "Profil, Passwortänderung, letzte Ergebnisse und Abmeldung."
+      "description": "Profilfoto, Passwortänderung, letzte Ergebnisse und Abmeldung."
     }
   },
   "SettingsPage": {

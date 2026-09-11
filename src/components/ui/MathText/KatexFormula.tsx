@@ -24,10 +24,12 @@ function renderFormula(content: string, displayMode: boolean): string {
   const cached = renderCache.get(key);
   if (cached !== undefined) return cached;
 
+  // HTML only: htmlAndMathml duplicates the value in the a11y tree
+  // (MathML + TeX annotation → button names like "A 20 20").
   const html = katex.renderToString(formula, {
     displayMode: useDisplay,
     throwOnError: false,
-    output: "htmlAndMathml",
+    output: "html",
     strict: "ignore",
     trust: false,
   });

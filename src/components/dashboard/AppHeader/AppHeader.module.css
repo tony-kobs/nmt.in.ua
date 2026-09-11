@@ -16,9 +16,9 @@
 
 .inner {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto auto minmax(0, 1fr);
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
   height: 100%;
   width: min(100%, var(--container-max));
   margin-inline: auto;
@@ -144,16 +144,18 @@
   flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-xs);
+  gap: var(--space-2xs);
   min-width: 0;
+  justify-self: end;
 }
 
 .homeLink {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
-  padding: 8px 14px;
+  flex: none;
+  min-height: 36px;
+  padding: 6px 10px;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-pill);
   background: rgb(253 251 244 / 78%);
@@ -177,10 +179,12 @@
 .profile {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex: 1 1 auto;
   min-width: 0;
-  min-height: 44px;
-  padding: 4px 10px 4px 4px;
+  max-width: 11.5rem;
+  min-height: 40px;
+  padding: 3px 10px 3px 3px;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-pill);
   background: rgb(253 251 244 / 78%);
@@ -206,9 +210,11 @@
 
 .avatar {
   display: grid;
+  flex: none;
+  overflow: hidden;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--radius-pill);
   background: var(--grad-mint);
   color: var(--green-dark);
@@ -217,30 +223,50 @@
 }
 
 .profileMeta {
-  display: none;
+  display: grid;
   min-width: 0;
-  padding-right: 4px;
+  padding-right: 2px;
 }
 
 .profileName {
   display: block;
-  max-width: 11rem;
   overflow: hidden;
   font-size: var(--fs-small);
   font-weight: 700;
+  line-height: 1.15;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .profileRole {
   display: block;
+  overflow: hidden;
   color: var(--subtle);
   font-size: var(--fs-kicker);
   font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .homeLinkFull {
   display: none;
+}
+
+@media (min-width: 375px) {
+  .inner {
+    gap: var(--space-sm);
+  }
+
+  .homeLink {
+    min-height: 40px;
+    padding: 8px 12px;
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+  }
 }
 
 @media (min-width: 768px) {
@@ -257,6 +283,10 @@
     display: inline;
   }
 
+  .homeLink {
+    padding: 8px 14px;
+  }
+
   .brandCopy {
     display: grid;
   }
@@ -269,8 +299,16 @@
     display: block;
   }
 
-  .profileMeta {
-    display: grid;
+  .profile {
+    flex: none;
+    max-width: 14rem;
+    min-height: 44px;
+    padding: 4px 12px 4px 4px;
+    gap: 10px;
+  }
+
+  .actions {
+    gap: var(--space-xs);
   }
 }
 

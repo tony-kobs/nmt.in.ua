@@ -169,7 +169,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | Тест | `src/modules/testing` | `startTopicTest`, `startNmtSimulator`, `checkAnswer`, `finishTrainerSession` |
 | Рекомендації | `src/modules/recommendations` | `getStudentTopicStats`, `recommendNextActions`, `persistRecommendations` |
 | Сесії | `src/modules/sessions` | `getLearningSessions`, `createMentorSession`, cancel |
-| Самооцінка | `src/modules/self-score` | `recordSelfScore`, `getLatestSelfScoresForResults` — історія 1–10, ніколи не перезаписується |
+| Самооцінка | `src/modules/self-score` | `recordSelfScore`, `saveThemeSelfScoreAction` (колонка на `/results`), `getLatestSelfScoresForResults` — історія 1–10, ніколи не перезаписується |
 | Діагностика (гість) | `src/modules/diagnostic` | `startDiagnosticTest`, owner-aware `checkDiagnosticAnswer`/`finishDiagnosticSession`/`getDiagnosticSessionTasks`/`markDiagnosticSessionStarted`, `claimGuestProgress` — усе окремо від `testing`, щоб не чіпати протестований topic-test код |
 
 ### 6.2. Таблиці MySQL, які чіпаємо
@@ -177,6 +177,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | Таблиця | Навіщо | Важливі поля |
 | --- | --- | --- |
 | `app_users` | Наші акаунти | `login`, `role`. Не плутати з legacy `users` |
+| `user_avatars` | Фото профілю | `user_id`, `mime`, `bytes` MEDIUMBLOB. Лениво `CREATE` у `ensureAuthSchema` / `015_user_avatars.sql` |
 | `themes` | Теми тесту | `id`, `code` (unique, напр. `ALG-08-QUAD-EQ` — якір розділу підручника), `name`, `description`, `ord` |
 | `theme_connections` | Граф «наступна тема» | `vertex_start` → `vertex_finish` |
 | `quiz_tasks` | Банк тренажера (тест / симулятор topic-bank / діагностика) | `right_answer_n` (1–4) лише на сервері в сесії |
@@ -206,6 +207,10 @@ EXISTS` у MySQL немає. **Застосована 08.09.2026**: `EXPLAIN` н
 `scripts/sql/011_nmt_variants.sql` + `012_nmt_quiz_tasks.sql` — офіційні варіанти НМТ
 (окремий банк, **не** `quiz_tasks`). Залив контенту: `node scripts/fetch-nmt-variants.mjs --import`
 (13 свіжих відкритих варіантів з zno.osvita.ua). **Застосовані 09.09.2026.**
+
+`scripts/sql/014_fix_theme_geometry_typo.sql` — опечатка в `themes.name`
+(«геоментрія» → «геометрія», тема `GEO-07-PROOFS`). Деплой SQL не ганяє —
+**прогнати вручну на хостингу**.
 
 ### Гостьова діагностика: модель власності
 
@@ -249,7 +254,7 @@ Cookie `nmt_guest` **ніколи** не перевіряється в `src/prox
 | `/materials`, `/materials/[slug]` | Учень+ | Редірект → `/materials/textbook` |
 | `/materials/textbook` | Учень+ | Єдиний підручник: зміст + один розділ `?topic=<themes.code>` |
 | `/problems` | Учень+ | Задачник: друкований тест по темі |
-| `/account` | Учень+ | Особистий кабінет: пароль, останні результати, вихід |
+| `/account` | Учень+ | Особистий кабінет: фото / ініціали, пароль, результати, вихід |
 | `/consultations` | Учень+ | У меню; форма запису ще збирається (`StubPage` + CTA на симулятор / підручник) |
 
 ## 7. Як додавати фічу (шаблон)

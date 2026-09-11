@@ -88,38 +88,29 @@
 .countWrap {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-width: 8.5rem;
+  gap: 8px;
   min-height: 48px;
-  padding: 0 14px;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  box-sizing: border-box;
-  transition:
-    border-color var(--t) var(--ease),
-    box-shadow var(--t) var(--ease);
-}
-
-.countWrap:focus-within {
-  border-color: var(--green);
-  box-shadow: var(--ring);
 }
 
 .countInput {
-  width: 3.2rem;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  width: 4.25rem;
+  min-height: 48px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-sizing: border-box;
   color: var(--green-dark);
+  caret-color: var(--green);
   font-family: var(--font-display);
   font-size: var(--fs-h3);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;
   text-align: center;
+  transition:
+    border-color var(--t) var(--ease),
+    box-shadow var(--t) var(--ease);
 }
 
 .countInput::-webkit-outer-spin-button,
@@ -132,8 +123,14 @@
   appearance: textfield;
 }
 
+.countInput:hover:not(:disabled) {
+  border-color: rgb(31 143 69 / 45%);
+}
+
 .countInput:focus-visible {
   outline: none;
+  border-color: var(--green);
+  box-shadow: var(--ring);
 }
 
 .countInput:disabled {
@@ -141,17 +138,23 @@
   opacity: 0.72;
 }
 
+.countBank {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
 .countSlash {
-  color: var(--subtle);
   font-size: var(--fs-small);
   font-weight: 600;
 }
 
 .countTotal {
-  color: var(--muted);
-  font-size: var(--fs-small);
+  font-size: var(--fs-body);
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
 }
 
 .start {

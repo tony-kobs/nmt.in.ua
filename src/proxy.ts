@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { PUBLIC_PAGE_PATHS } from "@/constants/publicRoutes";
 import { clientIp, isBlockedPath } from "@/lib/security";
 import {
   SESSION_COOKIE_NAME,
@@ -43,6 +44,7 @@ function take(key: string, limit: number, now: number): boolean {
 function limitFor(pathname: string): number {
   if (pathname.startsWith("/_next/static")) return LIMIT_STATIC;
   if (pathname.startsWith("/_next")) return LIMIT_OTHER;
+  if (pathname.startsWith("/api/avatar")) return LIMIT_PAGE;
   if (
     pathname === "/login" ||
     pathname === "/register" ||
@@ -55,15 +57,13 @@ function limitFor(pathname: string): number {
   return LIMIT_PAGE;
 }
 
-const PUBLIC_PATHS = ["/", "/welcome", "/login", "/register", "/diagnostic"];
-
 /** Files shipped in /public — images, fonts, manifest. Never behind the auth guard. */
 const PUBLIC_ASSET =
   /\.(?:webp|avif|png|jpe?g|gif|svg|ico|woff2?|ttf|otf|css|js|map|json|txt|xml|webmanifest)$/i;
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_ASSET.test(pathname)) return true;
-  return PUBLIC_PATHS.some(
+  return PUBLIC_PAGE_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );
 }
