@@ -165,7 +165,10 @@
       "invalidInput": "Select a topic to start the test.",
       "invalidTaskCount": "Enter how many tasks to run, from 1 up to the bank size.",
       "generic": "Could not start the test. Please try again."
-    }
+    },
+    "fractionPracticeTitle": "Fraction addition",
+    "fractionPracticeLead": "A separate practice: addition of fractions with the same denominator, five difficulty levels, tasks are generated fresh every time.",
+    "fractionPracticeCta": "Start fraction practice"
   },
   "Recommendations": {
     "goToTopic": "Continue to the topic “{theme}”",
@@ -277,6 +280,45 @@
     "mistakePractice": "Topic test",
     "mistakeThemeUnknown": "Topic for this task is not mapped yet.",
     "saveDiagnosticProgress": "Save progress — sign up"
+  },
+  "FractionPractice": {
+    "kicker": "Fractions",
+    "startTitle": "Fraction addition",
+    "startLead": "Addition of fractions with the same denominator. Pick a difficulty level and a task count — tasks are generated fresh each time, so nothing repeats.",
+    "selectLevel": "Difficulty level",
+    "levelDescription": {
+      "1": "Simple fractions, result under 1, no reduction needed.",
+      "2": "Larger numerators, the result may be an improper fraction.",
+      "3": "A proper result that always needs to be reduced.",
+      "4": "An improper fraction — write it as a whole or mixed number.",
+      "5": "Three addends, or an equation with a missing numerator."
+    },
+    "taskCount": "Number of tasks",
+    "taskCountHint": "enter {min} to {max}",
+    "start": "Start",
+    "loading": "Loading…",
+    "activeTitle": "Fraction addition",
+    "taskProgress": "Task {current} of {total}",
+    "scoreLine": "Correct: {correct} of {answered}",
+    "answerLabelFraction": "Answer (fraction, whole, or mixed number)",
+    "answerLabelInteger": "Answer (number)",
+    "answerPlaceholderFraction": "e.g. 3/4, 1 1/2, or 5",
+    "answerPlaceholderInteger": "e.g. 3",
+    "submit": "Check",
+    "next": "Next",
+    "finish": "Finish",
+    "feedbackCorrect": "Correct!",
+    "feedbackReductionRequired": "That value is correct, but write it in reduced (or whole/mixed) form.",
+    "feedbackIncorrect": "Incorrect. Try the next task.",
+    "summaryTitle": "Practice finished",
+    "summaryLead": "Correct answers: {correct} of {total} ({percent}%).",
+    "practiceAgain": "Practice again",
+    "backToPractice": "Back to home",
+    "errors": {
+      "invalidLevel": "Choose a difficulty level from 1 to 5.",
+      "invalidInput": "Could not check the answer. Please try again.",
+      "generic": "Something went wrong. Please try again."
+    }
   },
   "DiagnosticResult": {
     "kicker": "Diagnostic test result",

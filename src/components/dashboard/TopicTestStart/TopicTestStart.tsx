@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { PageFrame, PagePanel } from "@/components/dashboard/PageFrame";
 import {
   startTopicTestAction,
@@ -177,6 +178,14 @@ export function TopicTestStart({
           {t(`errors.${state.code}`)}
         </p>
       ) : null}
+
+      <PagePanel className={css.fractionPromo}>
+        <h2 className={css.formTitle}>{t("fractionPracticeTitle")}</h2>
+        <p className={css.fractionPromoLead}>{t("fractionPracticeLead")}</p>
+        <Link href="/practice/fractions" className={css.fractionPromoLink}>
+          {t("fractionPracticeCta")} →
+        </Link>
+      </PagePanel>
     </PageFrame>
   );
 }
