@@ -179,9 +179,9 @@
     "consultationReason": "Декілька тем потребують додаткової підтримки викладача.",
     "materialsTitle": "Повторіть теорію в підручнику",
     "materialsReason": "У слабких темах допоможе розділ підручника перед повторним тестом.",
-    "nmtMaterialsTitle": "Матеріали: «{theme}»",
-    "nmtMistakeReason": "Помилок у цій темі на симуляторі: {count}.",
-    "nmtPracticeReason": "Потренуйте тест за темою — помилок у симуляторі: {count}.",
+    "sessionMistakeMaterialsTitle": "Матеріали: «{theme}»",
+    "sessionMistakeReason": "Помилок у цій темі цього разу: {count}.",
+    "sessionMistakePracticeReason": "Потренуйте тест за темою — помилок цього разу: {count}.",
     "simulatorTitle": "Спробуйте повний симулятор НМТ",
     "simulatorReason": "Всі теми опрацьовані на хорошому рівні — час перевірити результат у форматі УЦОЯО.",
     "problemsTitle": "Практикуйте додаткові задачі",
@@ -211,6 +211,11 @@
     "finishing": "Завершуємо…",
     "finish": "Завершити тест",
     "backToTopics": "До вибору теми",
+    "showHint": "Показати підказку",
+    "hintLoading": "Завантажуємо підказку…",
+    "hintUnavailable": "Для цього завдання підказки немає.",
+    "similarTask": "Схоже завдання",
+    "similarTaskLoading": "Підбираємо завдання…",
     "errors": {
       "checkAnswer": {
         "invalidInput": "Оберіть один із варіантів відповіді.",
@@ -228,6 +233,14 @@
         "notFound": "Завдання не знайдено в цій сесії.",
         "sessionCompleted": "Цей тест уже завершено.",
         "generic": "Не вдалося пропустити завдання."
+      },
+      "similarTask": {
+        "invalidInput": "Не вдалося підібрати завдання. Спробуйте ще раз.",
+        "notFound": "Завдання не знайдено в цій сесії.",
+        "notEligible": "Це доступно лише в тренувальному тесті за темою.",
+        "notIncorrect": "Спершу дайте відповідь на це завдання.",
+        "noSimilarTask": "Схожих завдань з цієї теми більше немає.",
+        "generic": "Не вдалося підібрати завдання. Спробуйте ще раз."
       }
     }
   },
@@ -248,6 +261,11 @@
     "recommendationsTitle": "Рекомендуємо далі",
     "recommendationsLead": "Наступні кроки на основі вашого результату.",
     "nmtRecommendationsLead": "Теми з помилками: матеріали в підручнику та тест за темою.",
+    "wentWellTitle": "Що вийшло добре",
+    "wentWellItem": "Тема «{theme}»: {percent}%",
+    "needsAttentionTitle": "На що звернути увагу",
+    "needsAttentionItem": "Тема «{theme}»: помилок {count}",
+    "repeatedMistakesNote": "У цій темі кілька помилок поспіль — варто повторити теорію перед новою спробою.",
     "nextSteps": "Що далі",
     "results": "Результати за темами",
     "sessions": "Мої сесії",

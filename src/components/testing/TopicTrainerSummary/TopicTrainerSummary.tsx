@@ -6,8 +6,9 @@ import { TopicTrainerMistakeReview } from "@/components/testing/TopicTrainerMist
 import type { SessionMistakeItem } from "@/modules/testing/getSessionMistakeReview";
 import { RecommendedActionsPanel } from "@/components/dashboard/RecommendedActionsPanel";
 import { formatPercent } from "@/modules/results/types";
-import type { RecommendedAction } from "@/modules/recommendations";
+import type { PracticeResultInsight, RecommendedAction } from "@/modules/recommendations";
 import { formatDurationSeconds } from "@/modules/sessions/types";
+import { isPracticeMode } from "@/modules/testing/sessionMode";
 import type { TrainerMode, TrainerSessionSummary } from "@/modules/testing/types";
 import Link from "next/link";
 import css from "./TopicTrainerSummary.module.css";
@@ -15,6 +16,10 @@ import css from "./TopicTrainerSummary.module.css";
 type TopicTrainerSummaryProps = {
   summary: TrainerSessionSummary;
   recommendations?: RecommendedAction[];
+  /** Went-well/needs-attention breakdown — only rendered for Practice mode
+   * (`isPracticeMode`); ignored for Ultimate/NMT/diagnostic, which keep
+   * their existing summaries. */
+  insight?: PracticeResultInsight | null;
   mode?: TrainerMode;
   timedOut?: boolean;
   mistakes?: SessionMistakeItem[];
@@ -25,6 +30,7 @@ type TopicTrainerSummaryProps = {
 export function TopicTrainerSummary({
   summary,
   recommendations = [],
+  insight = null,
   mode = "standard",
   timedOut = false,
   mistakes = [],
@@ -34,8 +40,13 @@ export function TopicTrainerSummary({
   const isUltimate = mode === "ultimate";
   const isDiagnostic = mode === "diagnostic";
   const isNmt = mode === "nmt";
+  const isPractice = isPracticeMode(mode);
   const showMistakes =
     (isUltimate || isNmt) && mistakes.length > 0;
+  const showInsight =
+    isPractice &&
+    insight !== null &&
+    (insight.strongThemes.length > 0 || insight.weakThemes.length > 0);
 
   return (
     <section className={css.summary} aria-labelledby="trainer-summary-title">
@@ -106,6 +117,55 @@ export function TopicTrainerSummary({
           title={t("mistakeReview", { count: mistakes.length })}
           showThemeLinks={isNmt}
         />
+      ) : null}
+
+      {showInsight && insight ? (
+        <div className={css.insight}>
+          {insight.weakThemes.length > 0 ? (
+            <section
+              className={css.insightPanel}
+              aria-labelledby="practice-needs-attention-title"
+            >
+              <h2 id="practice-needs-attention-title" className={css.insightTitle}>
+                {t("needsAttentionTitle")}
+              </h2>
+              <ul className={css.insightList}>
+                {insight.weakThemes.map((theme) => (
+                  <li key={theme.themeId} className={css.insightItem}>
+                    {t("needsAttentionItem", {
+                      theme: theme.themeName,
+                      count: theme.mistakeCount,
+                    })}
+                  </li>
+                ))}
+              </ul>
+              {insight.hasRepeatedMistakes ? (
+                <p className={css.insightNote}>{t("repeatedMistakesNote")}</p>
+              ) : null}
+            </section>
+          ) : null}
+
+          {insight.strongThemes.length > 0 ? (
+            <section
+              className={css.insightPanel}
+              aria-labelledby="practice-went-well-title"
+            >
+              <h2 id="practice-went-well-title" className={css.insightTitle}>
+                {t("wentWellTitle")}
+              </h2>
+              <ul className={css.insightList}>
+                {insight.strongThemes.map((theme) => (
+                  <li key={theme.themeId} className={css.insightItem}>
+                    {t("wentWellItem", {
+                      theme: theme.themeName,
+                      percent: theme.percent,
+                    })}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </div>
       ) : null}
 
       {isDiagnostic ? null : (

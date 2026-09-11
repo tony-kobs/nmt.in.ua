@@ -30,6 +30,8 @@ export {
   checkAnswerAction,
   finishTrainerSessionAction,
   markSessionStartedAction,
+  getTaskHintAction,
+  addSimilarPracticeTaskAction,
   type StartTopicTestActionState,
 } from "./actions";
 export {
@@ -85,8 +87,41 @@ export type {
   FinishTrainerSessionActionState,
   MarkSessionStartedActionInput,
   MarkSessionStartedActionState,
+  GetTaskHintActionInput,
+  GetTaskHintActionState,
+  AddSimilarPracticeTaskActionInput,
+  AddSimilarPracticeTaskActionState,
   TrainerSessionSummary,
+  TrainerMode,
 } from "./types";
+export { getTaskHint, GetTaskHintError } from "./getTaskHint";
+export type { GetTaskHintInput, GetTaskHintResult } from "./getTaskHint";
+export {
+  addSimilarPracticeTask,
+  AddSimilarPracticeTaskError,
+} from "./addSimilarPracticeTask";
+export type {
+  AddSimilarPracticeTaskInput,
+  AddSimilarPracticeTaskResult,
+} from "./addSimilarPracticeTask";
+export {
+  selectFollowUpCandidate,
+  pickPracticeFollowUpTaskId,
+} from "./pickPracticeFollowUpTask";
+export type {
+  FollowUpCandidate,
+  PickPracticeFollowUpTaskInput,
+} from "./pickPracticeFollowUpTask";
+export { insertFollowUpTask } from "./insertFollowUpTask";
+export {
+  ADAPTIVE_STREAK_THRESHOLD,
+  MIN_TASK_DIFFICULTY,
+  MAX_TASK_DIFFICULTY,
+  nextPracticeStreak,
+  resolvePreferredDifficulty,
+} from "./practiceAdaptive";
+export { resolveSessionMode, isPracticeMode } from "./sessionMode";
+export type { SessionMode } from "./sessionMode";
 export {
   TASK_STATUS_UNANSWERED,
   TASK_STATUS_CORRECT,

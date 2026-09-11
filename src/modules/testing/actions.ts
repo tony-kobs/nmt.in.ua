@@ -4,6 +4,7 @@ import {
   recommendNextActionsForStats,
   recommendFromSessionMistakes,
   persistRecommendations,
+  buildPracticeResultInsight,
   type RecommendationTranslator,
 } from "@/modules/recommendations";
 import { getStudentTopicStats } from "@/modules/recommendations/getStudentTopicStats";
@@ -32,6 +33,11 @@ import {
   getSessionMistakeReview,
   type SessionMistakeItem,
 } from "./getSessionMistakeReview";
+import { getTaskHint, GetTaskHintError } from "./getTaskHint";
+import {
+  addSimilarPracticeTask,
+  AddSimilarPracticeTaskError,
+} from "./addSimilarPracticeTask";
 import type {
   CheckAnswerActionInput,
   CheckAnswerActionState,
@@ -41,6 +47,10 @@ import type {
   MarkSessionStartedActionState,
   SkipTaskAnswerActionInput,
   SkipTaskAnswerActionState,
+  GetTaskHintActionInput,
+  GetTaskHintActionState,
+  AddSimilarPracticeTaskActionInput,
+  AddSimilarPracticeTaskActionState,
 } from "./types";
 import { getTranslations } from "next-intl/server";
 
@@ -292,18 +302,17 @@ export async function finishTrainerSessionAction(
       input.sessionId,
       userId,
     );
+    const topicStats = await deps.getStudentTopicStats(userId);
     const fromMistakes = deps.recommendFromSessionMistakes(mistakes, t);
     const rawActions =
       fromMistakes.length > 0
         ? fromMistakes
-        : await deps.recommendNextActionsForStats(
-            await deps.getStudentTopicStats(userId),
-            t,
-          );
+        : await deps.recommendNextActionsForStats(topicStats, t);
     const { actions: recommendations } = await deps.persistRecommendations(
       userId,
       rawActions,
     );
+    const insight = buildPracticeResultInsight({ summary, mistakes, topicStats });
 
     try {
       revalidatePath("/results");
@@ -313,7 +322,7 @@ export async function finishTrainerSessionAction(
       // No-op outside a Next.js request context (unit tests).
     }
 
-    return { status: "success", summary, recommendations };
+    return { status: "success", summary, recommendations, insight };
   } catch (error) {
     if (error instanceof FinishTrainerSessionError) {
       switch (error.code) {
@@ -413,4 +422,91 @@ export async function getSessionMistakeReviewAction(
 ): Promise<SessionMistakeItem[]> {
   const userId = await requireSessionUserId();
   return getSessionMistakeReview(sessionId, userId);
+}
+
+type GetTaskHintActionDeps = AuthDeps & {
+  getTaskHint: typeof getTaskHint;
+};
+
+/**
+ * Server Action for Practice mode's "Show hint". `getTaskHint` itself
+ * re-checks eligibility (topic test, already answered incorrectly, not
+ * diagnostic/NMT) — this wrapper only translates errors, same as every
+ * other action here.
+ */
+export async function getTaskHintAction(
+  input: GetTaskHintActionInput,
+  deps: GetTaskHintActionDeps = { getTaskHint, ...defaultAuthDeps },
+): Promise<GetTaskHintActionState> {
+  try {
+    const userId = await deps.requireUserId();
+    const result = await deps.getTaskHint({
+      userId,
+      sessionId: input.sessionId,
+      mappingId: input.mappingId,
+    });
+    return { status: "success", available: result.available, hint: result.hint };
+  } catch (error) {
+    if (error instanceof GetTaskHintError) {
+      switch (error.code) {
+        case "invalid_input":
+          return { status: "error", code: "invalidInput" };
+        case "not_found":
+          return { status: "error", code: "notFound" };
+        default:
+          return { status: "error", code: "generic" };
+      }
+    }
+
+    console.error("getTaskHintAction: unexpected error", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+type AddSimilarPracticeTaskActionDeps = AuthDeps & {
+  addSimilarPracticeTask: typeof addSimilarPracticeTask;
+};
+
+/**
+ * Server Action for Practice mode's "Try a similar task". Appends a new
+ * `tasks2session` row to the same session — see `addSimilarPracticeTask.ts`
+ * for why that keeps the existing score/finish logic working unchanged.
+ */
+export async function addSimilarPracticeTaskAction(
+  input: AddSimilarPracticeTaskActionInput,
+  deps: AddSimilarPracticeTaskActionDeps = {
+    addSimilarPracticeTask,
+    ...defaultAuthDeps,
+  },
+): Promise<AddSimilarPracticeTaskActionState> {
+  try {
+    const userId = await deps.requireUserId();
+    const result = await deps.addSimilarPracticeTask({
+      userId,
+      sessionId: input.sessionId,
+      mappingId: input.mappingId,
+      streak: input.streak,
+    });
+    return { status: "success", mappingId: result.mappingId, task: result.task };
+  } catch (error) {
+    if (error instanceof AddSimilarPracticeTaskError) {
+      switch (error.code) {
+        case "invalid_input":
+          return { status: "error", code: "invalidInput" };
+        case "not_found":
+          return { status: "error", code: "notFound" };
+        case "not_eligible":
+          return { status: "error", code: "notEligible" };
+        case "not_incorrect":
+          return { status: "error", code: "notIncorrect" };
+        case "no_similar_task":
+          return { status: "error", code: "noSimilarTask" };
+        default:
+          return { status: "error", code: "generic" };
+      }
+    }
+
+    console.error("addSimilarPracticeTaskAction: unexpected error", error);
+    return { status: "error", code: "generic" };
+  }
 }
