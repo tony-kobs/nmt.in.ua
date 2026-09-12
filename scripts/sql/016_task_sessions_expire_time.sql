@@ -1,0 +1,73 @@
+-- Fixed, non-sliding 24h lifetime for task_sessions (feat/session-24h-expiration).
+--
+-- PRE-FLIGHT (mandatory, read before running):
+--   1. Run `SHOW CREATE TABLE task_sessions;` first — this repo has no
+--      committed DDL for this legacy table (see 006/009 for the same
+--      caveat). Check whether the real table already has a genuine
+--      row-creation timestamp column (something with a name like
+--      `created_at`/`created`/`date_added`, populated at INSERT time — NOT
+--      `start_time`, which records when a student opened the trainer, not
+--      when the row was created; the two are never the same value and the
+--      app code that reads `start_time` today treats it purely as "trainer
+--      opened", never as row age).
+--   2. If such a trustworthy creation column exists: replace step 3's
+--      backfill below with
+--        UPDATE task_sessions
+--        SET expire_time = <that column> + 86400
+--        WHERE expire_time = 0;
+--      instead of running it as written.
+--   3. If no such column exists (the default assumption — nothing in this
+--      codebase reads or writes one today): run this file as-is. Every
+--      pre-existing row's age is genuinely unknown, so every unfinished row
+--      is expired *at the moment this script runs* rather than guessing a
+--      lifetime from data that was never recorded for that purpose.
+--
+-- What this does:
+--   - Adds `task_sessions.expire_time` (unix seconds, same convention as the
+--     existing `start_time`/`time` columns) — the immutable, server-set 24h
+--     deadline every new session gets at creation (see
+--     src/modules/testing/sessionExpiry.ts). Guards across
+--     src/modules/testing/* and src/modules/diagnostic/* reject further
+--     interaction with an active (non-completed) session once
+--     `now >= expire_time`; a completed session is exempt and stays
+--     readable regardless of this column.
+--   - Backfills every existing row (`expire_time` starts at the fail-closed
+--     sentinel `0` via the column default) to `UNIX_TIMESTAMP()` — "now", at
+--     the moment this script runs. Rows are never deleted or otherwise
+--     modified; only this one column is set.
+--
+-- Consequences of the default (no-trustworthy-timestamp) path — read before
+-- running on production:
+--   - Every already-completed session is unaffected in behavior: the app
+--     never checks `expire_time` for a completed row.
+--   - Every pre-existing UNFINISHED or PLANNED session (active topic tests,
+--     Ultimate attempts, NMT simulator runs, diagnostic attempts, and every
+--     teacher/auto "planned" row on /sessions) becomes expired the instant
+--     this script runs. Nothing is deleted — those rows remain visible as
+--     history — but none of them can be resumed, activated, or finished
+--     after this point. There is no grace period in the default path.
+--   - A brand-new session created by app code AFTER this column exists
+--     always gets its own fresh 24h deadline (`computeSessionDeadline` at
+--     INSERT time) — this backfill only ever touches rows that predate it.
+--
+-- Deployment order (mandatory): run this SQL against the live database
+-- BEFORE merging/deploying the application code that reads or writes
+-- `expire_time`. If the code deploys first, every `INSERT INTO
+-- task_sessions` in that code already lists `expire_time` as a column and
+-- will fail with an unknown-column error until this migration runs. If this
+-- migration runs first, the still-old app code simply ignores the new
+-- column — no behavior change until the new code deploys. This mirrors the
+-- existing manual-SQL-before-merge convention used by 009/010/014 in this
+-- repo; deploy-hosting.yml does not run any SQL.
+--
+-- Run once in phpMyAdmin or: mysql ... < scripts/sql/016_task_sessions_expire_time.sql
+-- Not idempotent as a whole (the ADD COLUMN fails if re-run), but the
+-- backfill UPDATE alone is safe to re-run — it only ever touches rows still
+-- at the `0` sentinel, which no row should be in after a successful first run.
+
+ALTER TABLE task_sessions
+  ADD COLUMN expire_time INT UNSIGNED NOT NULL DEFAULT 0 AFTER start_time;
+
+UPDATE task_sessions
+SET expire_time = UNIX_TIMESTAMP()
+WHERE expire_time = 0;

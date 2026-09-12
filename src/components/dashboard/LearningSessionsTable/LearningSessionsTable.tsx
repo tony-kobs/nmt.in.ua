@@ -27,7 +27,9 @@ function formatPercent(percent: number | null): string {
 }
 
 function statusClass(status: LearningSessionRow["status"]): string {
-  return status === "completed" ? css.statusCompleted : css.statusPlanned;
+  if (status === "completed") return css.statusCompleted;
+  if (status === "expired") return css.statusExpired;
+  return css.statusPlanned;
 }
 
 function SessionActions({ row }: { row: LearningSessionRow }) {
@@ -44,9 +46,11 @@ function SessionActions({ row }: { row: LearningSessionRow }) {
 
   return (
     <div className={css.actions}>
-      <Link href={`/session/${row.id}`} className={css.startLink}>
-        {t("start")}
-      </Link>
+      {row.status === "expired" ? null : (
+        <Link href={`/session/${row.id}`} className={css.startLink}>
+          {t("start")}
+        </Link>
+      )}
       <form action={formAction}>
         <input type="hidden" name="sessionId" value={row.id} />
         <button

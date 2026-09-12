@@ -11,6 +11,13 @@ type UseCountdownTimerOptions = {
   onExpire: () => void;
 };
 
+export type UseCountdownTimerResult = {
+  remainingSec: number;
+  /** True once the server reports this session's 24h deadline has passed —
+   * distinct from `onExpire` (the Ultimate timer running out). */
+  sessionExpired: boolean;
+};
+
 /**
  * Countdown from session `start_time` (Ultimate mode). Calls `onExpire` once at 0.
  */
@@ -19,8 +26,9 @@ export function useCountdownTimer({
   enabled,
   durationSec,
   onExpire,
-}: UseCountdownTimerOptions): number {
+}: UseCountdownTimerOptions): UseCountdownTimerResult {
   const [remainingSec, setRemainingSec] = useState(durationSec);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const expiredRef = useRef(false);
   const onExpireRef = useRef(onExpire);
 
@@ -38,6 +46,11 @@ export function useCountdownTimer({
     async function startClock() {
       const result = await markSessionStartedAction({ sessionId });
       if (cancelled) return;
+
+      if (result.status === "error" && result.code === "sessionExpired") {
+        setSessionExpired(true);
+        return;
+      }
 
       const originSec =
         result.status === "success" && result.startTime > 0
@@ -66,5 +79,5 @@ export function useCountdownTimer({
     };
   }, [sessionId, enabled, durationSec]);
 
-  return remainingSec;
+  return { remainingSec, sessionExpired };
 }

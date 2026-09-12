@@ -159,7 +159,7 @@ test("the created session receives user_id = 1", async () => {
     c.sql.startsWith("INSERT INTO task_sessions"),
   );
   assert.ok(sessionInsert);
-  assert.deepEqual(sessionInsert!.params, [
+  assert.deepEqual(sessionInsert!.params.slice(0, 8), [
     1, // user_id = 1 (demo user)
     1, // session_type = 1
     3, // theme_id
@@ -169,6 +169,7 @@ test("the created session receives user_id = 1", async () => {
     2, // session_status = 2
     0, // start_time = 0
   ]);
+  assert.equal(sessionInsert!.params.length, 9); // ...+ expire_time
 
   const mappingInsert = insertCalls.find((c) =>
     c.sql.startsWith("INSERT INTO tasks2session"),

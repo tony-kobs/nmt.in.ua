@@ -25,6 +25,7 @@ type SessionRow = {
   time: number;
   start_time: number;
   session_status: number;
+  expire_time: number;
   theme_code: string;
   theme_name: string;
 };
@@ -39,6 +40,7 @@ function makeSession(overrides: Partial<SessionRow> = {}): SessionRow {
     time: 0,
     start_time: 1_700_000_000,
     session_status: SESSION_STATUS_CREATED,
+    expire_time: 9_999_999_999,
     theme_code: "GEO-07-ELEM-PLAN",
     theme_name: " Відмінювання ",
     ...overrides,
@@ -243,6 +245,49 @@ test("returns the stored summary without UPDATE when already completed", async (
   );
   assert.ok(mock.isCommitted());
   assert.ok(!mock.isRolledBack());
+});
+
+test("rejects finishing an active session past its 24h deadline", async () => {
+  const now = 1_700_100_000;
+  const mock = makeConnection({
+    session: makeSession({ expire_time: now - 1 }),
+    statuses: [TASK_STATUS_CORRECT],
+  });
+
+  await assert.rejects(
+    () =>
+      finishTrainerSession(validInput, {
+        getConnection: async () => mock.connection,
+        nowSec: () => now,
+      }),
+    (error: unknown) =>
+      error instanceof FinishTrainerSessionError &&
+      error.code === "session_expired",
+  );
+  assert.ok(mock.isRolledBack());
+  assert.equal(
+    mock.calls.filter((c) => c.sql.includes("UPDATE task_sessions")).length,
+    0,
+  );
+});
+
+test("still returns the stored summary for a completed session past its deadline (preserved results)", async () => {
+  const now = 1_700_100_000;
+  const mock = makeConnection({
+    session: makeSession({
+      session_status: SESSION_STATUS_COMPLETED,
+      expire_time: now - 1,
+      right_number: 8,
+      time: 42,
+    }),
+  });
+
+  const result = await finishTrainerSession(validInput, {
+    getConnection: async () => mock.connection,
+    nowSec: () => now,
+  });
+
+  assert.equal(result.rightNumber, 8);
 });
 
 test("persists at least 1 second when start_time was never marked", async () => {

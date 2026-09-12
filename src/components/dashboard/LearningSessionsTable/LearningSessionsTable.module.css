@@ -163,6 +163,11 @@
   font-weight: 700;
 }
 
+.statusExpired {
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .actions {
   display: flex;
   gap: 8px;

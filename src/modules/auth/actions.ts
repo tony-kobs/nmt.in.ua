@@ -9,6 +9,7 @@ import { isDemoAccountLogin, isDemoLoginEnabled } from "./demoLogin";
 import { verifyPassword } from "./password";
 import {
   clearSessionCookie,
+  renewSessionCookie,
   requireUser,
   setSessionCookie,
 } from "./getCurrentUser";
@@ -176,7 +177,7 @@ export async function changePasswordAction(
  * Safe to call repeatedly; no-ops when the cookie is already upgraded.
  */
 export async function upgradeSessionCookieAction(): Promise<{ ok: boolean }> {
-  const { getSessionPayload, setSessionCookie } = await import(
+  const { getSessionPayload, renewSessionCookie } = await import(
     "./getCurrentUser"
   );
   const payload = await getSessionPayload();
@@ -185,8 +186,8 @@ export async function upgradeSessionCookieAction(): Promise<{ ok: boolean }> {
 
   const user = await findUserById(payload.userId);
   if (!user) return { ok: false };
-  await setSessionCookie(user);
-  return { ok: true };
+  const ok = await renewSessionCookie(user);
+  return { ok };
 }
 
 export type UploadAvatarActionState =
@@ -214,7 +215,16 @@ export async function uploadAvatarAction(
       user,
       file: formData.get("avatar"),
     });
-    await setSessionCookie({ ...user, avatarRev });
+    const renewed = await renewSessionCookie({ ...user, avatarRev });
+    if (!renewed) {
+      // The upload itself already succeeded and was ownership-checked by
+      // requireUser() above; only the cookie refresh lost the race against
+      // expiry (practically unreachable — requireUser() ran moments ago on
+      // the same, still-valid cookie). Never fabricate a fresh cookie here.
+      console.error(
+        "uploadAvatarAction: renewSessionCookie failed after a successful upload",
+      );
+    }
     revalidatePath("/", "layout");
     return { status: "ok" };
   } catch (error) {
@@ -234,7 +244,14 @@ export async function removeAvatarAction(
 
   try {
     await removeAvatar(user);
-    await setSessionCookie(profileWithoutAvatar(user));
+    const renewed = await renewSessionCookie(profileWithoutAvatar(user));
+    if (!renewed) {
+      // See uploadAvatarAction: the removal already succeeded; only the
+      // cookie refresh lost the race against expiry.
+      console.error(
+        "removeAvatarAction: renewSessionCookie failed after a successful removal",
+      );
+    }
     revalidatePath("/", "layout");
     return { status: "ok" };
   } catch (error) {

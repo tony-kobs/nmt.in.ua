@@ -1,6 +1,8 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
 import { getLatestSelfScoresForResults } from "@/modules/self-score/getLatestSelfScoresForResults";
 import { resolveDisplaySelfScore, type LatestSelfScores } from "@/modules/self-score/types";
+import { nowUnixSec } from "@/modules/testing/sessionElapsed";
 import { buildTopicResultRows, type TopicResultRow } from "./types";
 
 /** Newest N attempts per theme — enough for overall / last-three without full history. */
@@ -12,6 +14,11 @@ const SQL_THEMES = `
   ORDER BY ord ASC, id ASC
 `;
 
+/**
+ * An expired, unfinished attempt is excluded before ranking so it never
+ * occupies one of the 12 window slots — completed history stays readable
+ * (and counted) regardless of its own expire_time.
+ */
 const SQL_USER_SESSIONS = `
   SELECT id, theme_id, tasks_number, right_number, time
   FROM (
@@ -27,6 +34,7 @@ const SQL_USER_SESSIONS = `
       ) AS rn
     FROM task_sessions
     WHERE user_id = ?
+      AND (session_status = ${SESSION_STATUS_COMPLETED} OR expire_time > ?)
   ) ranked
   WHERE rn <= ${TOPIC_RESULTS_SESSIONS_PER_THEME}
   ORDER BY id DESC
@@ -34,6 +42,7 @@ const SQL_USER_SESSIONS = `
 
 type GetTopicResultsDeps = {
   getConnection: () => Promise<SqlConnection>;
+  nowSec?: () => number;
 };
 
 async function loadDefaultConnection(): Promise<SqlConnection> {
@@ -71,7 +80,8 @@ export async function getTopicResults(
   }[];
   try {
     themes = await connection.query(SQL_THEMES);
-    sessions = await connection.query(SQL_USER_SESSIONS, [userId]);
+    const nowSec = deps.nowSec ?? nowUnixSec;
+    sessions = await connection.query(SQL_USER_SESSIONS, [userId, nowSec()]);
   } finally {
     connection.release();
   }

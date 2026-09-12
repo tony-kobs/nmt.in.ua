@@ -2,6 +2,8 @@ import type { SqlConnection } from "@/lib/db/mysql";
 import { sampleRandomIds } from "@/lib/sampleRandomIds";
 import { ensureSelfScoreSchema } from "@/modules/self-score/schema";
 import { isValidSelfScore } from "@/modules/self-score/types";
+import { nowUnixSec } from "@/modules/testing/sessionElapsed";
+import { computeSessionDeadline } from "@/modules/testing/sessionExpiry";
 import { isValidOwner, ownerKey, type SessionOwner } from "./sessionOwner";
 
 /** `task_sessions.session_type` for a diagnostic attempt (1 user/2 auto/3
@@ -45,8 +47,8 @@ const SQL_INSERT_SELF_SCORE = `
 
 const SQL_INSERT_SESSION = `
   INSERT INTO task_sessions
-    (user_id, guest_token, session_type, theme_id, tasks_number, right_number, time, session_status, start_time)
-  VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?)
+    (user_id, guest_token, session_type, theme_id, tasks_number, right_number, time, session_status, start_time, expire_time)
+  VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)
 `;
 
 const SQL_INSERT_MAPPING_PREFIX =
@@ -81,6 +83,7 @@ export class StartDiagnosticTestError extends Error {
 
 type StartDiagnosticTestDeps = {
   getConnection: () => Promise<SqlConnection>;
+  nowSec?: () => number;
 };
 
 export function validateStartDiagnosticTestInput(
@@ -131,6 +134,7 @@ export async function startDiagnosticTest(
 ): Promise<StartDiagnosticTestResult> {
   const input = validateStartDiagnosticTestInput(rawInput);
   const key = ownerKey(input.owner);
+  const nowSec = deps.nowSec ?? nowUnixSec;
 
   if (pendingOwnerKeys.has(key)) {
     throw new StartDiagnosticTestError(
@@ -205,6 +209,7 @@ export async function startDiagnosticTest(
         SESSION_INITIAL_TIME,
         SESSION_STATUS_CREATED,
         SESSION_START_TIME,
+        computeSessionDeadline(nowSec()),
       ]);
 
       const mappingPlaceholders = taskIds

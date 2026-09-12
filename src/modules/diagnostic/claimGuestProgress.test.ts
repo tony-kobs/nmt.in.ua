@@ -3,7 +3,11 @@ import test from "node:test";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { claimGuestProgress } from "./claimGuestProgress";
 
-type Row = { user_id: number | null; guest_token: string | null };
+type Row = {
+  user_id: number | null;
+  guest_token: string | null;
+  expire_time?: number;
+};
 
 /**
  * A tiny in-memory stand-in for the 3 claimed tables, applying the same
@@ -154,6 +158,23 @@ test("guest B's rows are never touched by guest A's claim", async () => {
   assert.ok(guestBRow, "guest B's row must still be unclaimed");
   assert.equal(guestBRow!.guest_token, "guest-b");
   assert.equal(guestBRow!.user_id, null);
+});
+
+test("preserves expire_time through a claim — a claim renews ownership, never the deadline", async () => {
+  const deadline = 1_700_086_400;
+  const db = makeDb({
+    taskSessions: [{ user_id: null, guest_token: "guest-a", expire_time: deadline }],
+    tasksToSession: [],
+    selfScores: [],
+  });
+
+  await claimGuestProgress(42, {
+    getConnection: async () => db.connection,
+    getGuestToken: async () => "guest-a",
+  });
+
+  assert.equal(db.rows.taskSessions[0]!.user_id, 42);
+  assert.equal(db.rows.taskSessions[0]!.expire_time, deadline);
 });
 
 test("a mid-claim DB failure rolls back and leaves guest data intact", async () => {

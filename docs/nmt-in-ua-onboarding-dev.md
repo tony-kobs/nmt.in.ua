@@ -187,7 +187,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `theme_connections` | Граф «наступна тема» | `vertex_start` → `vertex_finish` |
 | `quiz_tasks` | Банк тренажера (тест / симулятор topic-bank / діагностика) | `right_answer_n` (1–4) лише на сервері в сесії |
 | `problems` | Банк задачника (друк) | 6.6, таблиця + seed з `src/content/workbookProblems.json` |
-| `task_sessions` | Спроба учня | `session_type` 1 user / 2 auto / 3 mentor / 4 NMT / **5 diagnostic**; status 1 done / 2 created / 3 planned. `user_id` і `theme_id` **nullable**, плюс `guest_token CHAR(36)` nullable — діагностична спроба гостя не має `user_id`, а охоплює кілька тем одразу тож не має і `theme_id` |
+| `task_sessions` | Спроба учня | `session_type` 1 user / 2 auto / 3 mentor / 4 NMT / **5 diagnostic**; status 1 done / 2 created / 3 planned. `user_id` і `theme_id` **nullable**, плюс `guest_token CHAR(36)` nullable — діагностична спроба гостя не має `user_id`, а охоплює кілька тем одразу тож не має і `theme_id`. `expire_time` (unix sec, `scripts/sql/016_task_sessions_expire_time.sql`) — фіксований дедлайн 24 години від створення рядка (не від `start_time`!), ставиться раз і ніколи не оновлюється; активна (не завершена) сесія після дедлайну відхиляється на кожному наступному читанні/записі, завершена лишається доступною завжди. Див. `src/modules/testing/sessionExpiry.ts` |
 | `tasks2session` | Мапінг завдання↔сесія | `status` 0 / 1 / −1. `user_id` **nullable** + `guest_token CHAR(36)` nullable, дзеркалить владельця з `task_sessions` |
 | `site_feedback` | відгук про сайт (6.2) | `user_id`/`session_id` nullable, `score` 1–10, `message` (обов’язкове якщо score < 5), `email`, `source` footer/post_test |
 | `user_self_scores` | Самооцінка (6.3–6.4), **історія, ніколи не перезаписується** | `user_id`/`guest_token` (рівно один із двох), `theme_id` nullable (NULL = загальна оцінка), `score` 1–10, `source` `diagnostic_overall`/`pre_topic`, `created_at` |
@@ -392,6 +392,7 @@ Ultimate/НМТ/діагностика лишились без змін. Зар�
 - Не бери `userId` з форми. Тільки сесія.
 - На проді demo-login вимкнений. Не вмикай `ALLOW_DEMO_LOGIN=1` на публічному сайті.
 - Статика з `public/` (webp, шрифти) не повинна потрапляти під auth-guard — інакше картинки лендінгу редіректнуть на `/login`.
+- **Сесія і `task_sessions` мають фіксований, не ковзний термін дії 24 години (11.09.2026).** `nmt_session` cookie: `setSessionCookie` (свіжий вхід/реєстрація/demo-login) завжди дає новий `exp`; `renewSessionCookie` (оновлення профіля — legacy-upgrade, аватар) **зберігає старий `exp`**, лише оновлює `maxAge` на залишок і ніколи не бере `exp` з клієнта. Не повертай `setSessionCookie` у профільні дії — це знову зробить сесію «вічною». `task_sessions.expire_time` аналогічно: ставиться раз при створенні (`computeSessionDeadline`), активація/старт планованої сесії його не чіпає. Деталі й міграція — `src/modules/testing/sessionExpiry.ts`, `scripts/sql/016_task_sessions_expire_time.sql`.
 
 ## 11. З чого почати новому dev (вільні задачі)
 

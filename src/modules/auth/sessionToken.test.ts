@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   SESSION_MAX_AGE_SEC,
+  createRenewedSessionToken,
   createSessionToken,
   verifySessionToken,
 } from "./sessionToken";
@@ -84,4 +85,40 @@ test("createSessionToken omits avatarRev when the user has no photo", async () =
   );
   const payload = await verifySessionToken(token, NOW);
   assert.equal(payload?.avatarRev, undefined);
+});
+
+test("createRenewedSessionToken carries forward the given exp, not now + SESSION_MAX_AGE_SEC", async () => {
+  const originalExp = NOW - 10_000 + SESSION_MAX_AGE_SEC; // minted long before "now"
+  const token = await createRenewedSessionToken(
+    {
+      userId: 4,
+      role: "student",
+      displayName: "Марія Оновлена",
+      login: "maria_k",
+      avatarRev: 42,
+    },
+    originalExp,
+  );
+  const payload = await verifySessionToken(token, NOW);
+  assert.deepEqual(payload, {
+    userId: 4,
+    role: "student",
+    displayName: "Марія Оновлена",
+    login: "maria_k",
+    avatarRev: 42,
+    exp: originalExp,
+  });
+});
+
+test("createRenewedSessionToken never grants a fresh 24h window", async () => {
+  const originalExp = NOW + 5; // about to expire
+  const token = await createRenewedSessionToken(
+    { userId: 1, role: "student", displayName: "Олена", login: "demo-student" },
+    originalExp,
+  );
+
+  // Still valid a moment later...
+  assert.ok(await verifySessionToken(token, NOW));
+  // ...but rejected once the *original* exp passes, unlike a fresh token.
+  assert.equal(await verifySessionToken(token, originalExp), null);
 });

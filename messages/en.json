@@ -224,17 +224,20 @@
         "invalidInput": "Select one of the answer options.",
         "notFound": "The task was not found in this session.",
         "sessionCompleted": "This test has already been completed.",
+        "sessionExpired": "This session's 24-hour lifetime has expired.",
         "generic": "Could not check the answer. Please try again."
       },
       "finish": {
         "invalidInput": "Session not found.",
         "notFound": "Session not found.",
         "unfinished": "Answer all tasks before finishing the test.",
+        "sessionExpired": "This session's 24-hour lifetime has expired.",
         "generic": "Could not finish the test. Please try again."
       },
       "skip": {
         "notFound": "The task was not found in this session.",
         "sessionCompleted": "This test has already been completed.",
+        "sessionExpired": "This session's 24-hour lifetime has expired.",
         "generic": "Could not skip the task."
       },
       "similarTask": {
@@ -243,9 +246,16 @@
         "notEligible": "Only available in Practice-mode topic tests.",
         "notIncorrect": "Answer this task first.",
         "noSimilarTask": "No more similar tasks in this theme.",
+        "sessionExpired": "This session's 24-hour lifetime has expired.",
         "generic": "Could not find a task. Please try again."
       }
     }
+  },
+  "SessionExpiredNotice": {
+    "title": "This session can no longer be continued",
+    "lead": "24 hours have passed since this session started.",
+    "body": "Every session has a fixed 24-hour lifetime from creation — it never extends while you work. Results you already have are saved and stay visible on Results and Sessions — start a new attempt if you'd like to continue.",
+    "backToTopics": "Back to topics"
   },
   "TopicTrainerSummary": {
     "ultimateTitle": "Timed test summary",
@@ -416,7 +426,8 @@
     "hint": "Planned “Auto” sessions appear after completing tests with a low result. Click “Start” to begin.",
     "statuses": {
       "completed": "Completed",
-      "planned": "Planned"
+      "planned": "Planned",
+      "expired": "Expired"
     },
     "createdByValues": {
       "auto": "Auto",
@@ -817,6 +828,7 @@
       "invalidInput": "Invalid data.",
       "notFound": "The session or task was not found.",
       "sessionCompleted": "This session has already been completed.",
+      "sessionExpired": "This session's 24-hour lifetime has expired.",
       "generic": "An error occurred. Please try again."
     }
   }

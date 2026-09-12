@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { SqlConnection } from "@/lib/db/mysql";
+import { SESSION_STATUS_COMPLETED, SESSION_STATUS_CREATED } from "@/modules/sessions/types";
 import {
   addSimilarPracticeTask,
   AddSimilarPracticeTaskError,
@@ -12,6 +13,8 @@ type SourceRow = {
   status: number;
   task_type: number;
   session_type: number;
+  session_status: number;
+  expire_time: number;
   theme_id: number | null;
   difficulty: number;
 };
@@ -22,6 +25,8 @@ function makeSourceRow(overrides: Partial<SourceRow> = {}): SourceRow {
     status: TASK_STATUS_INCORRECT,
     task_type: 1,
     session_type: 1,
+    session_status: SESSION_STATUS_CREATED,
+    expire_time: 9_999_999_999,
     theme_id: 7,
     difficulty: 1,
     ...overrides,
@@ -173,6 +178,38 @@ test("rejects diagnostic (5) and NMT (4) sessions", async () => {
     );
     assert.ok(mock.isRolledBack());
   }
+});
+
+test("rejects similar-task writes to a completed session", async () => {
+  const mock = makeConnection({
+    source: [makeSourceRow({ session_status: SESSION_STATUS_COMPLETED })],
+  });
+  await assert.rejects(
+    () =>
+      addSimilarPracticeTask(validInput, { getConnection: async () => mock.connection }),
+    (error: unknown) =>
+      error instanceof AddSimilarPracticeTaskError && error.code === "not_eligible",
+  );
+  assert.ok(mock.isRolledBack());
+});
+
+test("rejects once the active session's 24h deadline has passed", async () => {
+  const now = 1_700_000_000;
+  const mock = makeConnection({
+    source: [makeSourceRow({ expire_time: now - 1 })],
+  });
+
+  await assert.rejects(
+    () =>
+      addSimilarPracticeTask(validInput, {
+        getConnection: async () => mock.connection,
+        nowSec: () => now,
+      }),
+    (error: unknown) =>
+      error instanceof AddSimilarPracticeTaskError &&
+      error.code === "session_expired",
+  );
+  assert.ok(mock.isRolledBack());
 });
 
 test("rejects a mapping that does not belong to this session or user", async () => {

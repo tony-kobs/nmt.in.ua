@@ -1,6 +1,7 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { SESSION_STATUS_COMPLETED, sessionPercent } from "@/modules/sessions/types";
 import { nowUnixSec, resolveSessionElapsedSec } from "@/modules/testing/sessionElapsed";
+import { isSessionExpired } from "@/modules/testing/sessionExpiry";
 import {
   TASK_STATUS_CORRECT,
   TASK_STATUS_INCORRECT,
@@ -24,7 +25,8 @@ const SQL_SELECT_SESSION = `
     ts.right_number,
     ts.time,
     ts.start_time,
-    ts.session_status
+    ts.session_status,
+    ts.expire_time
   FROM task_sessions ts
   WHERE ts.id = ? AND ts.session_type = ${SESSION_TYPE_DIAGNOSTIC}
     AND ${ownerClause("ts")}
@@ -53,6 +55,7 @@ export type FinishDiagnosticSessionErrorCode =
   | "invalid_input"
   | "not_found"
   | "unfinished"
+  | "session_expired"
   | "db_error";
 
 export class FinishDiagnosticSessionError extends Error {
@@ -77,6 +80,7 @@ type SessionRow = {
   time: number;
   start_time: number;
   session_status: number;
+  expire_time: number;
 };
 
 type StatusRow = { status: number };
@@ -159,6 +163,14 @@ export async function finishDiagnosticSession(
       if (session.session_status === SESSION_STATUS_COMPLETED) {
         await connection.commit();
         return toDiagnosticSummary(session);
+      }
+
+      if (isSessionExpired(session.expire_time, nowSec())) {
+        await connection.rollback();
+        throw new FinishDiagnosticSessionError(
+          "This session's 24h lifetime has expired.",
+          "session_expired",
+        );
       }
 
       const mappings = await connection.query<StatusRow>(SQL_SELECT_STATUSES, [

@@ -1,5 +1,7 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
+import { nowUnixSec } from "./sessionElapsed";
+import { isSessionExpired } from "./sessionExpiry";
 import {
   TASK_STATUS_INCORRECT,
   TASK_STATUS_UNANSWERED,
@@ -9,7 +11,8 @@ const SQL_SELECT_MAPPING = `
   SELECT
     t2s.id,
     t2s.status,
-    ts.session_status
+    ts.session_status,
+    ts.expire_time
   FROM tasks2session t2s
   INNER JOIN task_sessions ts ON ts.id = t2s.session_id
   WHERE t2s.id = ? AND t2s.session_id = ? AND t2s.user_id = ?
@@ -32,6 +35,7 @@ export type SkipTaskAnswerErrorCode =
   | "invalid_input"
   | "not_found"
   | "session_completed"
+  | "session_expired"
   | "db_error";
 
 export class SkipTaskAnswerError extends Error {
@@ -46,12 +50,14 @@ export class SkipTaskAnswerError extends Error {
 
 type SkipTaskAnswerDeps = {
   getConnection: () => Promise<SqlConnection>;
+  nowSec?: () => number;
 };
 
 type MappingRow = {
   id: number;
   status: number;
   session_status: number;
+  expire_time: number;
 };
 
 function isPositiveInt(value: unknown): value is number {
@@ -117,6 +123,15 @@ export async function skipTaskAnswer(
         throw new SkipTaskAnswerError(
           "This session is already completed.",
           "session_completed",
+        );
+      }
+
+      const nowSec = deps.nowSec ?? nowUnixSec;
+      if (isSessionExpired(row.expire_time, nowSec())) {
+        await connection.rollback();
+        throw new SkipTaskAnswerError(
+          "This session's 24h lifetime has expired.",
+          "session_expired",
         );
       }
 

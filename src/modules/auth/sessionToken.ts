@@ -93,23 +93,50 @@ function isPositiveInt(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value > 0;
 }
 
-export async function createSessionToken(
+function buildSessionPayload(
   input: SessionTokenInput,
-  nowSec: number = Math.floor(Date.now() / 1000),
-): Promise<string> {
+  exp: number,
+): SessionPayload {
   const payload: SessionPayload = {
     userId: input.userId,
     role: input.role,
     displayName: input.displayName.trim(),
     login: input.login.trim(),
-    exp: nowSec + SESSION_MAX_AGE_SEC,
+    exp,
   };
   if (isPositiveInt(input.avatarRev)) {
     payload.avatarRev = input.avatarRev;
   }
+  return payload;
+}
+
+async function signPayload(payload: SessionPayload): Promise<string> {
   const body = toBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
   const signature = await hmacSign(body);
   return `${body}.${signature}`;
+}
+
+/** Fresh issuance: a brand-new `exp = now + SESSION_MAX_AGE_SEC`. Login,
+ * registration and demo-login only — never for a profile-cookie refresh
+ * (that must preserve the existing exp; see `createRenewedSessionToken`). */
+export async function createSessionToken(
+  input: SessionTokenInput,
+  nowSec: number = Math.floor(Date.now() / 1000),
+): Promise<string> {
+  return signPayload(buildSessionPayload(input, nowSec + SESSION_MAX_AGE_SEC));
+}
+
+/**
+ * Re-signs the same profile fields under an `exp` the caller already
+ * verified from the current cookie (see `renewSessionCookie` in
+ * `getCurrentUser.ts`). Never computes a fresh `exp` itself — the whole
+ * point is to carry the original deadline forward, not extend it.
+ */
+export async function createRenewedSessionToken(
+  input: SessionTokenInput,
+  exp: number,
+): Promise<string> {
+  return signPayload(buildSessionPayload(input, exp));
 }
 
 export async function verifySessionToken(

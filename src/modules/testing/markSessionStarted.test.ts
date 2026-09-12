@@ -15,6 +15,7 @@ type SessionRow = {
   id: number;
   start_time: number;
   session_status: number;
+  expire_time: number;
 };
 
 function makeSession(overrides: Partial<SessionRow> = {}): SessionRow {
@@ -22,6 +23,7 @@ function makeSession(overrides: Partial<SessionRow> = {}): SessionRow {
     id: 36,
     start_time: 0,
     session_status: SESSION_STATUS_CREATED,
+    expire_time: 9_999_999_999,
     ...overrides,
   };
 }
@@ -141,6 +143,65 @@ test("does not write start_time on a completed session", async () => {
     mock.calls.filter((c) => c.sql.includes("UPDATE task_sessions")).length,
     0,
   );
+});
+
+test("rejects an active session past its deadline", async () => {
+  const now = 1_700_000_000;
+  const mock = makeConnection({
+    session: makeSession({ start_time: 0, expire_time: now - 1 }),
+  });
+
+  await assert.rejects(
+    () =>
+      markSessionStarted(validInput, {
+        getConnection: async () => mock.connection,
+        nowSec: () => now,
+      }),
+    (error: unknown) =>
+      error instanceof MarkSessionStartedError &&
+      error.code === "session_expired",
+  );
+  assert.ok(mock.isRolledBack());
+  assert.equal(
+    mock.calls.filter((c) => c.sql.includes("UPDATE task_sessions")).length,
+    0,
+  );
+});
+
+test("rejects re-marking an already-started session once it has expired", async () => {
+  const now = 1_700_000_000;
+  const mock = makeConnection({
+    session: makeSession({ start_time: now - 90_000, expire_time: now - 1 }),
+  });
+
+  await assert.rejects(
+    () =>
+      markSessionStarted(validInput, {
+        getConnection: async () => mock.connection,
+        nowSec: () => now,
+      }),
+    (error: unknown) =>
+      error instanceof MarkSessionStartedError &&
+      error.code === "session_expired",
+  );
+});
+
+test("still returns the stored start_time for a completed session past its deadline", async () => {
+  const now = 1_700_000_000;
+  const mock = makeConnection({
+    session: makeSession({
+      session_status: SESSION_STATUS_COMPLETED,
+      start_time: now - 90_000,
+      expire_time: now - 1,
+    }),
+  });
+
+  const result = await markSessionStarted(validInput, {
+    getConnection: async () => mock.connection,
+    nowSec: () => now,
+  });
+
+  assert.deepEqual(result, { startTime: now - 90_000 });
 });
 
 test("rejects a session that does not belong to this user", async () => {

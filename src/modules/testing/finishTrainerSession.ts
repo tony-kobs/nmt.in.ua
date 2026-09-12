@@ -4,6 +4,7 @@ import {
   sessionPercent,
 } from "@/modules/sessions/types";
 import { nowUnixSec, resolveSessionElapsedSec } from "./sessionElapsed";
+import { isSessionExpired } from "./sessionExpiry";
 import { TASK_STATUS_CORRECT, TASK_STATUS_INCORRECT, TASK_STATUS_UNANSWERED } from "./types";
 import type { TrainerSessionSummary } from "./types";
 
@@ -17,6 +18,7 @@ const SQL_SELECT_SESSION = `
     ts.time,
     ts.start_time,
     ts.session_status,
+    ts.expire_time,
     COALESCE(t.code, '') AS theme_code,
     COALESCE(t.name, nv.label, 'Симулятор НМТ') AS theme_name
   FROM task_sessions ts
@@ -60,6 +62,7 @@ export type FinishTrainerSessionErrorCode =
   | "invalid_input"
   | "not_found"
   | "unfinished"
+  | "session_expired"
   | "db_error";
 
 export class FinishTrainerSessionError extends Error {
@@ -86,6 +89,7 @@ type SessionRow = {
   time: number;
   start_time: number;
   session_status: number;
+  expire_time: number;
   theme_code: string;
   theme_name: string;
 };
@@ -175,6 +179,14 @@ export async function finishTrainerSession(
       if (session.session_status === SESSION_STATUS_COMPLETED) {
         await connection.commit();
         return toTrainerSessionSummary(session);
+      }
+
+      if (isSessionExpired(session.expire_time, nowSec())) {
+        await connection.rollback();
+        throw new FinishTrainerSessionError(
+          "This session's 24h lifetime has expired.",
+          "session_expired",
+        );
       }
 
       const mappings = await connection.query<StatusRow>(SQL_SELECT_STATUSES, [

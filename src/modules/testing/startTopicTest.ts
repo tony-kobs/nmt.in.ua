@@ -2,6 +2,8 @@ import type { SqlConnection } from "@/lib/db/mysql";
 import { sampleRandomIds } from "@/lib/sampleRandomIds";
 import { ensureSelfScoreSchema } from "@/modules/self-score/schema";
 import { isValidSelfScore } from "@/modules/self-score/types";
+import { nowUnixSec } from "./sessionElapsed";
+import { computeSessionDeadline } from "./sessionExpiry";
 import {
   parseRequestedTaskCount,
   parseTopicTestMode,
@@ -27,7 +29,7 @@ const TASK_STATUS_UNANSWERED = 0;
 const SQL_SELECT_TASK_IDS = `SELECT id FROM quiz_tasks WHERE theme_id = ?`;
 
 const SQL_INSERT_SESSION =
-  "INSERT INTO task_sessions (user_id, session_type, theme_id, tasks_number, right_number, time, session_status, start_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+  "INSERT INTO task_sessions (user_id, session_type, theme_id, tasks_number, right_number, time, session_status, start_time, expire_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 const SQL_INSERT_MAPPING_PREFIX =
   "INSERT INTO tasks2session (task_type, task_id, session_id, user_id, status) VALUES ";
 const SQL_INSERT_SELF_SCORE = `
@@ -73,6 +75,7 @@ export class StartTopicTestError extends Error {
 
 type StartTopicTestDeps = {
   getConnection: () => Promise<SqlConnection>;
+  nowSec?: () => number;
 };
 
 function isPositiveInt(value: unknown): value is number {
@@ -145,6 +148,7 @@ export async function startTopicTest(
   const input = validateStartTopicTestInput(rawInput);
   const taskLimit =
     input.taskCount ?? taskLimitForMode(input.mode ?? "standard");
+  const nowSec = deps.nowSec ?? nowUnixSec;
 
   if (pendingUserIds.has(input.userId)) {
     throw new StartTopicTestError(
@@ -189,6 +193,7 @@ export async function startTopicTest(
         SESSION_INITIAL_TIME,
         SESSION_STATUS_CREATED,
         SESSION_START_TIME,
+        computeSessionDeadline(nowSec()),
       ]);
 
       const placeholders = taskIds.map(() => "(?, ?, ?, ?, ?)").join(", ");

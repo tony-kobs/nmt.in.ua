@@ -12,6 +12,9 @@ import {
   sessionCreatedByLabel,
 } from "./types";
 
+const FAR_FUTURE = 9_999_999_999;
+const NOW = 1_700_000_000;
+
 test("resolveSessionDisplayStatus maps planned/unfinished vs. completed", () => {
   assert.equal(
     resolveSessionDisplayStatus({
@@ -19,6 +22,7 @@ test("resolveSessionDisplayStatus maps planned/unfinished vs. completed", () => 
       tasks_number: 10,
       right_number: 0,
       time: 0,
+      expire_time: FAR_FUTURE,
     }),
     "planned",
   );
@@ -28,6 +32,7 @@ test("resolveSessionDisplayStatus maps planned/unfinished vs. completed", () => 
       tasks_number: 10,
       right_number: 10,
       time: 50,
+      expire_time: FAR_FUTURE,
     }),
     "completed",
   );
@@ -37,6 +42,7 @@ test("resolveSessionDisplayStatus maps planned/unfinished vs. completed", () => 
       tasks_number: 10,
       right_number: 10,
       time: 50,
+      expire_time: FAR_FUTURE,
     }),
     "completed",
   );
@@ -46,6 +52,7 @@ test("resolveSessionDisplayStatus maps planned/unfinished vs. completed", () => 
       tasks_number: 5,
       right_number: 0,
       time: 0,
+      expire_time: FAR_FUTURE,
     }),
     "planned",
   );
@@ -55,8 +62,41 @@ test("resolveSessionDisplayStatus maps planned/unfinished vs. completed", () => 
       tasks_number: 5,
       right_number: 2,
       time: 30,
+      expire_time: FAR_FUTURE,
     }),
     "planned",
+  );
+});
+
+test("resolveSessionDisplayStatus reads expired instead of planned once the deadline passes", () => {
+  assert.equal(
+    resolveSessionDisplayStatus(
+      {
+        session_status: SESSION_STATUS_PLANNED,
+        tasks_number: 10,
+        right_number: 0,
+        time: 0,
+        expire_time: NOW - 1,
+      },
+      NOW,
+    ),
+    "expired",
+  );
+});
+
+test("resolveSessionDisplayStatus keeps a completed session completed past its deadline", () => {
+  assert.equal(
+    resolveSessionDisplayStatus(
+      {
+        session_status: SESSION_STATUS_COMPLETED,
+        tasks_number: 10,
+        right_number: 10,
+        time: 50,
+        expire_time: NOW - 1,
+      },
+      NOW,
+    ),
+    "completed",
   );
 });
 
@@ -72,6 +112,7 @@ test("buildLearningSessionRows formats an unfinished session as planned", () => 
       session_status: SESSION_STATUS_CREATED,
       session_type: 1,
       start_time: 0,
+      expire_time: FAR_FUTURE,
     },
   ]);
 
@@ -96,6 +137,7 @@ test("buildLearningSessionRows formats a completed session with percent and elap
       session_status: SESSION_STATUS_COMPLETED,
       session_type: 1,
       start_time: 1000,
+      expire_time: FAR_FUTURE,
     },
   ]);
 
@@ -122,9 +164,33 @@ test("buildLearningSessionRows labels mentor planned session", () => {
       session_status: SESSION_STATUS_PLANNED,
       session_type: SESSION_TYPE_MENTOR,
       start_time: 0,
+      expire_time: FAR_FUTURE,
     },
   ]);
 
   assert.equal(rows[0]?.createdByLabel, "Ментор");
   assert.equal(rows[0]?.status, "planned");
+});
+
+test("buildLearningSessionRows reads an expired planned session as expired, not planned", () => {
+  const rows = buildLearningSessionRows(
+    [
+      {
+        id: 21,
+        theme_id: 4,
+        theme_name: "Графіки",
+        tasks_number: 10,
+        right_number: 0,
+        time: 0,
+        session_status: SESSION_STATUS_PLANNED,
+        session_type: SESSION_TYPE_MENTOR,
+        start_time: 0,
+        expire_time: NOW - 1,
+      },
+    ],
+    NOW,
+  );
+
+  assert.equal(rows[0]?.status, "expired");
+  assert.equal(rows[0]?.statusLabel, "Термін дії сплинув");
 });
