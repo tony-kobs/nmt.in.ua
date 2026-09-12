@@ -1,5 +1,7 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
+import { nowUnixSec } from "./sessionElapsed";
+import { isSessionExpired } from "./sessionExpiry";
 import { TASK_TYPE_NMT } from "./startNmtSimulator";
 import {
   TASK_STATUS_CORRECT,
@@ -27,7 +29,8 @@ const SQL_SELECT_MAPPING = `
     COALESCE(qt.right_answer_n, nqt.right_answer_n) AS right_answer_n,
     nqt.right_answer_text AS right_answer_text,
     COALESCE(nqt.task_kind, 'mcq') AS task_kind,
-    ts.session_status
+    ts.session_status,
+    ts.expire_time
   FROM tasks2session t2s
   INNER JOIN task_sessions ts ON ts.id = t2s.session_id
   LEFT JOIN quiz_tasks qt
@@ -58,6 +61,7 @@ export type CheckAnswerErrorCode =
   | "invalid_input"
   | "not_found"
   | "session_completed"
+  | "session_expired"
   | "db_error";
 
 export class CheckAnswerError extends Error {
@@ -72,6 +76,7 @@ export class CheckAnswerError extends Error {
 
 type CheckAnswerDeps = {
   getConnection: () => Promise<SqlConnection>;
+  nowSec?: () => number;
 };
 
 type MappingRow = {
@@ -84,6 +89,7 @@ type MappingRow = {
   right_answer_text: string | null;
   task_kind: "mcq" | "match" | "open";
   session_status: number;
+  expire_time: number;
 };
 
 function isPositiveInt(value: unknown): value is number {
@@ -204,6 +210,15 @@ export async function checkAnswer(
         throw new CheckAnswerError(
           "This session is already completed.",
           "session_completed",
+        );
+      }
+
+      const nowSec = deps.nowSec ?? nowUnixSec;
+      if (isSessionExpired(row.expire_time, nowSec())) {
+        await connection.rollback();
+        throw new CheckAnswerError(
+          "This session's 24h lifetime has expired.",
+          "session_expired",
         );
       }
 

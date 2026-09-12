@@ -80,6 +80,20 @@ test("startNmtSimulator loads tasks by variant ord, not quiz_tasks RAND", async 
   );
 });
 
+test("startNmtSimulator sets expire_time to now + 86400 from the injected clock", async () => {
+  const { connection, calls, variantId } = makeConnection({});
+  const now = 1_700_000_000;
+
+  await startNmtSimulator(1, variantId, {
+    getConnection: async () => connection,
+    nowSec: () => now,
+  });
+
+  const sessionInsert = calls.find((c) => c.sql.includes("INSERT INTO task_sessions"));
+  assert.ok(sessionInsert);
+  assert.equal(sessionInsert!.params?.at(-1), now + 86400);
+});
+
 test("startNmtSimulator rejects a missing variant", async () => {
   const { connection } = makeConnection({ taskIds: [] });
   connection.query = async <T,>(sql: string) => {

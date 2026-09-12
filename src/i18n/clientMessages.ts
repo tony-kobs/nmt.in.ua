@@ -17,6 +17,7 @@ export const CORE_CLIENT_NAMESPACES = [
   "MentorAssign",
   "TopicTrainer",
   "TopicTrainerSummary",
+  "SessionExpiredNotice",
   "LearningSessionsTable",
   "ProblemsWorkbook",
   "simulator",
@@ -41,6 +42,7 @@ export const PUBLIC_CLIENT_NAMESPACES = [
   "Diagnostic",
   "DiagnosticResult",
   "TopicTrainer",
+  "SessionExpiredNotice",
   "LoginForm",
   "RegisterForm",
 ] as const;

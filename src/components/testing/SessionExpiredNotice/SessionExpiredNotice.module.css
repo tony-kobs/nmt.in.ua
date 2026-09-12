@@ -1,0 +1,37 @@
+.note {
+  margin: 0 0 var(--space-md);
+  color: var(--muted);
+  font-size: var(--fs-body);
+  line-height: 1.55;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--grad-brand);
+  box-shadow: 0 8px 18px rgb(17 83 42 / 24%);
+  color: #f6f1e2;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    transform var(--t) var(--ease),
+    box-shadow var(--t) var(--ease);
+}
+
+.cta:hover,
+.cta:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgb(17 83 42 / 30%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta:hover,
+  .cta:focus-visible {
+    transform: none;
+  }
+}

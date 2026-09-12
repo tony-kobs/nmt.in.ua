@@ -23,7 +23,7 @@ function topicTestAction(themeId: number): RecommendedAction {
 }
 
 function makeConnection(options: {
-  planned?: Array<{ id: number; theme_id: number }>;
+  planned?: Array<{ id: number; theme_id: number; expire_time?: number }>;
   insertId?: number;
 } = {}) {
   const executeCalls: Array<{ sql: string; params: unknown[] }> = [];
@@ -33,7 +33,10 @@ function makeConnection(options: {
     beginTransaction: async () => {},
     query: async (sql) => {
       if (sql.includes("SELECT id, theme_id")) {
-        return (options.planned ?? []) as never[];
+        return (options.planned ?? []).map((row) => ({
+          expire_time: 9_999_999_999,
+          ...row,
+        })) as never[];
       }
       return [] as never[];
     },
@@ -55,9 +58,11 @@ function makeConnection(options: {
 
 test("persistRecommendations creates planned auto session for topic-test action", async () => {
   const { connection, executeCalls } = makeConnection({ insertId: 200 });
+  const now = 1_700_000_000;
 
   const result = await persistRecommendations(1, [topicTestAction(5)], {
     getConnection: async () => connection,
+    nowSec: () => now,
   });
 
   assert.equal(result.createdSessionIds.length, 1);
@@ -72,7 +77,28 @@ test("persistRecommendations creates planned auto session for topic-test action"
     5,
     TOPIC_TEST_TASK_COUNT,
     SESSION_STATUS_PLANNED,
+    now + 86400,
   ]);
+});
+
+test("persistRecommendations never reuses an expired planned row — creates a fresh one instead", async () => {
+  const now = 1_700_000_000;
+  const { connection, executeCalls } = makeConnection({
+    planned: [{ id: 88, theme_id: 5, expire_time: now - 1 }],
+    insertId: 300,
+  });
+
+  const result = await persistRecommendations(1, [topicTestAction(5)], {
+    getConnection: async () => connection,
+    nowSec: () => now,
+  });
+
+  assert.equal(result.createdSessionIds.length, 1);
+  assert.equal(result.actions[0]?.href, "/session/301");
+  const insert = executeCalls.find((call) =>
+    call.sql.includes("INSERT INTO task_sessions"),
+  );
+  assert.equal(insert?.params.at(-1), now + 86400);
 });
 
 test("persistRecommendations does not duplicate planned auto session for same theme", async () => {

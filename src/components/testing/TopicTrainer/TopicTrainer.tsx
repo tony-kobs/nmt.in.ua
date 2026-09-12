@@ -35,6 +35,7 @@ import type { PracticeResultInsight, RecommendedAction } from "@/modules/recomme
 import type { DiagnosticTopicInsight } from "@/modules/diagnostic/diagnosticThemeBreakdown";
 import { TopicTrainerSummary } from "@/components/testing/TopicTrainerSummary";
 import { DiagnosticResultSummary } from "@/components/diagnostic/DiagnosticResultSummary";
+import { SessionExpiredNotice } from "@/components/testing/SessionExpiredNotice";
 import { MathText } from "@/components/ui/MathText";
 import { TaskVisualArea } from "@/components/testing/TaskVisualArea";
 import { AnswerStateIcon } from "./AnswerStateIcon";
@@ -145,7 +146,7 @@ export function TopicTrainer({
   const t = useTranslations("TopicTrainer");
   const locale = useLocale() as "uk" | "en" | "de";
 
-  const elapsedSec = useSessionTimer({
+  const { elapsedSec, expired: sessionTimerExpired } = useSessionTimer({
     sessionId,
     enabled: !isUltimate && summary == null,
     markSessionStarted: resolvedActions.markSessionStarted,
@@ -186,12 +187,15 @@ export function TopicTrainer({
     void finishUltimate({ timedOut: true });
   }, [finishUltimate]);
 
-  const remainingSec = useCountdownTimer({
-    sessionId,
-    enabled: isUltimate && summary == null,
-    durationSec: ULTIMATE_DURATION_SEC,
-    onExpire: handleTimeExpired,
-  });
+  const { remainingSec, sessionExpired: countdownSessionExpired } =
+    useCountdownTimer({
+      sessionId,
+      enabled: isUltimate && summary == null,
+      durationSec: ULTIMATE_DURATION_SEC,
+      onExpire: handleTimeExpired,
+    });
+
+  const sessionExpired = sessionTimerExpired || countdownSessionExpired;
 
   // Covers both a fresh finish and reopening an already-completed diagnostic
   // session (which arrives via `initialSummary`, never through `handleFinish`)
@@ -224,6 +228,10 @@ export function TopicTrainer({
   const allAnswered =
     taskList.length > 0 &&
     taskList.every((task) => resultsByMappingId[task.mappingId] !== undefined);
+
+  if (sessionExpired && !summary) {
+    return <SessionExpiredNotice />;
+  }
 
   if (summary) {
     if (mode === "diagnostic") {

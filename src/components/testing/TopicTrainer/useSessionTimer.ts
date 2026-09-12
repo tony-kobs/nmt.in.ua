@@ -11,6 +11,13 @@ type UseSessionTimerOptions = {
   markSessionStarted?: typeof markSessionStartedAction;
 };
 
+export type UseSessionTimerResult = {
+  elapsedSec: number;
+  /** True once the server reports this session's 24h deadline has passed —
+   * the local clock stops ticking for a session that is no longer live. */
+  expired: boolean;
+};
+
 /**
  * Marks `start_time` on first mount, then ticks elapsed seconds from that
  * unix origin so a page refresh keeps the same clock.
@@ -19,8 +26,9 @@ export function useSessionTimer({
   sessionId,
   enabled,
   markSessionStarted = markSessionStartedAction,
-}: UseSessionTimerOptions): number {
+}: UseSessionTimerOptions): UseSessionTimerResult {
   const [elapsedSec, setElapsedSec] = useState(0);
+  const [expired, setExpired] = useState(false);
 
   useEffect(() => {
     if (!enabled) return;
@@ -31,6 +39,11 @@ export function useSessionTimer({
     async function startClock() {
       const result = await markSessionStarted({ sessionId });
       if (cancelled) return;
+
+      if (result.status === "error" && result.code === "sessionExpired") {
+        setExpired(true);
+        return;
+      }
 
       const originSec =
         result.status === "success" && result.startTime > 0
@@ -53,5 +66,5 @@ export function useSessionTimer({
     };
   }, [sessionId, enabled, markSessionStarted]);
 
-  return elapsedSec;
+  return { elapsedSec, expired };
 }

@@ -115,6 +115,8 @@ export async function checkDiagnosticAnswerAction(
           return { status: "error", code: "notFound" };
         case "session_completed":
           return { status: "error", code: "sessionCompleted" };
+        case "session_expired":
+          return { status: "error", code: "sessionExpired" };
         default:
           return { status: "error", code: "generic" };
       }
@@ -169,6 +171,8 @@ export async function finishDiagnosticSessionAction(
           return { status: "error", code: "notFound" };
         case "unfinished":
           return { status: "error", code: "unfinished" };
+        case "session_expired":
+          return { status: "error", code: "sessionExpired" };
         default:
           return { status: "error", code: "generic" };
       }
@@ -216,6 +220,8 @@ export async function markDiagnosticSessionStartedAction(
           return { status: "error", code: "invalidInput" };
         case "not_found":
           return { status: "error", code: "notFound" };
+        case "session_expired":
+          return { status: "error", code: "sessionExpired" };
         default:
           return { status: "error", code: "generic" };
       }

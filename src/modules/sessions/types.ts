@@ -1,3 +1,6 @@
+import { nowUnixSec } from "@/modules/testing/sessionElapsed";
+import { isSessionExpired } from "@/modules/testing/sessionExpiry";
+
 export const SESSION_STATUS_COMPLETED = 1;
 export const SESSION_STATUS_CREATED = 2;
 export const SESSION_STATUS_PLANNED = 3;
@@ -7,7 +10,7 @@ export const SESSION_TYPE_USER = 1;
 export const SESSION_TYPE_AUTO = 2;
 export const SESSION_TYPE_MENTOR = 3;
 
-export type SessionDisplayStatus = "completed" | "planned";
+export type SessionDisplayStatus = "completed" | "planned" | "expired";
 
 export type SessionCreatedBy = "auto" | "mentor" | "user";
 
@@ -38,6 +41,7 @@ export type TaskSessionRecord = {
   session_status: number;
   session_type: number;
   start_time: number;
+  expire_time: number;
 };
 
 export function sessionPercent(
@@ -57,16 +61,19 @@ export function sessionTimePerTask(
 }
 
 /**
- * The UI only distinguishes finished vs. not: any session that is not
- * completed — whether it's system-planned (`SESSION_STATUS_PLANNED`) or a
- * user-started session still missing answers/time — reads as "planned" and
- * gets a start/continue action on `/sessions`.
+ * The UI distinguishes finished, actionable-but-not-finished ("planned"),
+ * and no-longer-actionable ("expired"): a completed session (or one whose
+ * answers/time already satisfy completion) always reads as "completed" —
+ * results are preserved regardless of `expire_time`. Anything else past its
+ * 24h deadline reads as "expired" instead of "planned" — never renewed by
+ * merely rendering the list.
  */
 export function resolveSessionDisplayStatus(
   session: Pick<
     TaskSessionRecord,
-    "session_status" | "tasks_number" | "right_number" | "time"
+    "session_status" | "tasks_number" | "right_number" | "time" | "expire_time"
   >,
+  nowSec: number = nowUnixSec(),
 ): SessionDisplayStatus {
   if (
     session.session_status === SESSION_STATUS_COMPLETED ||
@@ -75,6 +82,9 @@ export function resolveSessionDisplayStatus(
       session.time > 0)
   ) {
     return "completed";
+  }
+  if (isSessionExpired(session.expire_time, nowSec)) {
+    return "expired";
   }
   return "planned";
 }
@@ -85,6 +95,8 @@ export function sessionStatusLabel(status: SessionDisplayStatus): string {
       return "Виконано";
     case "planned":
       return "Заплановано";
+    case "expired":
+      return "Термін дії сплинув";
   }
 }
 
@@ -136,9 +148,10 @@ export function formatTimePerTask(seconds: number | null): string {
 
 export function buildLearningSessionRows(
   sessions: TaskSessionRecord[],
+  nowSec: number = nowUnixSec(),
 ): LearningSessionRow[] {
   return sessions.map((session, index) => {
-    const status = resolveSessionDisplayStatus(session);
+    const status = resolveSessionDisplayStatus(session, nowSec);
     return {
       id: session.id,
       rowNumber: index + 1,

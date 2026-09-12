@@ -3,6 +3,10 @@ import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { getGuestId } from "@/modules/auth/guestToken";
 
+// Deliberately touches only ownership columns — `expire_time` (and
+// `start_time`/`time`/`session_status`) must survive a claim unchanged. A
+// guest's 24h deadline is set once at row creation and a claim is an
+// ownership transfer, not a renewal.
 const SQL_CLAIM_TASK_SESSIONS = `
   UPDATE task_sessions
   SET user_id = ?, guest_token = NULL

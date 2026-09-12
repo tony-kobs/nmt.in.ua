@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { TopicTrainer } from "@/components/testing/TopicTrainer";
 import { NmtTrainer } from "@/components/testing/NmtTrainer";
+import { SessionExpiredNotice } from "@/components/testing/SessionExpiredNotice";
 import { createPageMetadata } from "@/constants/seo";
 import {
   recommendFromSessionMistakes,
@@ -48,15 +49,17 @@ function readModeParam(raw: string | string[] | undefined): string | undefined {
 async function loadSession(
   sessionId: number,
   userId: number,
-): Promise<SessionTasksResult> {
+): Promise<SessionTasksResult | "expired"> {
   try {
     return await getSessionTasks(sessionId, userId);
   } catch (error) {
-    if (
-      error instanceof GetSessionTasksError &&
-      (error.code === "session_not_found" || error.code === "invalid_input")
-    ) {
-      notFound();
+    if (error instanceof GetSessionTasksError) {
+      if (error.code === "session_not_found" || error.code === "invalid_input") {
+        notFound();
+      }
+      if (error.code === "session_expired") {
+        return "expired";
+      }
     }
     throw error;
   }
@@ -65,13 +68,16 @@ async function loadSession(
 async function activatePlannedSession(
   sessionId: number,
   userId: number,
-): Promise<void> {
+): Promise<"expired" | void> {
   try {
     await startPlannedSession({ sessionId, userId });
   } catch (error) {
     if (error instanceof StartPlannedSessionError) {
       if (error.code === "not_found" || error.code === "invalid_input") {
         notFound();
+      }
+      if (error.code === "session_expired") {
+        return "expired";
       }
       if (error.code === "insufficient_tasks") {
         throw error;
@@ -105,9 +111,19 @@ export default async function SessionPage({
 
   let session = await loadSession(sessionId, userId);
 
+  if (session === "expired") {
+    return <SessionExpiredNotice />;
+  }
+
   if (session.isPlannedWithoutTasks) {
-    await activatePlannedSession(sessionId, userId);
+    const activation = await activatePlannedSession(sessionId, userId);
+    if (activation === "expired") {
+      return <SessionExpiredNotice />;
+    }
     session = await loadSession(sessionId, userId);
+    if (session === "expired") {
+      return <SessionExpiredNotice />;
+    }
   }
 
   const isNmtSession =

@@ -8,7 +8,12 @@ import {
 } from "./markDiagnosticSessionStarted";
 
 function makeConnection(options: {
-  session: { id: number; start_time: number; session_status: number } | null;
+  session: {
+    id: number;
+    start_time: number;
+    session_status: number;
+    expire_time?: number;
+  } | null;
 }) {
   let updated = false;
   const connection: SqlConnection = {
@@ -32,7 +37,12 @@ const owner = { userId: null, guestToken: "guest-a" };
 
 test("sets start_time once when it is still 0", async () => {
   const mock = makeConnection({
-    session: { id: 5, start_time: 0, session_status: SESSION_STATUS_CREATED },
+    session: {
+      id: 5,
+      start_time: 0,
+      session_status: SESSION_STATUS_CREATED,
+      expire_time: 9_999_999_999,
+    },
   });
   const result = await markDiagnosticSessionStarted(
     { owner, sessionId: 5 },
@@ -44,7 +54,12 @@ test("sets start_time once when it is still 0", async () => {
 
 test("does not overwrite an existing start_time", async () => {
   const mock = makeConnection({
-    session: { id: 5, start_time: 500, session_status: SESSION_STATUS_CREATED },
+    session: {
+      id: 5,
+      start_time: 500,
+      session_status: SESSION_STATUS_CREATED,
+      expire_time: 9_999_999_999,
+    },
   });
   const result = await markDiagnosticSessionStarted(
     { owner, sessionId: 5 },
@@ -61,4 +76,27 @@ test("guest A cannot mark guest B's session as started (owner mismatch -> not_fo
     (error: unknown) =>
       error instanceof MarkDiagnosticSessionStartedError && error.code === "not_found",
   );
+});
+
+test("rejects marking started once the session's 24h deadline has passed", async () => {
+  const now = 1_700_000_000;
+  const mock = makeConnection({
+    session: {
+      id: 5,
+      start_time: 0,
+      session_status: SESSION_STATUS_CREATED,
+      expire_time: now - 1,
+    },
+  });
+  await assert.rejects(
+    () =>
+      markDiagnosticSessionStarted(
+        { owner, sessionId: 5 },
+        { getConnection: async () => mock.connection, nowSec: () => now },
+      ),
+    (error: unknown) =>
+      error instanceof MarkDiagnosticSessionStartedError &&
+      error.code === "session_expired",
+  );
+  assert.equal(mock.wasUpdated(), false);
 });

@@ -17,6 +17,7 @@ type SessionRow = {
   time: number;
   start_time: number;
   session_status: number;
+  expire_time: number;
 };
 
 function makeConnection(options: {
@@ -68,7 +69,7 @@ const owner = { userId: null, guestToken: "guest-a" };
 
 test("aggregates answers into a diagnostic summary with the sentinel theme fields", async () => {
   const mock = makeConnection({
-    session: { id: 5, tasks_number: 6, right_number: 0, time: 0, start_time: 100, session_status: SESSION_STATUS_CREATED },
+    session: { id: 5, tasks_number: 6, right_number: 0, time: 0, start_time: 100, session_status: SESSION_STATUS_CREATED, expire_time: 9_999_999_999 },
     statuses: [TASK_STATUS_CORRECT, TASK_STATUS_CORRECT, TASK_STATUS_INCORRECT, TASK_STATUS_CORRECT, TASK_STATUS_INCORRECT, TASK_STATUS_CORRECT],
   });
 
@@ -86,7 +87,7 @@ test("aggregates answers into a diagnostic summary with the sentinel theme field
 
 test("rejects when any mapping is still unanswered", async () => {
   const mock = makeConnection({
-    session: { id: 5, tasks_number: 3, right_number: 0, time: 0, start_time: 100, session_status: SESSION_STATUS_CREATED },
+    session: { id: 5, tasks_number: 3, right_number: 0, time: 0, start_time: 100, session_status: SESSION_STATUS_CREATED, expire_time: 9_999_999_999 },
     statuses: [TASK_STATUS_CORRECT, TASK_STATUS_UNANSWERED, TASK_STATUS_INCORRECT],
   });
 
@@ -94,6 +95,26 @@ test("rejects when any mapping is still unanswered", async () => {
     () => finishDiagnosticSession({ owner, sessionId: 5 }, { getConnection: async () => mock.connection }),
     (error: unknown) =>
       error instanceof FinishDiagnosticSessionError && error.code === "unfinished",
+  );
+  assert.ok(mock.isRolledBack());
+});
+
+test("rejects finishing an active diagnostic session past its 24h deadline", async () => {
+  const now = 1_700_000_000;
+  const mock = makeConnection({
+    session: { id: 5, tasks_number: 3, right_number: 0, time: 0, start_time: 100, session_status: SESSION_STATUS_CREATED, expire_time: now - 1 },
+    statuses: [TASK_STATUS_CORRECT, TASK_STATUS_CORRECT, TASK_STATUS_INCORRECT],
+  });
+
+  await assert.rejects(
+    () =>
+      finishDiagnosticSession(
+        { owner, sessionId: 5 },
+        { getConnection: async () => mock.connection, nowSec: () => now },
+      ),
+    (error: unknown) =>
+      error instanceof FinishDiagnosticSessionError &&
+      error.code === "session_expired",
   );
   assert.ok(mock.isRolledBack());
 });
@@ -110,7 +131,7 @@ test("guest A cannot finish guest B's session (owner mismatch -> not_found)", as
 
 test("returns the stored summary without UPDATE when already completed", async () => {
   const mock = makeConnection({
-    session: { id: 5, tasks_number: 6, right_number: 4, time: 42, start_time: 100, session_status: SESSION_STATUS_COMPLETED },
+    session: { id: 5, tasks_number: 6, right_number: 4, time: 42, start_time: 100, session_status: SESSION_STATUS_COMPLETED, expire_time: 1 },
     statuses: [],
   });
 

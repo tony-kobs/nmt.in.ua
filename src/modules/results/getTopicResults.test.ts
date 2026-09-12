@@ -124,3 +124,36 @@ test("getTopicResults composes theme results with the self-score fallback", asyn
   const rows = await getTopicResults(1, { getConnection: async () => connection });
   assert.equal(rows[0]?.selfScore, 6);
 });
+
+test("getTopicResults excludes expired unfinished attempts before the per-theme window, via the injected clock", async () => {
+  const now = 1_700_000_000;
+  let sessionsSql = "";
+  let sessionsParams: unknown[] = [];
+
+  const connection: SqlConnection = {
+    beginTransaction: async () => {},
+    query: async <T,>(sql: string, params: unknown[] = []) => {
+      if (sql.includes("FROM themes")) {
+        return [{ id: 1, name: "Тема", ord: 0 }] as unknown as T[];
+      }
+      if (sql.includes("FROM task_sessions")) {
+        sessionsSql = sql;
+        sessionsParams = params;
+        return [] as unknown as T[];
+      }
+      return [] as T[];
+    },
+    execute: async () => ({ insertId: 0, affectedRows: 0 }),
+    commit: async () => {},
+    rollback: async () => {},
+    release: () => {},
+  };
+
+  await getTopicResults(1, {
+    getConnection: async () => connection,
+    nowSec: () => now,
+  });
+
+  assert.match(sessionsSql, /session_status = 1 OR expire_time > \?/);
+  assert.deepEqual(sessionsParams, [1, now]);
+});

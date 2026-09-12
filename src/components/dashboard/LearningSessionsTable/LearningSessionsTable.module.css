@@ -244,6 +244,11 @@
   background: var(--blue-soft);
 }
 
+.statusExpired {
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .actions {
   display: flex;
   flex-direction: column;

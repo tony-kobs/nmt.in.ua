@@ -1,5 +1,7 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
+import { nowUnixSec } from "@/modules/testing/sessionElapsed";
+import { isSessionExpired } from "@/modules/testing/sessionExpiry";
 import type { SessionTask, SessionTasksResult } from "@/modules/testing/types";
 import {
   DIAGNOSTIC_SUMMARY_THEME_ID,
@@ -16,7 +18,8 @@ const SQL_SESSION_HEADER = `
     ts.tasks_number,
     ts.right_number,
     ts.time,
-    ts.session_status
+    ts.session_status,
+    ts.expire_time
   FROM task_sessions ts
   WHERE ts.id = ? AND ts.session_type = ${SESSION_TYPE_DIAGNOSTIC}
     AND ${ownerClause("ts")}
@@ -46,6 +49,7 @@ type SessionHeaderRow = {
   right_number: number;
   time: number;
   session_status: number;
+  expire_time: number;
 };
 
 type SessionTaskRow = {
@@ -63,6 +67,7 @@ type SessionTaskRow = {
 export type GetDiagnosticSessionTasksErrorCode =
   | "invalid_input"
   | "session_not_found"
+  | "session_expired"
   | "db_error";
 
 export class GetDiagnosticSessionTasksError extends Error {
@@ -77,6 +82,7 @@ export class GetDiagnosticSessionTasksError extends Error {
 
 type GetDiagnosticSessionTasksDeps = {
   getConnection: () => Promise<SqlConnection>;
+  nowSec?: () => number;
 };
 
 function isPositiveInt(value: unknown): value is number {
@@ -146,6 +152,16 @@ export async function getDiagnosticSessionTasks(
         throw new GetDiagnosticSessionTasksError(
           "Session not found for this owner.",
           "session_not_found",
+        );
+      }
+
+      if (
+        header.session_status !== SESSION_STATUS_COMPLETED &&
+        isSessionExpired(header.expire_time, (deps.nowSec ?? nowUnixSec)())
+      ) {
+        throw new GetDiagnosticSessionTasksError(
+          "This session's 24h lifetime has expired.",
+          "session_expired",
         );
       }
 

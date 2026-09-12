@@ -83,6 +83,7 @@ function makeSharedStore() {
     time: 0,
     start_time: 1_700_000_000,
     session_status: SESSION_STATUS_CREATED,
+    expire_time: 9_999_999_999,
     theme_code: "ALG-01-TEST",
     theme_name: "Тестова тема",
     variant_label: null as string | null,
@@ -118,6 +119,7 @@ function makeSharedStore() {
                 right_answer_text: null,
                 task_kind: "mcq",
                 session_status: session.session_status,
+                expire_time: session.expire_time,
               },
             ] as unknown as T[];
           }
@@ -139,6 +141,8 @@ function makeSharedStore() {
                 status: row.status,
                 task_type: row.task_type,
                 session_type: session.session_type,
+                session_status: session.session_status,
+                expire_time: session.expire_time,
                 theme_id: quizTask?.theme_id ?? null,
                 difficulty: quizTask?.difficulty ?? 1,
               },

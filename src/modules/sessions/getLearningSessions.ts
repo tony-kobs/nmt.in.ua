@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { nowUnixSec } from "@/modules/testing/sessionElapsed";
 import {
   buildLearningSessionRows,
   type LearningSessionRow,
@@ -9,6 +10,7 @@ export const LEARNING_SESSIONS_PAGE_SIZE = 50;
 
 type GetLearningSessionsDeps = {
   getConnection: () => Promise<SqlConnection>;
+  nowSec?: () => number;
 };
 
 export type GetLearningSessionsOptions = {
@@ -43,7 +45,8 @@ export async function getLearningSessions(
     ts.time,
     ts.session_status,
     ts.session_type,
-    ts.start_time
+    ts.start_time,
+    ts.expire_time
   FROM task_sessions ts
   INNER JOIN themes t ON t.id = ts.theme_id
   WHERE ts.user_id = ?
@@ -63,9 +66,11 @@ export async function getLearningSessions(
       session_status: number;
       session_type: number;
       start_time: number;
+      expire_time: number;
     }>(sql, [userId]);
 
-    return buildLearningSessionRows(rows);
+    const nowSec = deps.nowSec ?? nowUnixSec;
+    return buildLearningSessionRows(rows, nowSec());
   } finally {
     connection.release();
   }

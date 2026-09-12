@@ -1,9 +1,12 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
 import { resolvePreferredDifficulty } from "./practiceAdaptive";
 import {
   selectFollowUpCandidate,
   type FollowUpCandidate,
 } from "./pickPracticeFollowUpTask";
+import { nowUnixSec } from "./sessionElapsed";
+import { isSessionExpired } from "./sessionExpiry";
 import { TASK_STATUS_INCORRECT, TASK_STATUS_UNANSWERED } from "./types";
 import type { SessionTask } from "./types";
 
@@ -22,6 +25,8 @@ const SQL_SELECT_SOURCE = `
     t2s.status,
     t2s.task_type,
     ts.session_type,
+    ts.session_status,
+    ts.expire_time,
     qt.theme_id,
     qt.difficulty
   FROM tasks2session t2s
@@ -68,6 +73,7 @@ export type AddSimilarPracticeTaskErrorCode =
   | "not_eligible"
   | "not_incorrect"
   | "no_similar_task"
+  | "session_expired"
   | "db_error";
 
 export class AddSimilarPracticeTaskError extends Error {
@@ -85,6 +91,8 @@ type SourceRow = {
   status: number;
   task_type: number;
   session_type: number;
+  session_status: number;
+  expire_time: number;
   theme_id: number | null;
   difficulty: number;
 };
@@ -103,6 +111,7 @@ type NewTaskRow = {
 
 type AddSimilarPracticeTaskDeps = {
   getConnection: () => Promise<SqlConnection>;
+  nowSec?: () => number;
 };
 
 function isPositiveInt(value: unknown): value is number {
@@ -189,12 +198,22 @@ export async function addSimilarPracticeTask(
       if (
         source.task_type !== TASK_TYPE_TOPIC ||
         INELIGIBLE_SESSION_TYPES.includes(source.session_type) ||
+        source.session_status === SESSION_STATUS_COMPLETED ||
         source.theme_id == null
       ) {
         await connection.rollback();
         throw new AddSimilarPracticeTaskError(
-          "Similar tasks are only offered for Practice-mode topic tests.",
+          "Similar tasks are only offered for an active Practice-mode topic test.",
           "not_eligible",
+        );
+      }
+
+      const nowSec = deps.nowSec ?? nowUnixSec;
+      if (isSessionExpired(source.expire_time, nowSec())) {
+        await connection.rollback();
+        throw new AddSimilarPracticeTaskError(
+          "This session's 24h lifetime has expired.",
+          "session_expired",
         );
       }
 

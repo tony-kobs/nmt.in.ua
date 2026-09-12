@@ -13,12 +13,13 @@ import {
   validateStartPlannedSessionInput,
 } from "./startPlannedSession";
 
-function makeSession(status = SESSION_STATUS_PLANNED) {
+function makeSession(status = SESSION_STATUS_PLANNED, expireTime = 9_999_999_999) {
   return {
     id: 12,
     user_id: 1,
     theme_id: 4,
     session_status: status,
+    expire_time: expireTime,
   };
 }
 
@@ -127,4 +128,44 @@ test("startPlannedSession rejects non-planned sessions without mappings", async 
       error instanceof StartPlannedSessionError &&
       error.code === "not_planned",
   );
+});
+
+test("startPlannedSession never activates an expired planned row", async () => {
+  const now = 1_700_000_000;
+  const { connection, executeCalls } = makeConnection({
+    session: makeSession(SESSION_STATUS_PLANNED, now - 1),
+    tasks: [{ id: 10 }, { id: 11 }],
+  });
+
+  await assert.rejects(
+    () =>
+      startPlannedSession(
+        { userId: 1, sessionId: 12 },
+        { getConnection: async () => connection, nowSec: () => now },
+      ),
+    (error: unknown) =>
+      error instanceof StartPlannedSessionError &&
+      error.code === "session_expired",
+  );
+  assert.equal(executeCalls.length, 0);
+});
+
+test("startPlannedSession rejects an expired session even when mappings already exist (no renewal)", async () => {
+  const now = 1_700_000_000;
+  const { connection, executeCalls } = makeConnection({
+    session: makeSession(SESSION_STATUS_CREATED, now - 1),
+    mappingCount: 3,
+  });
+
+  await assert.rejects(
+    () =>
+      startPlannedSession(
+        { userId: 1, sessionId: 12 },
+        { getConnection: async () => connection, nowSec: () => now },
+      ),
+    (error: unknown) =>
+      error instanceof StartPlannedSessionError &&
+      error.code === "session_expired",
+  );
+  assert.equal(executeCalls.length, 0);
 });

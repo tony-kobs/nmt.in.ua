@@ -65,6 +65,24 @@ test("TopicTrainer ships on every marketing path, not just /diagnostic*", () => 
   }
 });
 
+test("SessionExpiredNotice ships everywhere TopicTrainer does", () => {
+  for (const path of [
+    "/",
+    "/welcome",
+    "/login",
+    "/register",
+    "/diagnostic",
+    "/diagnostic/session/1",
+    "/home",
+  ] as const) {
+    const picked = pickClientMessages(uk, path);
+    assert.ok(
+      "SessionExpiredNotice" in picked,
+      `${path} must include SessionExpiredNotice alongside TopicTrainer`,
+    );
+  }
+});
+
 test("CLIENT_MESSAGE_NAMESPACES still lists the full union for docs/tests", () => {
   assert.ok(CLIENT_MESSAGE_NAMESPACES.includes("LoginForm"));
   assert.ok(CLIENT_MESSAGE_NAMESPACES.includes("Header"));
