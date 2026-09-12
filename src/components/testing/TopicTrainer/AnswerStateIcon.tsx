@@ -8,8 +8,8 @@ type AnswerStateIconProps = {
 /**
  * A non-color signal for the answer card state (Part 7: selected/correct/
  * incorrect must not rely on color alone). Purely decorative — the
- * screen-reader-relevant state is `aria-pressed` on the button plus the
- * status feedback line below the card, so this stays `aria-hidden`.
+ * screen-reader-relevant state is `aria-pressed` on the button plus a
+ * visually-hidden status line, so this stays `aria-hidden`.
  */
 export function AnswerStateIcon({ state, className }: AnswerStateIconProps) {
   if (state === "default") return null;
