@@ -73,7 +73,7 @@ test("reducedRequired: rejects the unreduced-but-equivalent form (4/8 vs 1/2)", 
 });
 
 // Level 4-style task: 9/7 + 5/7 = 14/7 = 2 (whole number).
-test("reducedRequired with a whole-number answer: only the bare integer is canonical", () => {
+test("reducedRequired with a whole-number answer: bare integer or reduced 2/1", () => {
   const task = sumTask(7, [9, 5], "reducedRequired");
   assert.equal(task.answer.whole, 2);
 
@@ -81,14 +81,18 @@ test("reducedRequired with a whole-number answer: only the bare integer is canon
   assert.equal(asWhole.isCorrect, true);
   assert.equal(asWhole.reason, "correct");
 
+  const asReduced = validateFractionAdditionAnswer(task, "2/1");
+  assert.equal(asReduced.isCorrect, true);
+  assert.equal(asReduced.reason, "correct");
+
   const asImproperFraction = validateFractionAdditionAnswer(task, "14/7");
   assert.equal(asImproperFraction.isCorrect, false);
   assert.equal(asImproperFraction.isMathematicallyEquivalent, true);
   assert.equal(asImproperFraction.reason, "reductionRequired");
 });
 
-// Level 4-style task: 8/5 + 4/5 = 12/5 = 2 2/5 (mixed number).
-test("reducedRequired with a mixed-number answer: mixed form is canonical, plain improper fraction is not", () => {
+// Level 4-style task: 8/5 + 4/5 = 12/5 = 2 2/5 — stacked UI (inp_task) accepts reduced improper.
+test("reducedRequired with a mixed-number answer: mixed or reduced improper both canonical", () => {
   const task = sumTask(5, [8, 4], "reducedRequired");
   assert.deepEqual(task.answer.mixed, { whole: 2, numerator: 2, denominator: 5 });
 
@@ -97,9 +101,8 @@ test("reducedRequired with a mixed-number answer: mixed form is canonical, plain
   assert.equal(asMixed.reason, "correct");
 
   const asImproperFraction = validateFractionAdditionAnswer(task, "12/5");
-  assert.equal(asImproperFraction.isCorrect, false);
-  assert.equal(asImproperFraction.isMathematicallyEquivalent, true);
-  assert.equal(asImproperFraction.reason, "reductionRequired");
+  assert.equal(asImproperFraction.isCorrect, true);
+  assert.equal(asImproperFraction.reason, "correct");
 
   const wrongMixed = validateFractionAdditionAnswer(task, "2 1/5");
   assert.equal(wrongMixed.isCorrect, false);

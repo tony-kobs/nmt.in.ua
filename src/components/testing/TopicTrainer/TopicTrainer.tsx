@@ -4,17 +4,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import {
-  addSimilarPracticeTaskAction,
   checkAnswerAction,
   finishTrainerSessionAction,
   getSessionMistakeReviewAction,
-  getTaskHintAction,
   markSessionStartedAction,
   skipTaskAnswerAction,
 } from "@/modules/testing/actions";
-import { isPracticeMode } from "@/modules/testing/sessionMode";
-import { nextPracticeStreak } from "@/modules/testing/practiceAdaptive";
-import { insertFollowUpTask } from "@/modules/testing/insertFollowUpTask";
 import type { SessionMistakeItem } from "@/modules/testing/getSessionMistakeReview";
 import { formatElapsedClock } from "@/modules/testing/sessionElapsed";
 import {
@@ -69,8 +64,7 @@ type TopicTrainerProps = {
   initialSummary?: TrainerSessionSummary | null;
   initialRecommendations?: RecommendedAction[];
   /** Went-well/needs-attention breakdown for a Practice session reopened
-   * after it was already completed — only rendered when `mode` is Practice
-   * (see `isPracticeMode`). `null` for every other mode's initial load. */
+   * after it was already completed. `null` for every other mode's initial load. */
   initialInsight?: PracticeResultInsight | null;
   mode?: TrainerMode;
   /** Guest-owned diagnostic session — shown a "save progress" CTA in the
@@ -110,7 +104,6 @@ export function TopicTrainer({
   diagnosticThemeBreakdownAction,
 }: TopicTrainerProps) {
   const isUltimate = mode === "ultimate";
-  const practice = isPracticeMode(mode);
   const resolvedActions: TopicTrainerActionOverrides = useMemo(
     () => ({
       checkAnswer: actions?.checkAnswer ?? checkAnswerAction,
@@ -121,10 +114,7 @@ export function TopicTrainer({
     [actions?.checkAnswer, actions?.finishTrainerSession, actions?.markSessionStarted],
   );
   const [currentIndex, setCurrentIndex] = useState(0);
-  /** Practice mode's "similar task" appends to this session's task list at
-   * runtime (see `addSimilarPracticeTask.ts`) — everything else keeps
-   * reading from `taskList`, never the original `tasks` prop, once mounted. */
-  const [taskList, setTaskList] = useState<SessionTask[]>(tasks);
+  const [taskList] = useState<SessionTask[]>(tasks);
   const [selectedByMappingId, setSelectedByMappingId] = useState<
     Record<number, SessionTaskAnswer["number"]>
   >({});
@@ -133,20 +123,6 @@ export function TopicTrainer({
   );
   const [pendingMappingId, setPendingMappingId] = useState<number | null>(null);
   const [isFinishing, setIsFinishing] = useState(false);
-  /** Practice-only: consecutive-correct streak, feeding adaptive difficulty
-   * for the similar-task follow-up (see `practiceAdaptive.ts`). */
-  const [streak, setStreak] = useState(0);
-  /** The streak value right before the most recent incorrect answer reset
-   * it — passed to "similar task" so a student who was otherwise on a
-   * strong run still gets a harder follow-up, not a softball. */
-  const [streakBeforeMiss, setStreakBeforeMiss] = useState(0);
-  const [hintState, setHintState] = useState<{
-    mappingId: number;
-    available: boolean;
-    hint: string | null;
-  } | null>(null);
-  const [hintLoading, setHintLoading] = useState(false);
-  const [similarTaskLoading, setSimilarTaskLoading] = useState(false);
   const [summary, setSummary] = useState<TrainerSessionSummary | null>(
     initialSummary,
   );
@@ -248,8 +224,6 @@ export function TopicTrainer({
   const allAnswered =
     taskList.length > 0 &&
     taskList.every((task) => resultsByMappingId[task.mappingId] !== undefined);
-  const showPracticeHelp =
-    practice && checkResult !== undefined && checkResult.correct === false;
 
   if (summary) {
     if (mode === "diagnostic") {
@@ -338,15 +312,6 @@ export function TopicTrainer({
       ...prev,
       [currentTask.mappingId]: { correct: result.correct },
     }));
-
-    if (practice) {
-      if (result.correct) {
-        setStreak((prevStreak) => nextPracticeStreak(prevStreak, true));
-      } else {
-        setStreakBeforeMiss(streak);
-        setStreak(0);
-      }
-    }
   }
 
   async function handleSkip() {
@@ -381,53 +346,7 @@ export function TopicTrainer({
     if (!isLast) {
       setCurrentIndex((index) => index + 1);
       setErrorMessage(null);
-      setHintState(null);
     }
-  }
-
-  async function handleShowHint() {
-    if (!currentTask || !showPracticeHelp || hintLoading) return;
-    if (hintState?.mappingId === currentTask.mappingId) return;
-
-    setHintLoading(true);
-    const result = await getTaskHintAction({
-      sessionId,
-      mappingId: currentTask.mappingId,
-    });
-    setHintLoading(false);
-
-    setHintState({
-      mappingId: currentTask.mappingId,
-      available: result.status === "success" && result.available,
-      hint: result.status === "success" ? result.hint : null,
-    });
-  }
-
-  async function handleSimilarTask() {
-    if (!currentTask || !showPracticeHelp || similarTaskLoading) return;
-
-    setSimilarTaskLoading(true);
-    setErrorMessage(null);
-    const result = await addSimilarPracticeTaskAction({
-      sessionId,
-      mappingId: currentTask.mappingId,
-      streak: streakBeforeMiss,
-    });
-    setSimilarTaskLoading(false);
-
-    if (result.status !== "success") {
-      setErrorMessage(t(`errors.similarTask.${result.code}`));
-      return;
-    }
-
-    const { index: insertedIndex } = insertFollowUpTask(
-      taskList,
-      currentIndex,
-      result.task,
-    );
-    setTaskList((prev) => insertFollowUpTask(prev, currentIndex, result.task).list);
-    setHintState(null);
-    setCurrentIndex(insertedIndex);
   }
 
   async function handleFinish() {
@@ -567,23 +486,19 @@ export function TopicTrainer({
       </article>
 
       {isPending ? (
-        <p className={css.feedback} role="status">
+        <p className="visually-hidden" role="status">
           {isUltimate ? t("savingAnswer") : t("checkingAnswer")}
         </p>
       ) : null}
 
       {!isUltimate && checkResult
         ? (() => {
-            const feedbackKind = resolveAnswerFeedbackKind(mode, checkResult.correct);
+            const feedbackKind = resolveAnswerFeedbackKind(
+              mode,
+              checkResult.correct,
+            );
             return (
-              <p
-                className={clsx(
-                  css.feedback,
-                  feedbackKind === "correct" && css.feedbackOk,
-                  feedbackKind === "incorrect" && css.feedbackBad,
-                )}
-                role="status"
-              >
+              <p className="visually-hidden" role="status">
                 {feedbackKind === "neutral"
                   ? t("answerSaved")
                   : feedbackKind === "correct"
@@ -593,38 +508,6 @@ export function TopicTrainer({
             );
           })()
         : null}
-
-      {showPracticeHelp ? (
-        <div className={css.practiceHelp}>
-          <div className={css.practiceHelpActions}>
-            <button
-              type="button"
-              className={css.hintButton}
-              onClick={handleShowHint}
-              disabled={hintLoading}
-            >
-              {hintLoading ? t("hintLoading") : t("showHint")}
-            </button>
-            <button
-              type="button"
-              className={css.similarButton}
-              onClick={handleSimilarTask}
-              disabled={similarTaskLoading}
-            >
-              {similarTaskLoading ? t("similarTaskLoading") : t("similarTask")}
-            </button>
-          </div>
-          {hintState && hintState.mappingId === currentTask.mappingId ? (
-            <div className={css.hintText} role="status">
-              {hintState.available && hintState.hint ? (
-                <MathText text={hintState.hint} />
-              ) : (
-                t("hintUnavailable")
-              )}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
 
       {errorMessage ? (
         <p className={clsx(css.feedback, css.feedbackBad)} role="alert">
