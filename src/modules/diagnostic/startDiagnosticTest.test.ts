@@ -295,6 +295,73 @@ test("writes task_sessions and tasks2session rows for a guest owner", async () =
   assert.equal(mappingInsert!.params[4], "guest-a");
 });
 
+test("a guest owner can start a fresh diagnostic even though their previous attempt is already past its 24h deadline", async () => {
+  // startDiagnosticTest never looks up the owner's prior task_sessions rows —
+  // an expired (or still-valid) previous attempt must never block a new one.
+  // Two independent calls for the same guest, with the clock advanced well
+  // past the first session's deadline, both have to succeed on their own.
+  const firstMock = makeConnection({ eligibleThemeIds: [1] });
+  const firstNow = 1_700_000_000;
+  const first = await startDiagnosticTest(
+    { owner: { userId: null, guestToken: "guest-expired" }, selfScore: 5 },
+    { getConnection: async () => firstMock.connection, nowSec: () => firstNow },
+  );
+  assert.ok(first.sessionId);
+
+  const secondMock = makeConnection({ eligibleThemeIds: [1] });
+  const secondNow = firstNow + 2 * 24 * 60 * 60; // well past the first session's 24h deadline
+  const second = await startDiagnosticTest(
+    { owner: { userId: null, guestToken: "guest-expired" }, selfScore: 7 },
+    { getConnection: async () => secondMock.connection, nowSec: () => secondNow },
+  );
+  assert.ok(second.sessionId);
+  assert.ok(secondMock.isCommitted());
+});
+
+test("an authenticated user can start a fresh diagnostic even though their previous attempt is already past its 24h deadline", async () => {
+  const firstMock = makeConnection({ eligibleThemeIds: [1] });
+  const firstNow = 1_700_000_000;
+  await startDiagnosticTest(
+    { owner: { userId: 7, guestToken: null }, selfScore: 5 },
+    { getConnection: async () => firstMock.connection, nowSec: () => firstNow },
+  );
+
+  const secondMock = makeConnection({ eligibleThemeIds: [1] });
+  const secondNow = firstNow + 2 * 24 * 60 * 60;
+  const second = await startDiagnosticTest(
+    { owner: { userId: 7, guestToken: null }, selfScore: 7 },
+    { getConnection: async () => secondMock.connection, nowSec: () => secondNow },
+  );
+  assert.ok(second.sessionId);
+  assert.ok(secondMock.isCommitted());
+});
+
+test("guest and authenticated owners are isolated: each call only ever writes its own identifiers", async () => {
+  const guestMock = makeConnection({ eligibleThemeIds: [1] });
+  await startDiagnosticTest(
+    { owner: { userId: null, guestToken: "guest-isolated" }, selfScore: 5 },
+    { getConnection: async () => guestMock.connection },
+  );
+  const guestSessionInsert = guestMock.calls.find((c) =>
+    c.sql.includes("INSERT INTO task_sessions"),
+  );
+  assert.deepEqual(guestSessionInsert!.params.slice(0, 2), [null, "guest-isolated"]);
+
+  const userMock = makeConnection({ eligibleThemeIds: [1] });
+  await startDiagnosticTest(
+    { owner: { userId: 42, guestToken: null }, selfScore: 5 },
+    { getConnection: async () => userMock.connection },
+  );
+  const userSessionInsert = userMock.calls.find((c) =>
+    c.sql.includes("INSERT INTO task_sessions"),
+  );
+  assert.deepEqual(userSessionInsert!.params.slice(0, 2), [42, null]);
+
+  // Neither call's params ever mention the other owner's identifier.
+  assert.ok(!guestMock.calls.some((c) => c.params.includes(42)));
+  assert.ok(!userMock.calls.some((c) => c.params.includes("guest-isolated")));
+});
+
 test("prevents a duplicate submission while a request is already pending for the same owner", async () => {
   const mock = makeConnection({ eligibleThemeIds: [1] });
 
