@@ -15,6 +15,7 @@ type MappingRow = {
   status: number;
   right_answer_n: number;
   session_status: number;
+  expire_time: number;
 };
 
 function makeRow(overrides: Partial<MappingRow> = {}): MappingRow {
@@ -24,6 +25,7 @@ function makeRow(overrides: Partial<MappingRow> = {}): MappingRow {
     status: TASK_STATUS_UNANSWERED,
     right_answer_n: 2,
     session_status: SESSION_STATUS_CREATED,
+    expire_time: 9_999_999_999,
     ...overrides,
   };
 }
@@ -169,4 +171,36 @@ test("rejects an unanswered task in a completed session", async () => {
       error.code === "session_completed",
   );
   assert.ok(mock.isRolledBack());
+});
+
+test("rejects an unanswered task once the session's 24h deadline has passed", async () => {
+  const now = 1_700_000_000;
+  const mock = makeConnection({ rows: [makeRow({ expire_time: now - 1 })] });
+
+  await assert.rejects(
+    () =>
+      checkDiagnosticAnswer(validInput, {
+        getConnection: async () => mock.connection,
+        nowSec: () => now,
+      }),
+    (error: unknown) =>
+      error instanceof CheckDiagnosticAnswerError &&
+      error.code === "session_expired",
+  );
+  assert.ok(mock.isRolledBack());
+});
+
+test("still returns an already-recorded result once expired (read-only retry)", async () => {
+  const now = 1_700_000_000;
+  const mock = makeConnection({
+    rows: [makeRow({ status: TASK_STATUS_CORRECT, expire_time: now - 1 })],
+  });
+
+  const result = await checkDiagnosticAnswer(validInput, {
+    getConnection: async () => mock.connection,
+    nowSec: () => now,
+  });
+
+  assert.deepEqual(result, { correct: true });
+  assert.ok(mock.isCommitted());
 });

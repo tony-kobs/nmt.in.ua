@@ -1,9 +1,10 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
 import { nowUnixSec } from "./sessionElapsed";
+import { isSessionExpired } from "./sessionExpiry";
 
 const SQL_SELECT_SESSION = `
-  SELECT id, start_time, session_status
+  SELECT id, start_time, session_status, expire_time
   FROM task_sessions
   WHERE id = ? AND user_id = ?
   FOR UPDATE
@@ -27,6 +28,7 @@ export type MarkSessionStartedResult = {
 export type MarkSessionStartedErrorCode =
   | "invalid_input"
   | "not_found"
+  | "session_expired"
   | "db_error";
 
 export class MarkSessionStartedError extends Error {
@@ -48,6 +50,7 @@ type SessionRow = {
   id: number;
   start_time: number;
   session_status: number;
+  expire_time: number;
 };
 
 function isPositiveInt(value: unknown): value is number {
@@ -108,10 +111,20 @@ export async function markSessionStarted(
         );
       }
 
-      if (
-        session.session_status === SESSION_STATUS_COMPLETED ||
-        session.start_time > 0
-      ) {
+      if (session.session_status === SESSION_STATUS_COMPLETED) {
+        await connection.commit();
+        return { startTime: session.start_time };
+      }
+
+      if (isSessionExpired(session.expire_time, nowSec())) {
+        await connection.rollback();
+        throw new MarkSessionStartedError(
+          "This session's 24h lifetime has expired.",
+          "session_expired",
+        );
+      }
+
+      if (session.start_time > 0) {
         await connection.commit();
         return { startTime: session.start_time };
       }

@@ -14,6 +14,7 @@ type Row = {
   session_status: number;
   session_type: number;
   start_time: number;
+  expire_time: number;
 };
 
 function makeConnection(rows: Row[]) {
@@ -85,6 +86,7 @@ test("a completed topic test is visible with its stored percent and elapsed time
       session_status: SESSION_STATUS_COMPLETED,
       session_type: 1,
       start_time: 1_700_000_000,
+      expire_time: 1, // long past — completed sessions are exempt
     },
   ]);
 
@@ -111,14 +113,41 @@ test("an unfinished topic test is listed as planned with a start/continue link t
       session_status: SESSION_STATUS_CREATED,
       session_type: 1,
       start_time: 0,
+      expire_time: 9_999_999_999,
     },
   ]);
 
   const [row] = await getLearningSessions(1, {
     getConnection: async () => connection,
+    nowSec: () => 1_700_000_000,
   });
 
   assert.equal(row?.status, "planned");
   assert.equal(row?.statusLabel, "Заплановано");
   assert.equal(row?.id, 8);
+});
+
+test("an unfinished topic test past its 24h deadline is listed as expired, not planned", async () => {
+  const now = 1_700_000_000;
+  const { connection } = makeConnection([
+    {
+      id: 9,
+      theme_id: 3,
+      theme_name: "Функції",
+      tasks_number: 10,
+      right_number: 0,
+      time: 0,
+      session_status: SESSION_STATUS_CREATED,
+      session_type: 1,
+      start_time: 0,
+      expire_time: now - 1,
+    },
+  ]);
+
+  const [row] = await getLearningSessions(1, {
+    getConnection: async () => connection,
+    nowSec: () => now,
+  });
+
+  assert.equal(row?.status, "expired");
 });

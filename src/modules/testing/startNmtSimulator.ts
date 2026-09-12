@@ -1,5 +1,7 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { pickRandomId } from "@/lib/sampleRandomIds";
+import { nowUnixSec } from "./sessionElapsed";
+import { computeSessionDeadline } from "./sessionExpiry";
 
 /** `tasks2session.task_type` for rows that point at `nmt_quiz_tasks`. */
 export const TASK_TYPE_NMT = 4;
@@ -43,6 +45,7 @@ export class StartNmtSimulatorError extends Error {
 
 type StartNmtSimulatorDeps = {
   getConnection: () => Promise<SqlConnection>;
+  nowSec?: () => number;
 };
 
 const pendingUserIds = new Set<number>();
@@ -82,9 +85,10 @@ const SQL_INSERT_SESSION = `
       right_number,
       time,
       session_status,
-      start_time
+      start_time,
+      expire_time
     )
-  VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?)
+  VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 const SQL_INSERT_MAPPING_PREFIX = `
@@ -126,6 +130,7 @@ export async function startNmtSimulator(
   }
 
   const resolvedVariant = resolveNmtVariantId(variantId);
+  const nowSec = deps.nowSec ?? nowUnixSec;
 
   if (pendingUserIds.has(userId)) {
     throw new StartNmtSimulatorError(
@@ -192,6 +197,7 @@ export async function startNmtSimulator(
         SESSION_INITIAL_TIME,
         SESSION_STATUS_CREATED,
         SESSION_START_TIME,
+        computeSessionDeadline(nowSec()),
       ]);
 
       const placeholders = tasks.map(() => "(?, ?, ?, ?, ?)").join(", ");

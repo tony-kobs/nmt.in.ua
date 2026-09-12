@@ -224,17 +224,20 @@
         "invalidInput": "Wähle eine der Antwortmöglichkeiten aus.",
         "notFound": "Die Aufgabe wurde in dieser Sitzung nicht gefunden.",
         "sessionCompleted": "Dieser Test wurde bereits abgeschlossen.",
+        "sessionExpired": "Die 24-Stunden-Gültigkeit dieser Sitzung ist abgelaufen.",
         "generic": "Die Antwort konnte nicht überprüft werden. Bitte versuche es erneut."
       },
       "finish": {
         "invalidInput": "Sitzung nicht gefunden.",
         "notFound": "Sitzung nicht gefunden.",
         "unfinished": "Beantworte zuerst alle Aufgaben.",
+        "sessionExpired": "Die 24-Stunden-Gültigkeit dieser Sitzung ist abgelaufen.",
         "generic": "Der Test konnte nicht abgeschlossen werden. Bitte versuche es erneut."
       },
       "skip": {
         "notFound": "Die Aufgabe wurde in dieser Sitzung nicht gefunden.",
         "sessionCompleted": "Dieser Test wurde bereits abgeschlossen.",
+        "sessionExpired": "Die 24-Stunden-Gültigkeit dieser Sitzung ist abgelaufen.",
         "generic": "Die Aufgabe konnte nicht übersprungen werden."
       },
       "similarTask": {
@@ -243,9 +246,16 @@
         "notEligible": "Nur im Übungstest zum Thema verfügbar.",
         "notIncorrect": "Beantworte zuerst diese Aufgabe.",
         "noSimilarTask": "Keine weiteren ähnlichen Aufgaben zu diesem Thema.",
+        "sessionExpired": "Die 24-Stunden-Gültigkeit dieser Sitzung ist abgelaufen.",
         "generic": "Es konnte keine Aufgabe gefunden werden. Bitte versuche es erneut."
       }
     }
+  },
+  "SessionExpiredNotice": {
+    "title": "Diese Sitzung kann nicht mehr fortgesetzt werden",
+    "lead": "Seit dem Start dieser Sitzung sind 24 Stunden vergangen.",
+    "body": "Jede Sitzung hat eine feste Gültigkeit von 24 Stunden ab der Erstellung — sie verlängert sich während der Bearbeitung nicht. Bereits erzielte Ergebnisse sind gespeichert und bleiben unter „Ergebnisse“ und „Sitzungen“ sichtbar — starte einen neuen Versuch, falls du weitermachen möchtest.",
+    "backToTopics": "Zur Themenauswahl"
   },
   "TopicTrainerSummary": {
     "ultimateTitle": "Zusammenfassung des Zeittests",
@@ -417,7 +427,8 @@
     "hint": "Geplante „Auto“-Sitzungen erscheinen nach Tests mit einem schwachen Ergebnis. Klicke auf „Start“, um zu beginnen.",
     "statuses": {
       "completed": "Abgeschlossen",
-      "planned": "Geplant"
+      "planned": "Geplant",
+      "expired": "Abgelaufen"
     },
     "createdByValues": {
       "auto": "Auto",
@@ -818,6 +829,7 @@
       "invalidInput": "Ungültige Daten.",
       "notFound": "Die Sitzung oder Aufgabe wurde nicht gefunden.",
       "sessionCompleted": "Diese Sitzung wurde bereits abgeschlossen.",
+      "sessionExpired": "Die 24-Stunden-Gültigkeit dieser Sitzung ist abgelaufen.",
       "generic": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut."
     }
   }

@@ -6,6 +6,8 @@ import {
 import { toTrainerSessionSummary } from "./finishTrainerSession";
 import { SESSION_TYPE_NMT_SIMULATOR } from "./startNmtSimulator";
 import { normalizeNmtRichText } from "./normalizeNmtRichText";
+import { nowUnixSec } from "./sessionElapsed";
+import { isSessionExpired } from "./sessionExpiry";
 import type {
   NmtTaskKind,
   SessionTask,
@@ -21,6 +23,7 @@ const SQL_SESSION_HEADER = `
     ts.right_number,
     ts.time,
     ts.session_status,
+    ts.expire_time,
     t.code AS theme_code,
     t.name AS theme_name,
     nv.label AS variant_label
@@ -76,6 +79,7 @@ type SessionHeaderRow = {
   right_number: number;
   time: number;
   session_status: number;
+  expire_time: number;
   theme_code: string | null;
   theme_name: string | null;
   variant_label: string | null;
@@ -98,6 +102,7 @@ type SessionTaskRow = {
 export type GetSessionTasksErrorCode =
   | "invalid_input"
   | "session_not_found"
+  | "session_expired"
   | "db_error";
 
 export class GetSessionTasksError extends Error {
@@ -112,6 +117,7 @@ export class GetSessionTasksError extends Error {
 
 type GetSessionTasksDeps = {
   getConnection: () => Promise<SqlConnection>;
+  nowSec?: () => number;
 };
 
 function isPositiveInt(value: unknown): value is number {
@@ -217,6 +223,19 @@ export async function getSessionTasks(
         throw new GetSessionTasksError(
           "Session not found or has no linked tasks.",
           "session_not_found",
+        );
+      }
+
+      // Completed sessions are always readable, however old — expiration
+      // only gates further interaction with an active session (including
+      // activating a still-planned one).
+      if (
+        header.session_status !== SESSION_STATUS_COMPLETED &&
+        isSessionExpired(header.expire_time, (deps.nowSec ?? nowUnixSec)())
+      ) {
+        throw new GetSessionTasksError(
+          "This session's 24h lifetime has expired.",
+          "session_expired",
         );
       }
 

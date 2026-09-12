@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { TopicTrainer } from "@/components/testing/TopicTrainer";
+import { SessionExpiredNotice } from "@/components/testing/SessionExpiredNotice";
 import { DiagnosticShell } from "@/components/diagnostic/DiagnosticShell";
 import { createPageMetadata } from "@/constants/seo";
 import {
@@ -53,11 +54,13 @@ export default async function DiagnosticSessionPage({
   try {
     session = await getDiagnosticSessionTasks(sessionId, owner);
   } catch (error) {
-    if (
-      error instanceof GetDiagnosticSessionTasksError &&
-      (error.code === "session_not_found" || error.code === "invalid_input")
-    ) {
-      notFound();
+    if (error instanceof GetDiagnosticSessionTasksError) {
+      if (error.code === "session_not_found" || error.code === "invalid_input") {
+        notFound();
+      }
+      if (error.code === "session_expired") {
+        return <SessionExpiredNotice />;
+      }
     }
     throw error;
   }

@@ -209,10 +209,11 @@ test("inserts task_sessions with the exact verified numeric parameters, in order
   const userId = 1;
   const tasks = tasksFor(TOPIC_TEST_TASK_COUNT, themeId);
   const mock = makeConnection({ tasks });
+  const now = 1_700_000_000;
 
   await startTopicTest(
     { userId, themeId },
-    { getConnection: async () => mock.connection },
+    { getConnection: async () => mock.connection, nowSec: () => now },
   );
 
   const sessionInsert = mock.calls.find((c) =>
@@ -222,7 +223,7 @@ test("inserts task_sessions with the exact verified numeric parameters, in order
   assert.match(sessionInsert!.sql, /task_sessions/);
   assert.match(
     sessionInsert!.sql,
-    /\(user_id, session_type, theme_id, tasks_number, right_number, time, session_status, start_time\)/,
+    /\(user_id, session_type, theme_id, tasks_number, right_number, time, session_status, start_time, expire_time\)/,
   );
   assert.deepEqual(sessionInsert!.params, [
     userId, // user_id
@@ -233,6 +234,7 @@ test("inserts task_sessions with the exact verified numeric parameters, in order
     0, // time = 0
     2, // session_status = 2
     0, // start_time = 0
+    now + 86400, // expire_time — fixed, non-sliding 24h deadline
   ]);
 });
 
@@ -451,11 +453,11 @@ test("writes a pre_topic self-score row atomically with the session, inside the 
   assert.ok(mock.isCommitted());
 
   // The task_sessions insert's own params are unaffected by the self-score
-  // branch — still the exact 8-value array startTopicTest.ts always wrote.
+  // branch — still the exact 9-value array startTopicTest.ts always wrote.
   const sessionInsert = mock.calls.find((c) =>
     c.sql.startsWith("INSERT INTO task_sessions"),
   );
-  assert.equal(sessionInsert!.params.length, 8);
+  assert.equal(sessionInsert!.params.length, 9);
 });
 
 test("omitting selfScore never touches user_self_scores", async () => {

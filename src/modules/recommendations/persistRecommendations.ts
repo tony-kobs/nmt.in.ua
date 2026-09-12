@@ -3,12 +3,14 @@ import {
   SESSION_STATUS_PLANNED,
   SESSION_TYPE_AUTO,
 } from "@/modules/sessions/types";
+import { nowUnixSec } from "@/modules/testing/sessionElapsed";
+import { computeSessionDeadline, isSessionExpired } from "@/modules/testing/sessionExpiry";
 import { TOPIC_TEST_TASK_COUNT } from "@/modules/testing/startTopicTest";
 
 import type { RecommendedAction } from "./index";
 
 const SQL_SELECT_PLANNED_AUTO = `
-  SELECT id, theme_id
+  SELECT id, theme_id, expire_time
   FROM task_sessions
   WHERE user_id = ?
     AND session_type = ?
@@ -18,8 +20,8 @@ const SQL_SELECT_PLANNED_AUTO = `
 const SQL_INSERT_PLANNED_SESSION = `
   INSERT INTO task_sessions (
     user_id, session_type, theme_id, tasks_number,
-    right_number, time, session_status, start_time
-  ) VALUES (?, ?, ?, ?, 0, 0, ?, 0)
+    right_number, time, session_status, start_time, expire_time
+  ) VALUES (?, ?, ?, ?, 0, 0, ?, 0, ?)
 `;
 
 const SQL_DELETE_STALE_PLANNED = `
@@ -37,11 +39,13 @@ export type PersistRecommendationsResult = {
 
 type PersistRecommendationsDeps = {
   getConnection: () => Promise<SqlConnection>;
+  nowSec?: () => number;
 };
 
 type PlannedAutoRow = {
   id: number;
   theme_id: number;
+  expire_time: number;
 };
 
 async function loadDefaultConnection(): Promise<SqlConnection> {
@@ -97,6 +101,7 @@ export async function persistRecommendations(
 
   const themeIds = topicTestThemeIds(actions);
   const createdSessionIds: number[] = [];
+  const nowSec = deps.nowSec ?? nowUnixSec;
 
   if (themeIds.length === 0) {
     const connection = await deps.getConnection();
@@ -121,8 +126,13 @@ export async function persistRecommendations(
       SQL_SELECT_PLANNED_AUTO,
       [userId, SESSION_TYPE_AUTO, SESSION_STATUS_PLANNED],
     );
+    // An expired planned row is never reused/renewed — it's excluded here so
+    // a still-recommended theme gets a fresh row with its own fresh
+    // deadline; the stale row is left in place (retained, not deleted).
     const sessionIdByTheme = new Map<number, number>(
-      existing.map((row) => [row.theme_id, row.id]),
+      existing
+        .filter((row) => !isSessionExpired(row.expire_time, nowSec()))
+        .map((row) => [row.theme_id, row.id]),
     );
 
     for (const themeId of themeIds) {
@@ -135,6 +145,7 @@ export async function persistRecommendations(
         themeId,
         TOPIC_TEST_TASK_COUNT,
         SESSION_STATUS_PLANNED,
+        computeSessionDeadline(nowSec()),
       ]);
       if (inserted.insertId > 0) {
         sessionIdByTheme.set(themeId, inserted.insertId);

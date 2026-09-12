@@ -1,4 +1,7 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
+import { nowUnixSec } from "./sessionElapsed";
+import { isSessionExpired } from "./sessionExpiry";
 import { TASK_STATUS_INCORRECT } from "./types";
 
 /** Verified `tasks2session.task_type` for the topic-test bank (`quiz_tasks`). */
@@ -10,7 +13,13 @@ const TASK_TYPE_TOPIC = 1;
 const INELIGIBLE_SESSION_TYPES = [4, 5];
 
 const SQL_SELECT_HINT = `
-  SELECT t2s.status, t2s.task_type, ts.session_type, qt.comments
+  SELECT
+    t2s.status,
+    t2s.task_type,
+    ts.session_type,
+    ts.session_status,
+    ts.expire_time,
+    qt.comments
   FROM tasks2session t2s
   INNER JOIN task_sessions ts ON ts.id = t2s.session_id
   INNER JOIN quiz_tasks qt ON qt.id = t2s.task_id
@@ -28,7 +37,11 @@ export type GetTaskHintResult = {
   hint: string | null;
 };
 
-export type GetTaskHintErrorCode = "invalid_input" | "not_found" | "db_error";
+export type GetTaskHintErrorCode =
+  | "invalid_input"
+  | "not_found"
+  | "session_expired"
+  | "db_error";
 
 export class GetTaskHintError extends Error {
   constructor(
@@ -44,11 +57,14 @@ type HintRow = {
   status: number;
   task_type: number;
   session_type: number;
+  session_status: number;
+  expire_time: number;
   comments: string | null;
 };
 
 type GetTaskHintDeps = {
   getConnection: () => Promise<SqlConnection>;
+  nowSec?: () => number;
 };
 
 function isPositiveInt(value: unknown): value is number {
@@ -99,6 +115,20 @@ export async function getTaskHint(
         throw new GetTaskHintError(
           "Task mapping was not found in this session.",
           "not_found",
+        );
+      }
+
+      // A completed session's hints stay readable forever (same rule as
+      // the mistake review); an active session past its deadline rejects
+      // further interaction, hints included.
+      const nowSec = deps.nowSec ?? nowUnixSec;
+      if (
+        row.session_status !== SESSION_STATUS_COMPLETED &&
+        isSessionExpired(row.expire_time, nowSec())
+      ) {
+        throw new GetTaskHintError(
+          "This session's 24h lifetime has expired.",
+          "session_expired",
         );
       }
 

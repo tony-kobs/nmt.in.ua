@@ -1,17 +1,20 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { sampleRandomIds } from "@/lib/sampleRandomIds";
 import {
+  SESSION_STATUS_COMPLETED,
   SESSION_STATUS_CREATED,
   SESSION_STATUS_PLANNED,
 } from "@/modules/sessions/types";
 
+import { nowUnixSec } from "./sessionElapsed";
+import { isSessionExpired } from "./sessionExpiry";
 import { TOPIC_TEST_TASK_COUNT } from "./startTopicTest";
 
 const TASK_TYPE_TOPIC = 1;
 const TASK_STATUS_UNANSWERED = 0;
 
 const SQL_SELECT_SESSION = `
-  SELECT id, user_id, theme_id, session_status
+  SELECT id, user_id, theme_id, session_status, expire_time
   FROM task_sessions
   WHERE id = ? AND user_id = ?
   FOR UPDATE
@@ -49,6 +52,7 @@ export type StartPlannedSessionErrorCode =
   | "invalid_input"
   | "not_found"
   | "not_planned"
+  | "session_expired"
   | "insufficient_tasks"
   | "db_error";
 
@@ -64,6 +68,7 @@ export class StartPlannedSessionError extends Error {
 
 type StartPlannedSessionDeps = {
   getConnection: () => Promise<SqlConnection>;
+  nowSec?: () => number;
 };
 
 type SessionRow = {
@@ -71,6 +76,7 @@ type SessionRow = {
   user_id: number;
   theme_id: number;
   session_status: number;
+  expire_time: number;
 };
 
 type CountRow = {
@@ -131,6 +137,23 @@ export async function startPlannedSession(
         throw new StartPlannedSessionError(
           "Session was not found for this user.",
           "not_found",
+        );
+      }
+
+      // Expired planned rows are never activated/reused, regardless of
+      // whatever mapping state they're in — activation must not renew a
+      // deadline that already passed. Completed rows are exempt (never
+      // reached in practice here, but kept consistent with every other
+      // guard in this codebase).
+      const nowSec = deps.nowSec ?? nowUnixSec;
+      if (
+        session.session_status !== SESSION_STATUS_COMPLETED &&
+        isSessionExpired(session.expire_time, nowSec())
+      ) {
+        await connection.rollback();
+        throw new StartPlannedSessionError(
+          "This planned session's 24h lifetime has expired.",
+          "session_expired",
         );
       }
 

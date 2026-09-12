@@ -107,6 +107,21 @@ test("uses session_type = 5", async () => {
   assert.equal(sessionInsert!.params[2], 5);
 });
 
+test("sets expire_time to exactly now + 86400 from the injected clock", async () => {
+  const mock = makeConnection({ eligibleThemeIds: [1, 2] });
+  const now = 1_700_000_000;
+
+  await startDiagnosticTest(
+    { owner: { userId: 7, guestToken: null }, selfScore: 5 },
+    { getConnection: async () => mock.connection, nowSec: () => now },
+  );
+
+  const sessionInsert = mock.calls.find((c) =>
+    c.sql.includes("INSERT INTO task_sessions"),
+  );
+  assert.equal(sessionInsert!.params.at(-1), now + 86400);
+});
+
 test("selects exactly 3 tasks per eligible theme", async () => {
   const mock = makeConnection({ eligibleThemeIds: [1, 2, 3] });
   const result = await startDiagnosticTest(

@@ -3,12 +3,14 @@ import {
   SESSION_STATUS_PLANNED,
   SESSION_TYPE_MENTOR,
 } from "@/modules/sessions/types";
+import { nowUnixSec } from "@/modules/testing/sessionElapsed";
+import { computeSessionDeadline, isSessionExpired } from "@/modules/testing/sessionExpiry";
 import { TOPIC_TEST_TASK_COUNT } from "@/modules/testing/startTopicTest";
 
 const SQL_THEME_EXISTS = `SELECT id FROM themes WHERE id = ? LIMIT 1`;
 
 const SQL_FIND_PLANNED_MENTOR = `
-  SELECT id
+  SELECT id, expire_time
   FROM task_sessions
   WHERE user_id = ?
     AND theme_id = ?
@@ -20,8 +22,8 @@ const SQL_FIND_PLANNED_MENTOR = `
 const SQL_INSERT_MENTOR_SESSION = `
   INSERT INTO task_sessions (
     user_id, session_type, theme_id, tasks_number,
-    right_number, time, session_status, start_time
-  ) VALUES (?, ?, ?, ?, 0, 0, ?, 0)
+    right_number, time, session_status, start_time, expire_time
+  ) VALUES (?, ?, ?, ?, 0, 0, ?, 0, ?)
 `;
 
 export type CreateMentorSessionInput = {
@@ -51,6 +53,7 @@ export class CreateMentorSessionError extends Error {
 
 type CreateMentorSessionDeps = {
   getConnection: () => Promise<SqlConnection>;
+  nowSec?: () => number;
 };
 
 function isPositiveInt(value: unknown): value is number {
@@ -103,7 +106,8 @@ export async function createMentorSession(
       );
     }
 
-    const existing = await connection.query<{ id: number }>(
+    const nowSec = deps.nowSec ?? nowUnixSec;
+    const existing = await connection.query<{ id: number; expire_time: number }>(
       SQL_FIND_PLANNED_MENTOR,
       [
         input.userId,
@@ -112,7 +116,10 @@ export async function createMentorSession(
         SESSION_STATUS_PLANNED,
       ],
     );
-    if (existing[0]) {
+    // An expired planned row is never reused/renewed — fall through and
+    // create a fresh one with its own fresh deadline (the stale row just
+    // sits there, permanently expired and excluded from reuse/aggregation).
+    if (existing[0] && !isSessionExpired(existing[0].expire_time, nowSec())) {
       return { sessionId: existing[0].id, created: false };
     }
 
@@ -122,6 +129,7 @@ export async function createMentorSession(
       input.themeId,
       TOPIC_TEST_TASK_COUNT,
       SESSION_STATUS_PLANNED,
+      computeSessionDeadline(nowSec()),
     ]);
 
     if (inserted.insertId <= 0) {

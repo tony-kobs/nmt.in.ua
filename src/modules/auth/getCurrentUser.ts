@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import type { AuthUser, UserRole } from "./types";
 import {
+  createRenewedSessionToken,
   createSessionToken,
   SESSION_COOKIE_NAME,
   SESSION_MAX_AGE_SEC,
@@ -130,6 +131,48 @@ export async function setSessionCookie(user: AuthUser): Promise<void> {
     path: "/",
     maxAge: SESSION_MAX_AGE_SEC,
   });
+}
+
+/**
+ * Refreshes the profile fields (displayName/login/avatarRev) in the signed
+ * cookie **without** extending its lifetime — the opposite of
+ * `setSessionCookie`, which always mints a fresh 24h `exp`. Used for
+ * profile-only cookie touches (legacy-token upgrade, avatar change) so those
+ * never act as a silent "keep me logged in forever" mechanism.
+ *
+ * Reads the current, already-verified `exp` from the signed cookie itself —
+ * never from client input — via `getSessionPayload` (which already rejects
+ * an expired/invalid/missing cookie). Returns `false` without touching the
+ * cookie when there is nothing valid to renew; callers must treat that as a
+ * rejected update, not fall back to issuing a fresh cookie.
+ */
+export async function renewSessionCookie(user: AuthUser): Promise<boolean> {
+  const payload = await getSessionPayload();
+  if (!payload) return false;
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const remainingSec = payload.exp - nowSec;
+  if (remainingSec <= 0) return false;
+
+  const token = await createRenewedSessionToken(
+    {
+      userId: user.id,
+      role: user.role,
+      displayName: user.displayName,
+      login: user.login,
+      avatarRev: user.avatarRev,
+    },
+    payload.exp,
+  );
+  const cookieStore = await cookies();
+  cookieStore.set(SESSION_COOKIE_NAME, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: remainingSec,
+  });
+  return true;
 }
 
 export async function clearSessionCookie(): Promise<void> {

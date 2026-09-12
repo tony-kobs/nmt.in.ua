@@ -1,12 +1,13 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
 import { nowUnixSec } from "@/modules/testing/sessionElapsed";
+import { isSessionExpired } from "@/modules/testing/sessionExpiry";
 import { isValidOwner, ownerClause, ownerParams, type SessionOwner } from "./sessionOwner";
 
 const SESSION_TYPE_DIAGNOSTIC = 5;
 
 const SQL_SELECT_SESSION = `
-  SELECT id, start_time, session_status
+  SELECT id, start_time, session_status, expire_time
   FROM task_sessions
   WHERE id = ? AND session_type = ${SESSION_TYPE_DIAGNOSTIC} AND ${ownerClause("task_sessions")}
   FOR UPDATE
@@ -28,6 +29,7 @@ export type MarkDiagnosticSessionStartedResult = { startTime: number };
 export type MarkDiagnosticSessionStartedErrorCode =
   | "invalid_input"
   | "not_found"
+  | "session_expired"
   | "db_error";
 
 export class MarkDiagnosticSessionStartedError extends Error {
@@ -45,7 +47,12 @@ type MarkDiagnosticSessionStartedDeps = {
   nowSec?: () => number;
 };
 
-type SessionRow = { id: number; start_time: number; session_status: number };
+type SessionRow = {
+  id: number;
+  start_time: number;
+  session_status: number;
+  expire_time: number;
+};
 
 function isPositiveInt(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value > 0;
@@ -107,10 +114,20 @@ export async function markDiagnosticSessionStarted(
         );
       }
 
-      if (
-        session.session_status === SESSION_STATUS_COMPLETED ||
-        session.start_time > 0
-      ) {
+      if (session.session_status === SESSION_STATUS_COMPLETED) {
+        await connection.commit();
+        return { startTime: session.start_time };
+      }
+
+      if (isSessionExpired(session.expire_time, nowSec())) {
+        await connection.rollback();
+        throw new MarkDiagnosticSessionStartedError(
+          "This session's 24h lifetime has expired.",
+          "session_expired",
+        );
+      }
+
+      if (session.start_time > 0) {
         await connection.commit();
         return { startTime: session.start_time };
       }

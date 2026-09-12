@@ -71,6 +71,7 @@ export type CheckAnswerErrorCode =
   | "invalidInput"
   | "notFound"
   | "sessionCompleted"
+  | "sessionExpired"
   | "generic";
 
 export type CheckAnswerActionState =
@@ -92,6 +93,7 @@ export type FinishTrainerSessionErrorCode =
   | "invalidInput"
   | "notFound"
   | "unfinished"
+  | "sessionExpired"
   | "generic";
 
 export type FinishTrainerSessionActionState =
@@ -115,6 +117,7 @@ export type SkipTaskAnswerActionInput = {
 export type SkipTaskAnswerErrorCode =
   | "notFound"
   | "sessionCompleted"
+  | "sessionExpired"
   | "generic";
 
 export type SkipTaskAnswerActionState =
@@ -136,6 +139,7 @@ export type MarkSessionStartedActionInput = {
 export type MarkSessionStartedErrorCode =
   | "invalidInput"
   | "notFound"
+  | "sessionExpired"
   | "generic";
 
 export type MarkSessionStartedActionState =
@@ -147,7 +151,11 @@ export type GetTaskHintActionInput = {
   mappingId: number;
 };
 
-export type GetTaskHintErrorCode = "invalidInput" | "notFound" | "generic";
+export type GetTaskHintErrorCode =
+  | "invalidInput"
+  | "notFound"
+  | "sessionExpired"
+  | "generic";
 
 export type GetTaskHintActionState =
   | { status: "success"; available: boolean; hint: string | null }
@@ -167,6 +175,7 @@ export type AddSimilarPracticeTaskErrorCode =
   | "notEligible"
   | "notIncorrect"
   | "noSimilarTask"
+  | "sessionExpired"
   | "generic";
 
 export type AddSimilarPracticeTaskActionState =

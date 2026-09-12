@@ -44,7 +44,14 @@ const taskRow = {
 
 test("joins tasks2session with quiz_tasks and maps client-safe fields", async () => {
   const connection = makeConnection({
-    header: { id: 5, tasks_number: 1, right_number: 0, time: 0, session_status: SESSION_STATUS_CREATED },
+    header: {
+      id: 5,
+      tasks_number: 1,
+      right_number: 0,
+      time: 0,
+      session_status: SESSION_STATUS_CREATED,
+      expire_time: 9_999_999_999,
+    },
     tasks: [taskRow],
   });
 
@@ -81,6 +88,53 @@ test("hydrates the diagnostic summary when the session is already completed", as
   });
   assert.ok(result.summary);
   assert.equal(result.summary!.rightNumber, 1);
+});
+
+test("rejects an active diagnostic session past its 24h deadline", async () => {
+  const now = 1_700_000_000;
+  const connection = makeConnection({
+    header: {
+      id: 5,
+      tasks_number: 1,
+      right_number: 0,
+      time: 0,
+      session_status: SESSION_STATUS_CREATED,
+      expire_time: now - 1,
+    },
+    tasks: [taskRow],
+  });
+
+  await assert.rejects(
+    () =>
+      getDiagnosticSessionTasks(5, { userId: 1, guestToken: null }, {
+        getConnection: async () => connection,
+        nowSec: () => now,
+      }),
+    (error: unknown) =>
+      error instanceof GetDiagnosticSessionTasksError &&
+      error.code === "session_expired",
+  );
+});
+
+test("still reads a completed diagnostic session past its deadline (preserved results)", async () => {
+  const now = 1_700_000_000;
+  const connection = makeConnection({
+    header: {
+      id: 5,
+      tasks_number: 1,
+      right_number: 1,
+      time: 20,
+      session_status: SESSION_STATUS_COMPLETED,
+      expire_time: now - 1,
+    },
+    tasks: [taskRow],
+  });
+
+  const result = await getDiagnosticSessionTasks(5, { userId: 1, guestToken: null }, {
+    getConnection: async () => connection,
+    nowSec: () => now,
+  });
+  assert.ok(result.summary);
 });
 
 test("rejects a non-positive sessionId", async () => {

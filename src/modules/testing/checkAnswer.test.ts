@@ -21,6 +21,7 @@ type MappingRow = {
   right_answer_text: string | null;
   task_kind: "mcq" | "match" | "open";
   session_status: number;
+  expire_time: number;
 };
 
 function makeRow(overrides: Partial<MappingRow> = {}): MappingRow {
@@ -34,6 +35,7 @@ function makeRow(overrides: Partial<MappingRow> = {}): MappingRow {
     right_answer_text: null,
     task_kind: "mcq",
     session_status: SESSION_STATUS_CREATED,
+    expire_time: 9_999_999_999,
     ...overrides,
   };
 }
@@ -205,5 +207,57 @@ test("rejects an unanswered task in a completed session", async () => {
   assert.equal(
     mock.calls.filter((c) => c.sql.startsWith("UPDATE")).length,
     0,
+  );
+});
+
+test("rejects an unanswered task once the session's 24h deadline has passed", async () => {
+  const now = 1_700_000_000;
+  const mock = makeConnection({
+    rows: [makeRow({ expire_time: now - 1 })],
+  });
+
+  await assert.rejects(
+    () =>
+      checkAnswer(validInput, {
+        getConnection: async () => mock.connection,
+        nowSec: () => now,
+      }),
+    (error: unknown) =>
+      error instanceof CheckAnswerError && error.code === "session_expired",
+  );
+  assert.ok(mock.isRolledBack());
+  assert.equal(
+    mock.calls.filter((c) => c.sql.startsWith("UPDATE")).length,
+    0,
+  );
+});
+
+test("still returns an already-recorded result once the session has expired (read-only retry)", async () => {
+  const now = 1_700_000_000;
+  const mock = makeConnection({
+    rows: [makeRow({ status: TASK_STATUS_CORRECT, expire_time: now - 1 })],
+  });
+
+  const result = await checkAnswer(validInput, {
+    getConnection: async () => mock.connection,
+    nowSec: () => now,
+  });
+
+  assert.deepEqual(result, { correct: true });
+  assert.ok(mock.isCommitted());
+});
+
+test("session ownership wins over expiration — a foreign session is not_found, not session_expired", async () => {
+  const now = 1_700_000_000;
+  const mock = makeConnection({ rows: [] }); // WHERE ... AND user_id = ? matched nothing
+
+  await assert.rejects(
+    () =>
+      checkAnswer(validInput, {
+        getConnection: async () => mock.connection,
+        nowSec: () => now,
+      }),
+    (error: unknown) =>
+      error instanceof CheckAnswerError && error.code === "not_found",
   );
 });

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { SqlConnection } from "@/lib/db/mysql";
+import { SESSION_STATUS_COMPLETED, SESSION_STATUS_CREATED } from "@/modules/sessions/types";
 import { getTaskHint, GetTaskHintError } from "./getTaskHint";
 import { TASK_STATUS_CORRECT, TASK_STATUS_INCORRECT, TASK_STATUS_UNANSWERED } from "./types";
 
@@ -8,6 +9,8 @@ type HintRow = {
   status: number;
   task_type: number;
   session_type: number;
+  session_status: number;
+  expire_time: number;
   comments: string | null;
 };
 
@@ -16,6 +19,8 @@ function makeRow(overrides: Partial<HintRow> = {}): HintRow {
     status: TASK_STATUS_INCORRECT,
     task_type: 1,
     session_type: 1,
+    session_status: SESSION_STATUS_CREATED,
+    expire_time: 9_999_999_999,
     comments: "Because x = 2 solves the equation.",
     ...overrides,
   };
@@ -102,6 +107,38 @@ test("handles a task imported without comments by reporting unavailable, not emp
     getConnection: async () => mockNull.connection,
   });
   assert.deepEqual(resultNull, { available: false, hint: null });
+});
+
+test("rejects a hint request once the active session's 24h deadline has passed", async () => {
+  const now = 1_700_000_000;
+  const mock = makeConnection([makeRow({ expire_time: now - 1 })]);
+
+  await assert.rejects(
+    () =>
+      getTaskHint(validInput, {
+        getConnection: async () => mock.connection,
+        nowSec: () => now,
+      }),
+    (error: unknown) =>
+      error instanceof GetTaskHintError && error.code === "session_expired",
+  );
+});
+
+test("still allows a hint for a completed session past its deadline", async () => {
+  const now = 1_700_000_000;
+  const mock = makeConnection([
+    makeRow({ session_status: SESSION_STATUS_COMPLETED, expire_time: now - 1 }),
+  ]);
+
+  const result = await getTaskHint(validInput, {
+    getConnection: async () => mock.connection,
+    nowSec: () => now,
+  });
+
+  assert.deepEqual(result, {
+    available: true,
+    hint: "Because x = 2 solves the equation.",
+  });
 });
 
 test("rejects a mapping that does not belong to this session or user", async () => {

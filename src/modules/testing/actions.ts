@@ -238,6 +238,9 @@ export async function checkAnswerAction(
         case "session_completed":
           return { status: "error", code: "sessionCompleted" };
 
+        case "session_expired":
+          return { status: "error", code: "sessionExpired" };
+
         default:
           return { status: "error", code: "generic" };
       }
@@ -335,6 +338,9 @@ export async function finishTrainerSessionAction(
         case "unfinished":
           return { status: "error", code: "unfinished" };
 
+        case "session_expired":
+          return { status: "error", code: "sessionExpired" };
+
         default:
           return { status: "error", code: "generic" };
       }
@@ -372,6 +378,9 @@ export async function markSessionStartedAction(
         case "not_found":
           return { status: "error", code: "notFound" };
 
+        case "session_expired":
+          return { status: "error", code: "sessionExpired" };
+
         default:
           return { status: "error", code: "generic" };
       }
@@ -406,6 +415,9 @@ export async function skipTaskAnswerAction(
 
         case "session_completed":
           return { status: "error", code: "sessionCompleted" };
+
+        case "session_expired":
+          return { status: "error", code: "sessionExpired" };
 
         default:
           return { status: "error", code: "generic" };
@@ -453,6 +465,8 @@ export async function getTaskHintAction(
           return { status: "error", code: "invalidInput" };
         case "not_found":
           return { status: "error", code: "notFound" };
+        case "session_expired":
+          return { status: "error", code: "sessionExpired" };
         default:
           return { status: "error", code: "generic" };
       }
@@ -501,6 +515,8 @@ export async function addSimilarPracticeTaskAction(
           return { status: "error", code: "notIncorrect" };
         case "no_similar_task":
           return { status: "error", code: "noSimilarTask" };
+        case "session_expired":
+          return { status: "error", code: "sessionExpired" };
         default:
           return { status: "error", code: "generic" };
       }

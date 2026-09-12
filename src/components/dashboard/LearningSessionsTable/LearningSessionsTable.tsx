@@ -27,7 +27,9 @@ function formatPercent(percent: number | null): string {
 }
 
 function statusClass(status: LearningSessionRow["status"]): string {
-  return status === "completed" ? css.statusCompleted : css.statusPlanned;
+  if (status === "completed") return css.statusCompleted;
+  if (status === "expired") return css.statusExpired;
+  return css.statusPlanned;
 }
 
 function SessionActions({ row }: { row: LearningSessionRow }) {
@@ -44,22 +46,7 @@ function SessionActions({ row }: { row: LearningSessionRow }) {
 
   return (
     <div className={css.actions}>
-      <div className={css.actionsRow}>
-        <Link href={`/session/${row.id}`} className={css.startLink}>
-          {t("start")}
-        </Link>
-        <form action={formAction} className={css.cancelForm}>
-          <input type="hidden" name="sessionId" value={row.id} />
-          <button
-            type="submit"
-            className={css.cancelButton}
-            disabled={pending}
-            aria-label={t("cancelSession", { id: row.id })}
-          >
-            ×
-          </button>
-        </form>
-      </div>
+
       {state.status === "error" ? (
         <span className={css.error} role="alert">
           {t(`errors.${state.code}`)}

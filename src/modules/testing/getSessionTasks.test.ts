@@ -31,6 +31,7 @@ function makeSessionHeader() {
     right_number: 0,
     time: 0,
     session_status: 2,
+    expire_time: 9_999_999_999,
     theme_code: "GEO-07-ELEM-PLAN",
     theme_name: "Тема",
     variant_label: null,
@@ -165,6 +166,7 @@ test("getSessionTasks hydrates the summary when the session is already completed
     right_number: 1,
     time: 0,
     session_status: 1,
+    expire_time: 1,
     theme_code: "ALG-09-EQ-INEQ",
     theme_name: " Синтаксис ",
     variant_label: null,
@@ -184,4 +186,68 @@ test("getSessionTasks hydrates the summary when the session is already completed
     themeCode: "ALG-09-EQ-INEQ",
     themeName: "Синтаксис",
   });
+});
+
+test("getSessionTasks rejects an active session past its deadline", async () => {
+  const rows = Array.from({ length: 10 }, (_, i) => makeRow(i + 1));
+  const now = 1_700_000_000;
+  const { connection } = makeConnection(rows, {
+    ...makeSessionHeader(),
+    session_status: 2, // created/active, not completed
+    expire_time: now - 1,
+  });
+
+  await assert.rejects(
+    () =>
+      getSessionTasks(42, 1, {
+        getConnection: async () => connection,
+        nowSec: () => now,
+      }),
+    (error: unknown) =>
+      error instanceof GetSessionTasksError && error.code === "session_expired",
+  );
+});
+
+test("getSessionTasks still reads a completed session past its deadline (preserved results)", async () => {
+  const rows = Array.from({ length: 2 }, (_, i) => makeRow(i + 1));
+  const now = 1_700_000_000;
+  const { connection } = makeConnection(rows, {
+    id: 7,
+    theme_id: 4,
+    session_type: 1,
+    tasks_number: 2,
+    right_number: 1,
+    time: 0,
+    session_status: 1, // completed
+    expire_time: now - 1_000_000,
+    theme_code: "ALG-09-EQ-INEQ",
+    theme_name: "Синтаксис",
+    variant_label: null,
+  });
+
+  const result = await getSessionTasks(7, 1, {
+    getConnection: async () => connection,
+    nowSec: () => now,
+  });
+
+  assert.equal(result.summary?.sessionId, 7);
+});
+
+test("getSessionTasks rejects an expired planned row before activation", async () => {
+  const now = 1_700_000_000;
+  const { connection } = makeConnection([], {
+    ...makeSessionHeader(),
+    session_status: 3, // planned
+    expire_time: now - 1,
+  });
+
+  await assert.rejects(
+    () =>
+      getSessionTasks(99, 1, {
+        getConnection: async () => connection,
+        nowSec: () => now,
+      }),
+    (error: unknown) =>
+      error instanceof GetSessionTasksError && error.code === "session_expired",
+  );
 });
