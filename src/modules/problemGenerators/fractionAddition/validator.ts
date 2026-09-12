@@ -80,9 +80,18 @@ function parseIntegerAnswer(raw: string): number | null {
 }
 
 /** Checks the written *shape* against the task's canonical form — a value
- * match alone isn't enough: "12/5" must not pass for a task whose canonical
- * answer is the mixed number "2 2/5", even though both equal 12/5. */
+ * match alone isn't enough when reduction is required: "4/8" must not pass
+ * when the reduced answer is "1/2". Matches classic inp_task.php: the reduced
+ * `numerator/denominator` is always accepted (including improper), and whole /
+ * mixed spellings remain valid too. */
 function isCanonicalReducedForm(parsed: ParsedAnswer, answer: FractionAdditionAnswer): boolean {
+  if (
+    parsed.shape === "fraction" &&
+    parsed.numerator === answer.reduced.numerator &&
+    parsed.denominator === answer.reduced.denominator
+  ) {
+    return true;
+  }
   if (answer.whole !== null) {
     return parsed.shape === "whole" && parsed.value === answer.whole;
   }
@@ -94,11 +103,7 @@ function isCanonicalReducedForm(parsed: ParsedAnswer, answer: FractionAdditionAn
       parsed.denominator === answer.mixed.denominator
     );
   }
-  return (
-    parsed.shape === "fraction" &&
-    parsed.numerator === answer.reduced.numerator &&
-    parsed.denominator === answer.reduced.denominator
-  );
+  return false;
 }
 
 export function validateFractionAdditionAnswer(

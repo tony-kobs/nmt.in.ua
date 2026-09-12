@@ -284,14 +284,14 @@
   "FractionPractice": {
     "kicker": "Fractions",
     "startTitle": "Fraction addition",
-    "startLead": "Addition of fractions with the same denominator. Pick a difficulty level and a task count — tasks are generated fresh each time, so nothing repeats.",
+    "startLead": "Like the classic trainer: random same-denominator fractions — enter the answer numerator and denominator, then press Check.",
     "selectLevel": "Difficulty level",
     "levelDescription": {
-      "1": "Simple fractions, result under 1, no reduction needed.",
-      "2": "Larger numerators, the result may be an improper fraction.",
-      "3": "A proper result that always needs to be reduced.",
-      "4": "An improper fraction — write it as a whole or mixed number.",
-      "5": "Three addends, or an equation with a missing numerator."
+      "1": "Simple fractions, result less than 1, no reduction needed.",
+      "2": "Larger numerators; the result may be improper.",
+      "3": "A proper result that always needs reducing.",
+      "4": "An improper fraction — write the reduced result (improper form is fine).",
+      "5": "Three addends or an equation with a missing numerator."
     },
     "taskCount": "Number of tasks",
     "taskCountHint": "enter {min} to {max}",
@@ -300,16 +300,12 @@
     "activeTitle": "Fraction addition",
     "taskProgress": "Task {current} of {total}",
     "scoreLine": "Correct: {correct} of {answered}",
-    "answerLabelFraction": "Answer (fraction, whole, or mixed number)",
-    "answerLabelInteger": "Answer (number)",
-    "answerPlaceholderFraction": "e.g. 3/4, 1 1/2, or 5",
-    "answerPlaceholderInteger": "e.g. 3",
     "submit": "Check",
     "next": "Next",
     "finish": "Finish",
     "feedbackCorrect": "Correct!",
-    "feedbackReductionRequired": "That value is correct, but write it in reduced (or whole/mixed) form.",
-    "feedbackIncorrect": "Incorrect. Try the next task.",
+    "feedbackReductionRequired": "The value is right, but reduce the fraction (as in the classic trainer).",
+    "feedbackIncorrect": "Incorrect. Fix the answer and check again, or press Next.",
     "summaryTitle": "Practice finished",
     "summaryLead": "Correct answers: {correct} of {total} ({percent}%).",
     "practiceAgain": "Practice again",
@@ -318,7 +314,12 @@
       "invalidLevel": "Choose a difficulty level from 1 to 5.",
       "invalidInput": "Could not check the answer. Please try again.",
       "generic": "Something went wrong. Please try again."
-    }
+    },
+    "equationAria": "Fraction equation",
+    "answerFractionAria": "Answer fields",
+    "missingNumeratorAria": "Missing numerator",
+    "answerNumerator": "Answer numerator",
+    "answerDenominator": "Answer denominator"
   },
   "DiagnosticResult": {
     "kicker": "Diagnostic test result",
@@ -399,7 +400,7 @@
     "lead": "History of test sessions and planned training sessions. Start opens the topic test.",
     "empty": "There are no sessions yet. Start a test from the home page.",
     "tableAria": "Compact sessions table",
-    "tableAriaExtended": "Expanded sessions table, scroll horizontally",
+    "tableAriaExtended": "Expanded sessions table",
     "compactInfo": "Compact view",
     "extendedInfo": "Expanded view",
     "theme": "Topic",
