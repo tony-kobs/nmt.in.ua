@@ -284,14 +284,14 @@
   "FractionPractice": {
     "kicker": "Brüche",
     "startTitle": "Bruchaddition",
-    "startLead": "Addition von Brüchen mit gleichem Nenner. Wähle eine Schwierigkeitsstufe und eine Aufgabenzahl — die Aufgaben werden jedes Mal neu erzeugt, sodass sich nichts wiederholt.",
+    "startLead": "Wie im klassischen Trainer: zufällige Brüche mit gleichem Nenner — Zähler und Nenner der Antwort eintragen und Prüfen tippen.",
     "selectLevel": "Schwierigkeitsstufe",
     "levelDescription": {
-      "1": "Einfache Brüche, Ergebnis unter 1, kein Kürzen nötig.",
-      "2": "Größere Zähler, das Ergebnis kann ein unechter Bruch sein.",
-      "3": "Ein echter Bruch als Ergebnis, der immer gekürzt werden muss.",
-      "4": "Ein unechter Bruch — als ganze oder gemischte Zahl schreiben.",
-      "5": "Drei Summanden oder eine Gleichung mit unbekanntem Zähler."
+      "1": "Einfache Brüche, Ergebnis kleiner als 1, keine Kürzung nötig.",
+      "2": "Größere Zähler; das Ergebnis kann unecht sein.",
+      "3": "Ein echtes Ergebnis, das immer gekürzt werden muss.",
+      "4": "Unechter Bruch — schreibe das gekürzte Ergebnis (unechte Form ist ok).",
+      "5": "Drei Summanden oder eine Gleichung mit fehlendem Zähler."
     },
     "taskCount": "Anzahl der Aufgaben",
     "taskCountHint": "gib {min} bis {max} ein",
@@ -300,16 +300,12 @@
     "activeTitle": "Bruchaddition",
     "taskProgress": "Aufgabe {current} von {total}",
     "scoreLine": "Richtig: {correct} von {answered}",
-    "answerLabelFraction": "Antwort (Bruch, ganze oder gemischte Zahl)",
-    "answerLabelInteger": "Antwort (Zahl)",
-    "answerPlaceholderFraction": "z. B. 3/4, 1 1/2 oder 5",
-    "answerPlaceholderInteger": "z. B. 3",
     "submit": "Prüfen",
     "next": "Weiter",
     "finish": "Beenden",
     "feedbackCorrect": "Richtig!",
-    "feedbackReductionRequired": "Der Wert stimmt, aber schreibe ihn gekürzt (oder als ganze/gemischte Zahl).",
-    "feedbackIncorrect": "Falsch. Versuch die nächste Aufgabe.",
+    "feedbackReductionRequired": "Der Wert stimmt, aber kürze den Bruch (wie im klassischen Trainer).",
+    "feedbackIncorrect": "Falsch. Korrigiere die Antwort und prüfe erneut oder tippe Weiter.",
     "summaryTitle": "Übung beendet",
     "summaryLead": "Richtige Antworten: {correct} von {total} ({percent}%).",
     "practiceAgain": "Noch einmal üben",
@@ -318,7 +314,12 @@
       "invalidLevel": "Wähle eine Schwierigkeitsstufe von 1 bis 5.",
       "invalidInput": "Antwort konnte nicht geprüft werden. Bitte erneut versuchen.",
       "generic": "Etwas ist schiefgelaufen. Bitte erneut versuchen."
-    }
+    },
+    "equationAria": "Bruchgleichung",
+    "answerFractionAria": "Antwortfelder",
+    "missingNumeratorAria": "Fehlender Zähler",
+    "answerNumerator": "Zähler der Antwort",
+    "answerDenominator": "Nenner der Antwort"
   },
   "DiagnosticResult": {
     "kicker": "Ergebnis des Einstufungstests",
@@ -399,7 +400,7 @@
     "lead": "Verlauf der Testsitzungen und geplanten Trainings. Mit „Start“ wird der Test zum Thema geöffnet.",
     "empty": "Noch keine Sitzungen vorhanden. Starte einen Test auf der Startseite.",
     "tableAria": "Kompakte Sitzungstabelle",
-    "tableAriaExtended": "Erweiterte Sitzungstabelle, horizontal scrollen",
+    "tableAriaExtended": "Erweiterte Sitzungstabelle",
     "compactInfo": "Kompakte Ansicht",
     "extendedInfo": "Erweiterte Ansicht",
     "theme": "Thema",

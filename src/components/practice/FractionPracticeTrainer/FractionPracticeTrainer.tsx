@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { PageFrame, PagePanel } from "@/components/dashboard/PageFrame";
 import { ModeTabs } from "@/components/ui/ModeTabs";
-import { MathText } from "@/components/ui/MathText";
 import type { FractionAdditionDifficulty } from "@/modules/problemGenerators";
 import {
   checkFractionPracticeAnswerAction,
@@ -26,14 +25,41 @@ type Phase = "start" | "active" | "summary";
 
 type CheckOutcome = Extract<FractionPracticeCheckState, { status: "success" }>;
 
-function isMissingNumerator(
-  question: FractionPracticeQuestion,
-): question is Extract<FractionPracticeQuestion, { kind: "missingNumerator" }> {
-  return question.kind === "missingNumerator";
+function FractionStack({
+  numerator,
+  denominator,
+  numeratorInput,
+  denominatorInput,
+  ariaLabel,
+}: {
+  numerator?: ReactNode;
+  denominator?: ReactNode;
+  numeratorInput?: ReactNode;
+  denominatorInput?: ReactNode;
+  ariaLabel?: string;
+}) {
+  return (
+    <div className={css.fraction} aria-label={ariaLabel}>
+      {numeratorInput ?? <span className={css.fracPart}>{numerator}</span>}
+      <span className={css.fracBar} aria-hidden>
+        —
+      </span>
+      {denominatorInput ?? <span className={css.fracPart}>{denominator}</span>}
+    </div>
+  );
+}
+
+function Operator({ children }: { children: string }) {
+  return (
+    <span className={css.operator} aria-hidden>
+      {children}
+    </span>
+  );
 }
 
 export function FractionPracticeTrainer() {
   const t = useTranslations("FractionPractice");
+  const formId = useId();
 
   const [phase, setPhase] = useState<Phase>("start");
   const [level, setLevel] = useState<FractionAdditionDifficulty>(1);
@@ -41,7 +67,9 @@ export function FractionPracticeTrainer() {
 
   const [question, setQuestion] = useState<FractionPracticeQuestion | null>(null);
   const [seed, setSeed] = useState<number | null>(null);
-  const [answerDraft, setAnswerDraft] = useState("");
+  const [answerNumerator, setAnswerNumerator] = useState("");
+  const [answerDenominator, setAnswerDenominator] = useState("");
+  const [missingDraft, setMissingDraft] = useState("");
   const [checkResult, setCheckResult] = useState<CheckOutcome | null>(null);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
@@ -54,6 +82,18 @@ export function FractionPracticeTrainer() {
     parsedTaskCount >= MIN_TASK_COUNT &&
     parsedTaskCount <= MAX_TASK_COUNT;
   const taskCount = taskCountValid ? parsedTaskCount : DEFAULT_TASK_COUNT;
+
+  const canSubmitSum =
+    answerNumerator.trim().length > 0 && answerDenominator.trim().length > 0;
+  const canSubmitMissing = missingDraft.trim().length > 0;
+  const lockedAfterCorrect = checkResult?.isCorrect === true;
+
+  function resetAnswerFields() {
+    setAnswerNumerator("");
+    setAnswerDenominator("");
+    setMissingDraft("");
+    setCheckResult(null);
+  }
 
   async function handleStart() {
     if (!taskCountValid || isBusy) return;
@@ -70,22 +110,30 @@ export function FractionPracticeTrainer() {
 
     setQuestion(result.question);
     setSeed(result.seed);
-    setAnswerDraft("");
-    setCheckResult(null);
+    resetAnswerFields();
     setAnsweredCount(0);
     setCorrectCount(0);
     setPhase("active");
   }
 
   async function handleSubmitAnswer() {
-    if (!question || seed === null || !answerDraft.trim() || isBusy || checkResult) return;
+    if (!question || seed === null || isBusy || lockedAfterCorrect) return;
+
+    const answer =
+      question.kind === "missingNumerator"
+        ? missingDraft.trim()
+        : `${answerNumerator.trim()}/${answerDenominator.trim()}`;
+
+    if (!answer || (question.kind === "sum" && !canSubmitSum)) return;
+    if (question.kind === "missingNumerator" && !canSubmitMissing) return;
+
     setIsBusy(true);
     setErrorMessage(null);
 
     const result = await checkFractionPracticeAnswerAction({
       level,
       seed,
-      answer: answerDraft.trim(),
+      answer,
     });
 
     setIsBusy(false);
@@ -94,9 +142,14 @@ export function FractionPracticeTrainer() {
       return;
     }
 
+    const firstCheckOnThisTask = checkResult === null;
     setCheckResult(result);
-    setAnsweredCount((count) => count + 1);
-    if (result.isCorrect) setCorrectCount((count) => count + 1);
+    if (firstCheckOnThisTask) {
+      setAnsweredCount((count) => count + 1);
+      if (result.isCorrect) setCorrectCount((count) => count + 1);
+    } else if (result.isCorrect && checkResult && !checkResult.isCorrect) {
+      setCorrectCount((count) => count + 1);
+    }
   }
 
   async function handleNext() {
@@ -123,8 +176,7 @@ export function FractionPracticeTrainer() {
 
     setQuestion(result.question);
     setSeed(result.seed);
-    setAnswerDraft("");
-    setCheckResult(null);
+    resetAnswerFields();
   }
 
   function handleRestart() {
@@ -132,6 +184,106 @@ export function FractionPracticeTrainer() {
     setQuestion(null);
     setSeed(null);
     setErrorMessage(null);
+  }
+
+  function renderEquation(active: FractionPracticeQuestion) {
+    if (active.kind === "sum") {
+      return (
+        <div
+          className={css.equation}
+          role="group"
+          aria-label={t("equationAria")}
+        >
+          {active.operandNumerators.map((numerator, index) => (
+            <div key={`${numerator}-${index}`} className={css.equationItem}>
+              {index > 0 ? <Operator>+</Operator> : null}
+              <FractionStack
+                numerator={numerator}
+                denominator={active.denominator}
+              />
+            </div>
+          ))}
+          <Operator>=</Operator>
+          <FractionStack
+            ariaLabel={t("answerFractionAria")}
+            numeratorInput={
+              <input
+                id={`${formId}-num`}
+                className={css.fracInput}
+                value={answerNumerator}
+                onChange={(event) => {
+                  setAnswerNumerator(event.currentTarget.value);
+                  if (checkResult && !checkResult.isCorrect) setCheckResult(null);
+                }}
+                disabled={isBusy || lockedAfterCorrect}
+                inputMode="numeric"
+                autoComplete="off"
+                aria-label={t("answerNumerator")}
+              />
+            }
+            denominatorInput={
+              <input
+                id={`${formId}-den`}
+                className={css.fracInput}
+                value={answerDenominator}
+                onChange={(event) => {
+                  setAnswerDenominator(event.currentTarget.value);
+                  if (checkResult && !checkResult.isCorrect) setCheckResult(null);
+                }}
+                disabled={isBusy || lockedAfterCorrect}
+                inputMode="numeric"
+                autoComplete="off"
+                aria-label={t("answerDenominator")}
+              />
+            }
+          />
+        </div>
+      );
+    }
+
+    const blank = (
+      <FractionStack
+        ariaLabel={t("missingNumeratorAria")}
+        numeratorInput={
+          <input
+            id={`${formId}-missing`}
+            className={css.fracInput}
+            value={missingDraft}
+            onChange={(event) => {
+              setMissingDraft(event.currentTarget.value);
+              if (checkResult && !checkResult.isCorrect) setCheckResult(null);
+            }}
+            disabled={isBusy || lockedAfterCorrect}
+            inputMode="numeric"
+            autoComplete="off"
+            aria-label={t("answerNumerator")}
+          />
+        }
+        denominator={active.denominator}
+      />
+    );
+    const known = (
+      <FractionStack
+        numerator={active.knownNumerator}
+        denominator={active.denominator}
+      />
+    );
+    const result = (
+      <FractionStack
+        numerator={active.resultNumerator}
+        denominator={active.denominator}
+      />
+    );
+
+    return (
+      <div className={css.equation} role="group" aria-label={t("equationAria")}>
+        {active.unknownPosition === "first" ? blank : known}
+        <Operator>+</Operator>
+        {active.unknownPosition === "first" ? known : blank}
+        <Operator>=</Operator>
+        {result}
+      </div>
+    );
   }
 
   if (phase === "summary") {
@@ -171,20 +323,23 @@ export function FractionPracticeTrainer() {
             ? "reductionRequired"
             : "incorrect";
     const isLastTask = answeredCount >= taskCount;
+    const canSubmit =
+      question.kind === "missingNumerator" ? canSubmitMissing : canSubmitSum;
 
     return (
       <PageFrame
         className={css.frame}
         kicker={t("kicker")}
         title={t("activeTitle")}
-        lead={t("taskProgress", { current: Math.min(answeredCount + 1, taskCount), total: taskCount })}
+        lead={t("taskProgress", {
+          current: Math.min(answeredCount + 1, taskCount),
+          total: taskCount,
+        })}
       >
         <PagePanel>
           <p className={css.scoreLine} aria-live="polite">
             {t("scoreLine", { correct: correctCount, answered: answeredCount })}
           </p>
-
-          <MathText as="div" className={css.questionMath} text={question.questionMath} />
 
           <form
             className={css.answerForm}
@@ -193,53 +348,86 @@ export function FractionPracticeTrainer() {
               void handleSubmitAnswer();
             }}
           >
-            <label className={css.answerLabel} htmlFor="fraction-practice-answer">
-              {isMissingNumerator(question) ? t("answerLabelInteger") : t("answerLabelFraction")}
-            </label>
-            <input
-              id="fraction-practice-answer"
-              className={css.answerInput}
-              value={answerDraft}
-              onChange={(event) => setAnswerDraft(event.currentTarget.value)}
-              disabled={isBusy || checkResult !== null}
-              inputMode={isMissingNumerator(question) ? "numeric" : "text"}
-              autoComplete="off"
-              placeholder={isMissingNumerator(question) ? t("answerPlaceholderInteger") : t("answerPlaceholderFraction")}
-            />
-            {checkResult === null ? (
+            <div className={css.board}>
+              {feedbackKind === "correct" ? (
+                <span
+                  className={`${css.cornerMark} ${css.cornerOk}`}
+                  role="status"
+                  aria-label={t("feedbackCorrect")}
+                >
+                  <svg viewBox="0 0 48 48" className={css.cornerSvg} aria-hidden>
+                    <circle className={css.cornerRing} cx="24" cy="24" r="22" />
+                    <path
+                      className={css.cornerCheck}
+                      d="M14.5 24.5 21 31l12.5-14"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+              ) : null}
+              {feedbackKind === "incorrect" ? (
+                <span
+                  className={`${css.cornerMark} ${css.cornerBad}`}
+                  role="status"
+                  aria-label={t("feedbackIncorrect")}
+                >
+                  <svg viewBox="0 0 48 48" className={css.cornerSvg} aria-hidden>
+                    <circle className={css.cornerRing} cx="24" cy="24" r="22" />
+                    <path
+                      className={css.cornerStroke}
+                      d="M17 17 31 31M31 17 17 31"
+                      fill="none"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+              ) : null}
+              {feedbackKind === "reductionRequired" ? (
+                <span
+                  className={`${css.cornerMark} ${css.cornerWarn}`}
+                  role="status"
+                  aria-label={t("feedbackReductionRequired")}
+                >
+                  <svg viewBox="0 0 48 48" className={css.cornerSvg} aria-hidden>
+                    <circle className={css.cornerRing} cx="24" cy="24" r="22" />
+                    <path
+                      className={css.cornerStroke}
+                      d="M24 14v14M24 34.5v.5"
+                      fill="none"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+              ) : null}
+              {renderEquation(question)}
+            </div>
+
+            {!lockedAfterCorrect ? (
               <button
                 type="submit"
                 className={css.primaryButton}
-                disabled={isBusy || !answerDraft.trim()}
+                disabled={isBusy || !canSubmit}
               >
                 {t("submit")}
               </button>
-            ) : null}
+            ) : (
+              <button
+                type="button"
+                className={css.primaryButton}
+                onClick={() => void handleNext()}
+                disabled={isBusy}
+              >
+                {isLastTask ? t("finish") : t("next")}
+              </button>
+            )}
           </form>
 
-          {feedbackKind ? (
-            <p
-              className={
-                feedbackKind === "correct"
-                  ? css.feedbackOk
-                  : feedbackKind === "reductionRequired"
-                    ? css.feedbackWarn
-                    : css.feedbackBad
-              }
-              role="status"
-            >
-              {feedbackKind === "correct"
-                ? t("feedbackCorrect")
-                : feedbackKind === "reductionRequired"
-                  ? t("feedbackReductionRequired")
-                  : t("feedbackIncorrect")}
-            </p>
-          ) : null}
-
-          {checkResult ? (
+          {!lockedAfterCorrect && checkResult && !checkResult.isCorrect ? (
             <button
               type="button"
-              className={css.primaryButton}
+              className={css.secondaryButton}
               onClick={() => void handleNext()}
               disabled={isBusy}
             >

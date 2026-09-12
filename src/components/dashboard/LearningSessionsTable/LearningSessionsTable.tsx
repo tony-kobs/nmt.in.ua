@@ -44,20 +44,22 @@ function SessionActions({ row }: { row: LearningSessionRow }) {
 
   return (
     <div className={css.actions}>
-      <Link href={`/session/${row.id}`} className={css.startLink}>
-        {t("start")}
-      </Link>
-      <form action={formAction}>
-        <input type="hidden" name="sessionId" value={row.id} />
-        <button
-          type="submit"
-          className={css.cancelButton}
-          disabled={pending}
-          aria-label={t("cancelSession", { id: row.id })}
-        >
-          ×
-        </button>
-      </form>
+      <div className={css.actionsRow}>
+        <Link href={`/session/${row.id}`} className={css.startLink}>
+          {t("start")}
+        </Link>
+        <form action={formAction} className={css.cancelForm}>
+          <input type="hidden" name="sessionId" value={row.id} />
+          <button
+            type="submit"
+            className={css.cancelButton}
+            disabled={pending}
+            aria-label={t("cancelSession", { id: row.id })}
+          >
+            ×
+          </button>
+        </form>
+      </div>
       {state.status === "error" ? (
         <span className={css.error} role="alert">
           {t(`errors.${state.code}`)}
@@ -106,7 +108,6 @@ export function LearningSessionsTable({ rows }: LearningSessionsTableProps) {
         <div
           id="learning-sessions-table"
           className={css.tableWrap}
-          tabIndex={showExtendedInfo ? 0 : undefined}
           aria-label={
             showExtendedInfo ? t("tableAriaExtended") : t("tableAria")
           }
@@ -116,61 +117,87 @@ export function LearningSessionsTable({ rows }: LearningSessionsTableProps) {
           >
             <thead>
               <tr>
-                <th scope="col">#</th>
-                <th scope="col">{t("theme")}</th>
+                <th scope="col" className={css.colIndex}>
+                  #
+                </th>
+                <th scope="col" className={css.colTheme}>
+                  {t("theme")}
+                </th>
                 {showExtendedInfo ? (
                   <>
-                    <th scope="col">{t("tasks")}</th>
-                    <th scope="col">{t("correct")}</th>
+                    <th scope="col" className={css.colNarrow}>
+                      {t("tasks")}
+                    </th>
+                    <th scope="col" className={css.colNarrow}>
+                      {t("correct")}
+                    </th>
                   </>
                 ) : null}
-                <th scope="col">%</th>
+                <th scope="col" className={css.colNarrow}>
+                  %
+                </th>
                 {showExtendedInfo ? (
-                  <th scope="col">{t("timeSeconds")}</th>
+                  <th scope="col" className={css.colNarrow}>
+                    {t("timeSeconds")}
+                  </th>
                 ) : null}
-                <th scope="col">{t("timePerTest")}</th>
+                <th scope="col" className={css.colTimePer}>
+                  {t("timePerTest")}
+                </th>
                 {showExtendedInfo ? (
                   <>
-                    <th scope="col">{t("startDate")}</th>
-                    <th scope="col">{t("createdBy")}</th>
+                    <th scope="col" className={css.colDate}>
+                      {t("startDate")}
+                    </th>
+                    <th scope="col" className={css.colCreatedBy}>
+                      {t("createdBy")}
+                    </th>
                   </>
                 ) : null}
-                <th scope="col">{t("status")}</th>
-                <th scope="col">{t("actions")}</th>
+                <th scope="col" className={css.colStatus}>
+                  {t("status")}
+                </th>
+                <th scope="col" className={css.colActions}>
+                  {t("actions")}
+                </th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id}>
-                  <td>{row.rowNumber}</td>
-                  <td className={css.themeCell}>{row.themeName}</td>
+                  <td className={css.colIndex}>{row.rowNumber}</td>
+                  <td className={css.colTheme}>{row.themeName}</td>
                   {showExtendedInfo ? (
                     <>
-                      <td>{row.tasksNumber}</td>
-                      <td>{row.rightNumber}</td>
+                      <td className={css.colNarrow}>{row.tasksNumber}</td>
+                      <td className={css.colNarrow}>{row.rightNumber}</td>
                     </>
                   ) : null}
-                  <td>{formatPercent(row.percent)}</td>
+                  <td className={css.colNarrow}>
+                    {formatPercent(row.percent)}
+                  </td>
                   {showExtendedInfo ? (
-                    <td>{formatDurationSeconds(row.timeSec)}</td>
+                    <td className={css.colNarrow}>
+                      {formatDurationSeconds(row.timeSec)}
+                    </td>
                   ) : null}
-                  <td>{formatTimePerTask(row.timePerTaskSec)}</td>
+                  <td className={css.colTimePer}>
+                    {formatTimePerTask(row.timePerTaskSec)}
+                  </td>
                   {showExtendedInfo ? (
                     <>
-                      <td className={css.startTimeCell}>
-                        {row.startTimeLabel}
-                      </td>
-                      <td className={css.createdByCell}>
+                      <td className={css.colDate}>{row.startTimeLabel}</td>
+                      <td className={css.colCreatedBy}>
                         {t(`createdByValues.${row.createdBy}`)}
                       </td>
                     </>
                   ) : null}
-                  <td className={css.statusCell}>
+                  <td className={css.colStatus}>
                     <span className={clsx(statusClass(row.status))}>
                       {t(`statuses.${row.status}`)}
                     </span>
                   </td>
-                  <td className={css.actionsCell}>
+                  <td className={css.colActions}>
                     <SessionActions row={row} />
                   </td>
                 </tr>
