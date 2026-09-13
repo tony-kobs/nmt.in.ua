@@ -59,7 +59,7 @@ test("validateTeacherProfileInput requires a slug even when unpublished", () => 
   });
 });
 
-test("validateTeacherProfileInput rejects short, unicode, and double-hyphen slugs", () => {
+test("validateTeacherProfileInput rejects short, unicode, and edge slugs", () => {
   assert.deepEqual(validateTeacherProfileInput(validInput({ slug: "ab" })), {
     ok: false,
     code: "invalidSlug",
@@ -68,14 +68,22 @@ test("validateTeacherProfileInput rejects short, unicode, and double-hyphen slug
     ok: false,
     code: "invalidSlug",
   });
-  assert.deepEqual(validateTeacherProfileInput(validInput({ slug: "igor--petrenko" })), {
-    ok: false,
-    code: "invalidSlug",
-  });
   assert.deepEqual(validateTeacherProfileInput(validInput({ slug: "-igor" })), {
     ok: false,
     code: "invalidSlug",
   });
+  assert.deepEqual(validateTeacherProfileInput(validInput({ slug: "igor-" })), {
+    ok: false,
+    code: "invalidSlug",
+  });
+});
+
+test("validateTeacherProfileInput collapses repeated hyphens in the slug", () => {
+  const result = validateTeacherProfileInput(validInput({ slug: "igor--petrenko" }));
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.value.slug, "igor-petrenko");
+  }
 });
 
 test("validateTeacherProfileInput rejects reserved product slugs", () => {
