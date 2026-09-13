@@ -1,0 +1,1 @@
+export { TeacherProfileEditor } from "./TeacherProfileEditor";

@@ -12,8 +12,11 @@ import {
 import { PASSWORD_MAX_LEN, PASSWORD_MIN_LEN } from "@/modules/auth/validateRegistration";
 import { RecentResults } from "@/components/dashboard/RecentResults";
 import { UserAvatar } from "@/components/account/UserAvatar";
+import { TeacherProfileEditor } from "@/components/account/TeacherProfileEditor";
 import { AccountPhotoPanel } from "./AccountPhotoPanel";
 import type { RecentResultItem } from "@/modules/results/getRecentResults";
+import type { TeacherProfile } from "@/modules/teachers/types";
+import { normalizeSlug } from "@/modules/teachers/validateProfile";
 import css from "./AccountCabinet.module.css";
 
 const INITIAL: ChangePasswordActionState = { status: "idle" };
@@ -22,12 +25,14 @@ type AccountCabinetProps = {
   user: AuthUser;
   recentResults: RecentResultItem[];
   demoLocked: boolean;
+  teacherProfile?: TeacherProfile | null;
 };
 
 export function AccountCabinet({
   user,
   recentResults,
   demoLocked,
+  teacherProfile = null,
 }: AccountCabinetProps) {
   const t = useTranslations("AccountCabinet");
   const tHeader = useTranslations("Header");
@@ -52,6 +57,13 @@ export function AccountCabinet({
       </section>
 
       <AccountPhotoPanel user={user} demoLocked={demoLocked} />
+
+      {teacherProfile ? (
+        <TeacherProfileEditor
+          profile={teacherProfile}
+          suggestedSlug={normalizeSlug(user.login)}
+        />
+      ) : null}
 
       <RecentResults items={recentResults} />
 

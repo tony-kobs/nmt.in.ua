@@ -50,7 +50,7 @@
   "AccountCabinet": {
     "kicker": "Profil",
     "title": "Persönliches Konto",
-    "lead": "Profilfoto, Passwort, Ergebnisse und Platzhalter für Erfolge und Lernzeit.",
+    "lead": "Profilfoto, öffentliche Lehrerkarte, Passwort, Ergebnisse und Platzhalter für Erfolge und Lernzeit.",
     "photoTitle": "Profilfoto",
     "photoLead": "JPEG, PNG oder WebP. Ein quadratisches Foto wird mittig zugeschnitten und erscheint in der Kopfzeile.",
     "photoHint": "Bis {maxKb} KB. Ein quadratisches Foto wird mittig zugeschnitten und ersetzt die Initialen in der Kopfzeile.",
@@ -96,6 +96,44 @@
       "demoAccount": "Auf dem Demo-Konto kann das Foto nicht geändert werden.",
       "serverError": "Das Foto konnte nicht gespeichert werden. Bitte erneut versuchen."
     }
+  },
+  "TeacherProfile": {
+    "title": "Öffentliche Lehrerkarte",
+    "lead": "Eine kurze Karte für Schüler. Der Link /t/dein-slug ist nur sichtbar, wenn die Karte öffentlich ist.",
+    "slug": "Seitenadresse",
+    "slugHint": "Lateinische Buchstaben, Ziffern und Bindestriche. 3–48 Zeichen.",
+    "headline": "Kurzüberschrift",
+    "bio": "Über mich",
+    "city": "Stadt",
+    "subjects": "Fächer",
+    "subjectsHint": "Durch Kommas getrennt, bis zu 8 Einträge.",
+    "contactUrl": "Kontaktlink",
+    "isPublic": "Karte veröffentlichen",
+    "isPublicHint": "Ohne Häkchen antwortet /t/… mit 404.",
+    "save": "Karte speichern",
+    "saving": "Wird gespeichert…",
+    "saved": "Karte gespeichert.",
+    "copyLink": "Link kopieren",
+    "copied": "Kopiert",
+    "errors": {
+      "slugRequired": "Bitte eine Seitenadresse angeben.",
+      "invalidSlug": "Lateinische Buchstaben, Ziffern und Bindestriche, 3–48 Zeichen.",
+      "reservedSlug": "Diese Adresse ist reserviert.",
+      "slugTaken": "Diese Adresse ist bereits vergeben.",
+      "headlineTooLong": "Die Überschrift ist zu lang.",
+      "bioTooLong": "Der Text „Über mich“ ist zu lang.",
+      "cityTooLong": "Der Stadtname ist zu lang.",
+      "invalidSubjects": "Zu viele Fächer oder ein Eintrag ist zu lang.",
+      "invalidContactUrl": "Der Link muss mit http:// oder https:// beginnen.",
+      "forbidden": "Nur Lehrkraft oder Admin können die Karte bearbeiten.",
+      "serverError": "Die Karte konnte nicht gespeichert werden. Bitte erneut versuchen."
+    }
+  },
+  "TeacherPublicCard": {
+    "kicker": "Lehrkraft",
+    "city": "Stadt",
+    "subjects": "Fächer",
+    "contact": "Kontakt"
   },
   "Common": {
     "soon": "Demnächst"
@@ -781,6 +819,13 @@
     "account": {
       "title": "Persönliches Konto",
       "description": "Profilfoto, Passwortänderung, letzte Ergebnisse und Abmeldung."
+    },
+    "teacherPublic": {
+      "title": "Lehrkraft",
+      "titleNamed": "{name} — Lehrkraft",
+      "titleWithHeadline": "{name} — {headline}",
+      "description": "Öffentliche Lehrerkarte auf nmt.in.ua.",
+      "descriptionNamed": "Öffentliche Lehrerkarte von {name}."
     }
   },
   "SettingsPage": {

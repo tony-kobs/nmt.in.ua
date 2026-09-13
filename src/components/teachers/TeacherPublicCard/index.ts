@@ -1,0 +1,1 @@
+export { TeacherPublicCard } from "./TeacherPublicCard";

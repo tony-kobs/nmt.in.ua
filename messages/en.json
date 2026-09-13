@@ -50,7 +50,7 @@
   "AccountCabinet": {
     "kicker": "Profile",
     "title": "Personal account",
-    "lead": "Profile photo, password, results, and placeholders for achievements and study time.",
+    "lead": "Profile photo, public teacher card, password, results, and placeholders for achievements and study time.",
     "photoTitle": "Profile photo",
     "photoLead": "JPEG, PNG, or WebP. A square photo is cropped from the center and appears in the header.",
     "photoHint": "Up to {maxKb} KB. A square photo is cropped from the center and replaces the initials in the header.",
@@ -96,6 +96,44 @@
       "demoAccount": "The photo cannot be changed on a demo account.",
       "serverError": "Could not save the photo. Try again."
     }
+  },
+  "TeacherProfile": {
+    "title": "Public teacher card",
+    "lead": "A short card for students. The /t/your-slug link is visible only while the card is public.",
+    "slug": "Page address",
+    "slugHint": "Latin letters, digits, and hyphens. 3–48 characters.",
+    "headline": "Headline",
+    "bio": "About",
+    "city": "City",
+    "subjects": "Subjects",
+    "subjectsHint": "Comma-separated, up to 8 items.",
+    "contactUrl": "Contact link",
+    "isPublic": "Publish the card",
+    "isPublicHint": "While unchecked, /t/… returns 404.",
+    "save": "Save card",
+    "saving": "Saving…",
+    "saved": "Card saved.",
+    "copyLink": "Copy link",
+    "copied": "Copied",
+    "errors": {
+      "slugRequired": "Enter a page address.",
+      "invalidSlug": "Use Latin letters, digits, and hyphens, 3–48 characters.",
+      "reservedSlug": "This address is reserved.",
+      "slugTaken": "This address is already taken.",
+      "headlineTooLong": "The headline is too long.",
+      "bioTooLong": "The about text is too long.",
+      "cityTooLong": "The city name is too long.",
+      "invalidSubjects": "Too many subjects, or one item is too long.",
+      "invalidContactUrl": "The link must start with http:// or https://.",
+      "forbidden": "Only a teacher or admin can edit the card.",
+      "serverError": "Could not save the card. Try again."
+    }
+  },
+  "TeacherPublicCard": {
+    "kicker": "Teacher",
+    "city": "City",
+    "subjects": "Subjects",
+    "contact": "Get in touch"
   },
   "Common": {
     "soon": "Coming soon"
@@ -781,6 +819,13 @@
     "account": {
       "title": "Personal account",
       "description": "Profile photo, password change, recent results, and sign out."
+    },
+    "teacherPublic": {
+      "title": "Teacher",
+      "titleNamed": "{name} — teacher",
+      "titleWithHeadline": "{name} — {headline}",
+      "description": "Public teacher card on nmt.in.ua.",
+      "descriptionNamed": "Public teacher card for {name}."
     }
   },
   "SettingsPage": {

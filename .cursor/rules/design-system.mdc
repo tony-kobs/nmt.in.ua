@@ -121,6 +121,8 @@ alwaysApply: true
 - `PageFrame` / `PagePanel` — kicker-пілюля (не на старті тесту), `--fs-h1` display, скляна картка.
 - `TopicTestStart` — домашня робоча сторінка: вітання + тема + кількість завдань (поле / розмір банку). Без Ultimate і без самооцінки.
 - `AccountCabinet` — особистий кабінет: фото профілю, пароль, останні результати, заглушки (досягнення / час), вихід.
+- `TeacherProfileEditor` — візитка викладача/адміна на `/account` (slug, headline, bio, city, subjects, contact URL, is_public, копія лінка).
+- `TeacherPublicCard` — публічна картка `/t/{slug}` у `DiagnosticShell` (без кабінетного chrome).
 
 Брейкпоінти кабінету ті самі: сайдбар з 768. Не використовувати 1280.
 
@@ -376,3 +378,11 @@ npm run lint && npm test && npm run build
 - `UserAvatar` у хедері й `/account`: JPEG/PNG/WebP з `/api/avatar/{id}?v=rev`, інакше ініціали.
 - Кроп 256×256 у браузері; рядок у `user_avatars` (MEDIUMBLOB), ліміт 512 КБ.
 - Демо-акаунти фото не змінюють.
+
+### 2026-09-13 — публічна візитка викладача `/t/{slug}`
+
+- Редактор на `/account` після фото: скляна панель як пароль/фото, без фіксованої height.
+- Публічна сторінка в `(marketing)` + `DiagnosticShell` (aurora, back-link). Картка
+  `--grad-glass`, kicker-пілюля, аватар з `/api/avatar`, чіпи предметів.
+- `/t` у `PUBLIC_PAGE_PATHS`; sitemap індекс `/t` не включає (немає лістингу).
+- Перевірити: 375 / 768 / 1240 / 1440 / 1920; учень не бачить редактор; неопублікований slug — 404.
