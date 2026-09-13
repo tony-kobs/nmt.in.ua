@@ -5,6 +5,10 @@ import { createPageMetadata } from "@/constants/seo";
 import { isDemoAccountLogin } from "@/modules/auth/demoLogin";
 import { requireUser } from "@/modules/auth/getCurrentUser";
 import { getRecentResults } from "@/modules/results/getRecentResults";
+import {
+  canEditTeacherProfile,
+  getOwnTeacherProfile,
+} from "@/modules/teachers";
 
 export async function generateMetadata() {
   const t = await getTranslations("Metadata.account");
@@ -28,12 +32,22 @@ export default async function AccountPage() {
     console.error("account: getRecentResults failed", error);
   }
 
+  let teacherProfile = null;
+  if (canEditTeacherProfile(user.role)) {
+    try {
+      teacherProfile = await getOwnTeacherProfile(user.id);
+    } catch (error) {
+      console.error("account: getOwnTeacherProfile failed", error);
+    }
+  }
+
   return (
     <PageFrame kicker={t("kicker")} title={t("title")} lead={t("lead")}>
       <AccountCabinet
         user={user}
         recentResults={recentResults}
         demoLocked={isDemoAccountLogin(user.login)}
+        teacherProfile={teacherProfile}
       />
     </PageFrame>
   );

@@ -63,6 +63,7 @@ const PUBLIC_ASSET =
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_ASSET.test(pathname)) return true;
+  // Includes `/t` so public teacher cards (`/t/{slug}`) skip the auth guard.
   return PUBLIC_PAGE_PATHS.some(
     (path) => pathname === path || pathname.startsWith(`${path}/`),
   );

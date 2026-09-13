@@ -94,8 +94,9 @@ npm run reset-demo-student
 | Реєстрація | `/register` — публічна, лише роль `student` |
 | Ролі | `student`, `teacher`, `admin` |
 | Облікові записи | таблиця `app_users` (окремо від legacy `users` на хостингу) |
-| Middleware | редірект на `/login`; публічні `/`, `/welcome`, `/login`, `/register` і статика з `public/`; `/settings` — лише admin |
+| Middleware | редірект на `/login`; публічні `/`, `/welcome`, `/login`, `/register`, `/diagnostic`, `/t/{slug}` і статика з `public/`; `/settings` — лише admin |
 | Mentor UI | `/sessions` — панель призначення для teacher/admin |
+| Публічна візитка | `/account` (teacher/admin) редагує картку; `/t/{slug}` видно лише якщо `is_public` |
 
 `userId` у Server Actions береться з сесії (`requireUserId()`), не з FormData.
 

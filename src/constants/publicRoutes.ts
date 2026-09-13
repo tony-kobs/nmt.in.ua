@@ -8,4 +8,5 @@ export const PUBLIC_PAGE_PATHS = [
   "/login",
   "/register",
   "/diagnostic",
+  "/t",
 ] as const;

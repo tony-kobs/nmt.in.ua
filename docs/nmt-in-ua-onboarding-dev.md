@@ -6,7 +6,7 @@
 
 Джерело правди — Markdown. Word/docx копій немає.
 
-Оновлено 8 вересня 2026.
+Оновлено 13 вересня 2026.
 
 ---
 
@@ -20,7 +20,7 @@ nmt.in.ua — тренажер підготовки до НМТ з матема�
 | Роль | Що може |
 | --- | --- |
 | Учень (`student`) | Тести, симулятор, результати, свої сесії, реєстрація |
-| Викладач (`teacher`) | Усе як учень + призначити сесію на `/sessions` |
+| Викладач (`teacher`) | Усе як учень + призначити сесію на `/sessions` + публічна візитка на `/account` (`/t/{slug}`) |
 | Адмін (`admin`) | Усе як викладач + імпорт контенту на `/settings` |
 
 ## 2. Перший день — чекліст
@@ -66,7 +66,7 @@ npm run dev
 | Логін | Пароль | Роль | Навіщо зайти |
 | --- | --- | --- | --- |
 | `demo-student` | `demo123` | Учень | Тести, результати, свої сесії |
-| `demo-teacher` | `demo123` | Викладач | Панель призначення на `/sessions` |
+| `demo-teacher` | `demo123` | Викладач | Панель призначення на `/sessions`; візитка на `/account` |
 | `demo-admin` | `demo123` | Адмін | Форма імпорту на `/settings` |
 
 Таблиця `app_users` створюється сама при першому запиті. Legacy-таблицю `users` на хостингу не чіпаємо. Якщо старі сесії «прилипли» до demo-student: `npm run reset-demo-student`.
@@ -135,7 +135,8 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `src/app/api/import/` і `api/admin/sessions/` | Machine-to-machine API з Bearer |
 | `src/components/welcome/` | Секції лендінгу + `landing.module.css` |
 | `src/components/dashboard/` | Кабінет: header, sidebar, таблиці, старт тесту |
-| `src/components/account/` | Особистий кабінет `/account` |
+| `src/components/account/` | Особистий кабінет `/account` + редактор візитки викладача |
+| `src/components/teachers/` | Публічна картка `/t/{slug}` |
 | `src/components/testing/` | TopicTrainer, NmtTrainer, підсумок, розбір помилок |
 | `src/components/auth/` | AuthShell, форми входу / реєстрації |
 | `src/components/ui/` | Reveal, ModeTabs, MathText |
@@ -148,6 +149,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `src/modules/recommendations/` | Статистика, правила, граф тем, авто-сесії |
 | `src/modules/sessions/` | Список сесій, createMentorSession |
 | `src/modules/results/` | Агрегати для `/results` і сайдбару |
+| `src/modules/teachers/` | Публічна візитка: slug, lazy `teacher_profiles`, `/t/{slug}` |
 | `messages/uk.json`, `en.json`, `de.json` | Тексти інтерфейсу |
 | `src/app/globals.css` | Дизайн-токени. Новий колір — сюди, не в компонент |
 | `.cursor/rules/design-system.mdc` | Правила верстки. Читати перед CSS |
@@ -176,6 +178,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | Діагностика (гість) | `src/modules/diagnostic` | `startDiagnosticTest`, owner-aware `checkDiagnosticAnswer`/`finishDiagnosticSession`/`getDiagnosticSessionTasks`/`markDiagnosticSessionStarted`, `claimGuestProgress` — усе окремо від `testing`, щоб не чіпати протестований topic-test код |
 | Генератори завдань | `src/modules/problemGenerators` | Чисті функції, без БД/Next. `fractionAddition`: `generateFractionAdditionTask`, `validateFractionAdditionAnswer`, seed-based RNG |
 | Практика дробів | `src/modules/fractionPractice` | `startFractionPracticeTaskAction`/`nextFractionPracticeTaskAction`/`checkFractionPracticeAnswerAction` — обгортка над `problemGenerators/fractionAddition` для `/practice/fractions`, без запису в `task_sessions`/`tasks2session` |
+| Візитка викладача | `src/modules/teachers` | `getOwnTeacherProfile` / `getPublicTeacherCard` / `saveTeacherProfileAction`; публічна лише якщо `is_public` і роль teacher/admin |
 
 ### 6.2. Таблиці MySQL, які чіпаємо
 
@@ -183,6 +186,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | --- | --- | --- |
 | `app_users` | Наші акаунти | `login`, `role`. Не плутати з legacy `users` |
 | `user_avatars` | Фото профілю | `user_id`, `mime`, `bytes` MEDIUMBLOB. Лениво `CREATE` у `ensureAuthSchema` / `015_user_avatars.sql` |
+| `teacher_profiles` | Публічна візитка | `user_id`, `slug` unique, `headline`, `bio`, `city`, `subjects` (JSON), `contact_url`, `is_public`. `018_teacher_profiles.sql` + lazy `ensureTeacherProfileSchema`. **018, не 016/017:** на `dev` уже є `016_task_sessions_expire_time`; відкриті PR консультацій і «мої учні» тримають 016/017 |
 | `themes` | Теми тесту | `id`, `code` (unique, напр. `ALG-08-QUAD-EQ` — якір розділу підручника), `name`, `description`, `ord` |
 | `theme_connections` | Граф «наступна тема» | `vertex_start` → `vertex_finish` |
 | `quiz_tasks` | Банк тренажера (тест / симулятор topic-bank / діагностика) | `right_answer_n` (1–4) лише на сервері в сесії |
@@ -401,9 +405,10 @@ Ultimate/НМТ/діагностика лишились без змін. Зар�
 | 6.3–6.4 Діагностика | `/diagnostic` | Велика | ✅; відкрито: політика тем при >10 eligible |
 | 6.2 Відгук | `src/modules/feedback` | Мала | ✅ |
 | Консультації | `/consultations` | Мала | Частково: пункт у меню; треба форма / контакти |
+| Публічна візитка викладача | `src/modules/teachers`, `/account`, `/t/{slug}` | Мала | ✅ 13.09 |
 | Перф (TTFB / бандл) | `(app)`/`(marketing)` layouts, `catalogCache`, `sampleRandomIds` | — | ✅ 10.09: без `ORDER BY RAND()`, кеш довідників, cookie-профіль |
 
-Карта app router: `src/app/page.tsx` — `/` (гість легкий / учень → CabinetHome); `src/app/(marketing)/` — welcome / login / register / diagnostic; `src/app/(app)/` — кабінет (`force-dynamic`). Root layout лише `html`/`body` + `globals.css`.
+Карта app router: `src/app/page.tsx` — `/` (гість легкий / учень → CabinetHome); `src/app/(marketing)/` — welcome / login / register / diagnostic / `t/[slug]`; `src/app/(app)/` — кабінет (`force-dynamic`). Root layout лише `html`/`body` + `globals.css`.
 
 Поза першим релізом (не хапати «бо цікаво»): групи викладача, ДЗ, PDF, Google-логін, AI-перевірка, типи завдань окрім вибору з 4 варіантів, повноцінний PWA. Це версія 2 — питайте PM.
 
@@ -425,6 +430,6 @@ Ultimate/НМТ/діагностика лишились без змін. Зар�
 - На `/` обери тему, звичайний режим, Старт — потрапиш у `/session/[id]`.
 - Відповідай, заверши, подивись підсумок і поради.
 - Відкрий `/results` і `/sessions` — ті самі цифри мають збігатися.
-- Вийди, зайди як `demo-teacher`, на `/sessions` признач сесію `demo-student`.
+- Вийди, зайди як `demo-teacher`, на `/sessions` признач сесію `demo-student`. На `/account` заповни візитку, постав «опублікувати», відкрий `/t/{slug}` інкогніто.
 - Зайди як `demo-admin`, глянь форму на `/settings`. Не імпортуй випадковий файл у спільну базу без узгодження.
 - Відкрий `/simulator` — це не той самий код, що короткий тест (`NmtTrainer`, `session_type` 4).

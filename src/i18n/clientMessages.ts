@@ -24,6 +24,7 @@ export const CORE_CLIENT_NAMESPACES = [
   "nmtTrainer",
   "Feedback",
   "FractionPractice",
+  "TeacherProfile",
 ] as const;
 
 /**
@@ -45,6 +46,7 @@ export const PUBLIC_CLIENT_NAMESPACES = [
   "SessionExpiredNotice",
   "LoginForm",
   "RegisterForm",
+  "TeacherPublicCard",
 ] as const;
 
 const SETTINGS_NAMESPACES = ["ContentImportForm"] as const;
@@ -73,7 +75,9 @@ function isMarketingPath(pathname: string): boolean {
     pathname === "/register" ||
     pathname.startsWith("/register/") ||
     pathname === "/diagnostic" ||
-    pathname.startsWith("/diagnostic/")
+    pathname.startsWith("/diagnostic/") ||
+    pathname === "/t" ||
+    pathname.startsWith("/t/")
   );
 }
 
