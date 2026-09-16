@@ -675,7 +675,7 @@
       "items": {
         "price": {
           "q": "Was kostet das?",
-          "a": "Der Lernbereich ist kostenlos: Registrierung, Themen-Tests, Ergebnisse und Empfehlungen sind direkt nach der Kontoerstellung verfügbar."
+          "a": "Schüler- und Lehrkraft-Konto entstehen sofort. Thementests, Ergebnisse und Empfehlungen sind direkt nach der Registrierung verfügbar — ohne Karte."
         },
         "who": {
           "q": "Für wen ist die Plattform geeignet?",
@@ -734,7 +734,7 @@
     "noAccount": "Noch kein Konto?",
     "registerLink": "Registrieren",
     "teacherPrompt": "Lehrkraft?",
-    "teacherLink": "Lehrer-Konto (500 UAH)"
+    "teacherLink": "Registrierung des Lehrkraft-Kontos"
   },
   "RegisterForm": {
     "kicker": "Registrierung",
@@ -767,42 +767,38 @@
   },
   "TeacherRegister": {
     "kicker": "Für Lehrkräfte",
-    "title": "Lehrer-Konto",
+    "title": "Lehrkraft-Konto",
     "lead": "Weise Mentor-Sitzungen zu und verfolge den Fortschritt der Schüler. Admins entstehen über diesen Weg nicht.",
-    "fee": "Einmalige Gebühr {fee} UAH — öffnet das Konto.",
     "benefits": {
       "mentor": "Mentor-Sitzungen zu konkreten Lücken",
       "progress": "Ergebnisse und Themen sehen, die nachgearbeitet werden sollten",
       "cabinet": "Derselbe Arbeitsbereich wie für Schüler, plus Zuweisungspanel"
     },
-    "paymentNotConfigured": "Zahlungen sind noch nicht eingerichtet. Die Anmeldung kann gespeichert werden; ein WayForPay-Checkout wird nicht erstellt, das Konto bleibt inaktiv.",
-    "asideBadge": "Lehrkräfte · 500 UAH",
+    "asideBadge": "Lehrkräfte",
     "asideTitle": "Ein Konto, um Schüler zur NMT zu führen",
-    "asideLead": "Nach der Zahlung siehst du den Fortschritt und kannst Übungen für schwache Themen zuweisen.",
+    "asideLead": "Du siehst den Fortschritt und kannst Übungen für schwache Themen zuweisen.",
     "displayName": "Anzeigename",
     "login": "Login",
     "loginHint": "Lateinische Buchstaben, Ziffern, Punkt, _ oder - (mindestens 3 Zeichen).",
     "password": "Passwort",
     "passwordHint": "Mindestens {min} Zeichen.",
     "passwordConfirm": "Passwort bestätigen",
-    "submitting": "Wird gespeichert…",
-    "redirecting": "Weiter zur Zahlung…",
-    "submitPay": "{fee} UAH zahlen",
-    "submitSave": "Anmeldung speichern",
+    "submitting": "Wird erstellt…",
+    "submit": "Registrieren",
     "haveAccount": "Bereits ein Konto?",
     "signInLink": "Anmelden",
     "studentPrompt": "Du bist Schüler?",
-    "studentLink": "Kostenlose Registrierung",
+    "studentLink": "Schülerregistrierung",
     "testBypass": {
-      "hint": "Nur zum Testen: Es wird nichts abgebucht und WayForPay nicht geöffnet.",
-      "payOk": "Zahlung erfolgreich",
+      "hint": "Nur für Legacy-Prüfung alter Return-Seiten.",
+      "payOk": "Bestätigen",
       "working": "Konto wird aktiviert…",
-      "payAtGateway": "Weiter zu WayForPay",
-      "openGateway": "Echtes WayForPay-Gateway öffnen (für den Test nicht nötig)",
-      "pendingLead": "Anmeldung gespeichert. Zur lokalen Prüfung auf „Zahlung erfolgreich“ tippen — WayForPay ist nicht nötig.",
+      "payAtGateway": "Gateway öffnen",
+      "openGateway": "Gateway öffnen (nicht nötig)",
+      "pendingLead": "Anmeldung gefunden. Zur lokalen Prüfung auf „Bestätigen“ tippen.",
       "errors": {
-        "disabled": "Die Testbestätigung der Zahlung ist in dieser Umgebung deaktiviert.",
-        "missing_reference": "Keine Zahlungsanmeldung gefunden. Bitte das Formular erneut ausfüllen.",
+        "disabled": "Die Testbestätigung ist in dieser Umgebung deaktiviert.",
+        "missing_reference": "Keine Anmeldung gefunden. Bitte das Formular erneut ausfüllen.",
         "not_found": "Die Anmeldung wurde nicht gefunden. Bitte das Formular erneut ausfüllen.",
         "not_pending": "Diese Anmeldung wurde bereits verarbeitet.",
         "activate_failed": "Das Konto konnte nicht aktiviert werden. Bitte später erneut versuchen."
@@ -817,28 +813,26 @@
       "passwordMismatch": "Die Passwörter stimmen nicht überein.",
       "loginTaken": "Dieser Login ist bereits vergeben.",
       "reservedLogin": "Dieser Login ist für Demos reserviert.",
-      "serverError": "Anmeldung konnte nicht gespeichert werden. Bitte später erneut versuchen.",
-      "paymentNotConfigured": "Zahlungen sind noch nicht konfiguriert. Die Anmeldung wurde gespeichert; das Konto öffnet sich nach dem Anschluss von WayForPay.",
-      "invoiceFailed": "WayForPay-Zahlung konnte nicht gestartet werden. Bitte später erneut versuchen."
+      "serverError": "Konto konnte nicht erstellt werden. Bitte später erneut versuchen."
     },
     "result": {
       "success": {
-        "kicker": "Zahlung",
-        "title": "Lehrer-Konto ist geöffnet",
-        "lead": "Die Zahlung ist bestätigt. Du kannst dich anmelden und Sitzungen zuweisen.",
+        "kicker": "Fertig",
+        "title": "Lehrkraft-Konto ist geöffnet",
+        "lead": "Du kannst dich anmelden und Sitzungen zuweisen.",
         "cta": "Zum Arbeitsbereich"
       },
       "pending": {
-        "kicker": "Zahlung wird erwartet",
-        "title": "Die Rechnung wird noch verarbeitet",
-        "lead": "Wenn du bereits gezahlt hast, warte einige Sekunden und aktualisiere die Seite. Das Konto erscheint nach der Bankbestätigung.",
+        "kicker": "In Bearbeitung",
+        "title": "Die Anmeldung wird noch verarbeitet",
+        "lead": "Warte einige Sekunden und aktualisiere die Seite — oder registriere dich erneut auf der Lehrkraft-Seite.",
         "cta": "Später anmelden"
       },
       "fail": {
-        "kicker": "Zahlung",
-        "title": "Zahlung nicht abgeschlossen",
-        "lead": "Die Zahlung wurde abgebrochen oder ist fehlgeschlagen. Das Lehrer-Konto ist noch nicht aktiv.",
-        "hint": "Es wurde nichts abgebucht, oder die Bank hat abgelehnt. Du kannst es erneut versuchen.",
+        "kicker": "Erneut versuchen",
+        "title": "Registrierung nicht abgeschlossen",
+        "lead": "Das Lehrkraft-Konto ist noch nicht aktiv. Du kannst es erneut versuchen.",
+        "hint": "Geh zurück zur Lehrkraft-Registrierung und erstelle das Konto erneut.",
         "retry": "Zurück zur Registrierung"
       }
     }
@@ -948,15 +942,15 @@
     },
     "teacherRegister": {
       "title": "Registrierung für Lehrkräfte",
-      "description": "Lehrer-Konto auf nmt.in.ua: Mentor-Sitzungen und Lernfortschritt. Einmalige Gebühr 500 UAH."
+      "description": "Lehrkraft-Konto auf nmt.in.ua: Mentor-Sitzungen und Lernfortschritt."
     },
     "teacherRegisterSuccess": {
-      "title": "Zahlung erfolgreich",
-      "description": "Das Lehrer-Konto ist nach der Zahlung aktiv."
+      "title": "Registrierung abgeschlossen",
+      "description": "Lehrkraft-Konto ist aktiv."
     },
     "teacherRegisterFail": {
-      "title": "Zahlung nicht abgeschlossen",
-      "description": "Die Zahlung für das Lehrer-Konto wurde abgebrochen oder ist fehlgeschlagen."
+      "title": "Registrierung nicht abgeschlossen",
+      "description": "Lehrkraft-Konto wurde nicht aktiviert."
     },
     "session": {
       "title": "Test durchführen",

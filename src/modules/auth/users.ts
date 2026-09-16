@@ -267,8 +267,8 @@ export async function insertUserOnConnection(
 }
 
 /**
- * Inserts a user with an already-hashed password (e.g. paid teacher activation).
- * Public student registration should call `createUser` instead.
+ * Inserts a user with an already-hashed password (e.g. leftover payment activation).
+ * Public registration should call `createUser` instead.
  */
 export async function createUserRecord(
   input: CreateUserRecordInput,
@@ -286,8 +286,8 @@ export async function createUserRecord(
 }
 
 /**
- * Creates a new auth user. Public registration always uses role=student.
- * Demo accounts keep fixed ids 1–3 via seed upsert.
+ * Creates a new auth user. Public student registration uses role=student;
+ * `/register/teacher` uses role=teacher. Demo accounts keep fixed ids 1–3.
  */
 export async function createUser(
   input: CreateUserInput,

@@ -62,7 +62,7 @@ npm run dev
 | `CONTENT_IMPORT_API_KEY` | Bearer для `POST /api/import` і Server Action імпорту (admin) |
 | `ADMIN_API_KEY` | Bearer для `POST /api/admin/sessions` |
 | `SESSION_SECRET` | HMAC-секрет для cookie `nmt_session` (обовʼязково в production) |
-| `WAYFORPAY_MERCHANT_ACCOUNT` | merchantAccount WayForPay для `/register/teacher` (порожній = scaffold без живих платежів) |
+| `WAYFORPAY_MERCHANT_ACCOUNT` | merchantAccount WayForPay (поки не для реєстрації викладача; ключі лишаються для майбутнього еквайрингу) |
 | `WAYFORPAY_MERCHANT_SECRET_KEY` | SecretKey для HMAC_MD5 підпису Purchase / serviceUrl |
 | `WAYFORPAY_MERCHANT_DOMAIN` | опційно; дефолт — hostname з `NEXT_PUBLIC_SITE_URL` |
 | `WAYFORPAY_PAY_URL` | опційно, дефолт `https://secure.wayforpay.com/pay` |
@@ -80,17 +80,9 @@ npm run dev
 | `demo-teacher` | `demo123` | Викладач | + призначення mentor-сесій на `/sessions` і «Мої учні» на `/students` |
 | `demo-admin` | `demo123` | Адмін | + імпорт контенту на `/settings` (і той самий список учнів) |
 
-На `/login` є кнопки швидкого входу для кожної ролі. Нові учні реєструються на `/register` (роль `student`, авто-вхід після створення). Викладачі — окрема сторінка `/register/teacher` (500 грн, WayForPay); без `WAYFORPAY_MERCHANT_ACCOUNT` / `WAYFORPAY_MERCHANT_SECRET_KEY` форма зберігає заявку й показує «оплату ще не налаштовано». З ключами браузер робить POST на `https://secure.wayforpay.com/pay`. Адмін цим потоком не створюється.
+На `/login` є кнопки швидкого входу для кожної ролі. Нові учні реєструються на `/register` (роль `student`, авто-вхід після створення). Викладачі — окрема сторінка `/register/teacher` (роль `teacher`, авто-вхід одразу, без оплати). Адмін цим потоком не створюється.
 
-### Оплата кабінету викладача (WayForPay)
-
-1. Скопіюй `WAYFORPAY_MERCHANT_ACCOUNT` і `WAYFORPAY_MERCHANT_SECRET_KEY` у `.env.local` / `.env.production` (кабінет WayForPay). Для пісочниці з документації WayForPay `merchantAccount` = `test_merch_n1`; SecretKey лише локально, не в git.
-2. За бажанням `WAYFORPAY_MERCHANT_DOMAIN` (дефолт — hostname `NEXT_PUBLIC_SITE_URL`, на проді `nmt.in.ua`). Домен має збігатися з кабінетом WayForPay.
-3. SQL: `scripts/sql/014_teacher_payments.sql` — або нічого не запускай: таблиця створюється при першому сабміті. Якщо вже була Mono-версія з `mono_invoice_id`, колонки мігрують самі.
-4. `NEXT_PUBLIC_SITE_URL=https://nmt.in.ua` (HTTPS) для `returnUrl` і `serviceUrl`. Локально webhook не дійде на `localhost` — потрібен публічний тунель (ngrok тощо) і той самий URL у env.
-5. Webhook: `POST https://<домен>/api/payments/wayforpay/webhook` (підпис HMAC_MD5 `merchantSignature`). Після оплати браузер іде на `/api/payments/wayforpay/return` → `/register/teacher/success?ref=…`.
-6. Сума **500 грн**. WayForPay приймає major units з двома знаками (`amount=500.00`, `currency=UAH`); у БД лишаємо `50000` копійок. Без ключів застосунок **не** підписує checkout. CSP `form-action` дозволяє `https://secure.wayforpay.com`. Ключі лише в `.env.local` / хостинг `.env.production`, не в git.
-7. Локально / пісочниця `test_merch_n1`: після «Сплатити» сторінка **не** стрибає одразу на WayForPay. Є кнопка **«Оплата пройшла»** — той самий шлях, що Approved webhook (активує викладача + сесія на `/`). На живому мерчанті в `NODE_ENV=production` кнопки немає. Вимкнути локально: `TEACHER_PAYMENT_TEST_BYPASS=0`.
+Модуль WayForPay (`src/modules/payments`) лишається в репо на майбутнє; реєстрація викладача його більше не викликає.
 
 **Скидання демо-даних:** старі тести до auth писалися з `user_id=1`, тому вони «прилипають» до demo-student. Очистити:
 
@@ -105,9 +97,9 @@ npm run reset-demo-student
 | Що | Де |
 | --- | --- |
 | Вхід / вихід | `/login`, cookie `nmt_session` |
-| Реєстрація | `/register` — публічна, лише роль `student` |
-| Реєстрація викладача | `/register/teacher` — pending у `teacher_payments`, акаунт `role=teacher` лише після `transactionStatus=Approved` від WayForPay (500 грн). Без ключів — UI-заглушка, checkout не підписується. У dev / sandbox `test_merch_n1` є кнопка «Оплата пройшла» (той самий `activatePaidTeacher`). На живому мерчанті в production — ні |
-| Webhook оплати | `POST /api/payments/wayforpay/webhook` (публічний, перевірка HMAC_MD5) |
+| Реєстрація | `/register` — публічна, роль `student` |
+| Реєстрація викладача | `/register/teacher` — публічна, роль `teacher`, авто-вхід одразу (без оплати). Модуль WayForPay в репо лишається, до цього потоку не підключений |
+| Webhook оплати | `POST /api/payments/wayforpay/webhook` (публічний, HMAC_MD5; зараз не потрібен для реєстрації викладача) |
 | Ролі | `student`, `teacher`, `admin` |
 | Облікові записи | таблиця `app_users` (окремо від legacy `users` на хостингу) |
 | Middleware | редірект на `/login`; публічні `/`, `/welcome`, `/login`, `/register` (+ `/register/teacher`), `/diagnostic`, `/t/{slug}` і статика з `public/`; webhook/return WayForPay під `/api/payments/wayforpay/*` (усі `/api/*` без auth-guard); `/settings` — лише admin; `/students` — teacher/admin |

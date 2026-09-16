@@ -46,7 +46,7 @@ export function normalizeDisplayName(raw: string): string {
 }
 
 /**
- * Validates public self-registration fields (student only).
+ * Validates public self-registration fields (student or teacher).
  * Returns a field error code or normalized values.
  */
 export function validateRegistrationInput(

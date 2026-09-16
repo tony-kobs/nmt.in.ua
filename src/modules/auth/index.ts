@@ -33,6 +33,7 @@ export type {
 export {
   loginAction,
   registerAction,
+  registerTeacherAction,
   logoutAction,
   demoLoginAction,
   changePasswordAction,

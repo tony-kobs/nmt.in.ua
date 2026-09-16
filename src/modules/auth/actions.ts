@@ -68,7 +68,7 @@ export async function loginAction(
 
 /**
  * Public self-registration. Always creates a student account, then signs in.
- * Teacher/admin remain demo-only (or admin-provisioned later).
+ * Teachers use `/register/teacher` (`registerTeacherAction`).
  */
 export async function registerAction(
   _prev: RegisterActionState,
@@ -121,6 +121,44 @@ export async function registerAction(
   }
 
   redirect(nextPath);
+}
+
+/**
+ * Public teacher self-registration. Creates a teacher account and signs in.
+ * Payment is not part of this flow.
+ */
+export async function registerTeacherAction(
+  _prev: RegisterActionState,
+  formData: FormData,
+): Promise<RegisterActionState> {
+  const validated = validateRegistrationInput({
+    login: String(formData.get("login") ?? ""),
+    displayName: String(formData.get("displayName") ?? ""),
+    password: String(formData.get("password") ?? ""),
+    passwordConfirm: String(formData.get("passwordConfirm") ?? ""),
+  });
+
+  if (!validated.ok) {
+    return { status: "error", code: validated.code };
+  }
+
+  try {
+    const user = await createUser({
+      login: validated.value.login,
+      displayName: validated.value.displayName,
+      password: validated.value.password,
+      role: "teacher",
+    });
+    await setSessionCookie(user);
+  } catch (error) {
+    if (error instanceof CreateUserError && error.code === "login_taken") {
+      return { status: "error", code: "loginTaken" };
+    }
+    console.error("registerTeacherAction: unexpected error", error);
+    return { status: "error", code: "serverError" };
+  }
+
+  redirect("/");
 }
 
 export async function demoLoginAction(

@@ -675,7 +675,7 @@
       "items": {
         "price": {
           "q": "How much does it cost?",
-          "a": "The student workspace is free: sign-up, topic tests, results and recommendations are available as soon as you create an account."
+          "a": "Student and teacher sign-up is immediate. Topic tests, results and recommendations are available as soon as you create an account — no card needed."
         },
         "who": {
           "q": "Who is the platform for?",
@@ -734,7 +734,7 @@
     "noAccount": "No account yet?",
     "registerLink": "Create an account",
     "teacherPrompt": "Teacher?",
-    "teacherLink": "Open a teacher cabinet (500 UAH)"
+    "teacherLink": "Teacher cabinet registration"
   },
   "RegisterForm": {
     "kicker": "Sign up",
@@ -769,40 +769,36 @@
     "kicker": "For teachers",
     "title": "Teacher cabinet",
     "lead": "Assign mentor sessions and follow student progress. Admins are not created through this flow.",
-    "fee": "One-time fee of {fee} UAH — opens the cabinet.",
     "benefits": {
       "mentor": "Mentor sessions for a student’s weak topics",
       "progress": "See results and topics that need more practice",
       "cabinet": "The same workspace as students, plus an assignment panel"
     },
-    "paymentNotConfigured": "Payments are not set up yet. You can save the application; a WayForPay checkout is not created and the cabinet stays inactive.",
-    "asideBadge": "Teachers · 500 UAH",
+    "asideBadge": "Teachers",
     "asideTitle": "A cabinet to guide students to the NMT",
-    "asideLead": "After payment you see student progress and can assign practice for weak topics.",
+    "asideLead": "You see student progress and can assign practice for weak topics.",
     "displayName": "Display name",
     "login": "Login",
     "loginHint": "Latin letters, digits, dot, _ or - (at least 3 characters).",
     "password": "Password",
     "passwordHint": "At least {min} characters.",
     "passwordConfirm": "Confirm password",
-    "submitting": "Saving…",
-    "redirecting": "Opening payment…",
-    "submitPay": "Pay {fee} UAH",
-    "submitSave": "Save application",
+    "submitting": "Creating…",
+    "submit": "Create account",
     "haveAccount": "Already have an account?",
     "signInLink": "Sign in",
     "studentPrompt": "Are you a student?",
-    "studentLink": "Free registration",
+    "studentLink": "Student registration",
     "testBypass": {
-      "hint": "Testing only: this does not charge a card or open WayForPay.",
-      "payOk": "Payment succeeded",
+      "hint": "Legacy check for old return pages only.",
+      "payOk": "Confirm",
       "working": "Opening the cabinet…",
-      "payAtGateway": "Continue to WayForPay",
-      "openGateway": "Open the real WayForPay gateway (not needed for testing)",
-      "pendingLead": "Application saved. For local testing, tap “Payment succeeded” — you do not need WayForPay.",
+      "payAtGateway": "Open gateway",
+      "openGateway": "Open gateway (not needed)",
+      "pendingLead": "Application found. For local testing, tap “Confirm”.",
       "errors": {
-        "disabled": "Test payment confirmation is disabled in this environment.",
-        "missing_reference": "No payment application found. Fill in the form again.",
+        "disabled": "Test confirmation is disabled in this environment.",
+        "missing_reference": "No application found. Fill in the form again.",
         "not_found": "The application was not found. Fill in the form again.",
         "not_pending": "This application has already been processed.",
         "activate_failed": "Could not activate the cabinet. Try again later."
@@ -817,28 +813,26 @@
       "passwordMismatch": "Passwords do not match.",
       "loginTaken": "This login is already taken.",
       "reservedLogin": "This login is reserved for demos.",
-      "serverError": "Could not save the application. Try again later.",
-      "paymentNotConfigured": "Payments are not configured yet. Your application was saved; the cabinet will open after WayForPay acquiring is connected.",
-      "invoiceFailed": "Could not start WayForPay checkout. Try again later."
+      "serverError": "Could not create the account. Try again later."
     },
     "result": {
       "success": {
-        "kicker": "Payment",
+        "kicker": "Done",
         "title": "Teacher cabinet is open",
-        "lead": "Payment is confirmed. You can sign in and assign sessions to students.",
+        "lead": "You can sign in and assign sessions to students.",
         "cta": "Go to cabinet"
       },
       "pending": {
-        "kicker": "Waiting for payment",
-        "title": "The invoice is still processing",
-        "lead": "If you already paid, wait a few seconds and refresh. The cabinet appears after the bank confirms the payment.",
+        "kicker": "Processing",
+        "title": "Still processing the request",
+        "lead": "Wait a few seconds and refresh — or register again on the teacher page.",
         "cta": "Sign in later"
       },
       "fail": {
-        "kicker": "Payment",
-        "title": "Payment was not completed",
-        "lead": "The payment was cancelled or failed. The teacher cabinet is not active yet.",
-        "hint": "No charge was made, or the bank declined the payment. You can try again.",
+        "kicker": "Try again",
+        "title": "Registration was not completed",
+        "lead": "The teacher cabinet is not active yet. You can try again.",
+        "hint": "Go back to teacher registration and create the account again.",
         "retry": "Back to registration"
       }
     }
@@ -948,15 +942,15 @@
     },
     "teacherRegister": {
       "title": "Teacher registration",
-      "description": "Teacher cabinet on nmt.in.ua: mentor sessions and student progress. One-time fee of 500 UAH."
+      "description": "Teacher cabinet on nmt.in.ua: mentor sessions and student progress."
     },
     "teacherRegisterSuccess": {
-      "title": "Payment successful",
-      "description": "The teacher cabinet is active after payment."
+      "title": "Registration complete",
+      "description": "Teacher cabinet is active."
     },
     "teacherRegisterFail": {
-      "title": "Payment not completed",
-      "description": "The teacher-cabinet payment was cancelled or failed."
+      "title": "Registration not completed",
+      "description": "Teacher cabinet was not activated."
     },
     "session": {
       "title": "Taking a Test",

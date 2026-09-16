@@ -48,7 +48,6 @@ export type {
   SimulateTeacherPaymentSuccessResult,
 } from "./testBypass";
 export {
-  registerTeacherAction,
   claimTeacherSessionAction,
   simulateTeacherPaymentSuccessAction,
 } from "./actions";
