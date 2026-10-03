@@ -2,6 +2,8 @@ import "server-only";
 
 import { timingSafeEqual } from "node:crypto";
 import { consumeTelegramLink } from "./link";
+import { getTelegramTaskSessions, getTelegramTodayTaskSessions } from "./tasks";
+import { formatTelegramTasks } from "./taskCommands";
 
 type TelegramMessage = {
   chat?: { id?: number; type?: string };
@@ -39,8 +41,32 @@ export function parseTelegramStart(update: unknown): {
 
 export async function handleTelegramUpdate(
   update: unknown,
-  deps: { consume: typeof consumeTelegramLink } = { consume: consumeTelegramLink },
+  deps: {
+    consume: typeof consumeTelegramLink;
+    getTasks?: typeof getTelegramTaskSessions;
+    getTodayTasks?: typeof getTelegramTodayTaskSessions;
+    logError?: (error: unknown) => void;
+  } = { consume: consumeTelegramLink },
 ): Promise<{ chatId: string; text: string } | null> {
+  const command = parseTelegramTaskCommand(update);
+  if (command) {
+    try {
+      const service = command.today
+        ? deps.getTodayTasks ?? getTelegramTodayTaskSessions
+        : deps.getTasks ?? getTelegramTaskSessions;
+      const result = await service(command.userId);
+      if (result.status === "error") {
+        return { chatId: command.chatId, text: result.code === "databaseFailure"
+          ? "Не вдалося отримати завдання. Спробуйте пізніше."
+          : "Спочатку підключіть Telegram у своєму кабінеті на nmt.in.ua." };
+      }
+      return { chatId: command.chatId, text: formatTelegramTasks(result.sessions, command.today) };
+    } catch (error) {
+      if (deps.logError) deps.logError(error);
+      else console.error("telegram tasks: command failed", error);
+      return { chatId: command.chatId, text: "Не вдалося отримати завдання. Спробуйте пізніше." };
+    }
+  }
   const start = parseTelegramStart(update);
   if (!start) return null;
   if (!start.payload) {
@@ -57,4 +83,16 @@ export async function handleTelegramUpdate(
       ? "Telegram успішно підключено до вашого облікового запису."
       : "Посилання недійсне або термін його дії минув. Створіть нове у своєму кабінеті.",
   };
+}
+
+export function parseTelegramTaskCommand(update: unknown): {
+  chatId: string; userId: string; today: boolean;
+} | null {
+  if (typeof update !== "object" || update === null) return null;
+  const message = (update as { message?: TelegramMessage }).message;
+  if (!message || !message.chat || !message.from || message.chat.type !== "private" ||
+      !Number.isSafeInteger(message.chat.id) || !Number.isSafeInteger(message.from.id) ||
+      Number(message.from.id) <= 0 || message.chat.id !== message.from.id || typeof message.text !== "string") return null;
+  const match = /^\/(tasks|today)(?:@\w+)?\s*$/.exec(message.text);
+  return match ? { chatId: String(message.chat.id), userId: String(message.from.id), today: match[1] === "today" } : null;
 }

@@ -23,6 +23,13 @@ test("webhook rejects missing configuration and unauthenticated requests", async
     const rejected = await POST(new Request("https://example.test/api/telegram/webhook", { method: "POST", body: validUpdate }));
     assert.equal(rejected.status, 401);
     assert.doesNotMatch(await rejected.text(), /private-bot-token|private-webhook-secret/);
+    const headers = { "x-telegram-bot-api-secret-token": "private-webhook-secret" };
+    assert.equal((await POST(new Request("https://example.test/api/telegram/webhook", {
+      method: "POST", headers: { ...headers, "content-length": "65537" }, body: validUpdate,
+    }))).status, 413);
+    assert.equal((await POST(new Request("https://example.test/api/telegram/webhook", {
+      method: "POST", headers, body: "x".repeat(65537),
+    }))).status, 413);
   } finally {
     if (previous.token === undefined) delete process.env.TELEGRAM_BOT_TOKEN;
     else process.env.TELEGRAM_BOT_TOKEN = previous.token;

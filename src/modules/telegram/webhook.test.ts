@@ -27,5 +27,5 @@ test("/start payload links and invalid payload gets generic reply", async () => 
   assert.deepEqual(seen, ["abc"]);
   assert.match(valid!.text, /успішно/);
   assert.doesNotMatch(invalid!.text, /user|token|hash|database/i);
-  assert.equal(await handleTelegramUpdate(start("/tasks")), null);
+  assert.equal(await handleTelegramUpdate(start("/unknown")), null);
 });
