@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Reveal } from "@/components/ui/Reveal";
 import { DiagnosticPageTurnLink } from "@/components/welcome/DiagnosticPageTurnLink";
@@ -7,7 +6,7 @@ import { ArrowRightIcon, CheckIcon, TimerIcon, TrendIcon } from "../icons";
 import css from "../landing.module.css";
 
 const STAT_KEYS = ["topics", "simulator", "materials"] as const;
-const STEP_KEYS = ["signup", "diagnose", "train", "track"] as const;
+const STEP_KEYS = ["diagnose", "signup", "train", "track"] as const;
 
 export async function Hero() {
   const t = await getTranslations("WelcomeLanding.hero");
@@ -53,19 +52,20 @@ export async function Hero() {
             </ol>
 
             <div className={css.heroActions}>
-              <Link href="/register" className={`${css.btn} ${css.btnPrimary}`}>
-                {t("ctaPrimary")}
-                <ArrowRightIcon size={18} />
-              </Link>
-              <Link href="/login" className={`${css.btn} ${css.btnGhost}`}>
-                {t("ctaSecondary")}
-              </Link>
-              <DiagnosticPageTurnLink
-                href="/diagnostic"
-                className={`${css.btn} ${css.btnGhost}`}
-              >
-                {t("ctaDiagnostic")}
-              </DiagnosticPageTurnLink>
+              {/* Recommended first step: the guest diagnostic needs no account. */}
+              <div className={css.heroPathPrimary}>
+                <p className={css.heroPathPrompt}>{t("diagnosticPrompt")}</p>
+                <div className={css.heroPathRow}>
+                  <DiagnosticPageTurnLink
+                    href="/diagnostic"
+                    className={`${css.btn} ${css.btnPrimary}`}
+                  >
+                    {t("ctaDiagnostic")}
+                    <ArrowRightIcon size={18} />
+                  </DiagnosticPageTurnLink>
+                  <p className={css.heroPathText}>{t("diagnosticHint")}</p>
+                </div>
+              </div>
             </div>
           </div>
 

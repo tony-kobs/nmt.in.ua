@@ -871,9 +871,9 @@
       "titleStart": "Prepare for the NMT in maths —",
       "titleAccent": "systematically, with results",
       "lead": "An online workspace that shows your weak topics, trains you in exam format and gives a clear plan for the next steps. No scattered PDFs, no random tests.",
-      "ctaPrimary": "Start preparing",
-      "ctaSecondary": "I already have an account",
+      "diagnosticPrompt": "Not sure where to start? Check your level",
       "ctaDiagnostic": "Test your knowledge",
+      "diagnosticHint": "A short test, no sign-up needed. Find out your level and your strong and weak topics, and get recommendations for what to study next.",
       "note": "Sign up in a minute — no card, no payment",
       "imageAlt": "Illustration: a function graph, a progress ring and geometric shapes",
       "stats": {
@@ -942,7 +942,7 @@
         },
         "diagnose": {
           "title": "Take the diagnostic",
-          "text": "The first test shows your level and weak topics."
+          "text": "A short test, no sign-up needed, shows your level and weak topics."
         },
         "train": {
           "title": "Practise with a plan",

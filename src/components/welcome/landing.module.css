@@ -491,6 +491,44 @@
   width: 100%;
 }
 
+/* The recommended first step: a guest diagnostic that needs no account. */
+.heroPathPrimary {
+  display: grid;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: var(--space-md);
+  border: 1px solid rgb(31 143 69 / 32%);
+  border-radius: var(--radius-lg);
+  background: rgb(214 236 217 / 55%);
+  box-shadow: var(--shadow-sm);
+}
+
+.heroPathPrompt {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--fs-h4);
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.heroPathRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.heroPathText {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
 .heroNote {
   display: flex;
   align-items: center;
@@ -954,9 +992,7 @@ button.footerLink {
   }
 
   .heroCtaBlock {
-    display: inline-flex;
-    width: auto;
-    max-width: 100%;
+    max-width: 42rem;
   }
 
   .heroSteps {
@@ -964,11 +1000,18 @@ button.footerLink {
     gap: var(--space-sm);
   }
 
-  .heroActions {
+  .heroPathPrimary {
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  .heroPathRow {
     flex-direction: row;
-    flex-wrap: wrap;
-    width: max-content;
-    max-width: 100%;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .heroPathRow > .btn {
+    flex: none;
   }
 
   .heroStats {

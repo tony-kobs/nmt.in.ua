@@ -871,9 +871,9 @@
       "titleStart": "Vorbereitung auf die NMT in Mathematik —",
       "titleAccent": "systematisch und mit Ergebnis",
       "lead": "Ein Online-Bereich, der Ihre Schwachstellen zeigt, im Prüfungsformat trainiert und einen klaren Plan für die nächsten Schritte gibt. Ohne verstreute PDFs und zufällige Tests.",
-      "ctaPrimary": "Vorbereitung starten",
-      "ctaSecondary": "Ich habe ein Konto",
+      "diagnosticPrompt": "Du weißt nicht, wo du anfangen sollst? Prüfe dein Niveau",
       "ctaDiagnostic": "Teste dein Wissen",
+      "diagnosticHint": "Ein kurzer Test ohne Registrierung. Erfahre dein Niveau, deine starken und schwachen Themen und erhalte Empfehlungen für die weitere Vorbereitung.",
       "note": "Registrierung in einer Minute — ohne Karte und Zahlung",
       "imageAlt": "Illustration: Funktionsgraph, Fortschrittsdiagramm und geometrische Formen",
       "stats": {
@@ -942,7 +942,7 @@
         },
         "diagnose": {
           "title": "Diagnose absolvieren",
-          "text": "Der erste Test zeigt Niveau und schwache Themen."
+          "text": "Ein kurzer Test ohne Registrierung zeigt Niveau und schwache Themen."
         },
         "train": {
           "title": "Nach Plan üben",
