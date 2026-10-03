@@ -150,6 +150,6 @@ Write-доступ у репозиторії є, комітів немає: **ol
 
 Усе інше з оригінального розкладу (1.1–1.5, 2.1–2.4, 3.1–3.9, 4.1–4.9, авторизація, підручник, варіанти НМТ, відгук) — зроблено.
 
-# Telegram integration increment (TG-001, TG-002)
+# Telegram integration increment (TG-001, TG-002, TG-003)
 
-TG-001 provides a webhook-compatible Telegram transport. TG-002 provides one-time account linking from the authenticated account page. See [Telegram integration](telegram-integration.md) for architecture, schema, security invariants, configuration, and deployment requirements. TG-003 through TG-009 remain future work.
+TG-001 provides a webhook-compatible Telegram transport. TG-002 provides one-time account linking from the authenticated account page. TG-003 provides a read-only, ownership-scoped Tasks API resolving Telegram identity through `user_telegram_accounts`, using existing session/task tables and returning no hidden answers. No public endpoint or migration is added. Telegram configuration remains optional; when enabled, the production webhook is `https://nmt.in.ua/api/telegram/webhook`. See [Telegram integration](telegram-integration.md) for the API contract, filtering, limits, security and deployment requirements. TG-004 through TG-009 remain future work.
