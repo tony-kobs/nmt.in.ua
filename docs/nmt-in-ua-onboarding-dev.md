@@ -404,6 +404,10 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 
 Локально перевірити групи: `mysql … < scripts/sql/034_student_groups_invites.sql` (або відкрити `/students` — lazy `ensureTeacherStudentsSchema` створить таблиці). `demo-teacher` / `demo123`: створити групу, особистий і груповий код. `demo-student`: `/join/КОД` (гість спочатку потрапляє на логін, код у шляху зберігається). Другий груповий код замінює групу. На `/consultations` кнопка «Приєднати».
 
+### Telegram Tasks API (TG-003)
+
+Read-only сервіс `src/modules/telegram/tasks.ts` приймає Telegram identity, а не application userId. Прив'язка через `user_telegram_accounts` визначає власника; джерело даних — наявні таблиці сесій і завдань. DTO не містить правильних відповідей чи секретів. Міграція для TG-003 не потрібна. `TELEGRAM_*` залишаються опційними: без них сайт працює, але `/account` не генерує Telegram link. Webhook після ввімкнення: `https://nmt.in.ua/api/telegram/webhook`. Контракт і правила фільтрації — у [telegram-integration.md](./telegram-integration.md).
+
 ## 12. Як здати роботу
 
 - PR у `dev`, не в `main`. Назва: `feat: …` / `fix: …` / `docs: …`. У `dev` потрібен один approve.
