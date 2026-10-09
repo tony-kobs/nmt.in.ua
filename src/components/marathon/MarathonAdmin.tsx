@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
 import { kyivDateIso } from "@/modules/marathons/daily/calendar";
+import { loadMarathonCopy } from "@/modules/marathons/daily/store";
 import {
   deleteDayAction,
   deleteMarathonAction,
@@ -29,7 +30,9 @@ import {
   CreateMarathonForm,
   MarathonSettingsForm,
   UpdateDayForm,
+  UpdateMaterialForm,
 } from "./admin/MarathonAdminForms";
+import { CopyEditor } from "./admin/CopyEditor";
 import { MarathonPublicLink } from "./admin/MarathonPublicLink";
 import { marathonErrorText } from "./errors";
 import { ConfirmSubmit, SubmitButton } from "./ConfirmSubmit";
@@ -108,6 +111,7 @@ export async function MarathonAdminEditor({
 }) {
   const t = await getTranslations("Marathon");
   const message = marathonErrorText(t, error);
+  const copy = await loadMarathonCopy(marathon.id);
   return (
     <PageFrame kicker={t("kicker")} title={marathon.title}>
       <AdminNotices
@@ -146,6 +150,7 @@ export async function MarathonAdminEditor({
           </form>
         </div>
         <MarathonSettingsForm marathon={marathon} />
+        <CopyEditor marathonId={marathon.id} overrides={copy} />
 
         <section className={css.card} aria-labelledby="riddles">
           <h2 id="riddles">{t("riddlesTitle")}</h2>
@@ -193,10 +198,17 @@ export async function MarathonAdminEditor({
                   {t("delete")}
                 </ConfirmSubmit>
               </form>
-              <ul>
+              <div className={css.stack}>
                 {day.materials.map((material) => (
-                  <li key={material.id}>
-                    {material.type}: {material.urlOrBody.slice(0, 80)}
+                  <div key={material.id}>
+                    <UpdateMaterialForm
+                      marathonId={marathon.id}
+                      dayId={day.id}
+                      materialId={material.id}
+                      order={material.order}
+                      type={material.type}
+                      urlOrBody={material.urlOrBody}
+                    />
                     <form action={deleteMaterialAction}>
                       <input type="hidden" name="marathonId" value={marathon.id} />
                       <input type="hidden" name="dayId" value={day.id} />
@@ -205,9 +217,9 @@ export async function MarathonAdminEditor({
                         {t("delete")}
                       </SubmitButton>
                     </form>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
               <AddMaterialForm
                 marathonId={marathon.id}
                 dayId={day.id}

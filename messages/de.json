@@ -814,6 +814,11 @@
     "choiceMissing": "Die Antwort wurde nicht gespeichert.",
     "explanationHint": "Optional. Die Teilnehmenden sehen sie nach dem Abgeben.",
     "backToMap": "Zur Tageskarte",
+    "introTitle": "Marathon-Regeln",
+    "introContinue": "Weiter",
+    "introAgain": "Regeln",
+    "channelTitle": "Wie teilnehmen",
+    "emailFallback": "Der Bot ist noch nicht verknüpft — bis dahin kommen Erinnerungen per E-Mail.",
     "finalTitle": "Marathon-Zusammenfassung",
     "notDone": "Noch nicht geschafft",
     "weakTitle": "Schwache Themen",
@@ -873,6 +878,7 @@
       "passThreshold": "Schwelle, %",
       "finalCtaText": "Button-Text",
       "finalCtaUrl": "Button-Link",
+      "introVideo": "Einführungsvideo",
       "order": "Reihenfolge",
       "riddleTitle": "Titel des Rätsels",
       "body": "Text",
@@ -901,6 +907,7 @@
       "daysCount": "Ganze Zahl von 1 bis 14.",
       "passThreshold": "Ganze Zahl von 0 bis 100.",
       "finalCtaUrl": "Pfad mit / oder volle Adresse http:// bzw. https://.",
+      "introVideo": "Optional. Ein YouTube- oder Loom-Link. Wird einmal am Anfang gezeigt.",
       "materialVideo": "Für YouTube oder Loom den Videolink einfügen.",
       "taskEither": "Entweder eine Bank-ID oder eine eigene Formulierung mit Optionen."
     },
@@ -949,7 +956,14 @@
         "duplicate": "Diese Reihenfolge ist schon belegt."
       },
       "body": {
-        "required": "Gib den Text an."
+        "required": "Gib den Text an.",
+        "placeholder": "Unbekannter Platzhalter. Erlaubt sind nur name, day, topic, unlock_time und link in geschweiften Klammern."
+      },
+      "introVideo": {
+        "format": "Das Einführungsvideo muss ein YouTube- oder Loom-Link sein."
+      },
+      "copyKey": {
+        "unknown": "Unbekannter Text. Lade die Seite neu."
       },
       "answer": {
         "required": "Gib die Antwort an."
@@ -978,6 +992,45 @@
       },
       "correct": {
         "range": "Die Nummer der richtigen Antwort muss auf eine ausgefüllte Option zeigen (1–4)."
+      }
+    },
+    "copy": {
+      "title": "Texte für Teilnehmende",
+      "lead": "Ein leeres Feld wird nicht gespeichert. Zurücksetzen stellt den ukrainischen Standard wieder her. Die Vorschau füllt ein Beispiel ein.",
+      "preview": "Vorschau",
+      "reset": "Auf Standard zurücksetzen",
+      "tooLong": "Nach dem Einsetzen ist der Text länger als das Telegram-Limit ({limit} Zeichen). Der Bot teilt lange Materialien, diese Vorlage muss in eine Nachricht passen.",
+      "buttonLong": "Die Beschriftung ist länger als {limit} Zeichen — Telegram lehnt sie ab.",
+      "placeholdersHint": "Platzhalter in geschweiften Klammern: name, day, topic, unlock_time, link.",
+      "groups": {
+        "intro": "Einstieg",
+        "day": "Tagesauswertung",
+        "final": "Zusammenfassung",
+        "notify": "E-Mail und Hinweise",
+        "channel": "Kanalwahl",
+        "bot": "Telegram"
+      },
+      "labels": {
+        "intro_rules": "Regeln",
+        "review_intro": "Text vor der Auswertung",
+        "final_summary": "Text der Zusammenfassung",
+        "notify_day_open": "Tag geöffnet",
+        "notify_reminder": "Erinnerung um 19:00",
+        "notify_tomorrow": "Ankündigung des nächsten Tages",
+        "notify_final": "Abschluss nach dem letzten Tag",
+        "channel_prompt": "Wie teilnehmen",
+        "bot_start": "Start ohne Code",
+        "bot_menu": "Menü",
+        "bot_btn_today": "Button Heute",
+        "bot_btn_map": "Button Karte",
+        "bot_btn_channel": "Button Kanal ändern",
+        "bot_btn_stop": "Button Hinweise stoppen",
+        "bot_btn_site": "Button Auf der Website",
+        "bot_btn_telegram": "Button In Telegram",
+        "bot_locked": "Tag noch geschlossen",
+        "bot_link_ok": "Bot verknüpft",
+        "bot_open_site": "Button Auf der Website öffnen",
+        "bot_to_tasks": "Button Zu den Aufgaben"
       }
     },
     "status": {

@@ -1,4 +1,5 @@
 import { parseUnlockHour } from "./calendar";
+import { isCopyKey, unknownPlaceholders, type CopyKey } from "./copy";
 import { loomEmbedSrc, youtubeEmbedSrc } from "./richText";
 import { normalizeCtaUrl, readUtm, serializeUtm, type UtmParams } from "./utm";
 
@@ -84,6 +85,7 @@ export type MarathonInput = {
   passThreshold: number;
   finalCtaText: string;
   finalCtaUrl: string;
+  introVideoUrl: string;
 };
 
 export function parseMarathonInput(formData: FormData): ParseResult<MarathonInput> {
@@ -98,6 +100,8 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
   const finalCtaText = readText(formData.get("finalCtaText"), 500);
   const finalCtaRaw = readText(formData.get("finalCtaUrl"), 500);
   const finalCtaUrl = normalizeCtaUrl(finalCtaRaw);
+  const introVideoRaw = readText(formData.get("introVideoUrl"), 500);
+  const introVideoUrl = introVideoRaw;
   if (!slug) issue(issues, "slug", "required");
   else if (!isSlug(slug)) issue(issues, "slug", "format");
   if (title.length < 2) issue(issues, "title", "required");
@@ -114,6 +118,9 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
   if (!finalCtaText) issue(issues, "finalCtaText", "required");
   if (!finalCtaRaw) issue(issues, "finalCtaUrl", "required");
   else if (!finalCtaUrl) issue(issues, "finalCtaUrl", "format");
+  if (introVideoRaw && !youtubeEmbedSrc(introVideoRaw) && !loomEmbedSrc(introVideoRaw)) {
+    issue(issues, "introVideo", "format");
+  }
   if (issues.length > 0 || !finalCtaUrl) return { ok: false, issues };
   return {
     ok: true,
@@ -127,8 +134,22 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
       passThreshold: passThreshold as number,
       finalCtaText,
       finalCtaUrl,
+      introVideoUrl,
     },
   };
+}
+
+export type CopyFormInput = { key: CopyKey; body: string };
+
+export function parseCopyInput(formData: FormData): ParseResult<CopyFormInput> {
+  const issues: FieldIssue[] = [];
+  const key = readText(formData.get("copyKey"), 64);
+  const body = readText(formData.get("body"), 20_000);
+  if (!isCopyKey(key)) issue(issues, "copyKey", "unknown");
+  if (!body) issue(issues, "body", "required");
+  else if (unknownPlaceholders(body).length > 0) issue(issues, "body", "placeholder");
+  if (issues.length > 0 || !isCopyKey(key)) return { ok: false, issues };
+  return { ok: true, value: { key, body } };
 }
 
 export type MaterialInput = { order: number; type: MaterialType; urlOrBody: string };

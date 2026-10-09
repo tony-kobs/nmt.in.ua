@@ -38,6 +38,7 @@ export async function seedMathMarathon(): Promise<"created" | "exists"> {
     passThreshold: MATH_MARATHON_SEED.passThreshold,
     finalCtaText: MATH_MARATHON_SEED.finalCtaText,
     finalCtaUrl: MATH_MARATHON_SEED.finalCtaUrl,
+    introVideoUrl: "",
     startsAt,
     endsAt,
   });

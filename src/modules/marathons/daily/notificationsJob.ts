@@ -4,12 +4,16 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { absoluteUrl, sendMail } from "@/modules/mail/sendMail";
 import { sendTelegramMessage } from "@/modules/telegram/transport";
 import { optionalTelegramBot } from "./botLink";
-import { marathonBotText, marathonDayUrl, marathonMail } from "./mailCopy";
+import { dayUnlockAt, formatKyivWhen } from "./calendar";
+import { renderResolved, type CopyKey } from "./copy";
+import { marathonDayUrl, wrapMarathonMail } from "./mailCopy";
 import {
   deliverNotifications,
+  planFollowUps,
   planNotifications,
   unsubscribeToken,
   type NotifyIntent,
+  type NotifyKind,
 } from "./notifications";
 import {
   claimNotification,
@@ -36,6 +40,13 @@ export function isMarathonCronAuthorized(header: string | null): boolean {
   return timingSafeEqual(digest(provided), digest(secret));
 }
 
+function kindKey(kind: NotifyKind): CopyKey {
+  if (kind === "day_open") return "notify_day_open";
+  if (kind === "reminder") return "notify_reminder";
+  if (kind === "tomorrow") return "notify_tomorrow";
+  return "notify_final";
+}
+
 type Delivery = {
   intent: NotifyIntent;
   email: string | null;
@@ -52,40 +63,58 @@ function buildDeliveries(
 ): Delivery[] {
   const deliveries: Delivery[] = [];
   for (const marathon of audience) {
-    const intents = planNotifications({
-      now,
-      marathonId: marathon.marathonId,
-      startDate: marathon.startDate,
-      unlockHour: marathon.unlockHour,
-      daysCount: marathon.daysCount,
-      people: marathon.people,
-    });
+    const intents = [
+      ...planNotifications({
+        now,
+        marathonId: marathon.marathonId,
+        startDate: marathon.startDate,
+        unlockHour: marathon.unlockHour,
+        daysCount: marathon.daysCount,
+        people: marathon.people,
+      }),
+      ...planFollowUps({
+        marathonId: marathon.marathonId,
+        daysCount: marathon.daysCount,
+        people: marathon.people,
+      }),
+    ];
     for (const intent of intents) {
       const person = marathon.people.find((item) => item.userId === intent.userId);
       if (!person) continue;
       const topic = marathon.topics[intent.dayNumber] ?? `День ${intent.dayNumber}`;
-      const dayUrl = marathonDayUrl(marathon.slug, intent.dayNumber);
+      const dayUrl = intent.kind === "final"
+        ? absoluteUrl(`/marathon/${encodeURIComponent(marathon.slug)}/final`)
+        : marathonDayUrl(marathon.slug, intent.dayNumber);
+      let unlockLabel = "";
+      if (intent.kind === "tomorrow" || intent.kind === "day_open") {
+        unlockLabel = formatKyivWhen(
+          dayUnlockAt({
+            startDate: marathon.startDate,
+            unlockHour: marathon.unlockHour,
+            dayNumber: intent.dayNumber,
+          }),
+          "uk-UA",
+        );
+      }
+      const rendered = renderResolved(kindKey(intent.kind), marathon.copy, {
+        name: person.displayName,
+        day: intent.dayNumber,
+        topic,
+        unlock_time: unlockLabel,
+        link: dayUrl,
+      });
       const unsub = secret
         ? absoluteUrl(
             `/api/marathon/unsubscribe?m=${marathon.marathonId}&u=${person.userId}&t=${unsubscribeToken(marathon.marathonId, person.userId, secret)}`,
           )
         : null;
-      const mail = marathonMail({
-        kind: intent.kind,
-        title: marathon.title,
-        dayNumber: intent.dayNumber,
-        topic,
-        dayUrl,
-        unsubscribeUrl: unsub,
-      });
+      const mail = wrapMarathonMail({ rendered, unsubscribeUrl: unsub });
       deliveries.push({
         intent,
         email: person.email,
         chatId: person.telegramChatId,
         subject: mail.subject,
-        text: intent.channel === "telegram"
-          ? marathonBotText({ kind: intent.kind, dayNumber: intent.dayNumber, topic, dayUrl })
-          : mail.text,
+        text: intent.channel === "telegram" ? rendered : mail.text,
         html: mail.html,
       });
     }
@@ -147,4 +176,102 @@ export async function runMarathonNotifications(deps: {
 
 function intentKey(intent: NotifyIntent): string {
   return `${intent.marathonId}:${intent.userId}:${intent.dayNumber}:${intent.kind}:${intent.channel}`;
+}
+
+/** Right after a review: tomorrow's topic, or the final note. Idempotent via claim. */
+export async function sendCompletedDayFollowUp(input: {
+  marathonId: number;
+  slug: string;
+  title: string;
+  startDate: string;
+  unlockHour: string;
+  daysCount: number;
+  completedDay: number;
+  topics: Record<number, string>;
+  copy: NotifyAudienceMarathon["copy"];
+  person: NotifyAudienceMarathon["people"][number];
+  /** The bot reply already contains the text, so do not push it again. */
+  skipTelegram?: boolean;
+}): Promise<{ sent: number; skipped: number; failed: number }> {
+  void input.title;
+  const secret = unsubscribeSecret();
+  const planned = planFollowUps({
+    marathonId: input.marathonId,
+    daysCount: input.daysCount,
+    people: [{ ...input.person, completedDayNumbers: [input.completedDay] }],
+  });
+  if (input.skipTelegram) {
+    for (const intent of planned.filter((item) => item.channel === "telegram")) {
+      try {
+        await claimNotification(intent);
+      } catch (error) {
+        console.error("marathon follow-up claim", error);
+      }
+    }
+  }
+  const intents = planned.filter((item) => !(input.skipTelegram && item.channel === "telegram"));
+  const deliveries: Delivery[] = [];
+  for (const intent of intents) {
+    const topic = input.topics[intent.dayNumber] ?? `День ${intent.dayNumber}`;
+    const dayUrl = intent.kind === "final"
+      ? absoluteUrl(`/marathon/${encodeURIComponent(input.slug)}/final`)
+      : marathonDayUrl(input.slug, intent.dayNumber);
+    const unlockLabel = formatKyivWhen(
+      dayUnlockAt({
+        startDate: input.startDate,
+        unlockHour: input.unlockHour,
+        dayNumber: intent.dayNumber,
+      }),
+      "uk-UA",
+    );
+    const rendered = renderResolved(kindKey(intent.kind), input.copy, {
+      name: input.person.displayName,
+      day: intent.dayNumber,
+      topic,
+      unlock_time: unlockLabel,
+      link: dayUrl,
+    });
+    const unsub = secret
+      ? absoluteUrl(
+          `/api/marathon/unsubscribe?m=${input.marathonId}&u=${input.person.userId}&t=${unsubscribeToken(input.marathonId, input.person.userId, secret)}`,
+        )
+      : null;
+    const mail = wrapMarathonMail({ rendered, unsubscribeUrl: unsub });
+    deliveries.push({
+      intent,
+      email: input.person.email,
+      chatId: input.person.telegramChatId,
+      subject: mail.subject,
+      text: intent.channel === "telegram" ? rendered : mail.text,
+      html: mail.html,
+    });
+  }
+  const telegramEnabled = Boolean(optionalTelegramBot());
+  const ready = deliveries.filter((item) => item.intent.channel === "email" || telegramEnabled);
+  const byKey = new Map(ready.map((item) => [intentKey(item.intent), item]));
+  return deliverNotifications(
+    ready.map((item) => item.intent),
+    {
+      claim: claimNotification,
+      release: releaseNotification,
+      send: async (intent) => {
+        const item = byKey.get(intentKey(intent));
+        if (!item) return false;
+        if (intent.channel === "email") {
+          if (!item.email) return false;
+          const result = await sendMail({
+            to: item.email,
+            subject: item.subject,
+            html: item.html,
+            text: item.text,
+          });
+          return result.ok;
+        }
+        const bot = optionalTelegramBot();
+        if (!bot || !item.chatId) return false;
+        const result = await sendTelegramMessage({ chatId: item.chatId, text: item.text }, bot.token);
+        return result.status === "sent";
+      },
+    },
+  );
 }

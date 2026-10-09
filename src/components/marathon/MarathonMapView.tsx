@@ -4,7 +4,7 @@ import { PageFrame } from "@/components/dashboard/PageFrame";
 import {
   joinMarathonAction,
   linkBotAction,
-  notifyPrefsAction,
+  setChannelAction,
 } from "@/modules/marathons/daily/actions";
 import { formatKyivWhen } from "@/modules/marathons/daily/calendar";
 import type { DailyMarathon, DayProgress, Participant } from "@/modules/marathons/daily/store";
@@ -25,6 +25,9 @@ type MarathonMapViewProps = {
   participant: Participant | null;
   locale: string;
   botReady: boolean;
+  channelPrompt: string;
+  siteLabel: string;
+  telegramLabel: string;
   error?: string;
 };
 
@@ -34,6 +37,9 @@ export async function MarathonMapView({
   participant,
   locale,
   botReady,
+  channelPrompt,
+  siteLabel,
+  telegramLabel,
   error,
 }: MarathonMapViewProps) {
   const t = await getTranslations("Marathon");
@@ -100,22 +106,31 @@ export async function MarathonMapView({
                   {t("toFinal")}
                 </Link>
               </p>
+              <p>
+                <Link href={`/marathon/${marathon.slug}/map?panel=rules`} className={css.buttonQuiet}>
+                  {t("introAgain")}
+                </Link>
+              </p>
               <section className={css.card} aria-labelledby="marathon-notify" id="notify">
-                <h2 id="marathon-notify">{t("notifyTitle")}</h2>
-                <form action={notifyPrefsAction} className={css.form}>
+                <h2 id="marathon-notify">{t("channelTitle")}</h2>
+                <p className={css.lead}>{channelPrompt}</p>
+                <form action={setChannelAction} className={css.form}>
                   <input type="hidden" name="slug" value={marathon.slug} />
                   <div className={css.checks}>
                     <label>
-                      <input type="checkbox" name="notifyEmail" value="1" defaultChecked={participant.notifyEmail} />
-                      {t("notifyEmail")}
+                      <input type="radio" name="channel" value="site" defaultChecked={participant.channel !== "telegram"} required />
+                      {siteLabel}
                     </label>
                     <label>
-                      <input type="checkbox" name="notifyBot" value="1" defaultChecked={participant.notifyBot} />
-                      {t("notifyBot")}
+                      <input type="radio" name="channel" value="telegram" defaultChecked={participant.channel === "telegram"} />
+                      {telegramLabel}
                     </label>
                   </div>
                   <button type="submit" className={css.button}>{t("save")}</button>
                 </form>
+                {participant.channel === "telegram" && !participant.telegramChatId ? (
+                  <p className={css.meta}>{t("emailFallback")}</p>
+                ) : null}
                 {botReady ? (
                   <form action={linkBotAction}>
                     <input type="hidden" name="slug" value={marathon.slug} />

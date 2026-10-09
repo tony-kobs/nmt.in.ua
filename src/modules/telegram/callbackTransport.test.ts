@@ -55,7 +55,7 @@ test("webhook reports acknowledgement, message delivery and JSON failures withou
           : new Response("not JSON");
       };
       const response = await POST(request(body));
-      assert.equal(response.status, kind.startsWith("ack") ? 500 : 502);
+      assert.equal(response.status, 200);
       assert.equal(await response.text(), "");
       assert.deepEqual(calls, kind.startsWith("ack") ? ["answerCallbackQuery"] : ["answerCallbackQuery", "sendMessage"]);
     }

@@ -814,6 +814,11 @@
     "choiceMissing": "The answer was not saved.",
     "explanationHint": "Optional. Shown to the participant after they submit.",
     "backToMap": "Back to the map",
+    "introTitle": "Marathon rules",
+    "introContinue": "Continue",
+    "introAgain": "Rules",
+    "channelTitle": "How to take it",
+    "emailFallback": "The bot is not linked yet — until it is, reminders go by email.",
     "finalTitle": "Marathon summary",
     "notDone": "Not finished yet",
     "weakTitle": "Weak topics",
@@ -873,6 +878,7 @@
       "passThreshold": "Threshold, %",
       "finalCtaText": "Button label",
       "finalCtaUrl": "Button link",
+      "introVideo": "Intro video",
       "order": "Order",
       "riddleTitle": "Riddle title",
       "body": "Text",
@@ -901,6 +907,7 @@
       "daysCount": "An integer from 1 to 14.",
       "passThreshold": "An integer from 0 to 100.",
       "finalCtaUrl": "A path starting with / or a full http:// or https:// URL.",
+      "introVideo": "Optional. A YouTube or Loom link. Shown once at the start.",
       "materialVideo": "For YouTube or Loom, paste the video link.",
       "taskEither": "Either a bank ID, or your own prompt with options."
     },
@@ -949,7 +956,14 @@
         "duplicate": "That order is already taken."
       },
       "body": {
-        "required": "Enter the text."
+        "required": "Enter the text.",
+        "placeholder": "Unknown placeholder. Only name, day, topic, unlock_time and link are allowed, each in curly braces."
+      },
+      "introVideo": {
+        "format": "The intro video must be a YouTube or Loom link."
+      },
+      "copyKey": {
+        "unknown": "Unknown text. Reload the page."
       },
       "answer": {
         "required": "Enter the answer."
@@ -978,6 +992,45 @@
       },
       "correct": {
         "range": "The correct option number must point at a filled option (1–4)."
+      }
+    },
+    "copy": {
+      "title": "Participant texts",
+      "lead": "An empty field is not saved. Reset restores the Ukrainian default. The preview fills in a sample.",
+      "preview": "Preview",
+      "reset": "Reset to default",
+      "tooLong": "After substitution the text is longer than Telegram’s limit ({limit} characters). The bot splits long materials, but this template must fit in one message.",
+      "buttonLong": "The button label is longer than {limit} characters — Telegram will reject it.",
+      "placeholdersHint": "Placeholders in curly braces: name, day, topic, unlock_time, link.",
+      "groups": {
+        "intro": "Intro",
+        "day": "Day review",
+        "final": "Summary",
+        "notify": "Email and notifications",
+        "channel": "Channel choice",
+        "bot": "Telegram"
+      },
+      "labels": {
+        "intro_rules": "Rules",
+        "review_intro": "Text before the review",
+        "final_summary": "Summary text",
+        "notify_day_open": "Day opened",
+        "notify_reminder": "19:00 reminder",
+        "notify_tomorrow": "Next-day announcement",
+        "notify_final": "Final note after the last day",
+        "channel_prompt": "How to take it",
+        "bot_start": "Start without a code",
+        "bot_menu": "Menu",
+        "bot_btn_today": "Today button",
+        "bot_btn_map": "Map button",
+        "bot_btn_channel": "Change channel button",
+        "bot_btn_stop": "Stop notifications button",
+        "bot_btn_site": "On the site button",
+        "bot_btn_telegram": "In Telegram button",
+        "bot_locked": "Day still locked",
+        "bot_link_ok": "Bot linked",
+        "bot_open_site": "Open on the site button",
+        "bot_to_tasks": "To the tasks button"
       }
     },
     "status": {

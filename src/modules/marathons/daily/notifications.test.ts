@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   deliverNotifications,
+  planFollowUps,
   planNotifications,
   unsubscribeToken,
   verifyUnsubscribeToken,
@@ -104,6 +105,34 @@ test("delivery is idempotent: a claimed send is not repeated, a failure can retr
   const third = await deliverNotifications([intent], { claim, release, send });
   assert.deepEqual(third, { sent: 0, skipped: 1, failed: 0 });
   assert.equal(attempts, 2);
+});
+
+test("tomorrow announcement is claimed once", async () => {
+  const intents = planFollowUps({
+    marathonId: 3,
+    daysCount: 3,
+    people: [{
+      ...person,
+      notifyEmail: false,
+      completedDayNumbers: [1],
+    }],
+  });
+  assert.deepEqual(intents.map((item) => `${item.kind}:${item.dayNumber}:${item.channel}`), [
+    "tomorrow:2:telegram",
+  ]);
+  const seen = new Set<string>();
+  const claim = async (item: NotifyIntent) => {
+    const id = `${item.dayNumber}:${item.kind}:${item.channel}`;
+    if (seen.has(id)) return "duplicate" as const;
+    seen.add(id);
+    return "claimed" as const;
+  };
+  const result = await deliverNotifications([...intents, ...intents], {
+    claim,
+    release: async () => undefined,
+    send: async () => true,
+  });
+  assert.deepEqual(result, { sent: 1, skipped: 1, failed: 0 });
 });
 
 test("unsubscribe token matches only the same participant and secret", () => {
