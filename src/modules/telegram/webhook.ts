@@ -58,6 +58,7 @@ export async function handleTelegramUpdate(
     marathon?: (update: unknown) => Promise<TelegramReply | TelegramReply[] | null>;
     marathonBareStart?: (chatId: string) => Promise<TelegramReply | null>;
     marathonLinkText?: (chatId: string) => Promise<string>;
+    marathonWelcome?: (chatId: string) => Promise<TelegramReply | null>;
     consumeMarathon?: (
       token: string,
       identity: { userId: string; chatId: string; username?: string },
@@ -148,6 +149,10 @@ export async function handleTelegramUpdate(
         chatId: start.chatId,
         username: start.username,
       });
+      if (linked && deps.marathonWelcome) {
+        const welcome = await deps.marathonWelcome(start.chatId);
+        if (welcome) return welcome;
+      }
       const linkedText = linked && deps.marathonLinkText
         ? await deps.marathonLinkText(start.chatId)
         : null;

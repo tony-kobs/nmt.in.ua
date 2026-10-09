@@ -1389,3 +1389,114 @@ export async function getStudentMarathonHref(
     return slug ? `/marathon/${slug}/map` : null;
   }, getConnection);
 }
+
+export async function saveMarathonBotTokens(
+  rows: Array<{ token: string; marathonId: number; userId: number; payload: string }>,
+  getConnection?: Conn,
+): Promise<void> {
+  if (rows.length === 0) return;
+  await withConn(async (connection) => {
+    for (const row of rows) {
+      await connection.execute(
+        `INSERT INTO marathon_bot_tokens (token, marathon_id, user_id, payload)
+         VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE payload = VALUES(payload)`,
+        [row.token, row.marathonId, row.userId, row.payload.slice(0, 240)],
+      );
+    }
+  }, getConnection);
+}
+
+export async function readMarathonBotToken(
+  token: string,
+  marathonId: number,
+  userId: number,
+  getConnection?: Conn,
+): Promise<string | null> {
+  return withConn(async (connection) => {
+    const rows = await connection.query<{ payload: string }>(
+      `SELECT payload FROM marathon_bot_tokens
+       WHERE token = ? AND marathon_id = ? AND user_id = ?`,
+      [token, marathonId, userId],
+    );
+    return rows[0]?.payload ?? null;
+  }, getConnection);
+}
+
+export type TelegramOutboxRow = {
+  id: number;
+  chatId: string;
+  payload: string;
+  attempts: number;
+};
+
+export async function enqueueMarathonTelegram(
+  jobs: Array<{ chatId: string; payload: string }>,
+  getConnection?: Conn,
+): Promise<void> {
+  if (jobs.length === 0) return;
+  await withConn(async (connection) => {
+    for (const job of jobs) {
+      await connection.execute(
+        `INSERT INTO marathon_telegram_outbox (chat_id, payload) VALUES (?, ?)`,
+        [job.chatId, job.payload],
+      );
+    }
+  }, getConnection);
+}
+
+export async function claimMarathonTelegram(
+  limit: number,
+  getConnection?: Conn,
+): Promise<TelegramOutboxRow[]> {
+  return withConn(async (connection) => {
+    const size = Math.min(30, Math.max(1, Math.floor(limit)));
+    const rows = await connection.query<{
+      id: number;
+      chat_id: string;
+      payload: string;
+      attempts: number;
+    }>(
+      `SELECT id, chat_id, payload, attempts
+       FROM marathon_telegram_outbox
+       WHERE status = 'pending' AND (not_before IS NULL OR not_before <= CURRENT_TIMESTAMP)
+       ORDER BY id
+       LIMIT ${size}`,
+      [],
+    );
+    const claimed: TelegramOutboxRow[] = [];
+    for (const row of rows) {
+      const result = await connection.execute(
+        `UPDATE marathon_telegram_outbox
+         SET not_before = DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 2 MINUTE), attempts = attempts + 1
+         WHERE id = ? AND status = 'pending'`,
+        [row.id],
+      );
+      if (result.affectedRows === 1) {
+        claimed.push({
+          id: row.id,
+          chatId: String(row.chat_id),
+          payload: row.payload,
+          attempts: Number(row.attempts) + 1,
+        });
+      }
+    }
+    return claimed;
+  }, getConnection);
+}
+
+export async function finishMarathonTelegram(
+  id: number,
+  status: "sent" | "failed" | "pending",
+  notBefore: Date | null,
+  getConnection?: Conn,
+): Promise<void> {
+  await withConn(async (connection) => {
+    await connection.execute(
+      `UPDATE marathon_telegram_outbox
+       SET status = ?, not_before = ?
+       WHERE id = ?`,
+      [status, notBefore, id],
+    );
+  }, getConnection);
+}

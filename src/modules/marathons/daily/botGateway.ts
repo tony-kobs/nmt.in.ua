@@ -1,9 +1,12 @@
 import "server-only";
 
+import { randomBytes } from "node:crypto";
+import { piecesToReplies } from "@/modules/telegram/deliver";
 import type { TelegramReply } from "@/modules/telegram/taskInteraction";
 import { absoluteUrl } from "@/modules/mail/sendMail";
 import {
   blankPlay,
+  callbackFromTokenPayload,
   linkOkText,
   parseBotCallback,
   presentMarathon,
@@ -13,6 +16,8 @@ import {
   type Outgoing,
   type PlayState,
 } from "./botPlay";
+import { renderResolved } from "./copy";
+import { expandSources, introSources } from "./telegramContent";
 import {
   dayUnlockAt,
   evaluateDayAccess,
@@ -29,8 +34,11 @@ import {
   listProgress,
   listTaskReview,
   loadMarathonCopy,
+  markIntroSeen,
   markMaterialsViewed,
   pauseMarathonNotifications,
+  readMarathonBotToken,
+  saveMarathonBotTokens,
   savePartialAnswers,
   setDeliveryChannel,
   type DailyMarathon,
@@ -82,28 +90,20 @@ export function marathonUpdateKind(update: unknown): "callback" | "menu" | "bare
 }
 
 function toReplies(chatId: string, messages: Outgoing[]): TelegramReply[] {
-  const replies: TelegramReply[] = [];
-  for (const message of messages) {
-    const text = message.text.trim().slice(0, 4096);
-    if (!text) continue;
-    const buttons: { text: string; callback_data?: string; url?: string }[] = [];
-    for (const button of message.buttons ?? []) {
-      const label = button.text.trim().slice(0, 64);
-      if (!label) continue;
-      if (button.url) buttons.push({ text: label, url: button.url });
-      else if (button.data && button.data.length <= 64) {
-        buttons.push({ text: label, callback_data: button.data });
-      }
-    }
-    replies.push({
-      chatId,
-      text,
-      ...(buttons.length
-        ? { replyMarkup: { inline_keyboard: buttons.map((button) => [button]) } }
-        : {}),
-    });
-  }
-  return replies;
+  return piecesToReplies(chatId, expandSources(messages));
+}
+
+function pack(replies: TelegramReply[]): TelegramReply | null {
+  const [first, ...rest] = replies;
+  if (!first) return null;
+  return rest.length > 0 ? { ...first, continuation: rest } : first;
+}
+
+function introFor(
+  videoUrl: string,
+  rules: string,
+): Outgoing[] {
+  return introSources(videoUrl, rules);
 }
 
 function todayNumber(marathon: DailyMarathon, now: Date): number {
@@ -181,6 +181,7 @@ async function buildDay(
     })),
     tasks,
     passThreshold: marathon.passThreshold,
+    introText: day.introText,
     daysCount: marathon.daysCount,
     next: nextDay && nextUnlock
       ? {
@@ -207,7 +208,35 @@ export async function marathonBareStart(chatId: string): Promise<TelegramReply |
   const mapUrl = linked
     ? absoluteUrl(`/marathon/${encodeURIComponent(linked.marathon.slug)}/map`)
     : absoluteUrl("/");
-  return toReplies(chatId, startText(copy, Boolean(linked), mapUrl))[0] ?? null;
+  const messages = startText(copy, Boolean(linked), mapUrl);
+  if (linked && linked.participant.channel === "telegram" && !linked.participant.introSeen) {
+    const rules = renderResolved("intro_rules", copy, {
+      name: linked.participant.displayName || "учаснику",
+      link: mapUrl,
+    });
+    messages.unshift(...introFor(linked.marathon.introVideoUrl, rules));
+    await markIntroSeen(linked.marathon.id, linked.participant.userId, new Date());
+  }
+  return pack(toReplies(chatId, messages));
+}
+
+export async function marathonWelcome(chatId: string): Promise<TelegramReply | null> {
+  const linked = await findParticipantByChat(chatId);
+  const copy = linked ? await loadMarathonCopy(linked.marathon.id) : {};
+  const mapUrl = linked
+    ? absoluteUrl(`/marathon/${encodeURIComponent(linked.marathon.slug)}/map`)
+    : absoluteUrl("/");
+  const messages: Outgoing[] = [{ text: linkOkText(copy) }];
+  if (linked && linked.participant.channel === "telegram" && !linked.participant.introSeen) {
+    const rules = renderResolved("intro_rules", copy, {
+      name: linked.participant.displayName || "учаснику",
+      link: mapUrl,
+    });
+    messages.push(...introFor(linked.marathon.introVideoUrl, rules));
+    await markIntroSeen(linked.marathon.id, linked.participant.userId, new Date());
+  }
+  if (linked) messages.push(...startText(copy, true, mapUrl));
+  return pack(toReplies(chatId, messages));
 }
 
 export async function marathonLinkText(chatId: string): Promise<string> {
@@ -219,7 +248,7 @@ export async function marathonLinkText(chatId: string): Promise<string> {
 export async function handleMarathonGateway(update: unknown): Promise<TelegramReply[] | null> {
   const parsed = readPrivate(update);
   if (!parsed) return null;
-  const callback = callbackFrom(parsed);
+  let callback = callbackFrom(parsed);
   if (!callback) return null;
   const linked = await findParticipantByChat(parsed.chatId);
   if (!linked) {
@@ -227,6 +256,14 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     return bare ? [bare] : null;
   }
   const { marathon, participant } = linked;
+  if (callback.kind === "token") {
+    const payload = await readMarathonBotToken(callback.token, marathon.id, participant.userId);
+    const resolved = payload ? callbackFromTokenPayload(payload) : null;
+    if (!resolved || resolved.kind !== "answer") {
+      return toReplies(parsed.chatId, [{ text: "Кнопка застаріла. Відкрийте сьогоднішній день ще раз." }]);
+    }
+    callback = resolved;
+  }
   if (callback.kind === "stop") {
     await pauseMarathonNotifications(marathon.id, participant.userId);
   }
@@ -250,6 +287,7 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
   const progress = progressRows.find((item) => item.dayNumber === requested);
   const day = await buildDay(marathon, requested, progress, days, now);
   const before = playFrom(progress);
+  const minted: Array<{ token: string; payload: string }> = [];
   const presented = presentMarathon({
     copy,
     callback,
@@ -257,7 +295,42 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     state: before,
     name: participant.displayName || "учаснику",
     mapUrl: absoluteUrl(`/marathon/${encodeURIComponent(marathon.slug)}/map`),
+    tokenFor: (action) => {
+      const token = randomBytes(12).toString("base64url");
+      minted.push({
+        token,
+        payload: JSON.stringify({
+          kind: "answer",
+          day: action.day,
+          taskId: action.taskId,
+          option: action.option,
+        }),
+      });
+      return `mh:z:${token}`;
+    },
   });
+  if (minted.length > 0) {
+    await saveMarathonBotTokens(minted.map((row) => ({
+      token: row.token,
+      marathonId: marathon.id,
+      userId: participant.userId,
+      payload: row.payload,
+    })));
+  }
+  let outgoing = presented.messages;
+  if (participant.channel === "telegram" && !participant.introSeen) {
+    const mapUrl = absoluteUrl(`/marathon/${encodeURIComponent(marathon.slug)}/map`);
+    outgoing = [
+      ...introFor(marathon.introVideoUrl, renderResolved("intro_rules", copy, {
+        name: participant.displayName || "учаснику",
+        day: day?.dayNumber,
+        topic: day?.topic ?? marathon.title,
+        link: mapUrl,
+      })),
+      ...outgoing,
+    ];
+    await markIntroSeen(marathon.id, participant.userId, now);
+  }
   await persistPlay({
     marathon,
     participant,
@@ -270,7 +343,7 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     copy,
     now,
   });
-  return toReplies(parsed.chatId, presented.messages);
+  return toReplies(parsed.chatId, outgoing);
 }
 
 async function persistPlay(input: {

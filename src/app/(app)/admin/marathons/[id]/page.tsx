@@ -65,6 +65,7 @@ export default async function AdminMarathonEditorPage({ params, searchParams }: 
         id: task.id,
         order: task.order,
         prompt: task.prompt,
+        options: task.options,
         questionId: task.questionId,
       })),
     })),
