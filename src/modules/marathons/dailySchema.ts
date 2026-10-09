@@ -79,6 +79,26 @@ const CHILD_TABLES = [
     PRIMARY KEY (marathon_id, copy_key),
     CONSTRAINT fk_marathon_copy FOREIGN KEY (marathon_id) REFERENCES marathons (id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS marathon_bot_tokens (
+    token VARCHAR(40) NOT NULL,
+    marathon_id INT NOT NULL,
+    user_id INT NOT NULL,
+    payload VARCHAR(240) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (token),
+    KEY idx_marathon_bot_tokens_user (marathon_id, user_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS marathon_telegram_outbox (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    chat_id VARCHAR(32) NOT NULL,
+    payload MEDIUMTEXT NOT NULL,
+    status ENUM('pending','sent','failed') NOT NULL DEFAULT 'pending',
+    not_before TIMESTAMP NULL DEFAULT NULL,
+    attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_marathon_tg_outbox (status, not_before, id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   `CREATE TABLE IF NOT EXISTS marathon_bot_links (
     id INT NOT NULL AUTO_INCREMENT,
     marathon_id INT NOT NULL,

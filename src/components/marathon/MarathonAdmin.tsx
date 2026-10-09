@@ -22,6 +22,7 @@ import type {
 } from "@/modules/marathons/daily/store";
 import type { FunnelReport } from "@/modules/marathons/daily/funnel";
 import { AdminNotices } from "./admin/AdminNotices";
+import { TelegramDayPreview } from "./admin/TelegramDayPreview";
 import {
   AddDayForm,
   AddMaterialForm,
@@ -87,7 +88,7 @@ export async function MarathonAdminList({
 
 type EditorDay = MarathonDay & {
   materials: Material[];
-  tasks: Array<{ id: number; order: number; prompt: string; questionId: number | null }>;
+  tasks: Array<{ id: number; order: number; prompt: string; options: string[]; questionId: number | null }>;
 };
 
 export async function MarathonAdminEditor({
@@ -246,6 +247,7 @@ export async function MarathonAdminEditor({
                 nextOrder={day.tasks.length + 1}
                 questions={questions}
               />
+              <TelegramDayPreview day={day} />
             </article>
           ))}
         </section>

@@ -1,3 +1,4 @@
+import { materialSources, optionLabel } from "./telegramContent";
 import { isDayPassed, scorePercent } from "./score";
 import {
   COPY_DEFAULTS,
@@ -38,6 +39,7 @@ export type DayPacket = {
   materials: BotMaterial[];
   tasks: GradedTask[];
   passThreshold: number;
+  introText: string | null;
   daysCount: number;
   next: { dayNumber: number; topic: string; unlockLabel: string; url: string } | null;
   finalUrl: string;
@@ -51,11 +53,19 @@ export type BotCallback =
   | { kind: "channel"; channel: "site" | "telegram" }
   | { kind: "materials"; day: number }
   | { kind: "open"; day: number }
-  | { kind: "answer"; day: number; taskId: number; option: number };
+  | { kind: "answer"; day: number; taskId: number; option: number }
+  | { kind: "token"; token: string };
 
 export type Outgoing = {
   text: string;
+  rich?: boolean;
   buttons?: Array<{ text: string; data?: string; url?: string }>;
+  previewUrl?: string;
+  videoUrl?: string;
+  videoFileId?: string;
+  photoUrl?: string;
+  siteUrl?: string;
+  siteLabel?: string;
 };
 
 export function blankPlay(): PlayState {
@@ -66,24 +76,6 @@ export function blankPlay(): PlayState {
     score: null,
     passed: false,
   };
-}
-
-export function hasRichContent(text: string): boolean {
-  if (/\$\$?|\\\(|\\\[|\\frac|\\sqrt|\\sum|\\int/.test(text)) return true;
-  if (/!\[[^\]]*\]\([^)]+\)|<img\b/i.test(text)) return true;
-  if (/https?:\/\/\S+\.(?:png|jpe?g|gif|webp|svg)(?:\?\S*)?/i.test(text)) return true;
-  return false;
-}
-
-/** Formulas, images, or option labels that cannot be an inline button. */
-export function taskFitsTelegram(task: { prompt: string; options: string[] }): boolean {
-  const blob = `${task.prompt}\n${task.options.join("\n")}`;
-  if (blob.length > 3500) return false;
-  if (hasRichContent(blob)) return false;
-  return task.options.every((option) => {
-    const label = option.trim();
-    return label.length > 0 && label.length <= 60 && !label.includes("\n");
-  });
 }
 
 export function splitTelegramMessages(text: string, limit = 4000): string[] {
@@ -123,6 +115,8 @@ export function parseBotCallback(data: string): BotCallback | null {
   if (materials) return { kind: "materials", day: Number(materials[1]) };
   const open = /^mh:go:(\d{1,2})$/.exec(data);
   if (open) return { kind: "open", day: Number(open[1]) };
+  const token = /^mh:z:([A-Za-z0-9_-]{8,40})$/.exec(data);
+  if (token?.[1]) return { kind: "token", token: token[1] };
   const answer = /^mh:a:(\d{1,2}):(\d{1,10}):([1-9])$/.exec(data);
   if (!answer) return null;
   return {
@@ -131,6 +125,28 @@ export function parseBotCallback(data: string): BotCallback | null {
     taskId: Number(answer[2]),
     option: Number(answer[3]),
   };
+}
+
+export function callbackFromTokenPayload(payload: string): BotCallback | null {
+  try {
+    const value = JSON.parse(payload) as {
+      kind?: unknown;
+      day?: unknown;
+      taskId?: unknown;
+      option?: unknown;
+    };
+    if (value.kind !== "answer") return null;
+    if (!Number.isInteger(value.day) || !Number.isInteger(value.taskId) || !Number.isInteger(value.option)) {
+      return null;
+    }
+    const day = value.day as number;
+    const taskId = value.taskId as number;
+    const option = value.option as number;
+    if (day < 1 || day > 99 || taskId < 1 || option < 1 || option > 20) return null;
+    return { kind: "answer", day, taskId, option };
+  } catch {
+    return null;
+  }
 }
 
 export function isMarathonCallbackData(data: string | undefined): boolean {
@@ -195,7 +211,7 @@ export function applyPlay(
     };
   }
   const task = tasks.find((item) => item.id === event.taskId);
-  if (!task || !taskFitsTelegram(task)) return { state, completedNow: false };
+  if (!task) return { state, completedNow: false };
   if (event.option < 1 || event.option > task.options.length) {
     return { state, completedNow: false };
   }
@@ -272,22 +288,22 @@ function taskMessage(
   day: DayPacket,
   task: GradedTask,
   copy: Partial<Record<CopyKey, string>> | undefined,
+  tokenFor?: (action: { day: number; taskId: number; option: number }) => string,
 ): Outgoing {
-  if (!taskFitsTelegram(task)) {
-    return {
-      text: `${task.prompt}\n\n${resolveCopy("bot_open_site", copy)}`,
-      buttons: [{ text: buttonLabel(copy, "bot_open_site"), url: day.pageUrl }],
-    };
-  }
   const lines = [
     task.prompt,
     ...task.options.map((option, index) => `${index + 1}. ${option}`),
   ];
   return {
     text: lines.join("\n"),
+    rich: true,
+    siteUrl: day.pageUrl,
+    siteLabel: buttonLabel(copy, "bot_open_site"),
     buttons: task.options.map((option, index) => ({
-      text: `${index + 1}. ${option}`.slice(0, 64),
-      data: `mh:a:${day.dayNumber}:${task.id}:${index + 1}`,
+      text: optionLabel(option, index),
+      data: tokenFor
+        ? tokenFor({ day: day.dayNumber, taskId: task.id, option: index + 1 })
+        : `mh:a:${day.dayNumber}:${task.id}:${index + 1}`,
     })),
   };
 }
@@ -303,8 +319,10 @@ function reviewMessages(
   name: string,
   withFollowUp: boolean,
 ): Outgoing[] {
-  const intro = renderResolved("review_intro", copy, varsFor(day, name));
-  const blocks = day.tasks.map((task, index) => {
+  const messages: Outgoing[] = [
+    { text: renderResolved("review_intro", copy, varsFor(day, name)), rich: true },
+  ];
+  for (const [index, task] of day.tasks.entries()) {
     const choice = state.answers[task.id] ?? null;
     const right = choice === task.correct;
     const chosen = choice == null ? "—" : task.options[choice - 1] ?? "—";
@@ -316,9 +334,8 @@ function reviewMessages(
       `Правильна відповідь: ${correct}`,
     ];
     if (task.explanation) lines.push(task.explanation);
-    return lines.join("\n");
-  });
-  const messages = splitTelegramMessages([intro, ...blocks].join("\n\n")).map((text) => ({ text }));
+    messages.push({ text: lines.join("\n"), rich: true });
+  }
   if (!withFollowUp) return messages;
   const follow = followUpText(day, copy, name);
   if (follow) messages.push({ text: follow });
@@ -354,6 +371,7 @@ function currentStep(
   copy: Partial<Record<CopyKey, string>> | undefined,
   name: string,
   announce: boolean,
+  tokenFor?: (action: { day: number; taskId: number; option: number }) => string,
 ): Outgoing[] {
   if (day.locked) {
     return [
@@ -365,8 +383,10 @@ function currentStep(
   }
   if (state.completed) return reviewMessages(day, state, copy, name, announce);
   if (!state.materialsViewed) {
-    const chunks = materialsToTelegramChunks(day.materials);
-    const messages: Outgoing[] = (chunks.length > 0 ? chunks : [" "]).map((text) => ({ text }));
+    const messages: Outgoing[] = [];
+    if (day.introText?.trim()) messages.push({ text: day.introText.trim(), rich: true });
+    for (const material of day.materials) messages.push(...materialSources(material));
+    if (messages.length === 0) messages.push({ text: " " });
     messages.push({
       text: buttonLabel(copy, "bot_to_tasks"),
       buttons: [{ text: buttonLabel(copy, "bot_to_tasks"), data: `mh:mat:${day.dayNumber}` }],
@@ -375,7 +395,7 @@ function currentStep(
   }
   const task = nextTask(day, state);
   if (!task) return reviewMessages(day, state, copy, name, announce);
-  return [taskMessage(day, task, copy)];
+  return [taskMessage(day, task, copy, tokenFor)];
 }
 
 export function presentMarathon(input: {
@@ -385,6 +405,7 @@ export function presentMarathon(input: {
   state: PlayState;
   name: string;
   mapUrl: string;
+  tokenFor?: (action: { day: number; taskId: number; option: number }) => string;
 }): { messages: Outgoing[]; state: PlayState; completedNow: boolean } {
   const copy = input.copy;
   if (input.callback.kind === "menu") {
@@ -424,32 +445,32 @@ export function presentMarathon(input: {
   }
   if (day.locked && (input.callback.kind === "today" || input.callback.kind === "open" || input.callback.kind === "materials" || input.callback.kind === "answer")) {
     return {
-      messages: currentStep(day, input.state, copy, input.name, false),
+      messages: currentStep(day, input.state, copy, input.name, false, input.tokenFor),
       state: input.state,
       completedNow: false,
     };
   }
   if (input.callback.kind === "today" || input.callback.kind === "open") {
     return {
-      messages: currentStep(day, input.state, copy, input.name, false),
+      messages: currentStep(day, input.state, copy, input.name, false, input.tokenFor),
       state: input.state,
       completedNow: false,
     };
   }
   if (input.callback.kind === "materials") {
     if (input.callback.day !== day.dayNumber) {
-      return { messages: currentStep(day, input.state, copy, input.name, false), state: input.state, completedNow: false };
+      return { messages: currentStep(day, input.state, copy, input.name, false, input.tokenFor), state: input.state, completedNow: false };
     }
     const applied = applyPlay(input.state, { type: "materials" }, day.tasks, day.passThreshold);
     return {
-      messages: currentStep(day, applied.state, copy, input.name, false),
+      messages: currentStep(day, applied.state, copy, input.name, false, input.tokenFor),
       state: applied.state,
       completedNow: false,
     };
   }
   if (input.callback.kind === "answer") {
     if (input.callback.day !== day.dayNumber) {
-      return { messages: currentStep(day, input.state, copy, input.name, false), state: input.state, completedNow: false };
+      return { messages: currentStep(day, input.state, copy, input.name, false, input.tokenFor), state: input.state, completedNow: false };
     }
     const applied = applyPlay(
       input.state,
@@ -458,7 +479,7 @@ export function presentMarathon(input: {
       day.passThreshold,
     );
     return {
-      messages: currentStep(day, applied.state, copy, input.name, applied.completedNow),
+      messages: currentStep(day, applied.state, copy, input.name, applied.completedNow, input.tokenFor),
       state: applied.state,
       completedNow: applied.completedNow,
     };
