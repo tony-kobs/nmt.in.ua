@@ -2,6 +2,9 @@ import "server-only";
 
 import type { SqlConnection } from "@/lib/db/mysql";
 import { evaluateDayAccess } from "./calendar";
+import { isDeliveryChannel, notifyFlags } from "./channel";
+import { isCopyKey, type CopyKey } from "./copy";
+import type { NotifyIntent, NotifyKind } from "./notifications";
 import {
   parseStoredAnswers,
   PENDING_TASK_SQL,
@@ -29,6 +32,7 @@ export type DailyMarathon = {
   passThreshold: number;
   finalCtaText: string;
   finalCtaUrl: string;
+  introVideoUrl: string;
   status: DailyStatus;
 };
 
@@ -66,6 +70,11 @@ export type Participant = {
   telegramChatId: string | null;
   notifyEmail: boolean;
   notifyBot: boolean;
+  channel: "site" | "telegram" | null;
+  introSeen: boolean;
+  notifyPaused: boolean;
+  email: string | null;
+  displayName: string;
 };
 
 export type DayProgress = {
@@ -139,6 +148,7 @@ function mapMarathon(row: {
   pass_threshold: number;
   final_cta_text: string | null;
   final_cta_url: string | null;
+  intro_video_url?: string | null;
   status: string;
 }): DailyMarathon | null {
   if (row.status !== "draft" && row.status !== "active" && row.status !== "finished") {
@@ -157,12 +167,13 @@ function mapMarathon(row: {
     passThreshold: Number(row.pass_threshold),
     finalCtaText: row.final_cta_text ?? "",
     finalCtaUrl: row.final_cta_url ?? "",
+    introVideoUrl: row.intro_video_url ?? "",
     status: row.status,
   };
 }
 
 const MARATHON_SELECT = `id, slug, title, subject, start_date, unlock_hour, days_count,
-  pass_threshold, final_cta_text, final_cta_url, status`;
+  pass_threshold, final_cta_text, final_cta_url, intro_video_url, status`;
 
 export async function listDailyMarathons(getConnection?: Conn): Promise<DailyMarathon[]> {
   return withConn(async (connection) => {
@@ -212,8 +223,8 @@ export async function insertDailyMarathon(
       `INSERT INTO marathons
         (slug, title, description, status, starts_at, ends_at, min_tasks_per_session,
          kind, subject, start_date, unlock_hour, days_count, pass_threshold,
-         final_cta_text, final_cta_url)
-       VALUES (?, ?, ?, 'draft', ?, ?, 5, 'daily', ?, ?, ?, ?, ?, ?, ?)`,
+         final_cta_text, final_cta_url, intro_video_url)
+       VALUES (?, ?, ?, 'draft', ?, ?, 5, 'daily', ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         input.slug,
         input.title,
@@ -227,6 +238,7 @@ export async function insertDailyMarathon(
         input.passThreshold,
         input.finalCtaText,
         input.finalCtaUrl,
+        input.introVideoUrl || null,
       ],
     );
     return result.insertId;
@@ -243,7 +255,7 @@ export async function updateDailyMarathon(
       `UPDATE marathons
        SET slug = ?, title = ?, subject = ?, start_date = ?, unlock_hour = ?,
            days_count = ?, pass_threshold = ?, final_cta_text = ?, final_cta_url = ?,
-           starts_at = ?, ends_at = ?
+           intro_video_url = ?, starts_at = ?, ends_at = ?
        WHERE id = ? AND kind = 'daily'`,
       [
         input.slug,
@@ -255,6 +267,7 @@ export async function updateDailyMarathon(
         input.passThreshold,
         input.finalCtaText,
         input.finalCtaUrl,
+        input.introVideoUrl || null,
         input.startsAt,
         input.endsAt,
         id,
@@ -481,6 +494,22 @@ export async function deleteMaterial(
   }, getConnection);
 }
 
+export async function updateMaterial(
+  dayId: number,
+  materialId: number,
+  input: Omit<Material, "id">,
+  getConnection?: Conn,
+): Promise<void> {
+  await withConn(async (connection) => {
+    await connection.execute(
+      `UPDATE marathon_day_materials
+       SET sort_order = ?, material_type = ?, url_or_body = ?
+       WHERE id = ? AND day_id = ?`,
+      [input.order, input.type, input.urlOrBody, materialId, dayId],
+    );
+  }, getConnection);
+}
+
 async function loadReviewRows(
   connection: SqlConnection,
   dayId: number,
@@ -624,6 +653,47 @@ export async function searchQuizTasks(
   }, getConnection);
 }
 
+function mapParticipant(row: {
+  user_id: number;
+  source: string | null;
+  streak: number;
+  finished_at: unknown;
+  converted_at: unknown;
+  telegram_chat_id: number | string | null;
+  notify_email: number;
+  notify_bot: number;
+  delivery_channel: string | null;
+  intro_seen_at: unknown;
+  notify_paused: number;
+  email: string | null;
+  display_name: string | null;
+}): Participant {
+  const channel = isDeliveryChannel(row.delivery_channel) ? row.delivery_channel : null;
+  const paused = flag(row.notify_paused);
+  const linked = row.telegram_chat_id != null;
+  const flags = channel
+    ? notifyFlags({ channel, linked, paused })
+    : {
+        notifyEmail: flag(row.notify_email) && !paused,
+        notifyBot: flag(row.notify_bot) && !paused && linked,
+      };
+  return {
+    userId: row.user_id,
+    source: row.source,
+    streak: Number(row.streak) || 0,
+    finishedAt: row.finished_at ? String(row.finished_at) : null,
+    convertedAt: row.converted_at ? String(row.converted_at) : null,
+    telegramChatId: row.telegram_chat_id == null ? null : String(row.telegram_chat_id),
+    notifyEmail: flags.notifyEmail,
+    notifyBot: flags.notifyBot,
+    channel,
+    introSeen: Boolean(row.intro_seen_at),
+    notifyPaused: paused,
+    email: row.email,
+    displayName: row.display_name?.trim() || "",
+  };
+}
+
 export async function getParticipant(
   marathonId: number,
   userId: number,
@@ -639,24 +709,62 @@ export async function getParticipant(
       telegram_chat_id: number | string | null;
       notify_email: number;
       notify_bot: number;
+      delivery_channel: string | null;
+      intro_seen_at: unknown;
+      notify_paused: number;
+      email: string | null;
+      display_name: string | null;
     }>(
-      `SELECT user_id, source, streak, finished_at, converted_at, telegram_chat_id,
-              notify_email, notify_bot
-       FROM marathon_participants WHERE marathon_id = ? AND user_id = ? LIMIT 1`,
+      `SELECT p.user_id, p.source, p.streak, p.finished_at, p.converted_at,
+              p.telegram_chat_id, p.notify_email, p.notify_bot, p.delivery_channel,
+              p.intro_seen_at, p.notify_paused, u.email, u.display_name
+       FROM marathon_participants p
+       INNER JOIN app_users u ON u.id = p.user_id
+       WHERE p.marathon_id = ? AND p.user_id = ? LIMIT 1`,
       [marathonId, userId],
     );
     const row = rows[0];
     if (!row) return null;
-    return {
-      userId: row.user_id,
-      source: row.source,
-      streak: Number(row.streak) || 0,
-      finishedAt: row.finished_at ? String(row.finished_at) : null,
-      convertedAt: row.converted_at ? String(row.converted_at) : null,
-      telegramChatId: row.telegram_chat_id == null ? null : String(row.telegram_chat_id),
-      notifyEmail: flag(row.notify_email),
-      notifyBot: flag(row.notify_bot),
-    };
+    return mapParticipant(row);
+  }, getConnection);
+}
+
+export async function findParticipantByChat(
+  chatId: string,
+  getConnection?: Conn,
+): Promise<{ marathon: DailyMarathon; participant: Participant } | null> {
+  if (!/^[1-9][0-9]{0,19}$/.test(chatId)) return null;
+  return withConn(async (connection) => {
+    const rows = await connection.query<{ marathon_id: number }>(
+      `SELECT p.marathon_id
+       FROM marathon_participants p
+       INNER JOIN marathons m ON m.id = p.marathon_id
+       WHERE p.telegram_chat_id = ? AND m.kind = 'daily' AND m.status IN ('active', 'finished')
+       ORDER BY (m.status = 'active') DESC, (p.delivery_channel = 'telegram') DESC, p.joined_at DESC
+       LIMIT 1`,
+      [chatId],
+    );
+    const id = rows[0]?.marathon_id;
+    if (!id) return null;
+    const marathonRows = await connection.query<Parameters<typeof mapMarathon>[0]>(
+      `SELECT ${MARATHON_SELECT} FROM marathons WHERE id = ? AND kind = 'daily' LIMIT 1`,
+      [id],
+    );
+    const marathon = marathonRows[0] ? mapMarathon(marathonRows[0]) : null;
+    if (!marathon) return null;
+    const people = await connection.query<Parameters<typeof mapParticipant>[0]>(
+      `SELECT p.user_id, p.source, p.streak, p.finished_at, p.converted_at,
+              p.telegram_chat_id, p.notify_email, p.notify_bot, p.delivery_channel,
+              p.intro_seen_at, p.notify_paused, u.email, u.display_name
+       FROM marathon_participants p
+       INNER JOIN app_users u ON u.id = p.user_id
+       WHERE p.marathon_id = ? AND p.telegram_chat_id = ?
+       LIMIT 1`,
+      [id, chatId],
+    );
+    const participant = people[0] ? mapParticipant(people[0]) : null;
+    if (!participant) return null;
+    return { marathon, participant };
   }, getConnection);
 }
 
@@ -752,6 +860,30 @@ export async function completeParticipantDay(input: {
   now: Date;
 }, getConnection?: Conn): Promise<SubmitSuccess | { ok: false; code: "invalid_day" | "locked" | "materials_required" }> {
   return withConn(async (connection) => {
+    const existing = await connection.query<{
+      completed_at: unknown;
+      score: number | null;
+      passed: number;
+      streak: number;
+    }>(
+      `SELECT pr.completed_at, pr.score, pr.passed, p.streak
+       FROM marathon_day_progress pr
+       INNER JOIN marathon_participants p
+         ON p.marathon_id = pr.marathon_id AND p.user_id = pr.user_id
+       WHERE pr.marathon_id = ? AND pr.user_id = ? AND pr.day_id = ?
+       LIMIT 1`,
+      [input.marathon.id, input.userId, input.day.id],
+    );
+    const prior = existing[0];
+    if (prior?.completed_at) {
+      return {
+        ok: true,
+        score: prior.score == null ? 0 : Number(prior.score),
+        passed: flag(prior.passed),
+        streak: Number(prior.streak) || 0,
+        completedAt: asMs(prior.completed_at) ?? input.now.getTime(),
+      };
+    }
     const rows = await loadReviewRows(connection, input.day.id);
     const tasks = rows.flatMap((row) => {
       const task = projectReviewedTask(row, {});
@@ -825,6 +957,131 @@ export async function completeParticipantDay(input: {
       },
     );
   }, getConnection);
+}
+
+export async function savePartialAnswers(input: {
+  marathonId: number;
+  userId: number;
+  dayId: number;
+  answers: Record<number, number>;
+  now: Date;
+}, getConnection?: Conn): Promise<void> {
+  await withConn(async (connection) => {
+    await connection.execute(
+      `INSERT INTO marathon_day_progress
+        (marathon_id, user_id, day_id, materials_viewed_at, answers_json)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         materials_viewed_at = COALESCE(materials_viewed_at, VALUES(materials_viewed_at)),
+         answers_json = IF(completed_at IS NULL, VALUES(answers_json), answers_json)`,
+      [
+        input.marathonId,
+        input.userId,
+        input.dayId,
+        input.now,
+        JSON.stringify(input.answers),
+      ],
+    );
+  }, getConnection);
+}
+
+export async function setDeliveryChannel(
+  marathonId: number,
+  userId: number,
+  channel: "site" | "telegram",
+  linked: boolean,
+  getConnection?: Conn,
+): Promise<void> {
+  const flags = notifyFlags({ channel, linked, paused: false });
+  await withConn(async (connection) => {
+    await connection.execute(
+      `UPDATE marathon_participants
+       SET delivery_channel = ?, notify_email = ?, notify_bot = ?, notify_paused = 0
+       WHERE marathon_id = ? AND user_id = ?`,
+      [channel, flags.notifyEmail ? 1 : 0, flags.notifyBot ? 1 : 0, marathonId, userId],
+    );
+  }, getConnection);
+}
+
+export async function markIntroSeen(
+  marathonId: number,
+  userId: number,
+  now: Date,
+  getConnection?: Conn,
+): Promise<void> {
+  await withConn(async (connection) => {
+    await connection.execute(
+      `UPDATE marathon_participants
+       SET intro_seen_at = COALESCE(intro_seen_at, ?)
+       WHERE marathon_id = ? AND user_id = ?`,
+      [now, marathonId, userId],
+    );
+  }, getConnection);
+}
+
+export async function pauseMarathonNotifications(
+  marathonId: number,
+  userId: number,
+  getConnection?: Conn,
+): Promise<void> {
+  await withConn(async (connection) => {
+    await connection.execute(
+      `UPDATE marathon_participants
+       SET notify_paused = 1, notify_email = 0, notify_bot = 0
+       WHERE marathon_id = ? AND user_id = ?`,
+      [marathonId, userId],
+    );
+  }, getConnection);
+}
+
+export async function loadMarathonCopy(
+  marathonId: number,
+  getConnection?: Conn,
+): Promise<Partial<Record<CopyKey, string>>> {
+  return withConn(async (connection) => readCopy(connection, marathonId), getConnection);
+}
+
+export async function saveMarathonCopy(
+  marathonId: number,
+  key: CopyKey,
+  body: string,
+  getConnection?: Conn,
+): Promise<void> {
+  await withConn(async (connection) => {
+    await connection.execute(
+      `INSERT INTO marathon_copy (marathon_id, copy_key, body) VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE body = VALUES(body)`,
+      [marathonId, key, body],
+    );
+  }, getConnection);
+}
+
+export async function resetMarathonCopy(
+  marathonId: number,
+  key: CopyKey,
+  getConnection?: Conn,
+): Promise<void> {
+  await withConn(async (connection) => {
+    await connection.execute(
+      `DELETE FROM marathon_copy WHERE marathon_id = ? AND copy_key = ?`,
+      [marathonId, key],
+    );
+  }, getConnection);
+}
+
+async function readCopy(
+  connection: SqlConnection,
+  marathonId: number,
+): Promise<Partial<Record<CopyKey, string>>> {
+  const rows = await connection.query<{ copy_key: string; body: string }>(
+    `SELECT copy_key, body FROM marathon_copy WHERE marathon_id = ?`,
+    [marathonId],
+  );
+  const copy: Partial<Record<CopyKey, string>> = {};
+  for (const row of rows) {
+    if (isCopyKey(row.copy_key) && row.body.trim()) copy[row.copy_key] = row.body;
+  }
+  return copy;
 }
 
 export async function setNotifyPrefs(
@@ -951,9 +1208,11 @@ export type NotifyAudienceMarathon = {
   unlockHour: string;
   daysCount: number;
   topics: Record<number, string>;
+  copy: Partial<Record<CopyKey, string>>;
   people: Array<{
     userId: number;
     email: string | null;
+    displayName: string;
     telegramChatId: string | null;
     notifyEmail: boolean;
     notifyBot: boolean;
@@ -976,16 +1235,19 @@ export async function loadNotifyAudience(
       topic: string | null;
       user_id: number;
       email: string | null;
+      display_name: string | null;
       telegram_chat_id: number | string | null;
       notify_email: number;
       notify_bot: number;
+      delivery_channel: string | null;
+      notify_paused: number;
       completed_at: unknown;
       is_banned: number;
     }>(
       `SELECT m.id AS marathon_id, m.slug, m.title, m.start_date, m.unlock_hour, m.days_count,
               d.day_number, d.topic,
-              p.user_id, u.email, p.telegram_chat_id, p.notify_email, p.notify_bot,
-              pr.completed_at, u.is_banned
+              p.user_id, u.email, u.display_name, p.telegram_chat_id, p.notify_email, p.notify_bot,
+              p.delivery_channel, p.notify_paused, pr.completed_at, u.is_banned
        FROM marathons m
        INNER JOIN marathon_participants p ON p.marathon_id = m.id
        INNER JOIN app_users u ON u.id = p.user_id
@@ -1011,6 +1273,7 @@ export async function loadNotifyAudience(
           unlockHour: String(row.unlock_hour).slice(0, 5),
           daysCount: Number(row.days_count),
           topics: {},
+          copy: {},
           people: [],
         };
         grouped.set(row.marathon_id, marathon);
@@ -1021,13 +1284,23 @@ export async function loadNotifyAudience(
       const personKey = `${row.marathon_id}:${row.user_id}`;
       let person = people.get(personKey);
       if (!person) {
+        const channel = isDeliveryChannel(row.delivery_channel) ? row.delivery_channel : null;
+        const paused = flag(row.notify_paused);
+        const linked = row.telegram_chat_id != null;
+        const flags = channel
+          ? notifyFlags({ channel, linked, paused })
+          : {
+              notifyEmail: flag(row.notify_email) && !paused,
+              notifyBot: flag(row.notify_bot) && !paused && linked,
+            };
         person = {
           userId: row.user_id,
           email: row.email,
+          displayName: row.display_name?.trim() || "",
           telegramChatId:
             row.telegram_chat_id == null ? null : String(row.telegram_chat_id),
-          notifyEmail: flag(row.notify_email),
-          notifyBot: flag(row.notify_bot),
+          notifyEmail: flags.notifyEmail,
+          notifyBot: flags.notifyBot,
           completedDayNumbers: [],
         };
         people.set(personKey, person);
@@ -1037,17 +1310,31 @@ export async function loadNotifyAudience(
         person.completedDayNumbers.push(row.day_number);
       }
     }
+    const ids = [...grouped.keys()];
+    if (ids.length > 0) {
+      const copies = await connection.query<{
+        marathon_id: number;
+        copy_key: string;
+        body: string;
+      }>(
+        `SELECT marathon_id, copy_key, body FROM marathon_copy
+         WHERE marathon_id IN (${ids.map(() => "?").join(",")})`,
+        ids,
+      );
+      for (const row of copies) {
+        const marathon = grouped.get(row.marathon_id);
+        if (marathon && isCopyKey(row.copy_key) && row.body.trim()) {
+          marathon.copy[row.copy_key] = row.body;
+        }
+      }
+    }
     return [...grouped.values()];
   }, getConnection);
 }
 
 export async function claimNotification(
-  intent: {
-    marathonId: number;
-    userId: number;
-    dayNumber: number;
-    kind: "day_open" | "reminder";
-    channel: "email" | "telegram";
+  intent: Pick<NotifyIntent, "marathonId" | "userId" | "dayNumber" | "kind" | "channel"> & {
+    kind: NotifyKind;
   },
   getConnection?: Conn,
 ): Promise<"claimed" | "duplicate"> {
@@ -1069,12 +1356,8 @@ export async function claimNotification(
 }
 
 export async function releaseNotification(
-  intent: {
-    marathonId: number;
-    userId: number;
-    dayNumber: number;
-    kind: "day_open" | "reminder";
-    channel: "email" | "telegram";
+  intent: Pick<NotifyIntent, "marathonId" | "userId" | "dayNumber" | "kind" | "channel"> & {
+    kind: NotifyKind;
   },
   getConnection?: Conn,
 ): Promise<void> {

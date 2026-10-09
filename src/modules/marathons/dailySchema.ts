@@ -67,10 +67,17 @@ const CHILD_TABLES = [
     marathon_id INT NOT NULL,
     user_id INT NOT NULL,
     day_number TINYINT UNSIGNED NOT NULL,
-    kind ENUM('day_open', 'reminder') NOT NULL,
+    kind ENUM('day_open', 'reminder', 'tomorrow', 'final') NOT NULL,
     channel ENUM('email', 'telegram') NOT NULL,
     sent_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (marathon_id, user_id, day_number, kind, channel)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS marathon_copy (
+    marathon_id INT NOT NULL,
+    copy_key VARCHAR(64) NOT NULL,
+    body TEXT NOT NULL,
+    PRIMARY KEY (marathon_id, copy_key),
+    CONSTRAINT fk_marathon_copy FOREIGN KEY (marathon_id) REFERENCES marathons (id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   `CREATE TABLE IF NOT EXISTS marathon_bot_links (
     id INT NOT NULL AUTO_INCREMENT,
@@ -98,6 +105,7 @@ const MARATHON_COLUMNS: Array<[string, string]> = [
   ["pass_threshold", "TINYINT UNSIGNED NOT NULL DEFAULT 60 AFTER days_count"],
   ["final_cta_text", "VARCHAR(500) NULL AFTER pass_threshold"],
   ["final_cta_url", "VARCHAR(500) NULL AFTER final_cta_text"],
+  ["intro_video_url", "VARCHAR(500) NULL AFTER final_cta_url"],
 ];
 
 const PARTICIPANT_COLUMNS: Array<[string, string]> = [
@@ -108,6 +116,9 @@ const PARTICIPANT_COLUMNS: Array<[string, string]> = [
   ["telegram_chat_id", "BIGINT NULL AFTER converted_at"],
   ["notify_email", "TINYINT(1) NOT NULL DEFAULT 1 AFTER telegram_chat_id"],
   ["notify_bot", "TINYINT(1) NOT NULL DEFAULT 0 AFTER notify_email"],
+  ["delivery_channel", "ENUM('site','telegram') NULL AFTER notify_bot"],
+  ["intro_seen_at", "TIMESTAMP NULL DEFAULT NULL AFTER delivery_channel"],
+  ["notify_paused", "TINYINT(1) NOT NULL DEFAULT 0 AFTER intro_seen_at"],
 ];
 
 async function columnNames(
@@ -215,6 +226,31 @@ export async function migrateDailyMarathon(
       "inline_explanation",
       "TEXT NULL AFTER inline_correct",
     );
+  }
+
+  const notifyColumns = await columnNames(connection, "marathon_notifications");
+  if (notifyColumns.has("kind")) {
+    const kindRows = await connection.query<{
+      COLUMN_TYPE?: string;
+      column_type?: string;
+    }>(
+      `SELECT COLUMN_TYPE AS COLUMN_TYPE
+       FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = 'marathon_notifications'
+         AND COLUMN_NAME = 'kind'`,
+      [],
+    );
+    const kindType = String(
+      kindRows[0]?.COLUMN_TYPE ?? kindRows[0]?.column_type ?? "",
+    );
+    if (kindType && !kindType.includes("tomorrow")) {
+      await connection.execute(
+        `ALTER TABLE marathon_notifications
+         MODIFY COLUMN kind ENUM('day_open','reminder','tomorrow','final') NOT NULL`,
+        [],
+      );
+    }
   }
 
   const progressColumns = await columnNames(connection, "marathon_day_progress");

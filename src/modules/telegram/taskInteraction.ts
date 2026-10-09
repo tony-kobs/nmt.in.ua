@@ -5,7 +5,13 @@ import { createTaskReference, resolveTaskReference } from "./taskReference";
 import { TELEGRAM_TASK_TIME_ZONE } from "./taskDay";
 
 export type InlineKeyboard = { inline_keyboard: { text: string; callback_data?: string; url?: string }[][] };
-export type TelegramReply = { chatId: string; text: string; replyMarkup?: InlineKeyboard };
+export type TelegramReply = {
+  chatId: string;
+  text: string;
+  replyMarkup?: InlineKeyboard;
+  /** Further messages. Not sent as part of the Telegram payload. */
+  continuation?: TelegramReply[];
+};
 export type TaskCallback = { queryId: string; chatId: string; userId: string; action: "d" | "a" | "y" | "n" | null; reference: string };
 
 export function parseTaskCallback(update: unknown): TaskCallback | null {

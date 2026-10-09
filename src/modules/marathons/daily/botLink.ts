@@ -93,7 +93,18 @@ export async function consumeMarathonStart(
     }
     await connection.execute(
       `UPDATE marathon_participants
-       SET telegram_chat_id = ?, notify_bot = 1
+       SET telegram_chat_id = ?,
+           notify_bot = CASE
+             WHEN notify_paused = 1 THEN 0
+             WHEN delivery_channel = 'site' THEN 0
+             ELSE 1
+           END,
+           notify_email = CASE
+             WHEN notify_paused = 1 THEN 0
+             WHEN delivery_channel = 'telegram' THEN 0
+             WHEN delivery_channel = 'site' THEN 1
+             ELSE notify_email
+           END
        WHERE marathon_id = ? AND user_id = ?`,
       [identity.chatId, row.marathon_id, row.user_id],
     );

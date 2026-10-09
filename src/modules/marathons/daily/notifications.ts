@@ -6,7 +6,7 @@ import {
   reminderAt,
 } from "./calendar";
 
-export type NotifyKind = "day_open" | "reminder";
+export type NotifyKind = "day_open" | "reminder" | "tomorrow" | "final";
 export type NotifyChannel = "email" | "telegram";
 
 export type NotifyIntent = {
@@ -83,6 +83,50 @@ export function planNotifications(input: {
             channel: "telegram",
           });
         }
+      }
+    }
+  }
+  return intents;
+}
+
+/**
+ * After a day is reviewed: announce the next day, or the final note once
+ * the last day is in. Claimed rows in `marathon_notifications` keep cron
+ * from sending the same note again.
+ */
+export function planFollowUps(input: {
+  marathonId: number;
+  daysCount: number;
+  people: NotifyPerson[];
+}): NotifyIntent[] {
+  const intents: NotifyIntent[] = [];
+  for (const person of input.people) {
+    const done = new Set(person.completedDayNumbers);
+    const queue: Array<{ dayNumber: number; kind: NotifyKind }> = [];
+    for (let day = 1; day < input.daysCount; day += 1) {
+      if (done.has(day)) queue.push({ dayNumber: day + 1, kind: "tomorrow" });
+    }
+    if (input.daysCount > 0 && done.has(input.daysCount)) {
+      queue.push({ dayNumber: input.daysCount, kind: "final" });
+    }
+    for (const item of queue) {
+      if (person.notifyEmail && person.email) {
+        intents.push({
+          marathonId: input.marathonId,
+          userId: person.userId,
+          dayNumber: item.dayNumber,
+          kind: item.kind,
+          channel: "email",
+        });
+      }
+      if (person.notifyBot && person.telegramChatId) {
+        intents.push({
+          marathonId: input.marathonId,
+          userId: person.userId,
+          dayNumber: item.dayNumber,
+          kind: item.kind,
+          channel: "telegram",
+        });
       }
     }
   }

@@ -4,6 +4,7 @@ import { MarathonDayView } from "@/components/marathon/MarathonDayView";
 import { createPageMetadata } from "@/constants/seo";
 import { requireUser } from "@/modules/auth/getCurrentUser";
 import { evaluateDayAccess } from "@/modules/marathons/daily/calendar";
+import { renderResolved } from "@/modules/marathons/daily/copy";
 import { dayClientPayload } from "@/modules/marathons/daily/playTasks";
 import {
   getDailyBySlug,
@@ -13,6 +14,7 @@ import {
   listPendingTasks,
   listProgress,
   listTaskReview,
+  loadMarathonCopy,
 } from "@/modules/marathons/daily/store";
 
 export const dynamic = "force-dynamic";
@@ -72,6 +74,12 @@ export default async function MarathonDayPage({ params, searchParams }: PageProp
     pending,
     review: graded,
   });
+  const copy = await loadMarathonCopy(marathon.id);
+  const reviewIntro = renderResolved("review_intro", copy, {
+    name: user.displayName,
+    day: day.dayNumber,
+    topic: day.topic,
+  });
   return (
     <MarathonDayView
       marathon={marathon}
@@ -80,6 +88,7 @@ export default async function MarathonDayPage({ params, searchParams }: PageProp
       tasks={payload.tasks}
       review={payload.review}
       progress={progress}
+      reviewIntro={reviewIntro}
       lockedUntil={open ? null : access.unlockAt}
       locale={locale}
       error={Array.isArray(query.error) ? query.error[0] : query.error}

@@ -9,6 +9,7 @@ type MarathonFinalViewProps = {
   days: MarathonDay[];
   progress: DayProgress[];
   participant: Participant;
+  summary: string;
 };
 
 export async function MarathonFinalView({
@@ -16,6 +17,7 @@ export async function MarathonFinalView({
   days,
   progress,
   participant,
+  summary,
 }: MarathonFinalViewProps) {
   const t = await getTranslations("Marathon");
   const byDay = new Map(progress.map((item) => [item.dayNumber, item]));
@@ -30,6 +32,7 @@ export async function MarathonFinalView({
     <div className={css.narrow}>
       <PageFrame kicker={t("kicker")} title={t("finalTitle")} lead={marathon.title}>
         <div className={css.stack}>
+          {summary ? <p className={css.lead}>{summary}</p> : null}
           <p className={css.badge}>{badge}</p>
           <p className={css.meta}>{t("streak", { count: participant.streak })}</p>
           <ol className={css.stack}>

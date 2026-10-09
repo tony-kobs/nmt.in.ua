@@ -22,12 +22,13 @@ type MarathonDayViewProps = {
   progress: DayProgress | undefined;
   lockedUntil: Date | null;
   locale: string;
+  reviewIntro: string;
   error?: string;
 };
 
 export async function MarathonDayView(props: MarathonDayViewProps) {
   const t = await getTranslations("Marathon");
-  const { marathon, day, materials, tasks, review, progress, lockedUntil, locale, error } = props;
+  const { marathon, day, materials, tasks, review, progress, lockedUntil, locale, reviewIntro, error } = props;
   const submitted = progress?.completedAt != null;
   const message = marathonErrorText(t, error);
   return (
@@ -70,6 +71,7 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                   ) : null}
                   {submitted ? (
                     <div className={css.stack}>
+                      {reviewIntro ? <p className={css.lead}>{reviewIntro}</p> : null}
                       {review.map((task, index) => (
                         <article key={task.id} className={css.card}>
                           <h3>
@@ -135,6 +137,7 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                                   type="radio"
                                   name={`task_${task.id}`}
                                   value={optionIndex + 1}
+                                  defaultChecked={progress?.answers[task.id] === optionIndex + 1}
                                   required
                                 />
                                 <MathText text={option} as="span" />

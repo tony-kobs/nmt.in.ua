@@ -9,6 +9,7 @@ import {
   createMarathonAction,
   updateDayAction,
   updateMarathonAction,
+  updateMaterialAction,
 } from "@/modules/marathons/daily/actions";
 import {
   parseDay,
@@ -94,6 +95,14 @@ function MarathonFields({ values }: { values: MarathonInput }) {
           spellCheck={false}
         />
       </AdminField>
+      <AdminField name="introVideo" label={t("fields.introVideo")} hint={t("hints.introVideo")}>
+        <AdminInput
+          name="introVideoUrl"
+          defaultValue={values.introVideoUrl}
+          placeholder="https://"
+          spellCheck={false}
+        />
+      </AdminField>
     </div>
   );
 }
@@ -119,6 +128,7 @@ export function CreateMarathonForm({ today }: { today: string }) {
           passThreshold: 60,
           finalCtaText: t("defaults.finalCta"),
           finalCtaUrl: "/",
+          introVideoUrl: "",
         }}
       />
     </ValidatedForm>
@@ -233,6 +243,52 @@ export function UpdateDayForm({
       </AdminField>
       <AdminField name="introText" label={t("fields.introText")}>
         <AdminTextarea name="introText" defaultValue={introText} />
+      </AdminField>
+    </ValidatedForm>
+  );
+}
+
+export function UpdateMaterialForm({
+  marathonId,
+  dayId,
+  materialId,
+  order,
+  type,
+  urlOrBody,
+}: {
+  marathonId: number;
+  dayId: number;
+  materialId: number;
+  order: number;
+  type: string;
+  urlOrBody: string;
+}) {
+  const t = useTranslations("Marathon");
+  return (
+    <ValidatedForm
+      action={updateMaterialAction}
+      validate={parseMaterial}
+      className={css.form}
+      quiet
+      submitLabel={t("save")}
+    >
+      <input type="hidden" name="marathonId" value={marathonId} />
+      <input type="hidden" name="dayId" value={dayId} />
+      <input type="hidden" name="materialId" value={materialId} />
+      <div className={css.row2}>
+        <AdminField name="order" label={t("fields.order")}>
+          <AdminInput name="order" type="number" min={1} max={50} defaultValue={order} />
+        </AdminField>
+        <AdminField name="materialType" label={t("fields.materialType")}>
+          <AdminSelect name="materialType" defaultValue={type}>
+            <option value="text">{t("materialTypes.text")}</option>
+            <option value="youtube">{t("materialTypes.youtube")}</option>
+            <option value="loom">{t("materialTypes.loom")}</option>
+          </AdminSelect>
+        </AdminField>
+      </div>
+      <AdminField name="urlOrBody" label={t("fields.urlOrBody")} hint={t("hints.materialVideo")}>
+        <AdminTextarea name="urlOrBody" defaultValue={urlOrBody} rows={5} />
       </AdminField>
     </ValidatedForm>
   );
