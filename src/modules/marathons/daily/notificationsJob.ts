@@ -2,10 +2,14 @@ import "server-only";
 
 import { createHash, timingSafeEqual } from "node:crypto";
 import { absoluteUrl, sendMail } from "@/modules/mail/sendMail";
+import { deliverTelegramReplies, piecesToReplies } from "@/modules/telegram/deliver";
+import { rememberDeferred } from "@/modules/telegram/outbox";
+import { sendThrottled, sharedTelegramPace } from "@/modules/telegram/throttle";
 import { sendTelegramMessage } from "@/modules/telegram/transport";
 import { optionalTelegramBot } from "./botLink";
 import { dayUnlockAt, formatKyivWhen } from "./calendar";
-import { renderResolved, type CopyKey } from "./copy";
+import { renderResolved, resolveCopy, type CopyKey } from "./copy";
+import { expandSources, materialSources } from "./telegramContent";
 import { marathonDayUrl, wrapMarathonMail } from "./mailCopy";
 import {
   deliverNotifications,
@@ -17,8 +21,12 @@ import {
 } from "./notifications";
 import {
   claimNotification,
+  listDays,
+  listMaterials,
   loadNotifyAudience,
+  markMaterialsViewed,
   releaseNotification,
+  type DailyMarathon,
   type NotifyAudienceMarathon,
 } from "./store";
 
@@ -122,6 +130,45 @@ function buildDeliveries(
   return deliveries;
 }
 
+async function pushOpenedDayContent(
+  marathon: NotifyAudienceMarathon,
+  userId: number,
+  dayNumber: number,
+  chatId: string,
+): Promise<void> {
+  const bot = optionalTelegramBot();
+  if (!bot) return;
+  const days = await listDays(marathon.marathonId);
+  const day = days.find((item) => item.dayNumber === dayNumber);
+  if (!day) return;
+  const materials = await listMaterials(day.id);
+  const label = resolveCopy("bot_to_tasks", marathon.copy).slice(0, 64);
+  const sources = [
+    ...(day.introText?.trim() ? [{ text: day.introText.trim(), rich: true as const }] : []),
+    ...materials.flatMap((material) => materialSources(material)),
+    { text: label, buttons: [{ text: label, data: `mh:mat:${day.dayNumber}` }] },
+  ];
+  const replies = piecesToReplies(chatId, expandSources(sources));
+  const delivered = await deliverTelegramReplies(replies, bot.token, { budgetMs: 8_000 });
+  if (delivered.deferred.length > 0) await rememberDeferred(delivered.deferred);
+  if (delivered.sent === 0 && delivered.deferred.length === 0 && materials.length > 0) return;
+  const shell = {
+    id: marathon.marathonId,
+    slug: marathon.slug,
+    title: marathon.title,
+    subject: "math",
+    startDate: marathon.startDate,
+    unlockHour: marathon.unlockHour,
+    daysCount: marathon.daysCount,
+    passThreshold: 60,
+    finalCtaText: "",
+    finalCtaUrl: "",
+    introVideoUrl: "",
+    status: "active",
+  } satisfies DailyMarathon;
+  await markMaterialsViewed({ marathon: shell, userId, day, now: new Date() });
+}
+
 export async function runMarathonNotifications(deps: {
   now?: () => Date;
   load?: () => Promise<NotifyAudienceMarathon[]>;
@@ -147,9 +194,19 @@ export async function runMarathonNotifications(deps: {
   const sendTelegram = deps.sendTelegram ?? (async (chatId, text) => {
     const bot = optionalTelegramBot();
     if (!bot) return false;
-    const result = await sendTelegramMessage({ chatId, text }, bot.token);
-    return result.status === "sent";
+    const paced = await sendThrottled([{ chatId, text }], {
+      chatId: (item) => item.chatId,
+      pace: sharedTelegramPace(),
+      budgetMs: 8_000,
+      send: async (item) => {
+        const result = await sendTelegramMessage({ chatId: item.chatId, text: item.text }, bot.token);
+        if (result.status === "sent") return { ok: true };
+        return { ok: false, ...(result.context.retryAfter != null ? { retryAfter: result.context.retryAfter } : {}) };
+      },
+    });
+    return paced.sent.length === 1;
   });
+  const audienceById = new Map(audience.map((item) => [item.marathonId, item]));
   return deliverNotifications(
     deliveries.map((item) => item.intent),
     {
@@ -168,7 +225,18 @@ export async function runMarathonNotifications(deps: {
           });
         }
         if (!item.chatId) return false;
-        return sendTelegram(item.chatId, item.text);
+        const sent = await sendTelegram(item.chatId, item.text);
+        if (sent && intent.kind === "day_open" && !deps.sendTelegram) {
+          const marathon = audienceById.get(intent.marathonId);
+          if (marathon) {
+            try {
+              await pushOpenedDayContent(marathon, intent.userId, intent.dayNumber, item.chatId);
+            } catch (error) {
+              console.error("marathon day content", error);
+            }
+          }
+        }
+        return sent;
       },
     },
   );
@@ -269,8 +337,17 @@ export async function sendCompletedDayFollowUp(input: {
         }
         const bot = optionalTelegramBot();
         if (!bot || !item.chatId) return false;
-        const result = await sendTelegramMessage({ chatId: item.chatId, text: item.text }, bot.token);
-        return result.status === "sent";
+        const paced = await sendThrottled([{ chatId: item.chatId, text: item.text }], {
+          chatId: (entry) => entry.chatId,
+          pace: sharedTelegramPace(),
+          budgetMs: 8_000,
+          send: async (entry) => {
+            const result = await sendTelegramMessage({ chatId: entry.chatId, text: entry.text }, bot.token);
+            if (result.status === "sent") return { ok: true };
+            return { ok: false, ...(result.context.retryAfter != null ? { retryAfter: result.context.retryAfter } : {}) };
+          },
+        });
+        return paced.sent.length === 1;
       },
     },
   );

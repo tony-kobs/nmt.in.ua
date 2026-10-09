@@ -43,7 +43,11 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  serverExternalPackages: ["mysql2"],
+  serverExternalPackages: ["mysql2", "mathjax-full", "@resvg/resvg-wasm"],
+  outputFileTracingIncludes: {
+    "/api/telegram/webhook": ["./node_modules/@resvg/resvg-wasm/index_bg.wasm"],
+    "/api/marathon/notifications/process": ["./node_modules/@resvg/resvg-wasm/index_bg.wasm"],
+  },
   experimental: {
     optimizePackageImports: ["clsx", "motion"],
     serverActions: {

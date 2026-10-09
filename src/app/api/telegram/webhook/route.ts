@@ -2,10 +2,12 @@ import {
   handleMarathonGateway,
   marathonBareStart,
   marathonLinkText,
+  marathonWelcome,
 } from "@/modules/marathons/daily/botGateway";
 import { readTelegramConfig } from "@/modules/telegram/config";
 import { consumeTelegramLink } from "@/modules/telegram/link";
-import { sendTelegramMessage } from "@/modules/telegram/transport";
+import { deliverTelegramReplies } from "@/modules/telegram/deliver";
+import { drainTelegramOutbox, rememberDeferred } from "@/modules/telegram/outbox";
 import { handleTelegramUpdate, verifyTelegramWebhookSecret } from "@/modules/telegram/webhook";
 import type { TelegramReply } from "@/modules/telegram/taskInteraction";
 
@@ -17,6 +19,7 @@ function flattenReplies(reply: TelegramReply | null): TelegramReply[] {
 }
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function POST(request: Request): Promise<Response> {
   let config: ReturnType<typeof readTelegramConfig>;
@@ -46,6 +49,7 @@ export async function POST(request: Request): Promise<Response> {
       marathon: handleMarathonGateway,
       marathonBareStart,
       marathonLinkText,
+      marathonWelcome,
       acknowledgeCallback: async (queryId) => {
         const response = await fetch(`https://api.telegram.org/bot${config.botToken}/answerCallbackQuery`, {
           method: "POST", headers: { "content-type": "application/json" },
@@ -55,10 +59,18 @@ export async function POST(request: Request): Promise<Response> {
       },
     });
     const replies = flattenReplies(reply);
-    for (const item of replies) {
-      const result = await sendTelegramMessage(item, config.botToken);
-      if (result.status !== "sent") {
-        console.error("telegram webhook delivery failed", result.context);
+    const delivered = await deliverTelegramReplies(replies, config.botToken, { budgetMs: 6_000 });
+    if (delivered.deferred.length > 0) {
+      await rememberDeferred(delivered.deferred);
+      try {
+        const { after } = await import("next/server");
+        after(() => {
+          void drainTelegramOutbox({ budgetMs: 20_000 }).catch((error: unknown) => {
+            console.error("telegram outbox", error);
+          });
+        });
+      } catch (error) {
+        console.error("telegram outbox schedule", error);
       }
     }
   } catch (error) {

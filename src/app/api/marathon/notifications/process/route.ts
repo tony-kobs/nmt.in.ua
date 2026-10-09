@@ -1,7 +1,9 @@
 import { isMarathonCronAuthorized, runMarathonNotifications } from "@/modules/marathons/daily/notificationsJob";
+import { drainTelegramOutbox } from "@/modules/telegram/outbox";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function POST(request: Request): Promise<Response> {
   if (!isMarathonCronAuthorized(request.headers.get("authorization"))) {
@@ -9,7 +11,8 @@ export async function POST(request: Request): Promise<Response> {
   }
   try {
     const result = await runMarathonNotifications();
-    return Response.json(result, { headers: { "cache-control": "no-store" } });
+    const queued = await drainTelegramOutbox({ budgetMs: 8_000 });
+    return Response.json({ ...result, telegramQueued: queued }, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     console.error("marathon notifications", error);
     return new Response(null, { status: 500 });

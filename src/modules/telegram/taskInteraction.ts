@@ -8,7 +8,18 @@ export type InlineKeyboard = { inline_keyboard: { text: string; callback_data?: 
 export type TelegramReply = {
   chatId: string;
   text: string;
+  parseMode?: "HTML";
   replyMarkup?: InlineKeyboard;
+  /** YouTube or Loom, shown as a large link preview above the text. */
+  linkPreviewUrl?: string;
+  photoUrl?: string;
+  albumUrls?: string[];
+  videoUrl?: string;
+  videoFileId?: string;
+  formulaTex?: string;
+  formulaDisplay?: boolean;
+  siteUrl?: string;
+  siteLabel?: string;
   /** Further messages. Not sent as part of the Telegram payload. */
   continuation?: TelegramReply[];
 };

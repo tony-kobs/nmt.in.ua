@@ -40,6 +40,7 @@ function day(overrides: Partial<DayPacket> = {}): DayPacket {
     materials: [{ type: "text", urlOrBody: "Прочитайте правило додавання." }],
     tasks,
     passThreshold: 60,
+    introText: null,
     daysCount: 2,
     next: {
       dayNumber: 2,
@@ -154,4 +155,55 @@ test("progress started in the bot can be finished on the site", () => {
   );
   assert.equal(replay.completedNow, false);
   assert.equal(replay.state.score, fromSite.state.score);
+});
+
+test("callback data hides the task and the correct option behind an opaque token", () => {
+  const issued: Array<{ day: number; taskId: number; option: number }> = [];
+  const result = presentMarathon({
+    callback: { kind: "today" },
+    day: day(),
+    state: viewed,
+    name: "Марія",
+    mapUrl: "https://nmt.in.ua/marathon/math-5/map",
+    tokenFor: (action) => {
+      issued.push(action);
+      return `mh:z:token${action.option}xxxxxxxx`;
+    },
+  });
+  const buttons = result.messages.flatMap((message) => message.buttons ?? []);
+  const answer = buttons.find((button) => button.data?.startsWith("mh:z:"));
+  assert.ok(answer?.data);
+  assert.equal(answer.data.includes("15"), false);
+  assert.equal(answer.data.includes(EXPLANATION), false);
+  assert.equal(/:2$/.test(answer.data), false);
+  assert.equal(issued[0]?.taskId, 15);
+  assert.equal(issued[0]?.option, 1);
+  const taskMessage = result.messages.find((message) => message.siteUrl);
+  assert.equal(taskMessage?.siteUrl, "https://nmt.in.ua/marathon/math-5/day/1");
+  assert.equal(taskMessage?.buttons?.some((button) => button.url), false);
+  assert.equal(blob(result.messages).includes(EXPLANATION), false);
+});
+
+test("a formula task answered in the bot can be finished on the site", () => {
+  const formulaTasks: GradedTask[] = [
+    { ...tasks[0], prompt: "Обчисліть $x^2$" },
+    tasks[1],
+  ];
+  const opened = applyPlay(blankPlay(), { type: "materials" }, formulaTasks, 60);
+  const fromBot = applyPlay(
+    opened.state,
+    { type: "answer", taskId: 15, option: 2 },
+    formulaTasks,
+    60,
+  );
+  assert.equal(fromBot.state.answers[15], 2);
+  assert.equal(fromBot.state.completed, false);
+  const fromSite = applyPlay(
+    fromBot.state,
+    { type: "submit", answers: { 15: 2, 16: 1 } },
+    formulaTasks,
+    60,
+  );
+  assert.equal(fromSite.completedNow, true);
+  assert.equal(fromSite.state.score, 100);
 });
