@@ -22,6 +22,7 @@ import {
   answersFromForm,
   isDailyStatus,
   isDuplicateKey,
+  parseCopyInput,
   parseDay,
   parseDayUpdate,
   parseMarathonInput,
@@ -33,6 +34,8 @@ import {
   utmJsonFromForm,
   type AdminFormState,
 } from "./forms";
+import { isCopyKey } from "./copy";
+import { sendCompletedDayFollowUp } from "./notificationsJob";
 import { seedMathMarathon } from "./seed";
 import {
   completeParticipantDay,
@@ -51,13 +54,19 @@ import {
   joinParticipant,
   listDays,
   listProgress,
+  loadMarathonCopy,
   markConverted,
+  markIntroSeen,
   markMaterialsViewed,
   quizTaskExists,
+  resetMarathonCopy,
+  saveMarathonCopy,
   setDailyStatus,
+  setDeliveryChannel,
   setNotifyPrefs,
   updateDailyMarathon,
   updateDay,
+  updateMaterial,
 } from "./store";
 import { loginCandidatesFromEmail, normalizeCtaUrl } from "./utm";
 
@@ -507,7 +516,66 @@ export async function submitDayAction(formData: FormData): Promise<void> {
   revalidatePath(`/marathon/${slug}/map`);
   revalidatePath(`/marathon/${slug}/final`);
   if (!result.ok) redirect(`${dayPath}?error=${result.code}`);
+  const days = await listDays(marathon.id);
+  try {
+    await sendCompletedDayFollowUp({
+      marathonId: marathon.id,
+      slug: marathon.slug,
+      title: marathon.title,
+      startDate: marathon.startDate,
+      unlockHour: marathon.unlockHour,
+      daysCount: marathon.daysCount,
+      completedDay: day.dayNumber,
+      topics: Object.fromEntries(days.map((item) => [item.dayNumber, item.topic])),
+      copy: await loadMarathonCopy(marathon.id),
+      person: {
+        userId: user.id,
+        email: participant.email,
+        displayName: participant.displayName || user.displayName,
+        telegramChatId: participant.telegramChatId,
+        notifyEmail: participant.notifyEmail,
+        notifyBot: participant.notifyBot,
+        completedDayNumbers: [day.dayNumber],
+      },
+    });
+  } catch (error) {
+    console.error("marathon follow-up", error);
+  }
   redirect(dayPath);
+}
+
+export async function seeIntroAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const slug = readText(formData.get("slug"), 64);
+  const marathon = await openMarathon(slug);
+  if (!marathon) redirect("/");
+  const participant = await getParticipant(marathon.id, user.id);
+  if (!participant) redirect(`/marathon/${slug}/map`);
+  await markIntroSeen(marathon.id, user.id, new Date());
+  revalidatePath(`/marathon/${slug}/map`);
+  redirect(`/marathon/${slug}/map`);
+}
+
+export async function setChannelAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const slug = readText(formData.get("slug"), 64);
+  const channel = readText(formData.get("channel"), 16);
+  const marathon = await openMarathon(slug);
+  if (!marathon) redirect("/");
+  const participant = await getParticipant(marathon.id, user.id);
+  if (!participant) redirect(`/marathon/${slug}`);
+  if (channel !== "site" && channel !== "telegram") {
+    redirect(`/marathon/${slug}/map?error=invalid`);
+  }
+  await setDeliveryChannel(
+    marathon.id,
+    user.id,
+    channel,
+    Boolean(participant.telegramChatId),
+  );
+  revalidatePath(`/marathon/${slug}/map`);
+  const anchor = channel === "telegram" && !participant.telegramChatId ? "#notify" : "";
+  redirect(`/marathon/${slug}/map${anchor}`);
 }
 
 export async function notifyPrefsAction(formData: FormData): Promise<void> {
@@ -523,6 +591,56 @@ export async function notifyPrefsAction(formData: FormData): Promise<void> {
   });
   revalidatePath(`/marathon/${slug}/map`);
   redirect(`/marathon/${slug}/map`);
+}
+
+export async function saveCopyAction(
+  _prev: AdminFormState,
+  formData: FormData,
+): Promise<AdminFormState> {
+  await requireManager();
+  const id = readInt(formData.get("marathonId"));
+  const parsed = parseCopyInput(formData);
+  if (!id) return adminFormError([FORM_INVALID]);
+  if (!parsed.ok) return adminFormError(parsed.issues);
+  try {
+    await saveMarathonCopy(id, parsed.value.key, parsed.value.body);
+  } catch (error) {
+    console.error("saveCopyAction", error);
+    return adminFormError([FORM_SERVER]);
+  }
+  revalidatePath(adminPath(id));
+  redirect(savedPath(id));
+}
+
+export async function resetCopyAction(formData: FormData): Promise<void> {
+  await requireManager();
+  const id = readInt(formData.get("marathonId"));
+  const key = readText(formData.get("copyKey"), 64);
+  if (!id || !isCopyKey(key)) redirect(`${adminPath(id ?? undefined)}?error=invalid`);
+  await resetMarathonCopy(id, key);
+  revalidatePath(adminPath(id));
+  redirect(savedPath(id));
+}
+
+export async function updateMaterialAction(
+  _prev: AdminFormState,
+  formData: FormData,
+): Promise<AdminFormState> {
+  await requireManager();
+  const id = readInt(formData.get("marathonId"));
+  const dayId = readInt(formData.get("dayId"));
+  const materialId = readInt(formData.get("materialId"));
+  const parsed = parseMaterial(formData);
+  if (!id || !dayId || !materialId) return adminFormError([FORM_INVALID]);
+  if (!parsed.ok) return adminFormError(parsed.issues);
+  try {
+    await updateMaterial(dayId, materialId, parsed.value);
+  } catch (error) {
+    console.error("updateMaterialAction", error);
+    return adminFormError([FORM_SERVER]);
+  }
+  revalidatePath(adminPath(id));
+  redirect(savedPath(id));
 }
 
 export async function linkBotAction(formData: FormData): Promise<void> {

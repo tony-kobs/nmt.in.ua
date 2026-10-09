@@ -7,6 +7,7 @@ import { formatTelegramTasks } from "./taskCommands";
 import { completeTelegramTask } from "./completeTask";
 import { createTaskReference } from "./taskReference";
 import { handleTaskCallback, parseTaskCallback, type TelegramReply } from "./taskInteraction";
+import { isMarathonCallbackData } from "@/modules/marathons/daily/botPlay";
 import { getTelegramTaskDetails } from "./taskDetails";
 
 type TelegramMessage = {
@@ -54,12 +55,28 @@ export async function handleTelegramUpdate(
     referenceSecret?: string;
     getDetails?: typeof getTelegramTaskDetails;
     acknowledgeCallback?: (queryId: string) => Promise<void>;
+    marathon?: (update: unknown) => Promise<TelegramReply | TelegramReply[] | null>;
+    marathonBareStart?: (chatId: string) => Promise<TelegramReply | null>;
+    marathonLinkText?: (chatId: string) => Promise<string>;
     consumeMarathon?: (
       token: string,
       identity: { userId: string; chatId: string; username?: string },
     ) => Promise<boolean>;
   } = { consume: consumeTelegramLink },
 ): Promise<TelegramReply | null> {
+  const callbackData = callbackDataOf(update);
+  if (isMarathonCallbackData(callbackData) || isMarathonMenu(update)) {
+    const queryId = callbackQueryId(update);
+    if (queryId && deps.acknowledgeCallback) await deps.acknowledgeCallback(queryId);
+    try {
+      const handler = deps.marathon ?? (await import("@/modules/marathons/daily/botGateway")).handleMarathonGateway;
+      return packReplies(await handler(update));
+    } catch (error) {
+      (deps.logError ?? ((value) => console.error("marathon telegram failed", value)))(error);
+      const chatId = callbackChatId(update) ?? messageChatId(update);
+      return chatId ? { chatId, text: "Не вдалося обробити дію. Спробуйте пізніше." } : null;
+    }
+  }
   const callback = parseTaskCallback(update);
   if (callback) {
     if (deps.acknowledgeCallback) await deps.acknowledgeCallback(callback.queryId);
@@ -131,10 +148,13 @@ export async function handleTelegramUpdate(
         chatId: start.chatId,
         username: start.username,
       });
+      const linkedText = linked && deps.marathonLinkText
+        ? await deps.marathonLinkText(start.chatId)
+        : null;
       return {
         chatId: start.chatId,
         text: linked
-          ? "Бот марафону підключено. Нагадування про дні приходитимуть сюди."
+          ? linkedText || "Бот марафону підключено. Нагадування про дні приходитимуть сюди."
           : "Код марафону недійсний або його термін минув. Створіть новий у кабінеті марафону.",
       };
     } catch (error) {
@@ -143,6 +163,14 @@ export async function handleTelegramUpdate(
     }
   }
   if (!start.payload) {
+    if (deps.marathonBareStart) {
+      try {
+        const menu = await deps.marathonBareStart(start.chatId);
+        if (menu) return menu;
+      } catch (error) {
+        (deps.logError ?? ((value) => console.error("marathon start failed", value)))(error);
+      }
+    }
     return { chatId: start.chatId, text: "Щоб підключити Telegram, почніть у своєму кабінеті на nmt.in.ua." };
   }
   const linked = await deps.consume(start.payload, {
@@ -179,4 +207,42 @@ export function parseTelegramTaskCommand(update: unknown): {
       Number(message.from.id) <= 0 || message.chat.id !== message.from.id || typeof message.text !== "string") return null;
   const match = /^\/(tasks|today)(?:@\w+)?\s*$/.exec(message.text);
   return match ? { chatId: String(message.chat.id), userId: String(message.from.id), today: match[1] === "today" } : null;
+}
+
+function packReplies(reply: TelegramReply | TelegramReply[] | null): TelegramReply | null {
+  if (!reply) return null;
+  const list = Array.isArray(reply) ? reply : [reply];
+  const [first, ...rest] = list;
+  if (!first) return null;
+  return rest.length > 0 ? { ...first, continuation: rest } : first;
+}
+
+function callbackDataOf(update: unknown): string | undefined {
+  if (!update || typeof update !== "object") return undefined;
+  const data = (update as { callback_query?: { data?: unknown } }).callback_query?.data;
+  return typeof data === "string" ? data : undefined;
+}
+
+function callbackQueryId(update: unknown): string | null {
+  if (!update || typeof update !== "object") return null;
+  const id = (update as { callback_query?: { id?: unknown } }).callback_query?.id;
+  return typeof id === "string" ? id : null;
+}
+
+function callbackChatId(update: unknown): string | null {
+  if (!update || typeof update !== "object") return null;
+  const id = (update as { callback_query?: { from?: { id?: number } } }).callback_query?.from?.id;
+  return Number.isSafeInteger(id) ? String(id) : null;
+}
+
+function messageChatId(update: unknown): string | null {
+  if (!update || typeof update !== "object") return null;
+  const id = (update as { message?: { chat?: { id?: number } } }).message?.chat?.id;
+  return Number.isSafeInteger(id) ? String(id) : null;
+}
+
+function isMarathonMenu(update: unknown): boolean {
+  if (!update || typeof update !== "object") return false;
+  const text = (update as { message?: { text?: unknown } }).message?.text;
+  return typeof text === "string" && /^\/menu(?:@\w+)?\s*$/.test(text);
 }

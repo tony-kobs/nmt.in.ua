@@ -3,11 +3,13 @@ import { getTranslations } from "next-intl/server";
 import { MarathonFinalView } from "@/components/marathon/MarathonFinalView";
 import { createPageMetadata } from "@/constants/seo";
 import { requireUser } from "@/modules/auth/getCurrentUser";
+import { renderResolved } from "@/modules/marathons/daily/copy";
 import {
   getDailyBySlug,
   getParticipant,
   listDays,
   listProgress,
+  loadMarathonCopy,
 } from "@/modules/marathons/daily/store";
 
 export const dynamic = "force-dynamic";
@@ -32,16 +34,22 @@ export default async function MarathonFinalPage({ params }: PageProps) {
   if (!marathon || marathon.status === "draft") notFound();
   const participant = await getParticipant(marathon.id, user.id);
   if (!participant) notFound();
-  const [days, progress] = await Promise.all([
+  const [days, progress, copy] = await Promise.all([
     listDays(marathon.id),
     listProgress(marathon.id, user.id),
+    loadMarathonCopy(marathon.id),
   ]);
+  const summary = renderResolved("final_summary", copy, {
+    name: participant.displayName || user.displayName,
+    link: marathon.finalCtaUrl,
+  });
   return (
     <MarathonFinalView
       marathon={marathon}
       days={days}
       progress={progress}
       participant={participant}
+      summary={summary}
     />
   );
 }
