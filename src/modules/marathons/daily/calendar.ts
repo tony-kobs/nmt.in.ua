@@ -119,6 +119,17 @@ export function isDayUnlocked(now: Date, input: UnlockInput): boolean {
   return now.getTime() >= dayUnlockAt(input).getTime();
 }
 
+export function kyivHour(instant: Date): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: KYIV_TIME_ZONE,
+    hourCycle: "h23",
+    hour: "2-digit",
+  }).formatToParts(instant);
+  let hour = Number(readPart(parts, "hour"));
+  if (hour === 24) hour = 0;
+  return hour;
+}
+
 export function kyivDateIso(instant: Date): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: KYIV_TIME_ZONE,

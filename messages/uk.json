@@ -789,6 +789,11 @@
     "passwordConfirm": "Пароль ще раз",
     "mapLead": "{days} днів. Відкритий день можна пройти будь-коли; майбутні відкриються для всіх одночасно.",
     "streak": "Серія: {count}",
+    "boardTitle": "Таблиця",
+    "boardEmpty": "Поки ніхто не в таблиці.",
+    "boardPoints": "{count} балів",
+    "boardStreak": "серія {count}",
+    "boardYou": "ви",
     "dayLabel": "День {n}",
     "markPassed": "Зараховано · {score}%",
     "markFailed": "Нижче порога · {score}%",
@@ -965,7 +970,7 @@
       },
       "body": {
         "required": "Вкажіть текст.",
-        "placeholder": "Невідомий плейсхолдер. Дозволені лише name, day, topic, unlock_time і link у фігурних дужках."
+        "placeholder": "Невідомий плейсхолдер. Дозволені лише name, day, topic, unlock_time, link, place, prev_place, delta і total у фігурних дужках."
       },
       "introVideo": {
         "format": "Вступне відео має бути посиланням YouTube або Loom."
@@ -1009,12 +1014,13 @@
       "reset": "Скинути до типового",
       "tooLong": "Після підстановки текст довший за ліміт Telegram ({limit} символів). Бот розіб’є довгі матеріали, але цей шаблон має вміститися в одне повідомлення.",
       "buttonLong": "Підпис кнопки довший за {limit} символів — Telegram його не прийме.",
-      "placeholdersHint": "Плейсхолдери у фігурних дужках: name, day, topic, unlock_time, link.",
+      "placeholdersHint": "Плейсхолдери у фігурних дужках: name, day, topic, unlock_time, link, place, prev_place, delta, total.",
       "groups": {
         "intro": "Вступ",
         "day": "Розбір дня",
         "final": "Підсумок",
         "notify": "Листи і сповіщення",
+        "rank": "Місце",
         "channel": "Вибір каналу",
         "bot": "Telegram"
       },
@@ -1026,10 +1032,17 @@
         "notify_reminder": "Нагадування о 19:00",
         "notify_tomorrow": "Анонс наступного дня",
         "notify_final": "Фінал після останнього дня",
+        "rank_up": "Піднявся в таблиці",
+        "rank_down": "Опустився в таблиці",
+        "rank_same": "Місце не змінилося",
+        "rank_first": "Перше місце",
+        "rank_nudge": "Нагадування про пропущений день",
+        "rank_board": "Заголовок таблиці",
         "channel_prompt": "Як проходити",
         "bot_start": "Старт без коду",
         "bot_menu": "Меню",
         "bot_btn_today": "Кнопка «Сьогодні»",
+        "bot_btn_top": "Кнопка «Таблиця»",
         "bot_btn_map": "Кнопка «Карта»",
         "bot_btn_channel": "Кнопка «Змінити канал»",
         "bot_btn_stop": "Кнопка «Зупинити сповіщення»",

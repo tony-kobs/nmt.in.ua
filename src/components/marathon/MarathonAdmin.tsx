@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
 import { kyivDateIso } from "@/modules/marathons/daily/calendar";
-import { loadMarathonCopy } from "@/modules/marathons/daily/store";
+import { loadMarathonBoard, loadMarathonCopy } from "@/modules/marathons/daily/store";
 import {
   deleteDayAction,
   deleteMarathonAction,
@@ -21,6 +21,7 @@ import type {
   Riddle,
 } from "@/modules/marathons/daily/store";
 import type { FunnelReport } from "@/modules/marathons/daily/funnel";
+import { MarathonBoard } from "./MarathonBoard";
 import { AdminNotices } from "./admin/AdminNotices";
 import { TelegramDayPreview } from "./admin/TelegramDayPreview";
 import {
@@ -112,7 +113,10 @@ export async function MarathonAdminEditor({
 }) {
   const t = await getTranslations("Marathon");
   const message = marathonErrorText(t, error);
-  const copy = await loadMarathonCopy(marathon.id);
+  const [copy, board] = await Promise.all([
+    loadMarathonCopy(marathon.id),
+    loadMarathonBoard(marathon.id),
+  ]);
   return (
     <PageFrame kicker={t("kicker")} title={marathon.title}>
       <AdminNotices
@@ -152,6 +156,7 @@ export async function MarathonAdminEditor({
         </div>
         <MarathonSettingsForm marathon={marathon} />
         <CopyEditor marathonId={marathon.id} overrides={copy} />
+        <MarathonBoard rows={board} selfId={null} limit={null} titleId="admin-board" />
 
         <section className={css.card} aria-labelledby="riddles">
           <h2 id="riddles">{t("riddlesTitle")}</h2>

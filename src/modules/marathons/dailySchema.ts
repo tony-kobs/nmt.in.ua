@@ -67,10 +67,21 @@ const CHILD_TABLES = [
     marathon_id INT NOT NULL,
     user_id INT NOT NULL,
     day_number TINYINT UNSIGNED NOT NULL,
-    kind ENUM('day_open', 'reminder', 'tomorrow', 'final') NOT NULL,
+    kind ENUM('day_open', 'reminder', 'tomorrow', 'final', 'nudge') NOT NULL,
     channel ENUM('email', 'telegram') NOT NULL,
     sent_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (marathon_id, user_id, day_number, kind, channel)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS marathon_ranks (
+    marathon_id INT NOT NULL,
+    user_id INT NOT NULL,
+    place SMALLINT UNSIGNED NOT NULL,
+    prev_place SMALLINT UNSIGNED NULL,
+    points INT UNSIGNED NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (marathon_id, user_id),
+    CONSTRAINT fk_marathon_ranks_participant FOREIGN KEY (marathon_id, user_id)
+      REFERENCES marathon_participants (marathon_id, user_id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   `CREATE TABLE IF NOT EXISTS marathon_copy (
     marathon_id INT NOT NULL,
@@ -264,10 +275,10 @@ export async function migrateDailyMarathon(
     const kindType = String(
       kindRows[0]?.COLUMN_TYPE ?? kindRows[0]?.column_type ?? "",
     );
-    if (kindType && !kindType.includes("tomorrow")) {
+    if (kindType && !kindType.includes("nudge")) {
       await connection.execute(
         `ALTER TABLE marathon_notifications
-         MODIFY COLUMN kind ENUM('day_open','reminder','tomorrow','final') NOT NULL`,
+         MODIFY COLUMN kind ENUM('day_open','reminder','tomorrow','final','nudge') NOT NULL`,
         [],
       );
     }
@@ -280,6 +291,14 @@ export async function migrateDailyMarathon(
       "marathon_day_progress",
       "answers_json",
       "TEXT NULL AFTER completed_at",
+    );
+  }
+  if (progressColumns.size > 0 && !progressColumns.has("correct_count")) {
+    await addColumn(
+      connection,
+      "marathon_day_progress",
+      "correct_count",
+      "SMALLINT UNSIGNED NULL AFTER score",
     );
   }
 
