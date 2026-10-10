@@ -9,12 +9,14 @@ import { sendTelegramMessage } from "@/modules/telegram/transport";
 import { optionalTelegramBot } from "./botLink";
 import { dayUnlockAt, formatKyivWhen } from "./calendar";
 import { renderResolved, resolveCopy, type CopyKey } from "./copy";
+import { publicLeaderName, rankNoticeText, type BoardLine } from "./leaderboard";
 import { expandSources, materialSources } from "./telegramContent";
 import { marathonDayUrl, wrapMarathonMail } from "./mailCopy";
 import {
   deliverNotifications,
   planFollowUps,
   planNotifications,
+  planNudges,
   unsubscribeToken,
   type NotifyIntent,
   type NotifyKind,
@@ -23,6 +25,7 @@ import {
   claimNotification,
   listDays,
   listMaterials,
+  loadMarathonBoard,
   loadNotifyAudience,
   markMaterialsViewed,
   releaseNotification,
@@ -52,7 +55,8 @@ function kindKey(kind: NotifyKind): CopyKey {
   if (kind === "day_open") return "notify_day_open";
   if (kind === "reminder") return "notify_reminder";
   if (kind === "tomorrow") return "notify_tomorrow";
-  return "notify_final";
+  if (kind === "final") return "notify_final";
+  return "rank_nudge";
 }
 
 type Delivery = {
@@ -64,13 +68,16 @@ type Delivery = {
   html: string;
 };
 
-function buildDeliveries(
+async function buildDeliveries(
   audience: NotifyAudienceMarathon[],
   now: Date,
   secret: string | null,
-): Delivery[] {
+  loadBoard: (marathonId: number) => Promise<BoardLine[]>,
+): Promise<Delivery[]> {
   const deliveries: Delivery[] = [];
   for (const marathon of audience) {
+    const board = await loadBoard(marathon.marathonId);
+    const standing = new Map(board.map((row) => [row.userId, row]));
     const intents = [
       ...planNotifications({
         now,
@@ -82,6 +89,14 @@ function buildDeliveries(
       }),
       ...planFollowUps({
         marathonId: marathon.marathonId,
+        daysCount: marathon.daysCount,
+        people: marathon.people,
+      }),
+      ...planNudges({
+        now,
+        marathonId: marathon.marathonId,
+        startDate: marathon.startDate,
+        unlockHour: marathon.unlockHour,
         daysCount: marathon.daysCount,
         people: marathon.people,
       }),
@@ -104,12 +119,18 @@ function buildDeliveries(
           "uk-UA",
         );
       }
+      const row = standing.get(person.userId);
+      const place = row?.place ?? Math.max(board.length, 1);
       const rendered = renderResolved(kindKey(intent.kind), marathon.copy, {
-        name: person.displayName,
+        name: intent.kind === "nudge" ? publicLeaderName(person.displayName) : person.displayName,
         day: intent.dayNumber,
         topic,
         unlock_time: unlockLabel,
         link: dayUrl,
+        place,
+        prev_place: row?.prevPlace ?? place,
+        delta: row?.prevPlace == null ? 0 : Math.abs(row.prevPlace - place),
+        total: row?.points ?? 0,
       });
       const unsub = secret
         ? absoluteUrl(
@@ -178,12 +199,18 @@ export async function runMarathonNotifications(deps: {
   sendTelegram?: (chatId: string, text: string) => Promise<boolean>;
   telegramEnabled?: boolean;
   secret?: string | null;
+  loadBoard?: (marathonId: number) => Promise<BoardLine[]>;
 } = {}): Promise<{ sent: number; skipped: number; failed: number }> {
   const now = deps.now?.() ?? new Date();
   const audience = await (deps.load ?? loadNotifyAudience)();
   const secret = deps.secret === undefined ? unsubscribeSecret() : deps.secret;
   const telegramEnabled = deps.telegramEnabled ?? Boolean(optionalTelegramBot());
-  const deliveries = buildDeliveries(audience, now, secret).filter(
+  const deliveries = (await buildDeliveries(
+    audience,
+    now,
+    secret,
+    deps.loadBoard ?? loadMarathonBoard,
+  )).filter(
     (item) => item.intent.channel === "email" || telegramEnabled,
   );
   const byKey = new Map(deliveries.map((item) => [intentKey(item.intent), item]));
@@ -351,4 +378,72 @@ export async function sendCompletedDayFollowUp(input: {
       },
     },
   );
+}
+
+/** Stats after a fresh day submit. The bot reply already carries the text when `skipTelegram` is set. */
+export async function sendRankNotice(input: {
+  marathonId: number;
+  slug: string;
+  copy: NotifyAudienceMarathon["copy"];
+  person: NotifyAudienceMarathon["people"][number];
+  dayNumber: number;
+  place: number;
+  prevPlace: number | null;
+  points: number;
+  skipTelegram?: boolean;
+}): Promise<string> {
+  const link = marathonDayUrl(input.slug, input.dayNumber);
+  const rendered = rankNoticeText(input.copy, {
+    name: input.person.displayName,
+    place: input.place,
+    prevPlace: input.prevPlace,
+    points: input.points,
+    day: input.dayNumber,
+    link,
+  });
+  const secret = unsubscribeSecret();
+  const unsub = secret
+    ? absoluteUrl(
+        `/api/marathon/unsubscribe?m=${input.marathonId}&u=${input.person.userId}&t=${unsubscribeToken(input.marathonId, input.person.userId, secret)}`,
+      )
+    : null;
+  const mail = wrapMarathonMail({ rendered, unsubscribeUrl: unsub });
+  if (input.person.notifyEmail && input.person.email) {
+    try {
+      await sendMail({
+        to: input.person.email,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+      });
+    } catch (error) {
+      console.error("marathon rank mail", error);
+    }
+  }
+  if (!input.skipTelegram && input.person.notifyBot && input.person.telegramChatId) {
+    const bot = optionalTelegramBot();
+    if (bot) {
+      try {
+        await sendThrottled([{ chatId: input.person.telegramChatId, text: rendered }], {
+          chatId: (entry) => entry.chatId,
+          pace: sharedTelegramPace(),
+          budgetMs: 8_000,
+          send: async (entry) => {
+            const result = await sendTelegramMessage(
+              { chatId: entry.chatId, text: entry.text },
+              bot.token,
+            );
+            if (result.status === "sent") return { ok: true };
+            return {
+              ok: false,
+              ...(result.context.retryAfter != null ? { retryAfter: result.context.retryAfter } : {}),
+            };
+          },
+        });
+      } catch (error) {
+        console.error("marathon rank telegram", error);
+      }
+    }
+  }
+  return rendered;
 }

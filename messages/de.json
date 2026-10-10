@@ -789,6 +789,11 @@
     "passwordConfirm": "Passwort wiederholen",
     "mapLead": "{days} Tage. Einen offenen Tag kannst du jederzeit nachholen; künftige Tage öffnen sich für alle gleichzeitig.",
     "streak": "Serie: {count}",
+    "boardTitle": "Tabelle",
+    "boardEmpty": "Noch niemand in der Tabelle.",
+    "boardPoints": "{count} Punkte",
+    "boardStreak": "Serie {count}",
+    "boardYou": "Sie",
     "dayLabel": "Tag {n}",
     "markPassed": "Bestanden · {score}%",
     "markFailed": "Unter der Schwelle · {score}%",
@@ -965,7 +970,7 @@
       },
       "body": {
         "required": "Gib den Text an.",
-        "placeholder": "Unbekannter Platzhalter. Erlaubt sind nur name, day, topic, unlock_time und link in geschweiften Klammern."
+        "placeholder": "Unbekannter Platzhalter. Erlaubt sind nur name, day, topic, unlock_time, link, place, prev_place, delta und total in geschweiften Klammern."
       },
       "introVideo": {
         "format": "Das Einführungsvideo muss ein YouTube- oder Loom-Link sein."
@@ -1009,12 +1014,13 @@
       "reset": "Auf Standard zurücksetzen",
       "tooLong": "Nach dem Einsetzen ist der Text länger als das Telegram-Limit ({limit} Zeichen). Der Bot teilt lange Materialien, diese Vorlage muss in eine Nachricht passen.",
       "buttonLong": "Die Beschriftung ist länger als {limit} Zeichen — Telegram lehnt sie ab.",
-      "placeholdersHint": "Platzhalter in geschweiften Klammern: name, day, topic, unlock_time, link.",
+      "placeholdersHint": "Platzhalter in geschweiften Klammern: name, day, topic, unlock_time, link, place, prev_place, delta, total.",
       "groups": {
         "intro": "Einstieg",
         "day": "Tagesauswertung",
         "final": "Zusammenfassung",
         "notify": "E-Mail und Hinweise",
+        "rank": "Platz",
         "channel": "Kanalwahl",
         "bot": "Telegram"
       },
@@ -1026,10 +1032,17 @@
         "notify_reminder": "Erinnerung um 19:00",
         "notify_tomorrow": "Ankündigung des nächsten Tages",
         "notify_final": "Abschluss nach dem letzten Tag",
+        "rank_up": "Nach oben",
+        "rank_down": "Nach unten",
+        "rank_same": "Platz unverändert",
+        "rank_first": "Erster Platz",
+        "rank_nudge": "Hinweis zum verpassten Tag",
+        "rank_board": "Überschrift der Tabelle",
         "channel_prompt": "Wie teilnehmen",
         "bot_start": "Start ohne Code",
         "bot_menu": "Menü",
         "bot_btn_today": "Button Heute",
+        "bot_btn_top": "Button Tabelle",
         "bot_btn_map": "Button Karte",
         "bot_btn_channel": "Button Kanal ändern",
         "bot_btn_stop": "Button Hinweise stoppen",

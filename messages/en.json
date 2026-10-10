@@ -789,6 +789,11 @@
     "passwordConfirm": "Password again",
     "mapLead": "{days} days. An open day can be finished any time; future days unlock for everyone at once.",
     "streak": "Streak: {count}",
+    "boardTitle": "Leaderboard",
+    "boardEmpty": "Nobody is on the board yet.",
+    "boardPoints": "{count} points",
+    "boardStreak": "streak {count}",
+    "boardYou": "you",
     "dayLabel": "Day {n}",
     "markPassed": "Passed · {score}%",
     "markFailed": "Below the bar · {score}%",
@@ -965,7 +970,7 @@
       },
       "body": {
         "required": "Enter the text.",
-        "placeholder": "Unknown placeholder. Only name, day, topic, unlock_time and link are allowed, each in curly braces."
+        "placeholder": "Unknown placeholder. Only name, day, topic, unlock_time, link, place, prev_place, delta and total are allowed, each in curly braces."
       },
       "introVideo": {
         "format": "The intro video must be a YouTube or Loom link."
@@ -1009,12 +1014,13 @@
       "reset": "Reset to default",
       "tooLong": "After substitution the text is longer than Telegram’s limit ({limit} characters). The bot splits long materials, but this template must fit in one message.",
       "buttonLong": "The button label is longer than {limit} characters — Telegram will reject it.",
-      "placeholdersHint": "Placeholders in curly braces: name, day, topic, unlock_time, link.",
+      "placeholdersHint": "Placeholders in curly braces: name, day, topic, unlock_time, link, place, prev_place, delta, total.",
       "groups": {
         "intro": "Intro",
         "day": "Day review",
         "final": "Summary",
         "notify": "Email and notifications",
+        "rank": "Place",
         "channel": "Channel choice",
         "bot": "Telegram"
       },
@@ -1026,10 +1032,17 @@
         "notify_reminder": "19:00 reminder",
         "notify_tomorrow": "Next-day announcement",
         "notify_final": "Final note after the last day",
+        "rank_up": "Moved up",
+        "rank_down": "Moved down",
+        "rank_same": "Place unchanged",
+        "rank_first": "First place",
+        "rank_nudge": "Nudge for a missed day",
+        "rank_board": "Board heading",
         "channel_prompt": "How to take it",
         "bot_start": "Start without a code",
         "bot_menu": "Menu",
         "bot_btn_today": "Today button",
+        "bot_btn_top": "Leaderboard button",
         "bot_btn_map": "Map button",
         "bot_btn_channel": "Change channel button",
         "bot_btn_stop": "Stop notifications button",

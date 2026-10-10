@@ -48,6 +48,7 @@ export type DayPacket = {
 export type BotCallback =
   | { kind: "menu" }
   | { kind: "today" }
+  | { kind: "top" }
   | { kind: "stop" }
   | { kind: "channels" }
   | { kind: "channel"; channel: "site" | "telegram" }
@@ -107,6 +108,7 @@ export function parseBotCallback(data: string): BotCallback | null {
   if (!data.startsWith("mh:") || data.length > 64) return null;
   if (data === "mh:menu") return { kind: "menu" };
   if (data === "mh:today") return { kind: "today" };
+  if (data === "mh:top") return { kind: "top" };
   if (data === "mh:stop") return { kind: "stop" };
   if (data === "mh:ch") return { kind: "channels" };
   if (data === "mh:ch:s") return { kind: "channel", channel: "site" };
@@ -253,6 +255,7 @@ export function menuMessages(
       text: resolveCopy("bot_menu", copy),
       buttons: [
         { text: buttonLabel(copy, "bot_btn_today"), data: "mh:today" },
+        { text: buttonLabel(copy, "bot_btn_top"), data: "mh:top" },
         { text: buttonLabel(copy, "bot_btn_map"), url: mapUrl },
         { text: buttonLabel(copy, "bot_btn_channel"), data: "mh:ch" },
         { text: buttonLabel(copy, "bot_btn_stop"), data: "mh:stop" },
@@ -408,7 +411,7 @@ export function presentMarathon(input: {
   tokenFor?: (action: { day: number; taskId: number; option: number }) => string;
 }): { messages: Outgoing[]; state: PlayState; completedNow: boolean } {
   const copy = input.copy;
-  if (input.callback.kind === "menu") {
+  if (input.callback.kind === "menu" || input.callback.kind === "top") {
     return { messages: menuMessages(copy, input.mapUrl), state: input.state, completedNow: false };
   }
   if (input.callback.kind === "channels") {

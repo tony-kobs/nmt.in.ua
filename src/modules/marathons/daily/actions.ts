@@ -35,7 +35,7 @@ import {
   type AdminFormState,
 } from "./forms";
 import { isCopyKey } from "./copy";
-import { sendCompletedDayFollowUp } from "./notificationsJob";
+import { sendCompletedDayFollowUp, sendRankNotice } from "./notificationsJob";
 import { seedMathMarathon } from "./seed";
 import {
   completeParticipantDay,
@@ -517,6 +517,16 @@ export async function submitDayAction(formData: FormData): Promise<void> {
   revalidatePath(`/marathon/${slug}/final`);
   if (!result.ok) redirect(`${dayPath}?error=${result.code}`);
   const days = await listDays(marathon.id);
+  const copy = await loadMarathonCopy(marathon.id);
+  const person = {
+    userId: user.id,
+    email: participant.email,
+    displayName: participant.displayName || user.displayName,
+    telegramChatId: participant.telegramChatId,
+    notifyEmail: participant.notifyEmail,
+    notifyBot: participant.notifyBot,
+    completedDayNumbers: [day.dayNumber],
+  };
   try {
     await sendCompletedDayFollowUp({
       marathonId: marathon.id,
@@ -527,19 +537,27 @@ export async function submitDayAction(formData: FormData): Promise<void> {
       daysCount: marathon.daysCount,
       completedDay: day.dayNumber,
       topics: Object.fromEntries(days.map((item) => [item.dayNumber, item.topic])),
-      copy: await loadMarathonCopy(marathon.id),
-      person: {
-        userId: user.id,
-        email: participant.email,
-        displayName: participant.displayName || user.displayName,
-        telegramChatId: participant.telegramChatId,
-        notifyEmail: participant.notifyEmail,
-        notifyBot: participant.notifyBot,
-        completedDayNumbers: [day.dayNumber],
-      },
+      copy,
+      person,
     });
   } catch (error) {
     console.error("marathon follow-up", error);
+  }
+  if (result.fresh && result.rank) {
+    try {
+      await sendRankNotice({
+        marathonId: marathon.id,
+        slug: marathon.slug,
+        copy,
+        person,
+        dayNumber: day.dayNumber,
+        place: result.rank.place,
+        prevPlace: result.rank.prevPlace,
+        points: result.rank.points,
+      });
+    } catch (error) {
+      console.error("marathon rank notice", error);
+    }
   }
   redirect(dayPath);
 }

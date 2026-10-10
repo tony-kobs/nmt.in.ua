@@ -3,10 +3,15 @@ import {
   DAY_OPEN_NOTIFY_WINDOW_MS,
   dayUnlockAt,
   kyivDateIso,
+  kyivHour,
   reminderAt,
 } from "./calendar";
 
-export type NotifyKind = "day_open" | "reminder" | "tomorrow" | "final";
+export type NotifyKind = "day_open" | "reminder" | "tomorrow" | "final" | "nudge";
+
+/** A missed-day nudge goes out only inside these Kyiv hours, so night cron stays quiet. */
+export const NUDGE_HOUR_FROM = 10;
+export const NUDGE_HOUR_UNTIL = 21;
 export type NotifyChannel = "email" | "telegram";
 
 export type NotifyIntent = {
@@ -83,6 +88,60 @@ export function planNotifications(input: {
             channel: "telegram",
           });
         }
+      }
+    }
+  }
+  return intents;
+}
+
+/**
+ * A day is missed once the next day's unlock has passed and this one is still open.
+ * One intent per channel; `marathon_notifications` keeps a later cron from repeating it.
+ * The same-day 19:00 reminder stops at the next unlock, so the two windows do not overlap.
+ */
+export function planNudges(input: {
+  now: Date;
+  marathonId: number;
+  startDate: string;
+  unlockHour: string;
+  daysCount: number;
+  people: NotifyPerson[];
+}): NotifyIntent[] {
+  const hour = kyivHour(input.now);
+  if (hour < NUDGE_HOUR_FROM || hour >= NUDGE_HOUR_UNTIL) return [];
+  const intents: NotifyIntent[] = [];
+  const nowMs = input.now.getTime();
+  for (let dayNumber = 1; dayNumber <= input.daysCount; dayNumber += 1) {
+    let nextUnlock = 0;
+    try {
+      nextUnlock = dayUnlockAt({
+        startDate: input.startDate,
+        unlockHour: input.unlockHour,
+        dayNumber: dayNumber + 1,
+      }).getTime();
+    } catch {
+      continue;
+    }
+    if (nowMs < nextUnlock) continue;
+    for (const person of input.people) {
+      if (person.completedDayNumbers.includes(dayNumber)) continue;
+      if (person.notifyEmail && person.email) {
+        intents.push({
+          marathonId: input.marathonId,
+          userId: person.userId,
+          dayNumber,
+          kind: "nudge",
+          channel: "email",
+        });
+      }
+      if (person.notifyBot && person.telegramChatId) {
+        intents.push({
+          marathonId: input.marathonId,
+          userId: person.userId,
+          dayNumber,
+          kind: "nudge",
+          channel: "telegram",
+        });
       }
     }
   }
