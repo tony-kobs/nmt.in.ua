@@ -15,6 +15,13 @@ import {
   type ReviewedPlayTask,
   type TaskSourceRow,
 } from "./playTasks";
+import {
+  applyRankSnapshot,
+  publicLeaderName,
+  rankParticipants,
+  type BoardLine,
+  type RankInput,
+} from "./leaderboard";
 import { submitOpenedDay, type SubmitSuccess } from "./submit";
 import type { ProgressMark } from "./streak";
 
@@ -85,6 +92,7 @@ export type DayProgress = {
   passed: boolean;
   completedAt: number | null;
   answers: Record<number, number>;
+  correctCount: number | null;
 };
 
 export type ParticipantReport = {
@@ -803,9 +811,10 @@ export async function listProgress(
       passed: number;
       completed_at: unknown;
       answers_json: string | null;
+      correct_count: number | null;
     }>(
       `SELECT pr.day_id, d.day_number, pr.materials_viewed_at, pr.score, pr.passed,
-              pr.completed_at, pr.answers_json
+              pr.completed_at, pr.answers_json, pr.correct_count
        FROM marathon_day_progress pr
        INNER JOIN marathon_days d ON d.id = pr.day_id
        WHERE pr.marathon_id = ? AND pr.user_id = ?
@@ -820,6 +829,7 @@ export async function listProgress(
       passed: flag(row.passed),
       completedAt: asMs(row.completed_at),
       answers: parseStoredAnswers(row.answers_json),
+      correctCount: row.correct_count == null ? null : Number(row.correct_count),
     }));
   }, getConnection);
 }
@@ -850,6 +860,16 @@ export async function markMaterialsViewed(input: {
   return "ok";
 }
 
+export type RankStanding = {
+  place: number;
+  prevPlace: number | null;
+  points: number;
+};
+
+export type DayCompletion =
+  | { ok: false; code: "invalid_day" | "locked" | "materials_required" }
+  | (SubmitSuccess & { fresh: boolean; correct: number; rank: RankStanding | null });
+
 export async function completeParticipantDay(input: {
   marathon: DailyMarathon;
   userId: number;
@@ -858,7 +878,7 @@ export async function completeParticipantDay(input: {
   materialsViewed: boolean;
   progress: ProgressMark[];
   now: Date;
-}, getConnection?: Conn): Promise<SubmitSuccess | { ok: false; code: "invalid_day" | "locked" | "materials_required" }> {
+}, getConnection?: Conn): Promise<DayCompletion> {
   return withConn(async (connection) => {
     const existing = await connection.query<{
       completed_at: unknown;
@@ -882,14 +902,18 @@ export async function completeParticipantDay(input: {
         passed: flag(prior.passed),
         streak: Number(prior.streak) || 0,
         completedAt: asMs(prior.completed_at) ?? input.now.getTime(),
+        fresh: false,
+        correct: 0,
+        rank: null,
       };
     }
+    let dayCorrect = 0;
     const rows = await loadReviewRows(connection, input.day.id);
     const tasks = rows.flatMap((row) => {
       const task = projectReviewedTask(row, {});
       return task ? [task] : [];
     });
-    return submitOpenedDay(
+    const submitted = await submitOpenedDay(
       {
         startDate: input.marathon.startDate,
         unlockHour: input.marathon.unlockHour,
@@ -906,18 +930,20 @@ export async function completeParticipantDay(input: {
           for (const task of tasks) {
             if (input.answers[task.id] === task.correct) correct += 1;
           }
+          dayCorrect = correct;
           return { correct, total: tasks.length };
         },
         persist: async (result) => {
           await connection.execute(
             `INSERT INTO marathon_day_progress
-              (marathon_id, user_id, day_id, materials_viewed_at, score, passed, completed_at, answers_json)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              (marathon_id, user_id, day_id, materials_viewed_at, score, passed, completed_at, answers_json, correct_count)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                score = VALUES(score),
                passed = VALUES(passed),
                completed_at = VALUES(completed_at),
                answers_json = VALUES(answers_json),
+               correct_count = VALUES(correct_count),
                materials_viewed_at = COALESCE(materials_viewed_at, VALUES(materials_viewed_at))`,
             [
               input.marathon.id,
@@ -928,6 +954,7 @@ export async function completeParticipantDay(input: {
               result.passed ? 1 : 0,
               input.now,
               JSON.stringify(input.answers),
+              dayCorrect,
             ],
           );
           const done = new Set(
@@ -956,6 +983,17 @@ export async function completeParticipantDay(input: {
         },
       },
     );
+    if (!submitted.ok) return submitted;
+    const board = await composeBoard(connection, input.marathon.id, true);
+    const self = board.find((row) => row.userId === input.userId) ?? null;
+    return {
+      ...submitted,
+      fresh: true,
+      correct: dayCorrect,
+      rank: self
+        ? { place: self.place, prevPlace: self.prevPlace, points: self.points }
+        : null,
+    };
   }, getConnection);
 }
 
@@ -1330,6 +1368,165 @@ export async function loadNotifyAudience(
     }
     return [...grouped.values()];
   }, getConnection);
+}
+
+export async function loadMarathonBoard(
+  marathonId: number,
+  getConnection?: Conn,
+): Promise<BoardLine[]> {
+  return withConn(
+    (connection) => composeBoard(connection, marathonId, false),
+    getConnection,
+  );
+}
+
+async function composeBoard(
+  connection: SqlConnection,
+  marathonId: number,
+  write: boolean,
+): Promise<BoardLine[]> {
+  await backfillCorrectCounts(connection, marathonId);
+  const standings = await readStandings(connection, marathonId);
+  const previous = await readPrevPlaces(connection, marathonId);
+  const ranked = applyRankSnapshot(previous, rankParticipants(standings));
+  if (write) await saveRanks(connection, marathonId, ranked);
+  return ranked.map((row) => ({
+    userId: row.userId,
+    place: row.place,
+    prevPlace: row.prevPlace,
+    points: row.points,
+    streak: row.streak,
+    name: publicLeaderName(row.displayName),
+  }));
+}
+
+async function backfillCorrectCounts(
+  connection: SqlConnection,
+  marathonId: number,
+): Promise<void> {
+  const missing = await connection.query<{
+    user_id: number;
+    day_id: number;
+    answers_json: string | null;
+  }>(
+    `SELECT user_id, day_id, answers_json
+     FROM marathon_day_progress
+     WHERE marathon_id = ? AND completed_at IS NOT NULL AND correct_count IS NULL`,
+    [marathonId],
+  );
+  if (missing.length === 0) return;
+  const keys = await connection.query<{
+    day_id: number;
+    id: number;
+    inline_correct: number | null;
+    right_answer_n: number | null;
+  }>(
+    `SELECT t.day_id, t.id, t.inline_correct, q.right_answer_n
+     FROM marathon_day_tasks t
+     INNER JOIN marathon_days d ON d.id = t.day_id
+     LEFT JOIN quiz_tasks q ON q.id = t.question_id
+     WHERE d.marathon_id = ?`,
+    [marathonId],
+  );
+  const byDay = new Map<number, Array<{ id: number; correct: number }>>();
+  for (const key of keys) {
+    const list = byDay.get(key.day_id) ?? [];
+    list.push({
+      id: key.id,
+      correct: Number(key.inline_correct ?? key.right_answer_n ?? 0) || 0,
+    });
+    byDay.set(key.day_id, list);
+  }
+  for (const row of missing) {
+    const answers = parseStoredAnswers(row.answers_json);
+    let correct = 0;
+    for (const task of byDay.get(row.day_id) ?? []) {
+      if (answers[task.id] === task.correct) correct += 1;
+    }
+    await connection.execute(
+      `UPDATE marathon_day_progress
+       SET correct_count = ?
+       WHERE marathon_id = ? AND user_id = ? AND day_id = ? AND correct_count IS NULL`,
+      [correct, marathonId, row.user_id, row.day_id],
+    );
+  }
+}
+
+async function readStandings(
+  connection: SqlConnection,
+  marathonId: number,
+): Promise<RankInput[]> {
+  const rows = await connection.query<{
+    user_id: number;
+    display_name: string | null;
+    streak: number;
+    joined_at: unknown;
+    points: number | string | null;
+    last_completed: unknown;
+  }>(
+    `SELECT p.user_id AS user_id,
+            u.display_name AS display_name,
+            p.streak AS streak,
+            p.joined_at AS joined_at,
+            COALESCE(SUM(CASE WHEN pr.completed_at IS NOT NULL THEN pr.correct_count ELSE 0 END), 0) AS points,
+            MAX(CASE WHEN pr.completed_at IS NOT NULL THEN pr.completed_at ELSE NULL END) AS last_completed
+     FROM marathon_participants p
+     INNER JOIN app_users u ON u.id = p.user_id
+     LEFT JOIN marathon_day_progress pr
+       ON pr.marathon_id = p.marathon_id AND pr.user_id = p.user_id
+     WHERE p.marathon_id = ? AND u.is_banned = 0
+     GROUP BY p.user_id, u.display_name, p.streak, p.joined_at`,
+    [marathonId],
+  );
+  return rows.map((row) => ({
+    userId: row.user_id,
+    displayName: row.display_name?.trim() || "",
+    points: Number(row.points) || 0,
+    lastCompletedAt: asMs(row.last_completed),
+    streak: Number(row.streak) || 0,
+    joinedAt: asMs(row.joined_at) ?? 0,
+  }));
+}
+
+async function readPrevPlaces(
+  connection: SqlConnection,
+  marathonId: number,
+): Promise<Map<number, number>> {
+  const rows = await connection.query<{ user_id: number; place: number }>(
+    `SELECT user_id, place FROM marathon_ranks WHERE marathon_id = ?`,
+    [marathonId],
+  );
+  return new Map(rows.map((row) => [row.user_id, Number(row.place)]));
+}
+
+async function saveRanks(
+  connection: SqlConnection,
+  marathonId: number,
+  ranked: Array<{ userId: number; place: number; prevPlace: number | null; points: number }>,
+): Promise<void> {
+  const now = new Date();
+  for (const row of ranked) {
+    await connection.execute(
+      `INSERT INTO marathon_ranks (marathon_id, user_id, place, prev_place, points, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         place = VALUES(place),
+         prev_place = VALUES(prev_place),
+         points = VALUES(points),
+         updated_at = VALUES(updated_at)`,
+      [marathonId, row.userId, row.place, row.prevPlace, row.points, now],
+    );
+  }
+  if (ranked.length === 0) {
+    await connection.execute(`DELETE FROM marathon_ranks WHERE marathon_id = ?`, [marathonId]);
+    return;
+  }
+  const ids = ranked.map((row) => row.userId);
+  await connection.execute(
+    `DELETE FROM marathon_ranks
+     WHERE marathon_id = ? AND user_id NOT IN (${ids.map(() => "?").join(",")})`,
+    [marathonId, ...ids],
+  );
 }
 
 export async function claimNotification(

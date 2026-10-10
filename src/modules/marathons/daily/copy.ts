@@ -1,7 +1,8 @@
 /**
  * Participant-facing marathon copy.
- * Missing rows fall back to the Ukrainian defaults. `{name}`, `{day}`,
- * `{topic}`, `{unlock_time}` and `{link}` are the only placeholders.
+ * Missing rows fall back to the Ukrainian defaults. Placeholders:
+ * `{name}`, `{day}`, `{topic}`, `{unlock_time}`, `{link}`,
+ * `{place}`, `{prev_place}`, `{delta}`, `{total}`.
  */
 
 export const COPY_PLACEHOLDERS = [
@@ -10,6 +11,10 @@ export const COPY_PLACEHOLDERS = [
   "topic",
   "unlock_time",
   "link",
+  "place",
+  "prev_place",
+  "delta",
+  "total",
 ] as const;
 
 export type CopyPlaceholder = (typeof COPY_PLACEHOLDERS)[number];
@@ -22,10 +27,17 @@ export const COPY_KEYS = [
   "notify_reminder",
   "notify_tomorrow",
   "notify_final",
+  "rank_up",
+  "rank_down",
+  "rank_same",
+  "rank_first",
+  "rank_nudge",
+  "rank_board",
   "channel_prompt",
   "bot_start",
   "bot_menu",
   "bot_btn_today",
+  "bot_btn_top",
   "bot_btn_map",
   "bot_btn_channel",
   "bot_btn_stop",
@@ -39,13 +51,17 @@ export const COPY_KEYS = [
 
 export type CopyKey = (typeof COPY_KEYS)[number];
 
-export const COPY_GROUPS: Array<{ id: "intro" | "day" | "final" | "notify" | "channel" | "bot"; keys: CopyKey[] }> = [
+export const COPY_GROUPS: Array<{ id: "intro" | "day" | "final" | "notify" | "rank" | "channel" | "bot"; keys: CopyKey[] }> = [
   { id: "intro", keys: ["intro_rules"] },
   { id: "day", keys: ["review_intro"] },
   { id: "final", keys: ["final_summary"] },
   {
     id: "notify",
     keys: ["notify_day_open", "notify_reminder", "notify_tomorrow", "notify_final"],
+  },
+  {
+    id: "rank",
+    keys: ["rank_up", "rank_down", "rank_same", "rank_first", "rank_nudge", "rank_board"],
   },
   { id: "channel", keys: ["channel_prompt", "bot_btn_site", "bot_btn_telegram"] },
   {
@@ -54,6 +70,7 @@ export const COPY_GROUPS: Array<{ id: "intro" | "day" | "final" | "notify" | "ch
       "bot_start",
       "bot_menu",
       "bot_btn_today",
+      "bot_btn_top",
       "bot_btn_map",
       "bot_btn_channel",
       "bot_btn_stop",
@@ -70,6 +87,7 @@ export const TELEGRAM_BUTTON_LIMIT = 64;
 
 const BUTTON_KEYS = new Set<CopyKey>([
   "bot_btn_today",
+  "bot_btn_top",
   "bot_btn_map",
   "bot_btn_channel",
   "bot_btn_stop",
@@ -89,12 +107,22 @@ export const COPY_DEFAULTS: Record<CopyKey, string> = {
   notify_reminder: "Нагадування: день {day} ({topic}) ще не завершено.\n{link}",
   notify_tomorrow: "Далі день {day}: {topic}. Відкриється {unlock_time}.\n{link}",
   notify_final: "{name}, це був останній день. Підсумок марафону:\n{link}",
+  rank_up:
+    "Молодець, {name}! Піднявся на {place} місце (було {prev_place}). День {day} здано. Усього {total} балів.",
+  rank_down:
+    "Постарайся, {name}: опустився на {place} місце (було {prev_place}). День {day} здано. Усього {total} балів.",
+  rank_same: "{name}, день {day} здано. Місце те саме — {place}. Усього {total} балів.",
+  rank_first: "Молодець, {name}! Ти на першому місці. День {day} здано, усього {total} балів.",
+  rank_nudge:
+    "Може покращимо своє місце і знання? Це не важко. Зараз ти на {place} місці.\n{link}",
+  rank_board: "Таблиця марафону",
   channel_prompt:
     "{name}, як зручніше проходити марафон? На сайті — у кабінеті. У Telegram — матеріали, завдання й розбір у боті. Якщо бот ще не прив’язаний, листи йдуть на пошту, доки не з’явиться зв’язок.",
   bot_start:
     "Бот марафону nmt.in.ua. Щоб отримувати дні сюди, відкрийте карту на сайті і натисніть «Прив’язати Telegram».",
   bot_menu: "Меню марафону. Оберіть дію.",
   bot_btn_today: "Сьогодні",
+  bot_btn_top: "Таблиця",
   bot_btn_map: "Карта на сайті",
   bot_btn_channel: "Змінити канал",
   bot_btn_stop: "Зупинити сповіщення",
@@ -114,6 +142,10 @@ export const COPY_PREVIEW_SAMPLE: Record<CopyPlaceholder, string> = {
   topic: "Дроби",
   unlock_time: "10 жовтня, 09:00",
   link: "https://nmt.in.ua/marathon/math-5/day/2",
+  place: "2",
+  prev_place: "4",
+  delta: "2",
+  total: "7",
 };
 
 const PLACEHOLDER_RE = /\{([A-Za-z0-9_]+)\}/g;

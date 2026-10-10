@@ -4,6 +4,7 @@ import {
   deliverNotifications,
   planFollowUps,
   planNotifications,
+  planNudges,
   unsubscribeToken,
   verifyUnsubscribeToken,
   type NotifyIntent,
@@ -105,6 +106,62 @@ test("delivery is idempotent: a claimed send is not repeated, a failure can retr
   const third = await deliverNotifications([intent], { claim, release, send });
   assert.deepEqual(third, { sent: 0, skipped: 1, failed: 0 });
   assert.equal(attempts, 2);
+});
+
+test("a missed day is nudged once, only after the next unlock and inside 10:00–21:00 Kyiv", async () => {
+  const quiet = planNudges({
+    ...marathon,
+    now: new Date("2026-01-11T07:30:00.000Z"),
+  });
+  assert.equal(quiet.length, 0);
+
+  const tooEarly = planNudges({
+    ...marathon,
+    now: new Date("2026-01-10T17:00:00.000Z"),
+  });
+  assert.equal(tooEarly.some((item) => item.kind === "nudge"), false);
+
+  const due = planNudges({
+    ...marathon,
+    now: new Date("2026-01-11T08:00:00.000Z"),
+  });
+  assert.deepEqual(
+    due.map((item) => `${item.kind}:${item.dayNumber}:${item.channel}`),
+    ["nudge:1:email", "nudge:1:telegram"],
+  );
+
+  const done = planNudges({
+    ...marathon,
+    now: new Date("2026-01-11T08:00:00.000Z"),
+    people: [{ ...person, completedDayNumbers: [1] }],
+  });
+  assert.equal(done.length, 0);
+
+  const night = planNudges({
+    ...marathon,
+    now: new Date("2026-01-11T19:00:00.000Z"),
+  });
+  assert.equal(night.length, 0);
+
+  const seen = new Set<string>();
+  const claim = async (item: NotifyIntent) => {
+    const id = `${item.dayNumber}:${item.kind}:${item.channel}`;
+    if (seen.has(id)) return "duplicate" as const;
+    seen.add(id);
+    return "claimed" as const;
+  };
+  const first = await deliverNotifications(due, {
+    claim,
+    release: async () => undefined,
+    send: async () => true,
+  });
+  const second = await deliverNotifications(due, {
+    claim,
+    release: async () => undefined,
+    send: async () => true,
+  });
+  assert.deepEqual(first, { sent: 2, skipped: 0, failed: 0 });
+  assert.deepEqual(second, { sent: 0, skipped: 2, failed: 0 });
 });
 
 test("tomorrow announcement is claimed once", async () => {

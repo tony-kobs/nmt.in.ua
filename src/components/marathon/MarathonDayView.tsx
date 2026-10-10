@@ -9,7 +9,9 @@ import {
 import { formatKyivWhen } from "@/modules/marathons/daily/calendar";
 import { loomEmbedSrc, renderSafeMarkdown, youtubeEmbedSrc } from "@/modules/marathons/daily/richText";
 import type { PendingPlayTask, ReviewedPlayTask } from "@/modules/marathons/daily/playTasks";
+import type { BoardLine } from "@/modules/marathons/daily/leaderboard";
 import type { DailyMarathon, DayProgress, MarathonDay, Material } from "@/modules/marathons/daily/store";
+import { MarathonBoard } from "./MarathonBoard";
 import { marathonErrorText } from "./errors";
 import css from "./marathon.module.css";
 
@@ -23,12 +25,15 @@ type MarathonDayViewProps = {
   lockedUntil: Date | null;
   locale: string;
   reviewIntro: string;
+  rankNote: string | null;
+  board: BoardLine[];
+  selfId: number;
   error?: string;
 };
 
 export async function MarathonDayView(props: MarathonDayViewProps) {
   const t = await getTranslations("Marathon");
-  const { marathon, day, materials, tasks, review, progress, lockedUntil, locale, reviewIntro, error } = props;
+  const { marathon, day, materials, tasks, review, progress, lockedUntil, locale, reviewIntro, rankNote, board, selfId, error } = props;
   const submitted = progress?.completedAt != null;
   const message = marathonErrorText(t, error);
   return (
@@ -68,6 +73,9 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                         ? t("markPassed", { score: progress.score ?? 0 })
                         : t("markFailed", { score: progress.score ?? 0 })}
                     </p>
+                  ) : null}
+                  {submitted && rankNote ? (
+                    <p className={css.rankNote} role="status">{rankNote}</p>
                   ) : null}
                   {submitted ? (
                     <div className={css.stack}>
@@ -153,6 +161,7 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
               ) : null}
             </>
           )}
+          <MarathonBoard rows={board} selfId={selfId} titleId="day-board" />
           <Link href={`/marathon/${marathon.slug}/map`} className={css.buttonQuiet}>
             {t("backToMap")}
           </Link>

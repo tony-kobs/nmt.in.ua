@@ -5,6 +5,7 @@ import { createPageMetadata } from "@/constants/seo";
 import { requireUser } from "@/modules/auth/getCurrentUser";
 import { evaluateDayAccess } from "@/modules/marathons/daily/calendar";
 import { renderResolved } from "@/modules/marathons/daily/copy";
+import { rankNoticeText } from "@/modules/marathons/daily/leaderboard";
 import { dayClientPayload } from "@/modules/marathons/daily/playTasks";
 import {
   getDailyBySlug,
@@ -14,6 +15,7 @@ import {
   listPendingTasks,
   listProgress,
   listTaskReview,
+  loadMarathonBoard,
   loadMarathonCopy,
 } from "@/modules/marathons/daily/store";
 
@@ -74,12 +76,25 @@ export default async function MarathonDayPage({ params, searchParams }: PageProp
     pending,
     review: graded,
   });
-  const copy = await loadMarathonCopy(marathon.id);
+  const [copy, board] = await Promise.all([
+    loadMarathonCopy(marathon.id),
+    loadMarathonBoard(marathon.id),
+  ]);
   const reviewIntro = renderResolved("review_intro", copy, {
     name: user.displayName,
     day: day.dayNumber,
     topic: day.topic,
   });
+  const self = board.find((row) => row.userId === user.id) ?? null;
+  const rankNote = submitted && self
+    ? rankNoticeText(copy, {
+        name: participant.displayName || user.displayName,
+        place: self.place,
+        prevPlace: self.prevPlace,
+        points: self.points,
+        day: day.dayNumber,
+      })
+    : null;
   return (
     <MarathonDayView
       marathon={marathon}
@@ -89,6 +104,9 @@ export default async function MarathonDayPage({ params, searchParams }: PageProp
       review={payload.review}
       progress={progress}
       reviewIntro={reviewIntro}
+      rankNote={rankNote}
+      board={board}
+      selfId={user.id}
       lockedUntil={open ? null : access.unlockAt}
       locale={locale}
       error={Array.isArray(query.error) ? query.error[0] : query.error}

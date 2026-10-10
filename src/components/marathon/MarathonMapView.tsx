@@ -7,7 +7,9 @@ import {
   setChannelAction,
 } from "@/modules/marathons/daily/actions";
 import { formatKyivWhen } from "@/modules/marathons/daily/calendar";
+import type { BoardLine } from "@/modules/marathons/daily/leaderboard";
 import type { DailyMarathon, DayProgress, Participant } from "@/modules/marathons/daily/store";
+import { MarathonBoard } from "./MarathonBoard";
 import { marathonErrorText } from "./errors";
 import css from "./marathon.module.css";
 
@@ -28,6 +30,7 @@ type MarathonMapViewProps = {
   channelPrompt: string;
   siteLabel: string;
   telegramLabel: string;
+  board: BoardLine[];
   error?: string;
 };
 
@@ -40,6 +43,7 @@ export async function MarathonMapView({
   channelPrompt,
   siteLabel,
   telegramLabel,
+  board,
   error,
 }: MarathonMapViewProps) {
   const t = await getTranslations("Marathon");
@@ -54,7 +58,14 @@ export async function MarathonMapView({
         <div className={css.stack}>
           {message ? <p className={css.alert} role="alert">{message}</p> : null}
           {participant ? (
-            <p className={css.meta}>{t("streak", { count: participant.streak })}</p>
+            <>
+              <p className={css.meta}>{t("streak", { count: participant.streak })}</p>
+              <MarathonBoard
+                rows={board}
+                selfId={participant.userId}
+                titleId="marathon-board"
+              />
+            </>
           ) : (
             <form action={joinMarathonAction} className={css.actions}>
               <input type="hidden" name="slug" value={marathon.slug} />

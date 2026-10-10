@@ -249,5 +249,5 @@ function messageChatId(update: unknown): string | null {
 function isMarathonMenu(update: unknown): boolean {
   if (!update || typeof update !== "object") return false;
   const text = (update as { message?: { text?: unknown } }).message?.text;
-  return typeof text === "string" && /^\/menu(?:@\w+)?\s*$/.test(text);
+  return typeof text === "string" && /^\/(menu|top)(?:@\w+)?\s*$/.test(text);
 }

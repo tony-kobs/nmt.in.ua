@@ -15,6 +15,7 @@ import {
   getParticipant,
   listDays,
   listProgress,
+  loadMarathonBoard,
   loadMarathonCopy,
 } from "@/modules/marathons/daily/store";
 
@@ -43,12 +44,13 @@ export default async function MarathonMapPage({ params, searchParams }: PageProp
   const marathon = await getDailyBySlug(slug);
   if (!marathon || marathon.status === "draft") notFound();
   if (marathon.status !== "active" && marathon.status !== "finished") notFound();
-  const [days, participant, progress, locale, copy] = await Promise.all([
+  const [days, participant, progress, locale, copy, board] = await Promise.all([
     listDays(marathon.id),
     getParticipant(marathon.id, user.id),
     listProgress(marathon.id, user.id),
     getLocale(),
     loadMarathonCopy(marathon.id),
+    loadMarathonBoard(marathon.id),
   ]);
   if (marathon.status === "active" && !participant) {
     // Stay on the map: the view offers join for an existing account.
@@ -96,6 +98,7 @@ export default async function MarathonMapPage({ params, searchParams }: PageProp
       siteLabel={siteLabel}
       telegramLabel={telegramLabel}
       error={error}
+      board={board}
       days={access.map((item) => {
         const content = days.find((day) => day.dayNumber === item.dayNumber);
         return {

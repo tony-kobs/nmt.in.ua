@@ -16,7 +16,7 @@ import {
   type Outgoing,
   type PlayState,
 } from "./botPlay";
-import { renderResolved } from "./copy";
+import { renderResolved, resolveCopy } from "./copy";
 import { expandSources, introSources } from "./telegramContent";
 import {
   dayUnlockAt,
@@ -25,7 +25,12 @@ import {
   kyivDateIso,
 } from "./calendar";
 import { marathonDayUrl } from "./mailCopy";
-import { sendCompletedDayFollowUp } from "./notificationsJob";
+import {
+  BOARD_TOP,
+  formatBoardMessage,
+  visibleBoard,
+} from "./leaderboard";
+import { sendCompletedDayFollowUp, sendRankNotice } from "./notificationsJob";
 import {
   completeParticipantDay,
   findParticipantByChat,
@@ -33,6 +38,7 @@ import {
   listMaterials,
   listProgress,
   listTaskReview,
+  loadMarathonBoard,
   loadMarathonCopy,
   markIntroSeen,
   markMaterialsViewed,
@@ -198,6 +204,7 @@ async function buildDay(
 function callbackFrom(update: PrivateUpdate): BotCallback | null {
   if (update.data) return parseBotCallback(update.data);
   if (update.text && /^\/menu(?:@\w+)?\s*$/.test(update.text)) return { kind: "menu" };
+  if (update.text && /^\/top(?:@\w+)?\s*$/.test(update.text)) return { kind: "top" };
   if (update.text && /^\/start(?:@\w+)?\s*$/.test(update.text)) return { kind: "menu" };
   return null;
 }
@@ -267,6 +274,21 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
   if (callback.kind === "stop") {
     await pauseMarathonNotifications(marathon.id, participant.userId);
   }
+  if (callback.kind === "top") {
+    const copy = await loadMarathonCopy(marathon.id);
+    const board = await loadMarathonBoard(marathon.id);
+    const view = visibleBoard(board, participant.userId, BOARD_TOP);
+    const mapUrl = absoluteUrl(`/marathon/${encodeURIComponent(marathon.slug)}/map`);
+    return toReplies(parsed.chatId, [{
+      text: formatBoardMessage({
+        title: resolveCopy("rank_board", copy),
+        rows: view.top,
+        self: view.self,
+        selfOutside: view.selfOutside,
+      }),
+      buttons: [{ text: resolveCopy("bot_btn_map", copy).slice(0, 64), url: mapUrl }],
+    }]);
+  }
   if (callback.kind === "channel") {
     await setDeliveryChannel(
       marathon.id,
@@ -331,7 +353,7 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     ];
     await markIntroSeen(marathon.id, participant.userId, now);
   }
-  await persistPlay({
+  const rankNote = await persistPlay({
     marathon,
     participant,
     day,
@@ -343,6 +365,7 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     copy,
     now,
   });
+  if (rankNote) outgoing = [...outgoing, { text: rankNote }];
   return toReplies(parsed.chatId, outgoing);
 }
 
@@ -357,10 +380,10 @@ async function persistPlay(input: {
   progressRows: DayProgress[];
   copy: Awaited<ReturnType<typeof loadMarathonCopy>>;
   now: Date;
-}): Promise<void> {
-  if (!input.day || !input.content || input.day.locked) return;
+}): Promise<string | null> {
+  if (!input.day || !input.content || input.day.locked) return null;
   if (input.completedNow) {
-    await completeParticipantDay({
+    const result = await completeParticipantDay({
       marathon: input.marathon,
       userId: input.participant.userId,
       day: input.content,
@@ -373,6 +396,32 @@ async function persistPlay(input: {
       })),
       now: input.now,
     });
+    let rankNote: string | null = null;
+    if (result.ok && result.fresh && result.rank) {
+      try {
+        rankNote = await sendRankNotice({
+          marathonId: input.marathon.id,
+          slug: input.marathon.slug,
+          copy: input.copy,
+          dayNumber: input.day.dayNumber,
+          place: result.rank.place,
+          prevPlace: result.rank.prevPlace,
+          points: result.rank.points,
+          skipTelegram: true,
+          person: {
+            userId: input.participant.userId,
+            email: input.participant.email,
+            displayName: input.participant.displayName,
+            telegramChatId: input.participant.telegramChatId,
+            notifyEmail: input.participant.notifyEmail,
+            notifyBot: input.participant.notifyBot,
+            completedDayNumbers: [input.day.dayNumber],
+          },
+        });
+      } catch (error) {
+        console.error("marathon rank notice", error);
+      }
+    }
     try {
       await sendCompletedDayFollowUp({
         marathonId: input.marathon.id,
@@ -398,7 +447,7 @@ async function persistPlay(input: {
     } catch (error) {
       console.error("marathon bot follow-up", error);
     }
-    return;
+    return rankNote;
   }
   if (!input.before.materialsViewed && input.after.materialsViewed) {
     await markMaterialsViewed({
@@ -417,4 +466,5 @@ async function persistPlay(input: {
       now: input.now,
     });
   }
+  return null;
 }
