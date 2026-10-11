@@ -2,7 +2,7 @@ import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { nowUnixSec } from "@/modules/testing/sessionElapsed";
 import { readTelegramConfig } from "./config";
-import { loadTelegramConnection } from "./schema";
+import { ensureTelegramSchema } from "./schema";
 import { getTelegramAvailableTaskSessions, type TelegramTaskSession } from "./tasks";
 import { createTaskReference } from "./taskReference";
 import {
@@ -40,6 +40,7 @@ type Deps = {
   readConfig?: typeof readTelegramConfig;
   send?: typeof sendTelegramMessage;
   nowSec?: () => number;
+  nowMs?: () => number;
   logError?: (context: unknown) => void;
 };
 
@@ -108,28 +109,57 @@ async function deadlineReminderAllowed(connection: SqlConnection, account: Accou
     && announced.deliveredAt <= deadline - DEADLINE_REMINDER_WINDOW_SEC;
 }
 
-export async function processTelegramTaskNotifications(deps: Deps = { getConnection: loadTelegramConnection }) {
+async function loadNotificationConnection(deadlineMs?: number): Promise<SqlConnection> {
+  const { getConnectionWithTimeout } = await import("@/lib/db/mysql");
+  return getConnectionWithTimeout({ timeoutMs: 5_000, deadlineMs });
+}
+
+export const NOTIFICATION_ACCOUNT_BATCH = 25;
+export const NOTIFICATION_WORK_BUDGET_MS = 35_000;
+class NotificationBudgetExhausted extends Error {}
+export type NotificationBatch = { afterAccountId?: number };
+
+export async function processTelegramTaskNotifications(
+  deps: Deps = { getConnection: loadNotificationConnection }, batch: NotificationBatch = {},
+) {
+  const afterAccountId = batch.afterAccountId ?? 0;
+  if (!Number.isSafeInteger(afterAccountId) || afterAccountId < 0) throw new Error("Invalid notification cursor.");
+  const hardDeadlineMs = Date.now() + 50_000;
+  const getConnection = deps.getConnection === loadNotificationConnection
+    ? () => loadNotificationConnection(hardDeadlineMs) : deps.getConnection;
+  const nowMs = deps.nowMs ?? Date.now;
+  const deadlineMs = nowMs() + NOTIFICATION_WORK_BUDGET_MS;
+  const checkBudget = () => { if (nowMs() >= deadlineMs) throw new NotificationBudgetExhausted(); };
+  let cursor = afterAccountId;
+  let processedAccounts = 0;
   const counts: Counts = { sent: 0, rejected: 0, uncertain: 0, skipped: 0, failed: 0 };
   const log = deps.logError ?? ((context: unknown) => console.error("telegram notifications failed", context));
   const config = (deps.readConfig ?? readTelegramConfig)();
   const send = deps.send ?? sendTelegramMessage;
-  const connection = await deps.getConnection();
+  if (deps.getConnection === loadNotificationConnection) await ensureTelegramSchema(getConnection);
+  const connection = await getConnection();
   try {
     const now = (deps.nowSec ?? nowUnixSec)();
     const clock = getKyivClock(now);
     const accounts = await connection.query<Account>(`SELECT uta.id, uta.user_id, uta.telegram_user_id, uta.telegram_chat_id, u.role
       FROM user_telegram_accounts uta INNER JOIN app_users u ON u.id = uta.user_id AND u.is_banned = 0
-      WHERE uta.telegram_chat_id = uta.telegram_user_id ORDER BY uta.id`);
-    // null: migration 042 is not applied — keep exactly the TG-007 new-task behaviour.
+      WHERE uta.telegram_chat_id = uta.telegram_user_id AND uta.id > ? ORDER BY uta.id
+      LIMIT ${NOTIFICATION_ACCOUNT_BATCH + 1}`, [afterAccountId]);
+    const hasMore = accounts.length > NOTIFICATION_ACCOUNT_BATCH;
+    accounts.splice(NOTIFICATION_ACCOUNT_BATCH);
+    // Keep the TG-007 new-task behavior if a recovery caller supplies an older schema.
     const preferences = await loadNotificationPreferences(connection, accounts.map((account) => Number(account.id)));
     const borrowed = { ...connection, release: () => {} };
     const taskDeps = { getConnection: async () => borrowed, nowSec: deps.nowSec, logError: log };
 
     /** Claim → lock → recheck → send → record, one ledger row per account/session/type. */
+    let blockedKeys = new Set<string>();
     const deliverSession = async (account: Account, task: TelegramTaskSession, type: string) => {
       const identity = String(account.telegram_user_id);
       const key: NotificationKey = { accountId: account.id, sessionId: task.sessionId, type };
       try {
+        checkBudget();
+        if (blockedKeys.has(`${task.sessionId}:${type}`)) { counts.skipped++; return; }
         const reference = createTaskReference(task.sessionId, identity, config.webhookSecret);
         if (!await claimNotification(connection, key)) { counts.skipped++; return; }
         await connection.beginTransaction();
@@ -152,6 +182,11 @@ export async function processTelegramTaskNotifications(deps: Deps = { getConnect
           counts.skipped++;
           return;
         }
+        try { checkBudget(); } catch (error) {
+          await recordNotificationResult(connection, key);
+          await connection.commit();
+          throw error;
+        }
         const message = type === TELEGRAM_DEADLINE_NOTIFICATION
           ? deadlineMessage(fresh, reference, deadline!)
           : newTaskMessage(fresh, reference);
@@ -170,53 +205,72 @@ export async function processTelegramTaskNotifications(deps: Deps = { getConnect
         else { counts.rejected++; log({ ...key, stage: "transport", ...result.context }); }
       } catch (error) {
         await connection.rollback().catch(() => undefined);
+        if (error instanceof NotificationBudgetExhausted) throw error;
         counts.failed++;
         log({ ...key, stage: "processing", error });
       }
     };
 
-    for (const account of accounts) {
-      const prefs: NotificationPreferences = preferences?.get(Number(account.id)) ?? DEFAULT_NOTIFICATION_PREFERENCES;
-      if (preferences && isQuietHour(prefs, clock.hour)) {
-        // Nothing is claimed: new-task rows stay unclaimed and go out after the quiet hours.
-        counts.skipped++;
-        continue;
-      }
-      const identity = String(account.telegram_user_id);
-      const tasks = await getTelegramAvailableTaskSessions(identity, taskDeps);
-      if (tasks.status === "error") { counts.failed++; continue; }
-      for (const task of tasks.sessions) {
-        if (!preferences || prefs.newTasks) await deliverSession(account, task, TELEGRAM_NEW_TASK_NOTIFICATION);
-        if (!preferences || !prefs.deadlineReminders) continue;
-        const deadline = effectiveDeadline(task);
-        if (deadline === null || deadline <= now || deadline - now > DEADLINE_REMINDER_WINDOW_SEC) continue;
-        try {
-          if (await deadlineReminderAllowed(connection, account, task, deadline)) {
-            await deliverSession(account, task, TELEGRAM_DEADLINE_NOTIFICATION);
-          }
-        } catch (error) {
-          counts.failed++;
-          log({ accountId: account.id, sessionId: task.sessionId, type: TELEGRAM_DEADLINE_NOTIFICATION, stage: "processing", error });
+    try {
+      for (const account of accounts) {
+        checkBudget();
+        const finishAccount = () => { cursor = Number(account.id); processedAccounts++; };
+        const prefs: NotificationPreferences = preferences?.get(Number(account.id)) ?? DEFAULT_NOTIFICATION_PREFERENCES;
+        if (preferences && isQuietHour(prefs, clock.hour)) {
+          // Nothing is claimed: new-task rows stay unclaimed and go out after the quiet hours.
+          counts.skipped++;
+          finishAccount();
+          continue;
         }
+        const identity = String(account.telegram_user_id);
+        const tasks = await getTelegramAvailableTaskSessions(identity, taskDeps);
+        if (tasks.status === "error") { counts.failed++; finishAccount(); continue; }
+        const blocked = await connection.query<{ session_id: number; notification_type: string }>(
+          `SELECT session_id, notification_type FROM telegram_task_notifications
+           WHERE account_id = ? AND (delivery_state = 'delivered'
+             OR (delivery_state = 'sending' AND (attempted_at IS NULL OR attempted_at > CURRENT_TIMESTAMP - INTERVAL 15 MINUTE)))`,
+          [account.id],
+        );
+        blockedKeys = new Set(blocked.map((row) => `${row.session_id}:${row.notification_type}`));
+        for (const task of tasks.sessions) {
+          checkBudget();
+          if (!preferences || prefs.newTasks) await deliverSession(account, task, TELEGRAM_NEW_TASK_NOTIFICATION);
+          if (!preferences || !prefs.deadlineReminders) continue;
+          const deadline = effectiveDeadline(task);
+          if (deadline === null || deadline <= now || deadline - now > DEADLINE_REMINDER_WINDOW_SEC) continue;
+          try {
+            if (await deadlineReminderAllowed(connection, account, task, deadline)) {
+              await deliverSession(account, task, TELEGRAM_DEADLINE_NOTIFICATION);
+            }
+          } catch (error) {
+            if (error instanceof NotificationBudgetExhausted) throw error;
+            counts.failed++;
+            log({ accountId: account.id, sessionId: task.sessionId, type: TELEGRAM_DEADLINE_NOTIFICATION, stage: "processing", error });
+          }
+        }
+        if (!preferences) { finishAccount(); continue; }
+        if (prefs.dailyReminder && tasks.sessions.length && inHours(clock.hour, STUDENT_DIGEST_HOURS) && prefs.studentDigestOn !== clock.date) {
+          await sendDigest(connection, account, "student", clock.date, prefs.studentDigestOn,
+            { chatId: String(account.telegram_chat_id), parseMode: "HTML", disablePreview: true, ...studentDigestMessage(tasks.sessions) },
+            { send, botToken: config.botToken, counts, log, checkBudget });
+        }
+        if (isTeacher(account)) {
+          await processTeacher(connection, account, prefs, { now, clock, send, botToken: config.botToken, counts, log, checkBudget });
+        }
+        finishAccount();
       }
-      if (!preferences) continue;
-      if (prefs.dailyReminder && tasks.sessions.length && inHours(clock.hour, STUDENT_DIGEST_HOURS) && prefs.studentDigestOn !== clock.date) {
-        await sendDigest(connection, account, "student", clock.date, prefs.studentDigestOn,
-          { chatId: String(account.telegram_chat_id), parseMode: "HTML", disablePreview: true, ...studentDigestMessage(tasks.sessions) },
-          { send, botToken: config.botToken, counts, log });
-      }
-      if (isTeacher(account)) {
-        await processTeacher(connection, account, prefs, { now, clock, send, botToken: config.botToken, counts, log });
-      }
+    } catch (error) {
+      if (!(error instanceof NotificationBudgetExhausted)) throw error;
+      return { ...counts, processedAccounts, complete: false, nextCursor: cursor };
     }
-    return counts;
+    return { ...counts, processedAccounts, complete: !hasMore, nextCursor: hasMore ? cursor : null };
   } catch (error) {
     log({ stage: "selection", error });
     throw error;
   } finally { connection.release(); }
 }
 
-type RunContext = { send: typeof sendTelegramMessage; botToken: string; counts: Counts; log: (context: unknown) => void };
+type RunContext = { checkBudget: () => void; send: typeof sendTelegramMessage; botToken: string; counts: Counts; log: (context: unknown) => void };
 
 function tally(result: TelegramSendResult, counts: Counts, log: (context: unknown) => void, context: object): void {
   if (result.status === "sent") counts.sent++;
@@ -231,11 +285,17 @@ async function sendDigest(
 ): Promise<void> {
   const context = { accountId: account.id, type: `${kind}_digest` };
   try {
+    run.checkBudget();
     if (!await claimDigest(connection, account.id, kind, today)) { run.counts.skipped++; return; }
+    try { run.checkBudget(); } catch (error) {
+      await releaseDigest(connection, account.id, kind, today, previous);
+      throw error;
+    }
     const result = await run.send(reply, run.botToken);
     if (result.status === "rejected") await releaseDigest(connection, account.id, kind, today, previous);
     tally(result, run.counts, run.log, context);
   } catch (error) {
+    if (error instanceof NotificationBudgetExhausted) throw error;
     run.counts.failed++;
     run.log({ ...context, stage: "processing", error });
   }
@@ -256,6 +316,7 @@ async function processTeacher(
         for (const pending of await listPendingTeacherResults(connection, account.id, teacherUserId)) {
           const key: NotificationKey = { accountId: account.id, sessionId: pending.sessionId, type: TELEGRAM_TEACHER_RESULT_NOTIFICATION };
           try {
+            run.checkBudget();
             if (!await claimNotification(connection, key)) { run.counts.skipped++; continue; }
             await connection.beginTransaction();
             const linked = await connection.query<Account>(lockAccountSql(true), [account.id, identity]);
@@ -265,6 +326,11 @@ async function processTeacher(
               await connection.commit();
               run.counts.skipped++;
               continue;
+            }
+            try { run.checkBudget(); } catch (error) {
+              await recordNotificationResult(connection, key);
+              await connection.commit();
+              throw error;
             }
             const sent = await run.send({
               chatId: String(linked[0].telegram_chat_id), parseMode: "HTML", disablePreview: true, ...formatTeacherResult(result),
@@ -279,12 +345,14 @@ async function processTeacher(
             tally(sent, run.counts, run.log, key);
           } catch (error) {
             await connection.rollback().catch(() => undefined);
+            if (error instanceof NotificationBudgetExhausted) throw error;
             run.counts.failed++;
             run.log({ ...key, stage: "processing", error });
           }
         }
       }
     } catch (error) {
+      if (error instanceof NotificationBudgetExhausted) throw error;
       run.counts.failed++;
       run.log({ accountId: account.id, type: TELEGRAM_TEACHER_RESULT_NOTIFICATION, stage: "selection", error });
     }
@@ -298,6 +366,7 @@ async function processTeacher(
         text: formatTeacherSummary(summary, run.now, "🗓 Підсумок дня"), replyMarkup: teacherSummaryKeyboard(),
       }, run);
     } catch (error) {
+      if (error instanceof NotificationBudgetExhausted) throw error;
       run.counts.failed++;
       run.log({ accountId: account.id, type: "teacher_digest", stage: "selection", error });
     }

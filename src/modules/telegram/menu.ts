@@ -2,19 +2,18 @@ import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { nowUnixSec } from "@/modules/testing/sessionElapsed";
 import { getTelegramAccountProfile, type TelegramAccountProfile } from "./account";
-import { buildLeaderboardScreen, type LeaderboardDeps } from "./leaderboard";
 import {
   formatQuietHours, getNotificationPreferences, isPreferenceToggle, PREFERENCE_TOGGLES, QUIET_HOUR_PRESETS,
   quietPresetIndex, setQuietHours, toggleNotificationPreference, togglesForRole, type PreferenceToggle,
 } from "./preferences";
-import { loadTelegramConnection } from "./schema";
+import { ensureTelegramSchema, loadTelegramConnection } from "./schema";
 import { formatTelegramStudentStats, getTelegramStudentStats, type TelegramStudentStats } from "./stats";
 import { buildTaskListReply, type TaskListDeps } from "./taskList";
 import { formatTeacherSummary, getTeacherAssignmentSummary, teacherSummaryKeyboard } from "./teacher";
 import type { InlineKeyboard, TelegramReply } from "./taskInteraction";
 import { formatKyivDateTime, html, MENU, navRow, NOT_LINKED_TEXT, screen, siteButton, STALE_TEXT } from "./ui";
 
-export type MenuScreen = "home" | "tasks" | "today" | "stats" | "notif" | "acct" | "help" | "stud" | "lb";
+export type MenuScreen = "home" | "tasks" | "today" | "stats" | "notif" | "acct" | "help" | "stud";
 export type MenuAction =
   | { kind: "screen"; screen: MenuScreen }
   | { kind: "toggle"; key: PreferenceToggle }
@@ -28,16 +27,15 @@ export type MenuDeps = TaskListDeps & {
   getStats?: (userId: number) => Promise<TelegramStudentStats>;
   /** True when this chat also takes part in a daily marathon; adds the marathon entry to the menu. */
   hasMarathon?: (chatId: string) => Promise<boolean>;
-  leaderboard?: Omit<LeaderboardDeps, "getConnection">;
   getConnection?: () => Promise<SqlConnection>;
   nowSec?: () => number;
 };
 
 const SCREENS: Record<string, MenuScreen> = {
-  home: "home", tasks: "tasks", today: "today", stats: "stats", notif: "notif", acct: "acct", help: "help", stud: "stud", lb: "lb",
+  home: "home", tasks: "tasks", today: "today", stats: "stats", notif: "notif", acct: "acct", help: "help", stud: "stud",
 };
 const COMMANDS: Record<string, MenuScreen> = {
-  menu: "home", start: "home", stats: "stats", help: "help", settings: "notif", notifications: "notif", leaderboard: "lb",
+  menu: "home", start: "home", stats: "stats", help: "help", settings: "notif", notifications: "notif",
 };
 
 type Envelope = { id?: unknown; data?: unknown; from?: { id?: number }; message?: { message_id?: unknown; chat?: { id?: number; type?: string } } };
@@ -66,7 +64,7 @@ export function parseMenuData(data: string): MenuAction {
   return { kind: "stale" };
 }
 
-/** `/menu`, bare `/start`, `/stats`, `/help`, `/settings`, `/notifications`, `/leaderboard` in a private chat. */
+/** `/menu`, bare `/start`, `/stats`, `/help`, `/settings`, `/notifications` in a private chat. */
 export function parseMenuCommand(update: unknown): MenuRequest | null {
   if (!update || typeof update !== "object") return null;
   const message = (update as { message?: { chat?: { id?: number; type?: string }; from?: { id?: number }; text?: unknown } }).message;
@@ -86,8 +84,7 @@ const HELP_TEXT = [
   "/done &lt;посилання&gt; — завершити завдання зі списку",
   "/stats — моя статистика",
   "/settings — налаштування сповіщень",
-  "/leaderboard — рейтинг марафону nmt.in.ua (як на сторінці «Рейтинг»)",
-  "/top — таблиця місць денного марафону (для його учасників)",
+  "/top або /leaderboard — таблиця місць денного марафону (для його учасників)",
   "",
   "Відповіді на завдання зберігайте в кабінеті на nmt.in.ua, а завершити сесію можна тут кнопкою «✅ Завершити».",
 ].join("\n");
@@ -150,6 +147,7 @@ export async function handleMenuRequest(request: MenuRequest, deps: MenuDeps = {
   }
   const profile = profileResult.profile;
   const withConnection = async <T>(work: (connection: SqlConnection) => Promise<T>): Promise<T> => {
+    if (!deps.getConnection) await ensureTelegramSchema();
     const connection = await getConnection();
     try { return await work(connection); } finally { connection.release(); }
   };
@@ -205,8 +203,6 @@ export async function handleMenuRequest(request: MenuRequest, deps: MenuDeps = {
         const keyboard = teacherSummaryKeyboard();
         return screen(chatId, formatTeacherSummary(summary, now, "👥 Мої учні"), keyboard.inline_keyboard, messageId);
       }
-      case "lb":
-        return await buildLeaderboardScreen(chatId, profile, messageId, { ...deps.leaderboard, getConnection });
     }
   } catch (error) {
     log(error);

@@ -33,7 +33,7 @@ function prefsConnection() {
     execute: async (sql: string, params: unknown[] = []) => {
       writes.push({ sql, params });
       const id = Number(params[0]);
-      const row = rows.get(id) ?? { account_id: id, new_tasks: 1, deadline_reminders: 1, daily_reminder: 1, teacher_results: 1, teacher_daily: 0, quiet_start: null, quiet_end: null };
+      const row = rows.get(id) ?? { account_id: id, new_tasks: 1, deadline_reminders: 1, daily_reminder: 0, teacher_results: 1, teacher_daily: 0, quiet_start: null, quiet_end: null };
       const toggle = /\((account_id), (\w+)\) VALUES \(\?, \?\)\s+ON DUPLICATE KEY UPDATE \2 = 1 - \2/.exec(sql);
       if (toggle) row[toggle[2]] = rows.has(id) ? 1 - Number(row[toggle[2]]) : params[1];
       else if (sql.includes("quiet_start, quiet_end) VALUES")) Object.assign(row, { quiet_start: params[1], quiet_end: params[2] });
@@ -59,9 +59,9 @@ test("bare /start and /menu open the role-based main menu for linked accounts on
     assert.deepEqual(labels, ["📚 Мої завдання", "📅 Сьогодні", "📊 Моя статистика", "🔔 Сповіщення", "👤 Мій акаунт", "❓ Допомога", "🏆 Рейтинг"]);
     assert.equal(reply!.parseMode, "HTML");
   }
-  const teacherMenu = await handleTelegramUpdate(message("/menu"), { ...base, getProfile: async () => teacher, menu: { hasMarathon: async () => true } });
+  const teacherMenu = await handleTelegramUpdate(message("/menu"), { ...base, getProfile: async () => teacher, menu: { hasMarathon: async () => false } });
   const teacherButtons = teacherMenu!.replyMarkup!.inline_keyboard.flat();
-  assert.deepEqual(teacherButtons.map((button) => button.callback_data), ["m:stud", "m:lb", "m:notif", "m:acct", "m:help", "mh:menu"]);
+  assert.deepEqual(teacherButtons.map((button) => button.callback_data), ["m:stud", "mh:top", "m:notif", "m:acct", "m:help"]);
   assert.deepEqual(marathonCalls, []);
   // Not linked (or lookup failed): the marathon bot keeps /menu and bare /start exactly as before.
   for (const profile of [notLinked, { status: "error", code: "databaseFailure" } as TelegramAccountResult]) {
@@ -71,7 +71,33 @@ test("bare /start and /menu open the role-based main menu for linked accounts on
   assert.deepEqual(marathonCalls, ["marathon", "bare", "marathon", "bare"]);
 });
 
-test("deep links, marathon codes, /top and marathon callbacks keep their existing handlers", async () => {
+test("daily marathon participants retain entry priority over linked account menus", async () => {
+  for (const text of ["/menu", "/menu@nmt_bot", "/start", "/start@nmt_bot"]) {
+    const reply = await handleTelegramUpdate(message(text), {
+      consume: async () => { assert.fail("entry commands do not consume links"); },
+      getProfile: async () => { assert.fail("marathon participants do not enter the account menu"); },
+      menu: { hasMarathon: async (chatId) => { assert.equal(chatId, "123"); return true; } },
+      marathon: async () => [{ chatId: "123", text: "original marathon menu" }],
+      marathonBareStart: async () => ({ chatId: "123", text: "original marathon start" }),
+    });
+    assert.equal(reply?.text, text.startsWith("/start") ? "original marathon start" : "original marathon menu");
+  }
+});
+
+test("marathon membership errors preserve marathon navigation", async () => {
+  const errors: unknown[] = [];
+  const reply = await handleTelegramUpdate(message("/menu"), {
+    consume: async () => false,
+    menu: { hasMarathon: async () => { throw new Error("lookup failed"); } },
+    getProfile: async () => { assert.fail("do not assume non-membership on failure"); },
+    marathon: async () => [{ chatId: "123", text: "marathon menu" }],
+    logError: (error) => { errors.push(error); },
+  });
+  assert.equal(reply?.text, "marathon menu");
+  assert.equal(errors.length, 1);
+});
+
+test("deep links, marathon codes, leaderboard aliases and callbacks keep their existing handlers", async () => {
   const seen: string[] = [];
   const deps = {
     getProfile: async () => { seen.push("profile"); return student; },
@@ -83,9 +109,10 @@ test("deep links, marathon codes, /top and marathon callbacks keep their existin
   assert.match(linked!.text, /успішно/);
   assert.equal(linked!.replyMarkup!.inline_keyboard[0][0].callback_data, "m:home");
   await handleTelegramUpdate(message("/start mth_code"), deps);
-  await handleTelegramUpdate(message("/top"), deps);
+  for (const command of ["/top", "/leaderboard", "/leaderboard@nmt_bot"]) await handleTelegramUpdate(message(command), deps);
+  await handleTelegramUpdate(press("mh:top"), deps);
   await handleTelegramUpdate(press("mh:today"), deps);
-  assert.deepEqual(seen, ["link:abc", "marathon-link:mth_code", "marathon", "marathon"]);
+  assert.deepEqual(seen, ["link:abc", "marathon-link:mth_code", "marathon", "marathon", "marathon", "marathon", "marathon"]);
   const invalid = await handleTelegramUpdate(message("/start bad"), { ...deps, consume: async () => false });
   assert.equal(invalid!.replyMarkup, undefined);
   assert.match(invalid!.text, /недійсне/);
@@ -110,7 +137,7 @@ test("menu callbacks are acknowledged, identity-checked and edit the menu messag
   assert.equal(parseMenuCallback(press("m:tasks", 123, -100, "group")), null);
   assert.equal(await handleTelegramUpdate(press("m:tasks", 123, -100, "group"), deps), null);
   // Unknown or outdated buttons get a safe reply with a way back.
-  for (const data of ["m:nope", "m:", "p:t:zz", "p:q:9", `m:${"x".repeat(80)}`]) {
+  for (const data of ["m:nope", "m:lb", "m:", "p:t:zz", "p:q:9", `m:${"x".repeat(80)}`]) {
     const reply = await handleTelegramUpdate(press(data), deps);
     assert.match(reply!.text, /застаріла/);
     assert.equal(reply!.replyMarkup!.inline_keyboard[0][0].callback_data, "m:home");

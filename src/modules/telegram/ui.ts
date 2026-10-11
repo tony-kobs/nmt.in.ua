@@ -15,7 +15,7 @@ export const MENU = {
   account: "m:acct",
   help: "m:help",
   students: "m:stud",
-  leaderboard: "m:lb",
+  leaderboard: "mh:top",
 } as const;
 
 export const NOT_LINKED_TEXT = "Спочатку підключіть Telegram у своєму кабінеті на nmt.in.ua.";

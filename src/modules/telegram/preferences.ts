@@ -22,7 +22,7 @@ export type NotificationPreferences = {
 export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   newTasks: true,
   deadlineReminders: true,
-  dailyReminder: true,
+  dailyReminder: false,
   teacherResults: true,
   teacherDaily: false,
   quietStart: null,
@@ -119,7 +119,7 @@ function fromRow(row: Row): NotificationPreferences {
   };
 }
 
-/** Preferences for the given accounts, or null when migration 042 is not applied yet (callers fall back to TG-007 behaviour). */
+/** Preferences for the given accounts, or null if the table is unavailable (callers fall back to TG-007 behaviour). */
 export async function loadNotificationPreferences(
   connection: SqlConnection,
   accountIds: number[],

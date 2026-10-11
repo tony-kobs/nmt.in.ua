@@ -200,8 +200,45 @@ function getPool(): Pool {
   return created;
 }
 
-function wrap(connection: PoolConnection): SqlConnection {
+function withTimeout<T>(operation: Promise<T>, timeoutMs: number, onTimeout: () => void, onLateResult?: (value: T) => void): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let expired = false;
+    const timer = setTimeout(() => {
+      expired = true;
+      try { onTimeout(); } catch {}
+      reject(new Error("Database operation timed out."));
+    }, timeoutMs);
+    operation.then((value) => {
+      clearTimeout(timer);
+      if (expired) {
+        try { onLateResult?.(value); } catch {}
+      } else resolve(value);
+    }, (error: unknown) => {
+      clearTimeout(timer);
+      if (!expired) reject(error);
+    });
+  });
+}
+
+function wrap(connection: PoolConnection, timeoutMs?: number, deadlineMs?: number): SqlConnection {
   let broken = false;
+  let destroyed = false;
+
+  const run = <T>(operation: () => Promise<T>): Promise<T> => {
+    if (destroyed) return Promise.reject(new Error("Database connection is unavailable."));
+    const destroy = () => {
+      destroyed = true;
+      lastReleasedAt.delete(connection);
+      connection.destroy();
+    };
+    const budget = Math.min(timeoutMs ?? Infinity, deadlineMs === undefined ? Infinity : deadlineMs - Date.now());
+    if (budget <= 0) {
+      destroy();
+      return Promise.reject(new Error("Database operation timed out."));
+    }
+    if (!Number.isFinite(budget)) return operation();
+    return withTimeout(operation(), budget, destroy);
+  };
 
   const markBroken = (error: unknown) => {
     if (isTransientDbError(error)) {
@@ -210,10 +247,10 @@ function wrap(connection: PoolConnection): SqlConnection {
   };
 
   return {
-    beginTransaction: () => connection.beginTransaction(),
+    beginTransaction: () => run(() => connection.beginTransaction()),
     query: async <T,>(sql: string, params: unknown[] = []) => {
       try {
-        const [rows] = await connection.execute(sql, params as never[]);
+        const [rows] = await run(() => connection.execute(sql, params as never[]));
         return rows as T[];
       } catch (error) {
         markBroken(error);
@@ -222,7 +259,7 @@ function wrap(connection: PoolConnection): SqlConnection {
     },
     execute: async (sql: string, params: unknown[] = []) => {
       try {
-        const [result] = await connection.execute(sql, params as never[]);
+        const [result] = await run(() => connection.execute(sql, params as never[]));
         const header = result as ResultSetHeader;
         return { insertId: header.insertId, affectedRows: header.affectedRows };
       } catch (error) {
@@ -230,9 +267,10 @@ function wrap(connection: PoolConnection): SqlConnection {
         throw error;
       }
     },
-    commit: () => connection.commit(),
-    rollback: () => connection.rollback(),
+    commit: () => run(() => connection.commit()),
+    rollback: () => run(() => connection.rollback()),
     release: () => {
+      if (destroyed) return;
       if (broken) {
         lastReleasedAt.delete(connection);
         connection.destroy();
@@ -255,16 +293,34 @@ export function shouldRetryConnectError(
   );
 }
 
-async function acquireRawConnection(): Promise<PoolConnection> {
+async function acquireRawConnection(timeoutMs?: number, deadlineMs?: number): Promise<PoolConnection> {
   let lastError: unknown;
+  const deadline = Math.min(timeoutMs === undefined ? Infinity : Date.now() + timeoutMs, deadlineMs ?? Infinity);
+  const remaining = () => {
+    const value = Number.isFinite(deadline) ? deadline - Date.now() : undefined;
+    if (value !== undefined && value <= 0) throw new Error("Database operation timed out.");
+    return value;
+  };
 
   for (let attempt = 1; attempt <= MAX_CONNECT_ATTEMPTS; attempt += 1) {
+    remaining();
     const pool = getPool();
     let connection: PoolConnection | undefined;
     try {
-      connection = await pool.getConnection();
+      const acquisitionBudget = remaining();
+      connection = acquisitionBudget === undefined ? await pool.getConnection()
+        : await withTimeout(pool.getConnection(), acquisitionBudget, () => {}, (late) => { late.destroy(); });
       if (needsPing(connection)) {
-        await connection.ping();
+        const pingBudget = remaining();
+        if (pingBudget === undefined) await connection.ping();
+        else {
+          const pingedConnection = connection;
+          await withTimeout(pingedConnection.ping(), pingBudget, () => {
+            lastReleasedAt.delete(pingedConnection);
+            connection = undefined;
+            pingedConnection.destroy();
+          });
+        }
       }
       return connection;
     } catch (error) {
@@ -284,7 +340,8 @@ async function acquireRawConnection(): Promise<PoolConnection> {
         `mysql: connect attempt ${attempt}/${MAX_CONNECT_ATTEMPTS} failed, retrying`,
         error,
       );
-      await sleep(RETRY_BACKOFF_MS * attempt);
+      const retryBudget = remaining();
+      await sleep(Math.min(RETRY_BACKOFF_MS * attempt, retryBudget ?? Infinity));
     }
   }
 
@@ -294,4 +351,15 @@ async function acquireRawConnection(): Promise<PoolConnection> {
 /** Acquire a pooled connection for a single transactional unit of work. */
 export async function getConnection(): Promise<SqlConnection> {
   return wrap(await acquireRawConnection());
+}
+
+export async function getConnectionWithTimeout(options: { timeoutMs: number; deadlineMs?: number }): Promise<SqlConnection> {
+  const { timeoutMs, deadlineMs } = options;
+  if (timeoutMs !== undefined && (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)) {
+    throw new Error("Invalid database operation timeout.");
+  }
+  if (deadlineMs !== undefined && (!Number.isSafeInteger(deadlineMs) || deadlineMs <= 0)) {
+    throw new Error("Invalid database operation deadline.");
+  }
+  return wrap(await acquireRawConnection(timeoutMs, deadlineMs), timeoutMs, deadlineMs);
 }

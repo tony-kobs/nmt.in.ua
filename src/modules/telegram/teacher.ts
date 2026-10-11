@@ -65,7 +65,8 @@ export async function listPendingTeacherResults(connection: SqlConnection, accou
     ${SCOPED_RESULTS_FROM}
     LEFT JOIN telegram_task_notifications n ON n.account_id = ? AND n.session_id = ts.id AND n.notification_type = ?
     WHERE ma.teacher_user_id = ? AND ma.status = 'active' AND ${COMPLETED_SQL}
-      AND (n.account_id IS NULL OR n.delivery_state = 'ready')
+      AND (n.account_id IS NULL OR n.delivery_state = 'ready'
+        OR (n.delivery_state = 'sending' AND n.attempted_at <= CURRENT_TIMESTAMP - INTERVAL 15 MINUTE))
     ORDER BY ts.id
     LIMIT ${TEACHER_RESULTS_BATCH}`, [accountId, TELEGRAM_TEACHER_RESULT_NOTIFICATION, teacherUserId]);
   return rows.map(toResult).filter((row): row is TeacherResult => row !== null);

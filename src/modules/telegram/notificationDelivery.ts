@@ -10,13 +10,10 @@ function keyParams(key: NotificationKey): [number, number, string] {
   return [key.accountId, key.sessionId, key.type ?? TELEGRAM_NEW_TASK_NOTIFICATION];
 }
 
-/**
- * Only `ready` rows can be claimed. A `sending` row means Telegram may already have shown the
- * message (timeout, lost reply, crash after send), so it is never re-sent automatically; an
- * operator resets it to `ready` after confirming nothing was delivered.
- */
-export function isNotificationClaimable(state: string | undefined): boolean {
-  return state === "ready";
+export const NOTIFICATION_RETRY_SECONDS = 15 * 60;
+
+export function isNotificationClaimable(state: string | undefined, elapsedSeconds?: number | null): boolean {
+  return state === "ready" || (state === "sending" && elapsedSeconds != null && elapsedSeconds >= NOTIFICATION_RETRY_SECONDS);
 }
 
 export async function claimNotification(connection: SqlConnection, key: NotificationKey): Promise<boolean> {
@@ -25,9 +22,10 @@ export async function claimNotification(connection: SqlConnection, key: Notifica
     await connection.beginTransaction();
     await connection.execute(`INSERT INTO telegram_task_notifications (account_id, session_id, notification_type)
       VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE account_id = account_id`, params);
-    const rows = await connection.query<{ delivery_state: string }>(`SELECT delivery_state FROM telegram_task_notifications
+    const rows = await connection.query<{ delivery_state: string; elapsed_seconds: number | null }>(`SELECT delivery_state,
+      TIMESTAMPDIFF(SECOND, attempted_at, CURRENT_TIMESTAMP) AS elapsed_seconds FROM telegram_task_notifications
       WHERE account_id = ? AND session_id = ? AND notification_type = ? FOR UPDATE`, params);
-    if (!isNotificationClaimable(rows[0]?.delivery_state)) {
+    if (!isNotificationClaimable(rows[0]?.delivery_state, rows[0]?.elapsed_seconds)) {
       await connection.rollback();
       return false;
     }

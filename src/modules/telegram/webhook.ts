@@ -79,15 +79,20 @@ export async function handleTelegramUpdate(
     logError: deps.logError,
   };
   const callbackData = callbackDataOf(update);
-  // `/menu` and bare `/start` open the main menu for a linked nmt.in.ua account. Chats that are only
-  // linked to a marathon (or when the lookup fails) keep the marathon/linking behaviour below.
   const entry = parseMenuCommand(update);
   if (entry && entry.action.kind === "screen" && entry.action.screen === "home" && !isMarathonCallbackData(callbackData)) {
-    const profile = await (deps.getProfile ?? getTelegramAccountProfile)(entry.userId, {
-      getConnection: menuDeps.getConnection ?? loadTelegramConnection, logError: deps.logError,
-    });
-    if (profile.status === "success") {
-      return handleMenuRequest(entry, { ...menuDeps, getProfile: async () => profile });
+    try {
+      const marathon = await menuDeps.hasMarathon?.(entry.chatId) ?? false;
+      if (!marathon) {
+        const profile = await (deps.getProfile ?? getTelegramAccountProfile)(entry.userId, {
+          getConnection: menuDeps.getConnection ?? loadTelegramConnection, logError: deps.logError,
+        });
+        if (profile.status === "success") {
+          return handleMenuRequest(entry, { ...menuDeps, getProfile: async () => profile });
+        }
+      }
+    } catch (error) {
+      (deps.logError ?? ((value) => console.error("telegram menu entry failed", value)))(error);
     }
   }
   if (isMarathonCallbackData(callbackData) || isMarathonMenu(update)) {
@@ -264,5 +269,5 @@ function messageChatId(update: unknown): string | null {
 function isMarathonMenu(update: unknown): boolean {
   if (!update || typeof update !== "object") return false;
   const text = (update as { message?: { text?: unknown } }).message?.text;
-  return typeof text === "string" && /^\/(menu|top)(?:@\w+)?\s*$/.test(text);
+  return typeof text === "string" && /^\/(menu|top|leaderboard)(?:@\w+)?\s*$/.test(text);
 }

@@ -33,14 +33,14 @@ function fake(input: {
   const prefs = input.prefs ?? new Map<number, PrefRow>();
   const tasks = input.tasks ?? [];
   const teacher = input.teacher ?? [];
-  const ledger = new Map<string, { state: string; deliveredUnix: number | null }>();
+  const ledger = new Map<string, { state: string; deliveredUnix: number | null; elapsed_seconds?: number }>();
   const replies: TelegramReply[] = [];
   const logs: unknown[] = [];
   const sql: string[] = [];
   let result: TelegramSendResult = { status: "sent", messageId: 500 };
   const pref = (id: number): PrefRow => {
     if (prefs === "missing") throw Object.assign(new Error("no table"), { errno: 1146 });
-    if (!prefs.has(id)) prefs.set(id, { account_id: id, new_tasks: 1, deadline_reminders: 1, daily_reminder: 1, teacher_results: 1, teacher_daily: 0, quiet_start: null, quiet_end: null, baseline_unix: null, student_digest_on: null, teacher_digest_on: null });
+    if (!prefs.has(id)) prefs.set(id, { account_id: id, new_tasks: 1, deadline_reminders: 1, daily_reminder: 0, teacher_results: 1, teacher_daily: 0, quiet_start: null, quiet_end: null, baseline_unix: null, student_digest_on: null, teacher_digest_on: null });
     return prefs.get(id)!;
   };
   const taskRow = (task: Task) => ({ user_id: task.user_id, id: task.id, session_type: 1, theme_id: 1, theme_name: task.theme_name ?? "Алгебра",
@@ -53,9 +53,12 @@ function fake(input: {
         if (prefs === "missing") throw Object.assign(new Error("Table doesn't exist"), { errno: 1146, code: "ER_NO_SUCH_TABLE" });
         return [...prefs.values()].filter((row) => params.includes(row.account_id)) as T[];
       }
+      if (text.includes("SELECT session_id, notification_type")) return [...ledger].filter(([key, row]) =>
+        key.startsWith(params[0] + ":") && ["sending", "delivered"].includes(row.state))
+        .map(([key]) => ({ session_id: Number(key.split(":")[1]), notification_type: key.split(":")[2] })) as T[];
       if (text.includes("SELECT delivery_state")) {
         const row = ledger.get(params.join(":"));
-        return (row ? [{ delivery_state: row.state, delivered_unix: row.deliveredUnix }] : []) as T[];
+        return (row ? [{ delivery_state: row.state, delivered_unix: row.deliveredUnix, elapsed_seconds: row.elapsed_seconds }] : []) as T[];
       }
       if (text.includes("FOR UPDATE") && text.includes("user_telegram_accounts")) {
         const teacherOnly = text.includes("u.role IN");
@@ -81,7 +84,10 @@ function fake(input: {
         assert.match(text, /INNER JOIN teacher_students tst ON tst\.teacher_user_id = ma\.teacher_user_id/);
         assert.match(text, /ma\.teacher_user_id = \? AND ma\.status = 'active'/);
         return teacher.filter((row) => row.teacher_user_id === params[2] && row.onRoster
-          && !["sending", "delivered"].includes(ledger.get(`${params[0]}:${row.session_id}:teacher_result`)?.state ?? "")) as T[];
+          && (() => {
+            const item = ledger.get(`${params[0]}:${row.session_id}:teacher_result`);
+            return !item || item.state === "ready" || (item.state === "sending" && (item.elapsed_seconds ?? 0) >= 900);
+          })()) as T[];
       }
       if (text.includes("ts.id = ?") && text.includes("FOR UPDATE")) {
         return teacher.filter((row) => row.teacher_user_id === params[0] && row.session_id === params[1] && row.onRoster
@@ -221,6 +227,7 @@ test("quiet hours defer everything without claiming, then delivery resumes", asy
 test("the unfinished-task reminder goes out once per Kyiv day inside its window", async () => {
   const tasks = [{ id: 42, user_id: 7, expire_time: evening + 5 * 86400 }, { id: 43, user_id: 7, expire_time: evening + 6 * 86400, theme_name: "<b>Геометрія</b>" }];
   const db = fake({ now: evening, tasks });
+  db.pref(1).daily_reminder = 1;
   for (const key of ["1:42:new_task", "1:43:new_task"]) db.ledger.set(key, { state: "delivered", deliveredUnix: evening - 86400 });
   assert.equal((await db.run()).sent, 1);
   assert.match(db.replies[0].text, /Незавершені завдання: 2/);
@@ -229,6 +236,7 @@ test("the unfinished-task reminder goes out once per Kyiv day inside its window"
   await db.run(evening + 600);
   assert.equal(db.replies.length, 1);
   const before = fake({ now: evening - 3600, tasks });
+  before.pref(1).daily_reminder = 1;
   for (const key of ["1:42:new_task", "1:43:new_task"]) before.ledger.set(key, { state: "delivered", deliveredUnix: evening - 86400 });
   await before.run();
   assert.equal(before.replies.length, 0, "16:30 Kyiv is before the window");
@@ -237,11 +245,13 @@ test("the unfinished-task reminder goes out once per Kyiv day inside its window"
 test("a rejected daily reminder frees the day; an uncertain one keeps it to avoid duplicates", async () => {
   const tasks = [{ id: 42, user_id: 7, expire_time: evening + 5 * 86400 }];
   const rejected = fake({ now: evening, tasks });
+  rejected.pref(1).daily_reminder = 1;
   rejected.ledger.set("1:42:new_task", { state: "delivered", deliveredUnix: evening - 86400 });
   rejected.setResult({ status: "rejected", context: { errorCode: 403 } });
   assert.equal((await rejected.run()).rejected, 1);
   assert.equal(rejected.pref(1).student_digest_on, null);
   const uncertain = fake({ now: evening, tasks });
+  uncertain.pref(1).daily_reminder = 1;
   uncertain.ledger.set("1:42:new_task", { state: "delivered", deliveredUnix: evening - 86400 });
   uncertain.setResult({ status: "unknown", context: { errorName: "TimeoutError" } });
   assert.equal((await uncertain.run()).uncertain, 1);
@@ -319,4 +329,23 @@ test("the teacher daily summary is opt-in, scoped and sent once per day", async 
   assert.match(db.replies[0].text, /не встигли: 2/);
   await db.run(night + 600);
   assert.equal(db.replies.length, 1);
+});
+
+test("daily reminders remain disabled for an account without explicit preferences", async () => {
+  const db = fake({ now: evening, tasks: [{ id: 42, user_id: 7, expire_time: evening + 86400 * 5 }] });
+  db.ledger.set("1:42:new_task", { state: "delivered", deliveredUnix: evening - 86400 });
+  assert.equal((await db.run()).sent, 0);
+  assert.equal(db.replies.length, 0);
+});
+
+test("teacher results retry expired sending claims and retain scoped selection", async () => {
+  const db = fake({ now: morning, accounts: [teacherAccount], teacher: [completed(100), completed(101), completed(102)] });
+  db.pref(5).baseline_unix = morning - 86400;
+  db.ledger.set("5:100:teacher_result", { state: "sending", deliveredUnix: null, elapsed_seconds: 900 });
+  db.ledger.set("5:101:teacher_result", { state: "sending", deliveredUnix: null, elapsed_seconds: 899 });
+  db.ledger.set("5:102:teacher_result", { state: "delivered", deliveredUnix: morning - 86400, elapsed_seconds: 900 });
+  assert.equal((await db.run()).sent, 1);
+  assert.equal(db.ledger.get("5:100:teacher_result")?.state, "delivered");
+  assert.equal(db.ledger.get("5:101:teacher_result")?.state, "sending");
+  assert.ok(db.sql.some((sql) => sql.includes("n.attempted_at <= CURRENT_TIMESTAMP - INTERVAL 15 MINUTE")));
 });
