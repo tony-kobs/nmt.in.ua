@@ -141,6 +141,16 @@ async function sendOne(
       },
     });
   }
+  if (reply.editMessageId !== undefined) {
+    const edited = await sendTelegramMessage(reply, token, request);
+    // Same content is already on screen; anything else (deleted, too old, media) gets a fresh message.
+    if (edited.status === "sent" || edited.status === "unknown" || edited.context.notModified) {
+      return edited.status === "rejected" ? { status: "sent", messageId: reply.editMessageId } : edited;
+    }
+    if (edited.context.retryAfter != null) return edited;
+    const { editMessageId: _edit, ...fresh } = reply;
+    return sendTelegramMessage(fresh, token, request);
+  }
   return sendTelegramMessage(reply, token, request);
 }
 

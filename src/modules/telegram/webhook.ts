@@ -3,12 +3,15 @@ import "server-only";
 import { timingSafeEqual } from "node:crypto";
 import { consumeTelegramLink } from "./link";
 import { getTelegramTaskSessions, getTelegramTodayTaskSessions } from "./tasks";
-import { formatTelegramTasks } from "./taskCommands";
 import { completeTelegramTask } from "./completeTask";
-import { createTaskReference } from "./taskReference";
 import { handleTaskCallback, parseTaskCallback, type TelegramReply } from "./taskInteraction";
 import { isMarathonCallbackData } from "@/modules/marathons/daily/botPlay";
 import { getTelegramTaskDetails } from "./taskDetails";
+import { getTelegramAccountProfile } from "./account";
+import { loadTelegramConnection } from "./schema";
+import { buildTaskListReply } from "./taskList";
+import { handleMenuRequest, parseMenuCallback, parseMenuCommand, type MenuDeps } from "./menu";
+import { MENU } from "./ui";
 
 type TelegramMessage = {
   chat?: { id?: number; type?: string };
@@ -63,9 +66,30 @@ export async function handleTelegramUpdate(
       token: string,
       identity: { userId: string; chatId: string; username?: string },
     ) => Promise<boolean>;
+    getProfile?: typeof getTelegramAccountProfile;
+    menu?: Omit<MenuDeps, "getProfile" | "getTasks" | "getTodayTasks" | "referenceSecret" | "logError">;
   } = { consume: consumeTelegramLink },
 ): Promise<TelegramReply | null> {
+  const menuDeps: MenuDeps = {
+    ...deps.menu,
+    getProfile: deps.getProfile,
+    getTasks: deps.getTasks,
+    getTodayTasks: deps.getTodayTasks,
+    referenceSecret: deps.referenceSecret,
+    logError: deps.logError,
+  };
   const callbackData = callbackDataOf(update);
+  // `/menu` and bare `/start` open the main menu for a linked nmt.in.ua account. Chats that are only
+  // linked to a marathon (or when the lookup fails) keep the marathon/linking behaviour below.
+  const entry = parseMenuCommand(update);
+  if (entry && entry.action.kind === "screen" && entry.action.screen === "home" && !isMarathonCallbackData(callbackData)) {
+    const profile = await (deps.getProfile ?? getTelegramAccountProfile)(entry.userId, {
+      getConnection: menuDeps.getConnection ?? loadTelegramConnection, logError: deps.logError,
+    });
+    if (profile.status === "success") {
+      return handleMenuRequest(entry, { ...menuDeps, getProfile: async () => profile });
+    }
+  }
   if (isMarathonCallbackData(callbackData) || isMarathonMenu(update)) {
     const queryId = callbackQueryId(update);
     if (queryId && deps.acknowledgeCallback) await deps.acknowledgeCallback(queryId);
@@ -76,6 +100,16 @@ export async function handleTelegramUpdate(
       (deps.logError ?? ((value) => console.error("marathon telegram failed", value)))(error);
       const chatId = callbackChatId(update) ?? messageChatId(update);
       return chatId ? { chatId, text: "Не вдалося обробити дію. Спробуйте пізніше." } : null;
+    }
+  }
+  const menuCallback = parseMenuCallback(update);
+  if (menuCallback) {
+    if (deps.acknowledgeCallback) await deps.acknowledgeCallback(menuCallback.queryId!);
+    try {
+      return await handleMenuRequest(menuCallback, menuDeps);
+    } catch (error) {
+      (deps.logError ?? ((value) => console.error("telegram menu callback failed", value)))(error);
+      return { chatId: menuCallback.chatId, text: "Не вдалося обробити дію. Спробуйте пізніше." };
     }
   }
   const callback = parseTaskCallback(update);
@@ -107,35 +141,15 @@ export async function handleTelegramUpdate(
   }
   const command = parseTelegramTaskCommand(update);
   if (command) {
+    return buildTaskListReply({ chatId: command.chatId, userId: command.userId, today: command.today }, deps);
+  }
+  const menuCommand = parseMenuCommand(update);
+  if (menuCommand && !(menuCommand.action.kind === "screen" && menuCommand.action.screen === "home")) {
     try {
-      const service = command.today
-        ? deps.getTodayTasks ?? getTelegramTodayTaskSessions
-        : deps.getTasks ?? getTelegramTaskSessions;
-      const result = await service(command.userId);
-      if (result.status === "error") {
-        return { chatId: command.chatId, text: result.code === "databaseFailure"
-          ? "Не вдалося отримати завдання. Спробуйте пізніше."
-          : "Спочатку підключіть Telegram у своєму кабінеті на nmt.in.ua." };
-      }
-      const secret = deps.referenceSecret ?? process.env.TELEGRAM_WEBHOOK_SECRET;
-      const references = new Map<number, string>();
-      const text = formatTelegramTasks(result.sessions, command.today, secret ? (id) => {
-        const reference = createTaskReference(id, command.userId, secret);
-        references.set(id, reference);
-        return reference;
-      } : undefined);
-      const rows = result.sessions.filter((session) => {
-        const reference = references.get(session.sessionId);
-        return reference && text.includes(`/done ${reference}`);
-      }).map((session, index) => [
-        { text: `${index + 1}. Деталі`, callback_data: `d:${references.get(session.sessionId)}` },
-        { text: "Завершити", callback_data: `a:${references.get(session.sessionId)}` },
-      ]);
-      return { chatId: command.chatId, text, ...(rows.length ? { replyMarkup: { inline_keyboard: rows } } : {}) };
+      return await handleMenuRequest(menuCommand, menuDeps);
     } catch (error) {
-      if (deps.logError) deps.logError(error);
-      else console.error("telegram tasks: command failed", error);
-      return { chatId: command.chatId, text: "Не вдалося отримати завдання. Спробуйте пізніше." };
+      (deps.logError ?? ((value) => console.error("telegram menu command failed", value)))(error);
+      return { chatId: menuCommand.chatId, text: "Не вдалося обробити команду. Спробуйте пізніше." };
     }
   }
   const start = parseTelegramStart(update);
@@ -183,12 +197,13 @@ export async function handleTelegramUpdate(
     chatId: start.chatId,
     username: start.username,
   });
-  return {
-    chatId: start.chatId,
-    text: linked
-      ? "Telegram успішно підключено до вашого облікового запису."
-      : "Посилання недійсне або термін його дії минув. Створіть нове у своєму кабінеті.",
-  };
+  return linked
+    ? {
+        chatId: start.chatId,
+        text: "✅ Telegram успішно підключено до вашого облікового запису.",
+        replyMarkup: { inline_keyboard: [[{ text: "🏠 Відкрити меню", callback_data: MENU.home }]] },
+      }
+    : { chatId: start.chatId, text: "Посилання недійсне або термін його дії минув. Створіть нове у своєму кабінеті." };
 }
 
 export function parseTelegramDoneCommand(update: unknown): { chatId: string; userId: string; reference: string | null } | null {
