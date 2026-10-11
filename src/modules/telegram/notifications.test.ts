@@ -2,10 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { processTelegramTaskNotifications } from "./notifications";
-import {
-  isNotificationClaimable,
-  NOTIFICATION_SENDING_RETRY_SEC,
-} from "./notificationDelivery";
+import { isNotificationClaimable } from "./notificationDelivery";
 import { sendTelegramMessage, type TelegramSendResult } from "./transport";
 import { resolveTaskReference } from "./taskReference";
 import { handleTelegramUpdate } from "./webhook";
@@ -46,6 +43,7 @@ function database(sessions = [session()]) {
       release: () => { assert.equal(unlock, undefined); },
       query: async <T>(sql: string, params: unknown[] = []) => {
         sqlCalls.push(sql);
+        if (sql.includes("telegram_notification_preferences")) return [] as T[];
         if (sql.includes("SELECT delivery_state")) return [deliveries.get(params.join(":"))] as T[];
         if (sql.includes("FOR UPDATE") && sql.includes("user_telegram_accounts")) { changeBeforeLock?.(); changeBeforeLock = undefined; }
         if (sql.includes("LEFT JOIN task_sessions")) {
@@ -99,7 +97,10 @@ test("eligible owned notification is Ukrainian, persisted once and uses the TG-0
   const db = database([session(), session(99, { user_id: 8 })]);
   assert.equal((await processTelegramTaskNotifications(db.deps)).sent, 1);
   assert.equal(db.replies.length, 1);
-  assert.equal(db.replies[0].text, "У вас доступне нове завдання.");
+  assert.match(db.replies[0].text, /^📚 <b>Нове завдання<\/b>\n\nАлгебра\nЗавдань: 2\n⏰ Термін: /);
+  assert.doesNotMatch(db.replies[0].text, /42|sessionId|user_id/);
+  assert.equal(db.replies[0].parseMode, "HTML");
+  assert.equal(db.replies[0].disablePreview, true);
   assert.equal(db.replies[0].chatId, "123");
   const data = db.replies[0].replyMarkup!.inline_keyboard[0][0].callback_data!;
   assert.ok(Buffer.byteLength(data) <= 64);
@@ -209,33 +210,11 @@ test("notifications do not inherit the 50-task display limit", async () => {
   assert.equal(db.replies.length, 60);
 });
 
-test("a sending claim can be retried only after the cooldown", () => {
-  const attempted = 1_000;
-  assert.equal(isNotificationClaimable("ready", null, attempted), true);
-  assert.equal(
-    isNotificationClaimable(
-      "sending",
-      attempted,
-      attempted + NOTIFICATION_SENDING_RETRY_SEC - 1,
-    ),
-    false,
-  );
-  assert.equal(
-    isNotificationClaimable(
-      "sending",
-      attempted,
-      attempted + NOTIFICATION_SENDING_RETRY_SEC,
-    ),
-    true,
-  );
-  assert.equal(
-    isNotificationClaimable("delivered", attempted, attempted + NOTIFICATION_SENDING_RETRY_SEC),
-    false,
-  );
-  assert.equal(
-    isNotificationClaimable("sending", null, attempted + NOTIFICATION_SENDING_RETRY_SEC),
-    false,
-  );
+test("only ready claims are claimable; uncertain sending claims are never retried automatically", () => {
+  assert.equal(isNotificationClaimable("ready"), true);
+  assert.equal(isNotificationClaimable("sending"), false);
+  assert.equal(isNotificationClaimable("delivered"), false);
+  assert.equal(isNotificationClaimable(undefined), false);
 });
 
 test("unknown transport outcome and post-send database failure retain the claim to prevent duplicates", async () => {

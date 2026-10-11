@@ -2,7 +2,7 @@ import "server-only";
 import type { TelegramReply } from "./taskInteraction";
 
 export type TelegramSendResult = { status: "sent"; messageId: number }
-  | { status: "rejected" | "unknown"; context: { httpStatus?: number; errorCode?: number; errorName?: string; retryAfter?: number } };
+  | { status: "rejected" | "unknown"; context: { httpStatus?: number; errorCode?: number; errorName?: string; retryAfter?: number; notModified?: true } };
 
 function readRetryAfter(body: unknown): number | undefined {
   if (!body || typeof body !== "object") return undefined;
@@ -12,20 +12,28 @@ function readRetryAfter(body: unknown): number | undefined {
 
 function interpret(response: Response, body: unknown): TelegramSendResult {
   if (body && typeof body === "object") {
-    const payload = body as { ok?: unknown; error_code?: unknown; result?: { message_id?: unknown } };
+    const payload = body as { ok?: unknown; error_code?: unknown; description?: unknown; result?: { message_id?: unknown } | boolean };
     const retryAfter = readRetryAfter(body);
     if (payload.ok === false && typeof payload.error_code === "number") {
+      // Only a flag is kept; the API description itself is never returned or logged.
+      const notModified = payload.error_code === 400 && typeof payload.description === "string"
+        && payload.description.includes("message is not modified");
       return {
         status: "rejected",
         context: {
           httpStatus: response.status,
           errorCode: payload.error_code,
           ...(retryAfter != null ? { retryAfter } : {}),
+          ...(notModified ? { notModified: true as const } : {}),
         },
       };
     }
-    if (response.ok && payload.ok === true && Number.isSafeInteger(payload.result?.message_id)) {
-      return { status: "sent", messageId: payload.result!.message_id as number };
+    if (response.ok && payload.ok === true && payload.result === true) {
+      return { status: "sent", messageId: 0 };
+    }
+    const result = typeof payload.result === "object" ? payload.result : undefined;
+    if (response.ok && payload.ok === true && Number.isSafeInteger(result?.message_id)) {
+      return { status: "sent", messageId: result!.message_id as number };
     }
     if (response.ok && payload.ok === true && Array.isArray(payload.result) && payload.result.length > 0) {
       const first = payload.result[0] as { message_id?: unknown };
@@ -48,6 +56,15 @@ export async function sendTelegramMessage(reply: TelegramReply, botToken: string
       prefer_large_media: true,
       show_above_text: true,
     };
+  } else if (reply.disablePreview) {
+    body.link_preview_options = { is_disabled: true };
+  }
+  if (reply.editMessageId !== undefined) {
+    if (!Number.isSafeInteger(reply.editMessageId) || reply.editMessageId <= 0) {
+      return { status: "rejected", context: {} };
+    }
+    body.message_id = reply.editMessageId;
+    return sendTelegramPayload({ method: "editMessageText", token: botToken, request, json: body });
   }
   return sendTelegramPayload({
     method: "sendMessage",

@@ -14,7 +14,10 @@ test("webhook secret is required and compared safely", () => {
 
 test("/start without payload never consumes a link", async () => {
   let calls = 0;
-  const reply = await handleTelegramUpdate(start("/start"), { consume: async () => { calls++; return true; } });
+  const reply = await handleTelegramUpdate(start("/start"), {
+    consume: async () => { calls++; return true; },
+    getProfile: async () => ({ status: "error", code: "notLinked" }),
+  });
   assert.equal(calls, 0);
   assert.match(reply!.text, /nmt\.in\.ua/);
   assert.equal(parseTelegramStart(start("/start token", "group")), null);
