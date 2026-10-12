@@ -1,20 +1,21 @@
 import { SESSION_STATUS_CREATED } from "@/modules/sessions/types";
 import type { TelegramTaskSession } from "./tasks";
-import { TELEGRAM_TASK_TIME_ZONE } from "./taskDay";
+import { cleanTitle, effectiveDeadline, formatKyivDateTime, html } from "./ui";
 
-const deadlineFormatter = new Intl.DateTimeFormat("uk-UA", {
-  timeZone: TELEGRAM_TASK_TIME_ZONE,
-  day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
-});
-
+/** Telegram HTML. Theme names are escaped; references are base64url and safe as-is. */
 export function formatTelegramTasks(sessions: TelegramTaskSession[], today: boolean, reference?: (sessionId: number) => string): string {
-  if (!sessions.length) return today ? "На сьогодні завдань немає." : "Зараз у вас немає актуальних завдань.";
-  let text = today ? "Завдання на сьогодні:" : "Ваші завдання:";
+  if (!sessions.length) {
+    return today
+      ? "📅 На сьогодні завдань немає."
+      : "📚 Зараз у вас немає актуальних завдань.";
+  }
+  let text = today ? "<b>📅 Завдання на сьогодні</b>" : "<b>📚 Ваші завдання</b>";
   for (const [index, session] of sessions.entries()) {
-    const title = Array.from((session.themeName || "Навчальна сесія").replace(/\s+/g, " ")).slice(0, 120).join("");
     const status = session.status === SESSION_STATUS_CREATED ? "Створено" : "Заплановано";
-    const entry = `\n\n${index + 1}. ${title}\nСтатус: ${status}\nВиконано: ${session.completedTaskCount}/${session.taskCount}` +
-      (session.expiresAt ? `\nТермін: ${deadlineFormatter.format(session.expiresAt * 1000)}` : "") +
+    const deadline = effectiveDeadline(session);
+    const entry = `\n\n<b>${index + 1}. ${html(cleanTitle(session.themeName))}</b>` +
+      `\nВиконано: ${session.completedTaskCount}/${session.taskCount} · ${status}` +
+      (deadline ? `\n⏰ Термін: ${formatKyivDateTime(deadline)}` : "") +
       (reference ? `\nЗавершити: /done ${reference(session.sessionId)}` : "");
     if (text.length + entry.length > 3900) {
       text += "\n\nРешта завдань — у кабінеті на nmt.in.ua.";

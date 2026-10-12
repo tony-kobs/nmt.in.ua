@@ -201,10 +201,10 @@ async function buildDay(
   };
 }
 
-function callbackFrom(update: PrivateUpdate): BotCallback | null {
+export function callbackFrom(update: PrivateUpdate): BotCallback | null {
   if (update.data) return parseBotCallback(update.data);
   if (update.text && /^\/menu(?:@\w+)?\s*$/.test(update.text)) return { kind: "menu" };
-  if (update.text && /^\/top(?:@\w+)?\s*$/.test(update.text)) return { kind: "top" };
+  if (update.text && /^\/(?:top|leaderboard)(?:@\w+)?\s*$/.test(update.text)) return { kind: "top" };
   if (update.text && /^\/start(?:@\w+)?\s*$/.test(update.text)) return { kind: "menu" };
   return null;
 }

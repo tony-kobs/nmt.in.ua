@@ -26,16 +26,28 @@ jobs:
             echo "Missing notification trigger secret." >&2
             exit 1
           fi
-          curl --silent --show-error --fail \
-            --proto '=https' --connect-timeout 10 --max-time 240 \
-            --request POST \
-            --header "Authorization: Bearer ${TRIGGER_SECRET}" \
-            https://nmt.in.ua/api/telegram/notifications/process > "$RUNNER_TEMP/telegram-notifications.json"
-          node -e '
-            const fs = require("node:fs");
-            const counts = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-            const keys = ["sent", "skipped", "failed", "rejected", "uncertain"];
-            if (!keys.every(key => Number.isSafeInteger(counts[key]) && counts[key] >= 0)) process.exit(1);
-            console.log(Object.fromEntries(keys.map(key => [key, counts[key]])));
-            if (counts.failed || counts.rejected || counts.uncertain) process.exit(1);
-          ' "$RUNNER_TEMP/telegram-notifications.json"
+          node --input-type=module <<'NODE'
+          const deadline = Date.now() + 240_000;
+          let cursor = 0;
+          let errors = false;
+          while (Date.now() + 60_000 <= deadline) {
+            const response = await fetch(
+              'https://nmt.in.ua/api/telegram/notifications/process?afterAccountId=' + cursor,
+              { method: 'POST', headers: { authorization: 'Bearer ' + process.env.TRIGGER_SECRET },
+                signal: AbortSignal.timeout(60_000) },
+            );
+            if (!response.ok) throw new Error('Notification trigger returned HTTP ' + response.status);
+            const result = await response.json();
+            const keys = ['sent', 'skipped', 'failed', 'rejected', 'uncertain', 'processedAccounts'];
+            if (!keys.every(key => Number.isSafeInteger(result[key]) && result[key] >= 0)
+                || typeof result.complete !== 'boolean') throw new Error('Invalid notification result');
+            console.log(Object.fromEntries([...keys, 'complete', 'nextCursor'].map(key => [key, result[key]])));
+            errors ||= Boolean(result.failed || result.rejected || result.uncertain);
+            if (result.complete) process.exit(errors ? 1 : 0);
+            if (!Number.isSafeInteger(result.nextCursor) || result.nextCursor <= cursor) {
+              throw new Error('Invalid notification continuation');
+            }
+            cursor = result.nextCursor;
+          }
+          throw new Error('Notification sweep incomplete; resume with afterAccountId=' + cursor);
+          NODE

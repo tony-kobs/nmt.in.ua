@@ -80,7 +80,9 @@ test("unavailable states and invalid references never complete or expose interna
       getDetails: async () => ({ status: "success", task: { title: "Алгебра", state, expiresAt: null } }),
       completeTask: async () => { assert.fail("must not complete"); },
     });
-    assert.equal(reply!.replyMarkup, undefined);
+    // Only navigation remains: no completion or approval button for an unavailable task.
+    const actions = (reply!.replyMarkup?.inline_keyboard.flat() ?? []).map((button) => button.callback_data ?? "");
+    assert.ok(actions.every((data) => /^m:/.test(data)), actions.join(","));
     assert.doesNotMatch(reply!.text, /42|sessionId|SQL|password/);
   }
   for (const code of ["notLinked", "invalidReference", "databaseFailure"] as const) {
@@ -136,7 +138,9 @@ test("tasks and today keyboards use opaque identity-bound references", async () 
     const reply = await handleTelegramUpdate({ message: { chat: { id: 123, type: "private" }, from: { id: 123 }, text: `/${command}` } }, {
       consume: async () => false, referenceSecret: secret, getTasks, getTodayTasks: getTasks,
     });
-    for (const button of reply!.replyMarkup!.inline_keyboard.flat()) {
+    const buttons = reply!.replyMarkup!.inline_keyboard.flat();
+    assert.ok(buttons.some((button) => button.callback_data?.startsWith("m:")), "list keeps menu navigation");
+    for (const button of buttons.filter((item) => !item.callback_data?.startsWith("m:"))) {
       assert.ok(Buffer.byteLength(button.callback_data!) <= 64);
       assert.equal(resolveTaskReference(button.callback_data!.slice(2), "123", secret), 42);
       assert.doesNotMatch(button.callback_data!, /^[da]:42$/);

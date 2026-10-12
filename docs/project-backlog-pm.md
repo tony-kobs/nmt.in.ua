@@ -150,18 +150,31 @@ Write-доступ у репозиторії є, комітів немає: **ol
 
 Усе інше з оригінального розкладу (1.1–1.5, 2.1–2.4, 3.1–3.9, 4.1–4.9, авторизація, підручник, варіанти НМТ, відгук) — зроблено.
 
-# Етап інтеграції Telegram (TG-001, TG-002, TG-003, TG-004, TG-005, TG-006, TG-007)
+# Telegram integration (TG-001-TG-008; TG-010-TG-017)
 
-Локальну інтеграційну перевірку TG-007 завершено 2026-10-06: Telegram API підтвердив повідомлення й кнопку «Деталі», MySQL зберіг `delivered`; повторний запуск не надсилає дубль і не змінює сесію чи завдання. Докази та межі перевірки — у [Telegram integration](telegram-integration.md#завершена-локальна-перевірка-tg-007--2026-10-06).
+TG-001-TG-006 retain the authenticated webhook, one-time account linking, ownership-scoped task queries, private commands, transactional completion, and confirmation. Task, diagnostic, recommendation, and linking contracts remain unchanged. See [Telegram integration](telegram-integration.md).
 
-TG-007 реалізовано: серверний процесор надсилає одне сповіщення на прив’язку/сесію/тип через ledger міграції 037. Підтверджені відмови можуть повторюватися; невизначені результати залишають `sending`. TG-008 додає захищений trigger і schedule. Контракти — в [інтеграції Telegram](telegram-integration.md#tg-007--new-available-task-notifications).
+## TG-007-TG-008 - Notification processing
 
-TG-001 забезпечує обробку повідомлень Telegram через вебхук. TG-002 додає одноразову прив’язку облікового запису зі сторінки кабінету автентифікованого користувача. TG-003 надає API завдань лише для читання з перевіркою власника: визначає користувача Telegram через `user_telegram_accounts`, використовує чинні таблиці сесій і завдань та не повертає прихованих відповідей. Публічні кінцеві точки й міграції не додаються. Налаштування Telegram залишається необов’язковим; після ввімкнення виробничий вебхук доступний за адресою `https://nmt.in.ua/api/telegram/webhook`. Контракт API, правила фільтрації, обмеження, вимоги до безпеки й розгортання описано в документі [Інтеграція Telegram](telegram-integration.md). TG-004 додає команди `/tasks` і `/today` для прив’язаного облікового запису через чинний сервіс, з українськими відповідями. TG-005 додає `/done <посилання>` з непрозорими посиланнями, прив’язаними до користувача Telegram, транзакційними перевірками власника та стану, а також повторним використанням чинних сервісів завершення й рекомендацій. Для завершення потрібні відповіді на завдання; правила діагностики збережено, міграції не додаються. TG-006 реалізовано: деталі власних завдань, inline-клавіатури, окреме підтвердження завершення через TG-005 та безпечна обробка недоступних станів і callback. TG-008 реалізовано нижче; TG-009 залишається запланованим.
+The delivery ledger retains notification types, transactional locks, atomic claims, and eligibility checks. A `sending` record becomes retryable after 15 minutes; delivered records never retry. Lost Telegram responses can cause duplicate delivery. Digest slots retain their separate policy.
 
-## TG-008 — запуск сповіщень
+The authenticated trigger processes up to 25 accounts in ID order, with a 35-second soft budget and `maxDuration = 60`. Responses retain counters and add `processedAccounts`, `complete`, and `nextCursor`; callers continue via `afterAccountId`. Partial accounts are revisited safely. Unprocessed accounts are not reported as completed. The production database adapter bounds each operation to 5 seconds and total work to a 50-second deadline, destroying timed-out connections and releasing late acquisitions.
 
-Реалізовано захищений POST trigger і GitHub Actions schedule кожні 5 хвилин + workflow_dispatch на main для основного хостингу ukraine.com.ua. Потрібен окремий TELEGRAM_NOTIFICATIONS_TRIGGER_SECRET у runtime та GitHub Secrets, міграція 037 і чинні налаштування Telegram. Порядок активації, зупинки й обмеження — у [Telegram integration](telegram-integration.md#tg-008--автоматичний-запуск-сповіщень). Production scheduler ще не запускався; TG-009 заплановано.
+Deployment requires existing task tables and ledger migration 037, current configuration, schema creation/default-alter permissions, and a caller that follows continuation cursors. The existing workflow follows cursors through sequential authenticated calls within its 240-second request budget. An incomplete sweep fails and logs a cursor for manual resumption; no durable cursor storage is added. No scheduler, Redis, or queue is introduced. Hosting is documented as ukraine.com.ua; no Vercel plan is verified. Confirm execution limits before deployment. Production processing and continuation require separate verification.
 
-## TG-010 — Telegram hardening, тести та документація
+## TG-010 - Hardening and validation
 
-Уточнено контракти TG-005–TG-008 і додано відсутні тести callback/transport та збережених delivery claims. Нової інфраструктури, схеми чи бізнес-правил немає. Rate limiting, durable audit log, дедуплікація `update_id`, backoff/`retry_after` та автоматичне відновлення `sending` залишаються майбутньою роботою. Інструкції — у [TG-010](telegram-integration.md#tg-010--перевірки-та-відомі-обмеження).
+Regression coverage includes routing, identity boundaries, schema initialization, defaults, the 15-minute retry boundary, and budget exhaustion/continuation. Database and transport doubles do not prove live locking, delivery, or production readiness. Durable webhook deduplication, task-notification rate limiting, and full audit remain future work.
+
+## TG-011-TG-016 - Account menu and preferences
+
+- TG-011: `/menu` and bare `/start` preserve the original marathon menu for participants; other linked users receive the account menu. Deep links and callback security remain unchanged.
+- TG-012: deadline reminders and manually enabled daily reminders reuse task eligibility; marathon notifications remain unchanged.
+- TG-013: `/stats` uses existing results and verified identity.
+- TG-014: teacher results retain roster checks and a baseline; daily summaries remain optional.
+- TG-015: schema initialization creates preferences automatically. SQL 042 is reference/recovery only. Application and SQL defaults disable daily reminders without overwriting preferences; users can enable them manually.
+- TG-016: Ukrainian presentation, escaping, and navigation remain in place.
+
+## TG-017 - Unified daily marathon leaderboard
+
+`/leaderboard` aliases `/top`; the leaderboard button uses `mh:top`. Both reuse the daily marathon handler and canonical `marathon_ranks`/`correct_count` leaderboard. The duplicate module and obsolete tests are removed. Scoring, ranking, persistence, notifications, presentation, and access boundaries remain unchanged. Teacher account views retain roster restrictions; no second ranking implementation is introduced.

@@ -13,14 +13,18 @@ export function isAuthorizedNotificationTrigger(header: string | null): boolean 
 
 export async function handleNotificationTrigger(
   request: Request,
-  processNotifications = processTelegramTaskNotifications,
+  processNotifications: (deps?: Parameters<typeof processTelegramTaskNotifications>[0], batch?: Parameters<typeof processTelegramTaskNotifications>[1]) => Promise<object> = processTelegramTaskNotifications,
 ): Promise<Response> {
   if (!isAuthorizedNotificationTrigger(request.headers.get("authorization"))) {
     return new Response(null, { status: 401 });
   }
+  const rawCursor = new URL(request.url).searchParams.get("afterAccountId") ?? "0";
+  if (!/^(0|[1-9][0-9]*)$/.test(rawCursor) || !Number.isSafeInteger(Number(rawCursor))) {
+    return new Response(null, { status: 400 });
+  }
   try {
-    const { sent, skipped, failed, rejected, uncertain } = await processNotifications();
-    return Response.json({ sent, skipped, failed, rejected, uncertain }, {
+    const result = await processNotifications(undefined, { afterAccountId: Number(rawCursor) });
+    return Response.json(result, {
       headers: { "cache-control": "no-store" },
     });
   } catch {
