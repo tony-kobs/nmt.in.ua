@@ -92,7 +92,7 @@ const HELP_TEXT = [
 function homeKeyboard(profile: TelegramAccountProfile, marathon: boolean): InlineKeyboard["inline_keyboard"] {
   const rows: InlineKeyboard["inline_keyboard"] = profile.role === "teacher"
     ? [
-        [{ text: "👥 Мої учні", callback_data: MENU.students }, { text: "🏆 Рейтинг", callback_data: MENU.leaderboard }],
+        [{ text: "👥 Мої учні", callback_data: MENU.students }, ...(marathon ? [{ text: "🏆 Рейтинг", callback_data: MENU.leaderboard }] : [])],
         [{ text: "🔔 Сповіщення", callback_data: MENU.notifications }, { text: "👤 Мій акаунт", callback_data: MENU.account }],
         [{ text: "❓ Допомога", callback_data: MENU.help }],
       ]
@@ -100,7 +100,7 @@ function homeKeyboard(profile: TelegramAccountProfile, marathon: boolean): Inlin
         [{ text: "📚 Мої завдання", callback_data: MENU.tasks }, { text: "📅 Сьогодні", callback_data: MENU.today }],
         [{ text: "📊 Моя статистика", callback_data: MENU.stats }, { text: "🔔 Сповіщення", callback_data: MENU.notifications }],
         [{ text: "👤 Мій акаунт", callback_data: MENU.account }, { text: "❓ Допомога", callback_data: MENU.help }],
-        [{ text: "🏆 Рейтинг", callback_data: MENU.leaderboard }],
+        ...(marathon ? [[{ text: "🏆 Рейтинг", callback_data: MENU.leaderboard }]] : []),
       ];
   // `mh:menu` is the marathon bot's own entry point; the marathon flow stays untouched.
   if (marathon) rows.push([{ text: "🏁 Марафон", callback_data: "mh:menu" }]);

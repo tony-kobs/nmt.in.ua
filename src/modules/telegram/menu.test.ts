@@ -56,12 +56,12 @@ test("bare /start and /menu open the role-based main menu for linked accounts on
     const reply = await handleTelegramUpdate(message(text), { ...base, getProfile: async () => student, menu: { hasMarathon: async () => false } });
     assert.match(reply!.text, /Вітаємо, Іра &lt;b&gt;!/);
     const labels = reply!.replyMarkup!.inline_keyboard.flat().map((button) => button.text);
-    assert.deepEqual(labels, ["📚 Мої завдання", "📅 Сьогодні", "📊 Моя статистика", "🔔 Сповіщення", "👤 Мій акаунт", "❓ Допомога", "🏆 Рейтинг"]);
+    assert.deepEqual(labels, ["📚 Мої завдання", "📅 Сьогодні", "📊 Моя статистика", "🔔 Сповіщення", "👤 Мій акаунт", "❓ Допомога"]);
     assert.equal(reply!.parseMode, "HTML");
   }
   const teacherMenu = await handleTelegramUpdate(message("/menu"), { ...base, getProfile: async () => teacher, menu: { hasMarathon: async () => false } });
   const teacherButtons = teacherMenu!.replyMarkup!.inline_keyboard.flat();
-  assert.deepEqual(teacherButtons.map((button) => button.callback_data), ["m:stud", "mh:top", "m:notif", "m:acct", "m:help"]);
+  assert.deepEqual(teacherButtons.map((button) => button.callback_data), ["m:stud", "m:notif", "m:acct", "m:help"]);
   assert.deepEqual(marathonCalls, []);
   // Not linked (or lookup failed): the marathon bot keeps /menu and bare /start exactly as before.
   for (const profile of [notLinked, { status: "error", code: "databaseFailure" } as TelegramAccountResult]) {
@@ -70,6 +70,26 @@ test("bare /start and /menu open the role-based main menu for linked accounts on
   }
   assert.deepEqual(marathonCalls, ["marathon", "bare", "marathon", "bare"]);
 });
+
+for (const profile of [student, teacher]) {
+  if (profile.status !== "success") continue;
+  for (const marathon of [false, true]) {
+    test(`${profile.profile.role} home menu shows leaderboard only for marathon participants (${marathon})`, async () => {
+      const calls: string[] = [];
+      const reply = await handleMenuRequest({ chatId: "123", userId: "123", action: { kind: "screen", screen: "home" } }, {
+        getProfile: async () => profile,
+        hasMarathon: async (chatId) => { calls.push(chatId); return marathon; },
+      });
+      const rows = reply.replyMarkup!.inline_keyboard;
+      const buttons = rows.flat();
+      assert.deepEqual(calls, ["123"]);
+      assert.deepEqual(buttons.filter((button) => button.text === "🏆 Рейтинг"), marathon ? [{ text: "🏆 Рейтинг", callback_data: "mh:top" }] : []);
+      assert.deepEqual(buttons.filter((button) => button.callback_data === "mh:top"), marathon ? [{ text: "🏆 Рейтинг", callback_data: "mh:top" }] : []);
+      assert.deepEqual(buttons.filter((button) => button.callback_data === "mh:menu"), marathon ? [{ text: "🏁 Марафон", callback_data: "mh:menu" }] : []);
+      assert.ok(rows.every((row) => row.length > 0));
+    });
+  }
+}
 
 test("daily marathon participants retain entry priority over linked account menus", async () => {
   for (const text of ["/menu", "/menu@nmt_bot", "/start", "/start@nmt_bot"]) {

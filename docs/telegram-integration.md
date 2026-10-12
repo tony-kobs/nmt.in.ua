@@ -87,7 +87,7 @@ Task-notification rate limiting and a durable audit log remain outside this incr
 ```powershell
 node --require ./test/stub-server-only.cjs --import tsx --test "src/modules/telegram/*.test.ts" "src/app/api/telegram/**/*.test.ts"
 npm.cmd test
-npx.cmd tsc --noEmit --incremental false
+npx tsc --noEmit --incremental false
 npm.cmd run lint
 npm.cmd run build
 git diff --check
