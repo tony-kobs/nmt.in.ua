@@ -70,6 +70,7 @@ const CHILD_TABLES = [
     kind ENUM('day_open', 'reminder', 'tomorrow', 'final', 'nudge') NOT NULL,
     channel ENUM('email', 'telegram') NOT NULL,
     sent_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    delivered TINYINT(1) NOT NULL DEFAULT 1,
     PRIMARY KEY (marathon_id, user_id, day_number, kind, channel)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   `CREATE TABLE IF NOT EXISTS marathon_ranks (
@@ -260,6 +261,15 @@ export async function migrateDailyMarathon(
   }
 
   const notifyColumns = await columnNames(connection, "marathon_notifications");
+  if (notifyColumns.size > 0 && !notifyColumns.has("delivered")) {
+    // Existing rows were written after a send, so they count as delivered.
+    await addColumn(
+      connection,
+      "marathon_notifications",
+      "delivered",
+      "TINYINT(1) NOT NULL DEFAULT 1 AFTER sent_at",
+    );
+  }
   if (notifyColumns.has("kind")) {
     const kindRows = await connection.query<{
       COLUMN_TYPE?: string;
