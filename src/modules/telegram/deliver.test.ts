@@ -51,3 +51,25 @@ test("a rendered formula is sent as a photo and a failed render falls back to th
   assert.match(fallbackCalls[0] ?? "", /sendMessage$/);
   assert.equal(fallbackCalls.some((url) => url.includes("sendPhoto")), false);
 });
+
+test("a photo Telegram refuses is resent as a text link instead of being dropped", async () => {
+  const methods: string[] = [];
+  const bodies: string[] = [];
+  const request = (async (url: string | URL, init?: RequestInit) => {
+    const method = String(url).split("/").pop() ?? "";
+    methods.push(method);
+    bodies.push(typeof init?.body === "string" ? init.body : "");
+    const ok = method === "sendMessage";
+    return new Response(JSON.stringify(ok
+      ? { ok: true, result: { message_id: 5 } }
+      : { ok: false, error_code: 400, description: "Bad Request: wrong file identifier/HTTP URL specified" }), {
+      status: ok ? 200 : 400, headers: { "content-type": "application/json" },
+    });
+  }) as typeof fetch;
+  const result = await deliverTelegramReplies([
+    { chatId: "7", text: "Трикутник", photoUrl: "https://example.com/triangle.png" },
+  ], "token", { request, sleep: async () => {}, now: () => 0 });
+  assert.equal(result.sent, 1);
+  assert.deepEqual(methods, ["sendPhoto", "sendMessage"]);
+  assert.match(bodies[1]!, /triangle\.png/);
+});

@@ -199,3 +199,19 @@ test("unsubscribe token matches only the same participant and secret", () => {
   assert.equal(verifyUnsubscribeToken(4, 8, token, "secret"), false);
   assert.equal(verifyUnsubscribeToken(4, 9, token, "other"), false);
 });
+
+test("a claim is confirmed only after a successful send", async () => {
+  const intent: NotifyIntent = { marathonId: 1, userId: 7, dayNumber: 5, kind: "day_open", channel: "telegram" };
+  const confirmed: NotifyIntent[] = [];
+  const released: NotifyIntent[] = [];
+  const deps = {
+    claim: async () => "claimed" as const,
+    release: async (item: NotifyIntent) => { released.push(item); },
+    confirm: async (item: NotifyIntent) => { confirmed.push(item); },
+  };
+  await deliverNotifications([intent], { ...deps, send: async () => false });
+  assert.equal(confirmed.length, 0);
+  assert.equal(released.length, 1);
+  await deliverNotifications([intent], { ...deps, send: async () => true });
+  assert.equal(confirmed.length, 1);
+});
