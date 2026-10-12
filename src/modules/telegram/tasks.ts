@@ -20,6 +20,8 @@ export type TelegramTaskSession = {
   taskCount: number;
   completedTaskCount: number;
   expiresAt: number | null;
+  /** Earliest active mentor-assignment due time, when the session belongs to one. */
+  dueAt?: number | null;
 };
 export type TelegramTaskSessionsResult = { status: "success"; sessions: TelegramTaskSession[] } | TelegramTasksError;
 
@@ -53,7 +55,11 @@ function taskSessionsSql(today: boolean, all = false, sessionId?: number): strin
       WHERE m.session_id = ts.id AND m.user_id = uta.user_id) AS mapping_count,
     (SELECT COUNT(*) FROM tasks2session m
       WHERE m.session_id = ts.id AND m.user_id = uta.user_id
-        AND m.status IN (?, ?)) AS answered_count
+        AND m.status IN (?, ?)) AS answered_count,
+    (SELECT MIN(ax.due_at) FROM mentor_assignment_members dx
+      INNER JOIN mentor_assignments ax ON ax.id = dx.assignment_id
+      WHERE dx.session_id = ts.id AND dx.student_user_id = uta.user_id
+        AND ax.status = 'active') AS due_at
   FROM user_telegram_accounts uta
   INNER JOIN app_users u ON u.id = uta.user_id AND u.is_banned = 0
   LEFT JOIN task_sessions ts ON ts.user_id = uta.user_id
@@ -132,6 +138,7 @@ async function readTaskSessions(telegramUserId: unknown, deps: Deps, today: bool
       expire_time: number;
       mapping_count: number;
       answered_count: number;
+      due_at?: number | null;
     }>(taskSessionsSql(today, all, sessionId), [TASK_STATUS_CORRECT, TASK_STATUS_INCORRECT, SESSION_STATUS_CREATED, SESSION_STATUS_PLANNED, now, ...(sessionId === undefined ? [] : [sessionId]), ...dayParams, now, now, id]);
     if (!rows.length) return { status: "error", code: "notLinked" };
     return {
@@ -145,6 +152,7 @@ async function readTaskSessions(telegramUserId: unknown, deps: Deps, today: bool
         taskCount: Number(row.mapping_count) || row.tasks_number,
         completedTaskCount: Number(row.answered_count),
         expiresAt: row.expire_time,
+        ...(row.due_at == null ? {} : { dueAt: Number(row.due_at) }),
       })),
     };
   });

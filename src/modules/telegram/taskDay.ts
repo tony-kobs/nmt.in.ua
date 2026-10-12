@@ -26,3 +26,15 @@ export function getTelegramTaskDayInterval(nowSec: number): { startSec: number; 
   const midnight = Date.UTC(value("year"), value("month") - 1, value("day"));
   return { startSec: midnightUnixSec(midnight), endSec: midnightUnixSec(midnight + 86400000) };
 }
+
+const clock = new Intl.DateTimeFormat("en-US", {
+  timeZone: TELEGRAM_TASK_TIME_ZONE,
+  year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23",
+});
+
+/** Kyiv calendar date (YYYY-MM-DD) and hour 0–23 for an instant, independent of the host timezone. */
+export function getKyivClock(nowSec: number): { date: string; hour: number } {
+  const parts = clock.formatToParts(nowSec * 1000);
+  const value = (type: string) => parts.find((part) => part.type === type)!.value;
+  return { date: `${value("year")}-${value("month")}-${value("day")}`, hour: Number(value("hour")) % 24 };
+}

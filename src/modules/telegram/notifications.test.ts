@@ -2,10 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { processTelegramTaskNotifications } from "./notifications";
-import {
-  isNotificationClaimable,
-  NOTIFICATION_SENDING_RETRY_SEC,
-} from "./notificationDelivery";
+import { isNotificationClaimable } from "./notificationDelivery";
 import { sendTelegramMessage, type TelegramSendResult } from "./transport";
 import { resolveTaskReference } from "./taskReference";
 import { handleTelegramUpdate } from "./webhook";
@@ -18,7 +15,7 @@ const session = (id = 42, patch: Partial<Session> = {}): Session => ({ id, user_
 
 function database(sessions = [session()]) {
   const accounts = [{ id: 1, user_id: 7, telegram_user_id: "123", telegram_chat_id: "123", banned: false }];
-  const deliveries = new Map<string, { delivery_state: string; messageId: number | null }>();
+  const deliveries = new Map<string, { delivery_state: string; messageId: number | null; elapsed_seconds?: number | null }>();
   const replies: TelegramReply[] = [];
   const logs: unknown[] = [];
   const sqlCalls: string[] = [];
@@ -46,6 +43,10 @@ function database(sessions = [session()]) {
       release: () => { assert.equal(unlock, undefined); },
       query: async <T>(sql: string, params: unknown[] = []) => {
         sqlCalls.push(sql);
+        if (sql.includes("telegram_notification_preferences")) return [] as T[];
+        if (sql.includes("SELECT session_id, notification_type")) return [...deliveries].filter(([key, row]) =>
+          key.startsWith(params[0] + ":") && (row.delivery_state === "delivered" || (row.delivery_state === "sending" && (row.elapsed_seconds == null || row.elapsed_seconds < 900))))
+          .map(([key]) => ({ session_id: Number(key.split(":")[1]), notification_type: key.split(":")[2] })) as T[];
         if (sql.includes("SELECT delivery_state")) return [deliveries.get(params.join(":"))] as T[];
         if (sql.includes("FOR UPDATE") && sql.includes("user_telegram_accounts")) { changeBeforeLock?.(); changeBeforeLock = undefined; }
         if (sql.includes("LEFT JOIN task_sessions")) {
@@ -64,6 +65,7 @@ function database(sessions = [session()]) {
             && !s.cancelled && s.available_at <= Number(params[4]) && s.due_at > Number(params[4]));
           return (current.length ? current.map((s) => ({ ...s, session_type: 1, theme_id: null, theme_name: "Алгебра", mapping_count: 0, answered_count: 0 })) : [{ id: null }]) as T[];
         }
+        if (sql.includes("uta.id > ?")) return accounts.filter((a) => !a.banned && a.telegram_chat_id === a.telegram_user_id && a.id > Number(params[0])).sort((a,b) => a.id-b.id).slice(0,26) as T[];
         if (sql.includes("user_telegram_accounts")) return accounts.filter((a) => !a.banned && a.telegram_chat_id === a.telegram_user_id && (!params.length || (a.id === params[0] && a.telegram_user_id === params[1]))) as T[];
         if (sql.includes("FOR UPDATE") && (sql.includes("task_sessions") || sql.includes("mentor_assignment_members"))) return [];
         assert.fail(sql);
@@ -74,7 +76,7 @@ function database(sessions = [session()]) {
         if (sql.includes("INSERT INTO")) {
           const key = params.join(":");
           if (!deliveries.has(key)) deliveries.set(key, { delivery_state: "ready", messageId: null });
-        } else if (sql.includes("attempted_at")) deliveries.get(params.join(":"))!.delivery_state = "sending";
+        } else if (sql.includes("attempted_at")) { const row = deliveries.get(params.join(":"))!; row.delivery_state = "sending"; row.elapsed_seconds = 0; }
         else {
           if (failDeliverySave) throw new Error("delivery persistence failed");
           const item = deliveries.get(params.slice(2).join(":"))!;
@@ -99,7 +101,10 @@ test("eligible owned notification is Ukrainian, persisted once and uses the TG-0
   const db = database([session(), session(99, { user_id: 8 })]);
   assert.equal((await processTelegramTaskNotifications(db.deps)).sent, 1);
   assert.equal(db.replies.length, 1);
-  assert.equal(db.replies[0].text, "У вас доступне нове завдання.");
+  assert.match(db.replies[0].text, /^📚 <b>Нове завдання<\/b>\n\nАлгебра\nЗавдань: 2\n⏰ Термін: /);
+  assert.doesNotMatch(db.replies[0].text, /42|sessionId|user_id/);
+  assert.equal(db.replies[0].parseMode, "HTML");
+  assert.equal(db.replies[0].disablePreview, true);
   assert.equal(db.replies[0].chatId, "123");
   const data = db.replies[0].replyMarkup!.inline_keyboard[0][0].callback_data!;
   assert.ok(Buffer.byteLength(data) <= 64);
@@ -186,7 +191,7 @@ test("persisted sending and delivered claims survive processor invocations witho
     const db = database(tasks);
     const delivery = { delivery_state: state, messageId: state === "delivered" ? 100 : null };
     db.deliveries.set("1:42:new_task", { ...delivery });
-    assert.deepEqual(await processTelegramTaskNotifications(db.deps), { sent: 0, rejected: 0, uncertain: 0, skipped: 1, failed: 0 });
+    assert.deepEqual(await processTelegramTaskNotifications(db.deps), { sent: 0, rejected: 0, uncertain: 0, skipped: 1, failed: 0, processedAccounts: 1, complete: true, nextCursor: null });
     assert.deepEqual(db.deliveries.get("1:42:new_task"), delivery);
     assert.equal(db.replies.length, 0);
     assert.deepEqual(tasks, before);
@@ -209,33 +214,16 @@ test("notifications do not inherit the 50-task display limit", async () => {
   assert.equal(db.replies.length, 60);
 });
 
-test("a sending claim can be retried only after the cooldown", () => {
-  const attempted = 1_000;
-  assert.equal(isNotificationClaimable("ready", null, attempted), true);
-  assert.equal(
-    isNotificationClaimable(
-      "sending",
-      attempted,
-      attempted + NOTIFICATION_SENDING_RETRY_SEC - 1,
-    ),
-    false,
-  );
-  assert.equal(
-    isNotificationClaimable(
-      "sending",
-      attempted,
-      attempted + NOTIFICATION_SENDING_RETRY_SEC,
-    ),
-    true,
-  );
-  assert.equal(
-    isNotificationClaimable("delivered", attempted, attempted + NOTIFICATION_SENDING_RETRY_SEC),
-    false,
-  );
-  assert.equal(
-    isNotificationClaimable("sending", null, attempted + NOTIFICATION_SENDING_RETRY_SEC),
-    false,
-  );
+test("sending claims retry only after the 15-minute cooldown", () => {
+  assert.equal(isNotificationClaimable("ready"), true);
+  assert.equal(isNotificationClaimable("sending"), false);
+  assert.equal(isNotificationClaimable("sending", null), false);
+  assert.equal(isNotificationClaimable("sending", 899), false);
+  assert.equal(isNotificationClaimable("sending", 900), true);
+  assert.equal(isNotificationClaimable("sending", 901), true);
+  assert.equal(isNotificationClaimable("delivered", 901), false);
+  assert.equal(isNotificationClaimable("delivered"), false);
+  assert.equal(isNotificationClaimable(undefined), false);
 });
 
 test("unknown transport outcome and post-send database failure retain the claim to prevent duplicates", async () => {
@@ -276,4 +264,85 @@ test("Telegram transport validates API success and rejection without leaking tok
     assert.equal(result.status, "unknown");
     assert.doesNotMatch(JSON.stringify(result), /private-bot-token|private token/);
   }
+});
+
+for (const elapsed of [899, 900, 901]) {
+  test(`persisted sending cooldown boundary: ${elapsed} seconds`, async () => {
+    const db = database();
+    db.deliveries.set("1:42:new_task", { delivery_state: "sending", messageId: null, elapsed_seconds: elapsed });
+    const results = await Promise.all([processTelegramTaskNotifications(db.deps), processTelegramTaskNotifications(db.deps)]);
+    assert.equal(results.reduce((sum, result) => sum + result.sent, 0), elapsed >= 900 ? 1 : 0);
+    assert.equal(db.replies.length, elapsed >= 900 ? 1 : 0);
+    if (elapsed >= 900) assert.ok(db.sqlCalls.some((sql) => sql.includes("TIMESTAMPDIFF") && sql.includes("FOR UPDATE")));
+  });
+}
+
+test("account batches use stable ID cursors and continue without counting unprocessed accounts", async () => {
+  const db = database([]);
+  db.accounts.splice(0, 1, ...Array.from({ length: 27 }, (_, index) => ({ id: index * 2 + 1, user_id: 7,
+    telegram_user_id: String(index + 123), telegram_chat_id: String(index + 123), banned: false })));
+  const first = await processTelegramTaskNotifications(db.deps);
+  assert.equal(first.processedAccounts, 25);
+  assert.equal(first.nextCursor, 49);
+  assert.equal(first.complete, false);
+  db.accounts.splice(0, 1);
+  const second = await processTelegramTaskNotifications(db.deps, { afterAccountId: first.nextCursor! });
+  assert.equal(second.processedAccounts, 2);
+  assert.equal(second.nextCursor, null);
+  assert.equal(second.complete, true);
+});
+
+test("time budget exhaustion before an account returns the unchanged cursor and no success counts", async () => {
+  const db = database();
+  let tick = 0;
+  const result = await processTelegramTaskNotifications({ ...db.deps, nowMs: () => tick++ === 0 ? 0 : 35_000 });
+  assert.deepEqual(result, { sent: 0, skipped: 0, failed: 0, rejected: 0, uncertain: 0,
+    processedAccounts: 0, complete: false, nextCursor: 0 });
+  assert.equal(db.replies.length, 0);
+});
+
+test("time budget exhaustion inside an account resumes it without duplicating delivered sessions", async () => {
+  const db = database([session(), session(43)]);
+  let clock = 0;
+  const send = db.deps.send;
+  const first = await processTelegramTaskNotifications({ ...db.deps, nowMs: () => clock,
+    send: async (reply) => { const result = await send(reply); clock = 35_000; return result; } });
+  assert.equal(first.sent, 1);
+  assert.equal(first.processedAccounts, 0);
+  assert.equal(first.nextCursor, 0);
+  assert.equal(first.complete, false);
+  const second = await processTelegramTaskNotifications(db.deps, { afterAccountId: first.nextCursor! });
+  assert.equal(second.sent, 1);
+  assert.equal(second.complete, true);
+  assert.equal(db.replies.length, 2);
+});
+
+test("budget exhaustion after claiming releases the unsent claim", async () => {
+  const db = database();
+  let clock = 0;
+  db.beforeLock(() => { clock = 35_000; });
+  const result = await processTelegramTaskNotifications({ ...db.deps, nowMs: () => clock });
+  assert.equal(result.complete, false);
+  assert.equal(result.sent, 0);
+  assert.equal(db.deliveries.get("1:42:new_task")?.delivery_state, "ready");
+  assert.equal((await processTelegramTaskNotifications(db.deps)).sent, 1);
+});
+
+test("continuation skips delivered prefixes without spending the work budget on repeated SQL claims", async () => {
+  const db = database(Array.from({ length: 60 }, (_, i) => session(i + 1)));
+  for (let id = 1; id < 60; id++) db.deliveries.set(`1:${id}:new_task`, { delivery_state: "delivered", messageId: id });
+  let clock = 0;
+  const result = await processTelegramTaskNotifications({ ...db.deps, nowMs: () => clock,
+    getConnection: async () => {
+      const connection = await db.deps.getConnection();
+      return { ...connection, query: async <T>(sql: string, params?: unknown[]) => {
+        if (sql.includes("TIMESTAMPDIFF")) clock += 1_000;
+        return connection.query<T>(sql, params);
+      } };
+    },
+  });
+  assert.equal(result.complete, true);
+  assert.equal(result.sent, 1);
+  assert.equal(result.skipped, 59);
+  assert.equal(clock, 1_000);
 });
