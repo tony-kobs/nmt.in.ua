@@ -2,7 +2,7 @@ import "server-only";
 
 import { createHash, timingSafeEqual } from "node:crypto";
 import { absoluteUrl, sendMail } from "@/modules/mail/sendMail";
-import { deliverTelegramReplies, piecesToReplies } from "@/modules/telegram/deliver";
+import { piecesToReplies } from "@/modules/telegram/deliver";
 import { rememberDeferred } from "@/modules/telegram/outbox";
 import { sendThrottled, sharedTelegramPace } from "@/modules/telegram/throttle";
 import { sendTelegramMessage } from "@/modules/telegram/transport";
@@ -23,6 +23,7 @@ import {
 } from "./notifications";
 import {
   claimNotification,
+  confirmNotification,
   listDays,
   listMaterials,
   loadMarathonBoard,
@@ -151,17 +152,27 @@ async function buildDeliveries(
   return deliveries;
 }
 
-async function pushOpenedDayContent(
+/**
+ * Queues the day_open announcement and the whole day content in the outbox, in order.
+ * Returns false when nothing could be queued, so the claim is released and cron retries.
+ * The outbox drain sends, retries and falls back per piece; one bad image no longer drops the day.
+ */
+async function queueOpenedDay(
   marathon: NotifyAudienceMarathon,
   userId: number,
   dayNumber: number,
   chatId: string,
-): Promise<void> {
+  announcement: string,
+): Promise<boolean> {
   const bot = optionalTelegramBot();
-  if (!bot) return;
+  if (!bot) return false;
   const days = await listDays(marathon.marathonId);
   const day = days.find((item) => item.dayNumber === dayNumber);
-  if (!day) return;
+  const announce = { chatId, text: announcement };
+  if (!day) {
+    await rememberDeferred([announce]);
+    return true;
+  }
   const materials = await listMaterials(day.id);
   const label = resolveCopy("bot_to_tasks", marathon.copy).slice(0, 64);
   const sources = [
@@ -170,9 +181,7 @@ async function pushOpenedDayContent(
     { text: label, buttons: [{ text: label, data: `mh:mat:${day.dayNumber}` }] },
   ];
   const replies = piecesToReplies(chatId, expandSources(sources));
-  const delivered = await deliverTelegramReplies(replies, bot.token, { budgetMs: 8_000 });
-  if (delivered.deferred.length > 0) await rememberDeferred(delivered.deferred);
-  if (delivered.sent === 0 && delivered.deferred.length === 0 && materials.length > 0) return;
+  await rememberDeferred([announce, ...replies]);
   const shell = {
     id: marathon.marathonId,
     slug: marathon.slug,
@@ -187,7 +196,12 @@ async function pushOpenedDayContent(
     introVideoUrl: "",
     status: "active",
   } satisfies DailyMarathon;
-  await markMaterialsViewed({ marathon: shell, userId, day, now: new Date() });
+  try {
+    await markMaterialsViewed({ marathon: shell, userId, day, now: new Date() });
+  } catch (error) {
+    console.error("marathon day viewed", error);
+  }
+  return true;
 }
 
 export async function runMarathonNotifications(deps: {
@@ -195,6 +209,7 @@ export async function runMarathonNotifications(deps: {
   load?: () => Promise<NotifyAudienceMarathon[]>;
   claim?: typeof claimNotification;
   release?: typeof releaseNotification;
+  confirm?: typeof confirmNotification;
   sendEmail?: (input: { to: string; subject: string; html: string; text: string }) => Promise<boolean>;
   sendTelegram?: (chatId: string, text: string) => Promise<boolean>;
   telegramEnabled?: boolean;
@@ -239,6 +254,7 @@ export async function runMarathonNotifications(deps: {
     {
       claim: deps.claim ?? claimNotification,
       release: deps.release ?? releaseNotification,
+      confirm: deps.confirm ?? (deps.claim ? undefined : confirmNotification),
       send: async (intent) => {
         const item = byKey.get(intentKey(intent));
         if (!item) return false;
@@ -252,17 +268,18 @@ export async function runMarathonNotifications(deps: {
           });
         }
         if (!item.chatId) return false;
-        const sent = await sendTelegram(item.chatId, item.text);
-        if (sent && intent.kind === "day_open" && !deps.sendTelegram) {
+        if (intent.kind === "day_open" && !deps.sendTelegram) {
           const marathon = audienceById.get(intent.marathonId);
           if (marathon) {
             try {
-              await pushOpenedDayContent(marathon, intent.userId, intent.dayNumber, item.chatId);
+              return await queueOpenedDay(marathon, intent.userId, intent.dayNumber, item.chatId, item.text);
             } catch (error) {
               console.error("marathon day content", error);
+              return false;
             }
           }
         }
+        const sent = await sendTelegram(item.chatId, item.text);
         return sent;
       },
     },
@@ -298,7 +315,7 @@ export async function sendCompletedDayFollowUp(input: {
   if (input.skipTelegram) {
     for (const intent of planned.filter((item) => item.channel === "telegram")) {
       try {
-        await claimNotification(intent);
+        if ((await claimNotification(intent)) === "claimed") await confirmNotification(intent);
       } catch (error) {
         console.error("marathon follow-up claim", error);
       }
@@ -349,6 +366,7 @@ export async function sendCompletedDayFollowUp(input: {
     {
       claim: claimNotification,
       release: releaseNotification,
+      confirm: confirmNotification,
       send: async (intent) => {
         const item = byKey.get(intentKey(intent));
         if (!item) return false;

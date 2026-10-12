@@ -198,6 +198,8 @@ export async function deliverNotifications(
     claim: (intent: NotifyIntent) => Promise<"claimed" | "duplicate">;
     release: (intent: NotifyIntent) => Promise<void>;
     send: (intent: NotifyIntent) => Promise<boolean>;
+    /** Marks the claim delivered. Without it a claim is final as soon as it is taken. */
+    confirm?: (intent: NotifyIntent) => Promise<void>;
   },
 ): Promise<{ sent: number; skipped: number; failed: number }> {
   let sent = 0;
@@ -214,6 +216,14 @@ export async function deliverNotifications(
       await deps.release(intent);
       failed += 1;
       continue;
+    }
+    if (deps.confirm) {
+      try {
+        await deps.confirm(intent);
+      } catch (error) {
+        // The message is out; a stale claim may resend it once, which beats losing it.
+        console.error("marathon notification confirm", error);
+      }
     }
     sent += 1;
   }

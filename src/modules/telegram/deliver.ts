@@ -57,7 +57,43 @@ function keyboard(reply: TelegramReply): InlineKeyboard | undefined {
   return reply.replyMarkup;
 }
 
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&").slice(0, 4096);
+}
+
+/** Text stand-in for media Telegram refused (unreachable URL, SVG, too large, bad caption). */
+export function mediaFallback(reply: TelegramReply): TelegramReply | null {
+  const urls = reply.albumUrls?.length ? reply.albumUrls : reply.photoUrl ? [reply.photoUrl] : reply.videoUrl ? [reply.videoUrl] : [];
+  if (urls.length === 0) return null;
+  const caption = reply.text.trim();
+  const text = [caption, ...urls.map((url) => `🖼 ${url}`)].filter(Boolean).join("\n").slice(0, 4096);
+  const { photoUrl: _p, albumUrls: _a, videoUrl: _v, videoFileId: _f, ...rest } = reply;
+  return { ...rest, text };
+}
+
 async function sendOne(
+  reply: TelegramReply,
+  token: string,
+  options: DeliverOptions,
+): Promise<TelegramSendResult> {
+  const result = await sendOneRaw(reply, token, options);
+  if (result.status !== "rejected" || result.context.retryAfter != null) return result;
+  console.error("telegram reply rejected", {
+    chatId: reply.chatId,
+    kind: reply.formulaTex ? "formula" : reply.albumUrls ? "album" : reply.photoUrl ? "photo" : reply.videoUrl || reply.videoFileId ? "video" : "text",
+    ...result.context,
+  });
+  const fallback = mediaFallback(reply);
+  if (fallback) return sendTelegramMessage(fallback, token, options.request ?? fetch);
+  if (reply.parseMode) {
+    // Usually malformed HTML: send the same text without markup.
+    const { parseMode: _mode, ...plain } = reply;
+    return sendTelegramMessage({ ...plain, text: stripHtml(reply.text) }, token, options.request ?? fetch);
+  }
+  return result;
+}
+
+async function sendOneRaw(
   reply: TelegramReply,
   token: string,
   options: DeliverOptions,
