@@ -127,14 +127,16 @@ Google-вхід **немає**. На формі лишається TODO: дод�
 
 ### Cron
 
-Прод — Vercel, не nginx. Розклад — зовнішній [cron-job.org](https://cron-job.org): POST раз на 10 хвилин, щоб спіймати 09:00 і 19:00 за Києвом.
+Розклад — GitHub Actions [`.github/workflows/marathon-cron.yml`](../.github/workflows/marathon-cron.yml): `schedule` кожні 10 хвилин (`*/10 * * * *`) і ручний `workflow_dispatch`. Job — один `curl` (таймаут 70 с), `concurrency` не дає запускам накладатися, `timeout-minutes: 3`, permissions немає. Цього вистачає, щоб спіймати 09:00 і 19:00 за Києвом. Schedule на GitHub іде з гілки за замовчуванням (`main`), тож крон вмикається після релізу `dev` → `main`.
+
+Зовнішній cron-job.org більше не використовуємо. nginx хостингу ukraine.com.ua перед сайтом відповідає йому 503, а прямий виклик того самого URL проходить.
 
 ```text
 POST https://nmt.in.ua/api/marathon/notifications/process
 Header: Authorization: Bearer <MARATHON_CRON_SECRET>
 ```
 
-Той самий виклик досилає чергу Telegram, якщо попередній запит не встиг через ліміт функції. Секрет лише в cron-job.org і в env Vercel, не в репозиторії.
+Той самий виклик досилає чергу Telegram, якщо попередній запит не встиг через ліміт функції. Секрет `MARATHON_CRON_SECRET` ставить власник репозиторію в GitHub Actions Secrets і кладе те саме значення в env на хості. У репозиторій секрет не потрапляє.
 
 ### Telegram
 
