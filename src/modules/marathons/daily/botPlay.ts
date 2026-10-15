@@ -47,6 +47,8 @@ export type DayPacket = {
 
 export type BotCallback =
   | { kind: "menu" }
+  | { kind: "list" }
+  | { kind: "pick"; marathonId: number }
   | { kind: "today" }
   | { kind: "top" }
   | { kind: "stop" }
@@ -55,7 +57,13 @@ export type BotCallback =
   | { kind: "materials"; day: number }
   | { kind: "open"; day: number }
   | { kind: "answer"; day: number; taskId: number; option: number }
-  | { kind: "token"; token: string };
+  | { kind: "token"; token: string }
+  | { kind: "quiz" }
+  | { kind: "quizPage"; page: number }
+  | { kind: "quizTheme"; themeId: number }
+  | { kind: "quizStart"; themeId: number; count: number }
+  | { kind: "quizResume" }
+  | { kind: "quizAnswer"; sessionId: number; mappingId: number; option: number; attempt: 1 | 2 };
 
 export type Outgoing = {
   text: string;
@@ -107,6 +115,29 @@ export function materialsToTelegramChunks(materials: BotMaterial[]): string[] {
 export function parseBotCallback(data: string): BotCallback | null {
   if (!data.startsWith("mh:") || data.length > 64) return null;
   if (data === "mh:menu") return { kind: "menu" };
+  if (data === "mh:quiz") return { kind: "quiz" };
+  if (data === "mh:qc") return { kind: "quizResume" };
+  const quizPage = /^mh:qp:(\d{1,2})$/.exec(data);
+  if (quizPage?.[1]) return { kind: "quizPage", page: Number(quizPage[1]) };
+  const quizTheme = /^mh:qt:(\d{1,6})$/.exec(data);
+  if (quizTheme?.[1]) return { kind: "quizTheme", themeId: Number(quizTheme[1]) };
+  const quizStart = /^mh:qn:(\d{1,6}):(\d{1,3})$/.exec(data);
+  if (quizStart?.[1] && quizStart[2]) {
+    return { kind: "quizStart", themeId: Number(quizStart[1]), count: Number(quizStart[2]) };
+  }
+  const quizAnswer = /^mh:q([ar]):(\d{1,10}):(\d{1,10}):([1-4])$/.exec(data);
+  if (quizAnswer?.[2] && quizAnswer[3] && quizAnswer[4]) {
+    return {
+      kind: "quizAnswer",
+      attempt: quizAnswer[1] === "r" ? 2 : 1,
+      sessionId: Number(quizAnswer[2]),
+      mappingId: Number(quizAnswer[3]),
+      option: Number(quizAnswer[4]) as 1 | 2 | 3 | 4,
+    };
+  }
+  if (data === "mh:list") return { kind: "list" };
+  const pick = /^mh:pick:(\d{1,10})$/.exec(data);
+  if (pick?.[1]) return { kind: "pick", marathonId: Number(pick[1]) };
   if (data === "mh:today") return { kind: "today" };
   if (data === "mh:top") return { kind: "top" };
   if (data === "mh:stop") return { kind: "stop" };
@@ -257,7 +288,7 @@ export function menuMessages(
         { text: buttonLabel(copy, "bot_btn_today"), data: "mh:today" },
         { text: buttonLabel(copy, "bot_btn_top"), data: "mh:top" },
         { text: buttonLabel(copy, "bot_btn_map"), url: mapUrl },
-        { text: buttonLabel(copy, "bot_btn_channel"), data: "mh:ch" },
+        { text: "Пройти тестування", data: "mh:quiz" },
         { text: buttonLabel(copy, "bot_btn_stop"), data: "mh:stop" },
       ],
     },

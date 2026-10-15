@@ -26,6 +26,8 @@ export type TelegramReply = {
   disablePreview?: boolean;
   /** Further messages. Not sent as part of the Telegram payload. */
   continuation?: TelegramReply[];
+  /** Recorded after this message is delivered. Not sent to Telegram. */
+  materialsViewed?: { marathonId: number; userId: number; dayId: number };
 };
 export type TaskCallback = { queryId: string; chatId: string; userId: string; action: "d" | "a" | "y" | "n" | null; reference: string };
 

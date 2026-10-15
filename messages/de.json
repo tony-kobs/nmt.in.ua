@@ -887,6 +887,9 @@
       "subject": "Fach",
       "startDate": "Startdatum",
       "unlockHour": "Uhrzeit (Kiew)",
+      "reminderHour": "Erinnerung (Kiew)",
+      "nudgeFrom": "Nudge ab",
+      "nudgeUntil": "Nudge bis",
       "daysCount": "Tage",
       "passThreshold": "Schwelle, %",
       "finalCtaText": "Button-Text",
@@ -917,6 +920,9 @@
       "slug": "Kleine lateinische Buchstaben, Ziffern und Bindestrich. Zum Beispiel math-5.",
       "startDate": "Standard ist heute nach Kiewer Zeit.",
       "unlockHour": "Format HH:MM, zum Beispiel 09:00.",
+      "reminderHour": "Abendliche Erinnerung, HH:MM. Standard 19:00.",
+      "nudgeFrom": "Kiewer Stunde, ab der ein verpasster Tag gemeldet wird. Standard 10.",
+      "nudgeUntil": "Kiewer Stunde, bis zu der diese Meldung geht. Standard 21.",
       "daysCount": "Ganze Zahl von 1 bis 14.",
       "passThreshold": "Ganze Zahl von 0 bis 100.",
       "finalCtaUrl": "Pfad mit / oder volle Adresse http:// bzw. https://.",
@@ -927,6 +933,7 @@
     "placeholders": {
       "slug": "math-5",
       "unlockHour": "09:00",
+      "reminderHour": "19:00",
       "finalCtaUrl": "/"
     },
     "fieldErrors": {
@@ -949,6 +956,15 @@
       "unlockHour": {
         "required": "Gib die Uhrzeit an.",
         "format": "Uhrzeit im Format HH:MM, zum Beispiel 09:00."
+      },
+      "reminderHour": {
+        "format": "Erinnerung im Format HH:MM, zum Beispiel 19:00."
+      },
+      "nudgeFrom": {
+        "range": "Die Stunde ist eine ganze Zahl von 0 bis 23."
+      },
+      "nudgeUntil": {
+        "range": "Das Fenster muss später enden, als es beginnt, Stunde 0–23."
       },
       "daysCount": {
         "range": "Die Anzahl der Tage ist eine ganze Zahl von 1 bis 14."
