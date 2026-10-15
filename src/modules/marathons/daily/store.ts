@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { SqlConnection } from "@/lib/db/mysql";
-import { evaluateDayAccess } from "./calendar";
+import { DAY_OPEN_NOTIFY_WINDOW_MS, dayUnlockAt, evaluateDayAccess } from "./calendar";
 import { isDeliveryChannel, notifyFlags } from "./channel";
 import { isCopyKey, type CopyKey } from "./copy";
 import type { NotifyIntent, NotifyKind } from "./notifications";
@@ -35,6 +35,9 @@ export type DailyMarathon = {
   subject: string;
   startDate: string;
   unlockHour: string;
+  reminderHour: string;
+  nudgeFrom: number;
+  nudgeUntil: number;
   daysCount: number;
   passThreshold: number;
   finalCtaText: string;
@@ -145,6 +148,11 @@ function asMs(value: unknown): number | null {
   return Number.isNaN(ms) ? null : ms;
 }
 
+function clampHour(value: unknown, fallback: number): number {
+  const hour = Number(value);
+  return Number.isInteger(hour) && hour >= 0 && hour <= 23 ? hour : fallback;
+}
+
 function mapMarathon(row: {
   id: number;
   slug: string;
@@ -152,6 +160,9 @@ function mapMarathon(row: {
   subject: string;
   start_date: unknown;
   unlock_hour: string;
+  reminder_hour?: string | null;
+  nudge_from?: number | null;
+  nudge_until?: number | null;
   days_count: number;
   pass_threshold: number;
   final_cta_text: string | null;
@@ -171,6 +182,9 @@ function mapMarathon(row: {
     subject: row.subject,
     startDate,
     unlockHour: String(row.unlock_hour).slice(0, 5),
+    reminderHour: String(row.reminder_hour ?? "19:00").slice(0, 5),
+    nudgeFrom: clampHour(row.nudge_from, 10),
+    nudgeUntil: clampHour(row.nudge_until, 21),
     daysCount: Number(row.days_count),
     passThreshold: Number(row.pass_threshold),
     finalCtaText: row.final_cta_text ?? "",
@@ -180,8 +194,9 @@ function mapMarathon(row: {
   };
 }
 
-const MARATHON_SELECT = `id, slug, title, subject, start_date, unlock_hour, days_count,
-  pass_threshold, final_cta_text, final_cta_url, intro_video_url, status`;
+const MARATHON_SELECT = `id, slug, title, subject, start_date, unlock_hour, reminder_hour,
+  nudge_from, nudge_until, days_count, pass_threshold, final_cta_text, final_cta_url,
+  intro_video_url, status`;
 
 export async function listDailyMarathons(getConnection?: Conn): Promise<DailyMarathon[]> {
   return withConn(async (connection) => {
@@ -230,9 +245,9 @@ export async function insertDailyMarathon(
     const result = await connection.execute(
       `INSERT INTO marathons
         (slug, title, description, status, starts_at, ends_at, min_tasks_per_session,
-         kind, subject, start_date, unlock_hour, days_count, pass_threshold,
-         final_cta_text, final_cta_url, intro_video_url)
-       VALUES (?, ?, ?, 'draft', ?, ?, 5, 'daily', ?, ?, ?, ?, ?, ?, ?, ?)`,
+         kind, subject, start_date, unlock_hour, reminder_hour, nudge_from, nudge_until,
+         days_count, pass_threshold, final_cta_text, final_cta_url, intro_video_url)
+       VALUES (?, ?, ?, 'draft', ?, ?, 5, 'daily', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         input.slug,
         input.title,
@@ -242,6 +257,9 @@ export async function insertDailyMarathon(
         input.subject,
         input.startDate,
         input.unlockHour,
+        input.reminderHour || "19:00",
+        input.nudgeFrom ?? 10,
+        input.nudgeUntil ?? 21,
         input.daysCount,
         input.passThreshold,
         input.finalCtaText,
@@ -262,6 +280,7 @@ export async function updateDailyMarathon(
     await connection.execute(
       `UPDATE marathons
        SET slug = ?, title = ?, subject = ?, start_date = ?, unlock_hour = ?,
+           reminder_hour = ?, nudge_from = ?, nudge_until = ?,
            days_count = ?, pass_threshold = ?, final_cta_text = ?, final_cta_url = ?,
            intro_video_url = ?, starts_at = ?, ends_at = ?
        WHERE id = ? AND kind = 'daily'`,
@@ -271,6 +290,9 @@ export async function updateDailyMarathon(
         input.subject,
         input.startDate,
         input.unlockHour,
+        input.reminderHour || "19:00",
+        input.nudgeFrom ?? 10,
+        input.nudgeUntil ?? 21,
         input.daysCount,
         input.passThreshold,
         input.finalCtaText,
@@ -748,7 +770,8 @@ export async function findParticipantByChat(
        FROM marathon_participants p
        INNER JOIN marathons m ON m.id = p.marathon_id
        WHERE p.telegram_chat_id = ? AND m.kind = 'daily' AND m.status IN ('active', 'finished')
-       ORDER BY (m.status = 'active') DESC, (p.delivery_channel = 'telegram') DESC, p.joined_at DESC
+       ORDER BY (p.telegram_selected_at IS NULL) ASC, p.telegram_selected_at DESC,
+                (m.status = 'active') DESC, (p.delivery_channel = 'telegram') DESC, p.joined_at DESC
        LIMIT 1`,
       [chatId],
     );
@@ -773,6 +796,43 @@ export async function findParticipantByChat(
     const participant = people[0] ? mapParticipant(people[0]) : null;
     if (!participant) return null;
     return { marathon, participant };
+  }, getConnection);
+}
+
+export async function listChatMarathons(
+  chatId: string,
+  getConnection?: Conn,
+): Promise<Array<{ id: number; title: string }>> {
+  if (!/^[1-9][0-9]{0,19}$/.test(chatId)) return [];
+  return withConn(async (connection) => {
+    const rows = await connection.query<{ id: number; title: string }>(
+      `SELECT m.id, m.title
+       FROM marathon_participants p
+       INNER JOIN marathons m ON m.id = p.marathon_id
+       WHERE p.telegram_chat_id = ? AND m.kind = 'daily' AND m.status IN ('active', 'finished')
+       ORDER BY (p.telegram_selected_at IS NULL) ASC, p.telegram_selected_at DESC, m.id DESC`,
+      [chatId],
+    );
+    return rows.map((row) => ({ id: Number(row.id), title: row.title }));
+  }, getConnection);
+}
+
+export async function selectChatMarathon(
+  chatId: string,
+  marathonId: number,
+  getConnection?: Conn,
+): Promise<boolean> {
+  if (!/^[1-9][0-9]{0,19}$/.test(chatId) || !Number.isInteger(marathonId) || marathonId <= 0) {
+    return false;
+  }
+  return withConn(async (connection) => {
+    const result = await connection.execute(
+      `UPDATE marathon_participants
+       SET telegram_selected_at = CURRENT_TIMESTAMP
+       WHERE marathon_id = ? AND telegram_chat_id = ?`,
+      [marathonId, chatId],
+    );
+    return result.affectedRows === 1;
   }, getConnection);
 }
 
@@ -858,6 +918,26 @@ export async function markMaterialsViewed(input: {
     );
   }, getConnection);
   return "ok";
+}
+
+/** Marks materials seen after the Telegram day packet was actually delivered. */
+export async function recordMaterialsDelivered(
+  marathonId: number,
+  userId: number,
+  dayId: number,
+  now: Date,
+  getConnection?: Conn,
+): Promise<void> {
+  if (!Number.isInteger(marathonId) || !Number.isInteger(userId) || !Number.isInteger(dayId)) return;
+  await withConn(async (connection) => {
+    await connection.execute(
+      `INSERT INTO marathon_day_progress (marathon_id, user_id, day_id, materials_viewed_at)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         materials_viewed_at = COALESCE(materials_viewed_at, VALUES(materials_viewed_at))`,
+      [marathonId, userId, dayId, now],
+    );
+  }, getConnection);
 }
 
 export type RankStanding = {
@@ -1244,6 +1324,9 @@ export type NotifyAudienceMarathon = {
   title: string;
   startDate: string;
   unlockHour: string;
+  reminderHour: string;
+  nudgeFrom: number;
+  nudgeUntil: number;
   daysCount: number;
   topics: Record<number, string>;
   copy: Partial<Record<CopyKey, string>>;
@@ -1258,6 +1341,54 @@ export type NotifyAudienceMarathon = {
   }>;
 };
 
+/** Closes an active course once its last real day is past the open window. */
+export async function finishElapsedDailyMarathons(
+  now: Date,
+  getConnection?: Conn,
+): Promise<number> {
+  return withConn(async (connection) => {
+    const rows = await connection.query<{
+      id: number;
+      start_date: unknown;
+      unlock_hour: string;
+      days_count: number;
+      day_rows: number;
+      max_day: number | null;
+    }>(
+      `SELECT m.id, m.start_date, m.unlock_hour, m.days_count,
+              (SELECT COUNT(*) FROM marathon_days d WHERE d.marathon_id = m.id) AS day_rows,
+              (SELECT MAX(d.day_number) FROM marathon_days d WHERE d.marathon_id = m.id) AS max_day
+       FROM marathons m
+       WHERE m.kind = 'daily' AND m.status = 'active'`,
+      [],
+    );
+    let finished = 0;
+    for (const row of rows) {
+      const startDate = isoDate(row.start_date);
+      const daysCount = Number(row.days_count);
+      const maxDay = row.max_day == null ? 0 : Number(row.max_day);
+      if (!startDate || Number(row.day_rows) < 1 || maxDay < daysCount) continue;
+      let closesAt = 0;
+      try {
+        closesAt = dayUnlockAt({
+          startDate,
+          unlockHour: String(row.unlock_hour).slice(0, 5),
+          dayNumber: daysCount,
+        }).getTime() + DAY_OPEN_NOTIFY_WINDOW_MS;
+      } catch {
+        continue;
+      }
+      if (now.getTime() < closesAt) continue;
+      const result = await connection.execute(
+        `UPDATE marathons SET status = 'finished' WHERE id = ? AND status = 'active' AND kind = 'daily'`,
+        [row.id],
+      );
+      finished += result.affectedRows;
+    }
+    return finished;
+  }, getConnection);
+}
+
 export async function loadNotifyAudience(
   getConnection?: Conn,
 ): Promise<NotifyAudienceMarathon[]> {
@@ -1268,6 +1399,9 @@ export async function loadNotifyAudience(
       title: string;
       start_date: unknown;
       unlock_hour: string;
+      reminder_hour: string | null;
+      nudge_from: number | null;
+      nudge_until: number | null;
       days_count: number;
       day_number: number | null;
       topic: string | null;
@@ -1282,7 +1416,8 @@ export async function loadNotifyAudience(
       completed_at: unknown;
       is_banned: number;
     }>(
-      `SELECT m.id AS marathon_id, m.slug, m.title, m.start_date, m.unlock_hour, m.days_count,
+      `SELECT m.id AS marathon_id, m.slug, m.title, m.start_date, m.unlock_hour,
+              m.reminder_hour, m.nudge_from, m.nudge_until, m.days_count,
               d.day_number, d.topic,
               p.user_id, u.email, u.display_name, p.telegram_chat_id, p.notify_email, p.notify_bot,
               p.delivery_channel, p.notify_paused, pr.completed_at, u.is_banned
@@ -1309,6 +1444,9 @@ export async function loadNotifyAudience(
           title: row.title,
           startDate,
           unlockHour: String(row.unlock_hour).slice(0, 5),
+          reminderHour: String(row.reminder_hour ?? "19:00").slice(0, 5),
+          nudgeFrom: clampHour(row.nudge_from, 10),
+          nudgeUntil: clampHour(row.nudge_until, 21),
           daysCount: Number(row.days_count),
           topics: {},
           copy: {},

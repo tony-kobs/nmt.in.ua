@@ -204,11 +204,14 @@ export function listDayAccess(input: {
   return days;
 }
 
-/** Calendar day of day N, 19:00 Europe/Kyiv. */
+/** Calendar day of day N at reminderHour (default 19:00) in Europe/Kyiv. */
 export function reminderAt(input: {
   startDate: string;
   dayNumber: number;
+  reminderHour?: string;
 }): Date {
+  const clock = parseUnlockHour(input.reminderHour ?? `${String(REMINDER_HOUR).padStart(2, "0")}:00`)
+    ?? { hour: REMINDER_HOUR, minute: 0 };
   const date = addCalendarDays(input.startDate, input.dayNumber - 1);
-  return zonedWallTimeToUtc(date.year, date.month, date.day, REMINDER_HOUR, 0);
+  return zonedWallTimeToUtc(date.year, date.month, date.day, clock.hour, clock.minute);
 }

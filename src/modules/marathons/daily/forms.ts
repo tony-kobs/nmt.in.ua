@@ -68,6 +68,22 @@ function isIsoDate(value: string): boolean {
   );
 }
 
+function readHour(
+  raw: FormDataEntryValue | null,
+  fallback: number,
+  issues: FieldIssue[],
+  field: string,
+): number | null {
+  const text = readText(raw, 2);
+  if (!text) return fallback;
+  const hour = readInt(text);
+  if (hour == null || hour < 0 || hour > 23) {
+    issue(issues, field, "range");
+    return null;
+  }
+  return hour;
+}
+
 function readOrder(raw: FormDataEntryValue | null, issues: FieldIssue[]) {
   const order = readInt(raw);
   if (order == null) issue(issues, "order", "required");
@@ -81,6 +97,9 @@ export type MarathonInput = {
   subject: string;
   startDate: string;
   unlockHour: string;
+  reminderHour: string;
+  nudgeFrom: number;
+  nudgeUntil: number;
   daysCount: number;
   passThreshold: number;
   finalCtaText: string;
@@ -95,6 +114,10 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
   const subject = readText(formData.get("subject"), 64) || "math";
   const startDate = readText(formData.get("startDate"), 10);
   const unlockHour = readText(formData.get("unlockHour"), 5);
+  const reminderRaw = readText(formData.get("reminderHour"), 5);
+  const reminderHour = reminderRaw || "19:00";
+  const nudgeFrom = readHour(formData.get("nudgeFrom"), 10, issues, "nudgeFrom");
+  const nudgeUntil = readHour(formData.get("nudgeUntil"), 21, issues, "nudgeUntil");
   const daysCount = readInt(formData.get("daysCount"));
   const passThreshold = readInt(formData.get("passThreshold"));
   const finalCtaText = readText(formData.get("finalCtaText"), 500);
@@ -109,6 +132,10 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
   else if (!isIsoDate(startDate)) issue(issues, "startDate", "format");
   if (!unlockHour) issue(issues, "unlockHour", "required");
   else if (!parseUnlockHour(unlockHour)) issue(issues, "unlockHour", "format");
+  if (!parseUnlockHour(reminderHour)) issue(issues, "reminderHour", "format");
+  if (nudgeFrom != null && nudgeUntil != null && nudgeFrom >= nudgeUntil) {
+    issue(issues, "nudgeUntil", "range");
+  }
   if (daysCount == null || daysCount < 1 || daysCount > 14) {
     issue(issues, "daysCount", "range");
   }
@@ -121,7 +148,9 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
   if (introVideoRaw && !youtubeEmbedSrc(introVideoRaw) && !loomEmbedSrc(introVideoRaw)) {
     issue(issues, "introVideo", "format");
   }
-  if (issues.length > 0 || !finalCtaUrl) return { ok: false, issues };
+  if (issues.length > 0 || !finalCtaUrl || nudgeFrom == null || nudgeUntil == null) {
+    return { ok: false, issues };
+  }
   return {
     ok: true,
     value: {
@@ -130,6 +159,9 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
       subject,
       startDate,
       unlockHour,
+      reminderHour,
+      nudgeFrom,
+      nudgeUntil,
       daysCount: daysCount as number,
       passThreshold: passThreshold as number,
       finalCtaText,

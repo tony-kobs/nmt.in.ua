@@ -66,6 +66,15 @@ test("bot callbacks parse and a duplicate answer does not grade twice", () => {
     taskId: 15,
     option: 2,
   });
+  assert.deepEqual(parseBotCallback("mh:quiz"), { kind: "quiz" });
+  assert.deepEqual(parseBotCallback("mh:qn:4:10"), { kind: "quizStart", themeId: 4, count: 10 });
+  assert.deepEqual(parseBotCallback("mh:qa:9:15:2"), {
+    kind: "quizAnswer",
+    attempt: 1,
+    sessionId: 9,
+    mappingId: 15,
+    option: 2,
+  });
   const first = presentMarathon({
     callback: { kind: "answer", day: 1, taskId: 15, option: 2 },
     day: day(),

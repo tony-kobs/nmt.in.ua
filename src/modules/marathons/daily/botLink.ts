@@ -62,7 +62,9 @@ export async function consumeMarathonStart(
   if (!/^[1-9][0-9]{0,19}$/.test(identity.userId)) return false;
   if (!/^[1-9][0-9]{0,19}$/.test(identity.chatId)) return false;
   const { ensureMarathonSchema } = await import("../schema");
+  const { ensureTelegramSchema } = await import("@/modules/telegram/schema");
   await ensureMarathonSchema(getConnection);
+  await ensureTelegramSchema(getConnection);
   const connection = await getConnection();
   try {
     await connection.beginTransaction();
@@ -94,6 +96,7 @@ export async function consumeMarathonStart(
     await connection.execute(
       `UPDATE marathon_participants
        SET telegram_chat_id = ?,
+           telegram_selected_at = CURRENT_TIMESTAMP,
            notify_bot = CASE
              WHEN notify_paused = 1 THEN 0
              WHEN delivery_channel = 'site' THEN 0
@@ -108,6 +111,29 @@ export async function consumeMarathonStart(
        WHERE marathon_id = ? AND user_id = ?`,
       [identity.chatId, row.marathon_id, row.user_id],
     );
+    const linked = await connection.query<{ user_id: number; telegram_user_id: number | string }>(
+      `SELECT user_id, telegram_user_id FROM user_telegram_accounts
+       WHERE user_id = ? OR telegram_user_id = ? FOR UPDATE`,
+      [row.user_id, identity.userId],
+    );
+    const sameAccount = linked.length === 1
+      && linked[0]?.user_id === row.user_id
+      && String(linked[0].telegram_user_id) === identity.userId;
+    if (linked.length === 0) {
+      await connection.execute(
+        `INSERT INTO user_telegram_accounts
+           (user_id, telegram_user_id, telegram_chat_id, telegram_username)
+         VALUES (?, ?, ?, ?)`,
+        [row.user_id, identity.userId, identity.chatId, identity.username ?? null],
+      );
+    } else if (sameAccount) {
+      await connection.execute(
+        `UPDATE user_telegram_accounts
+         SET telegram_chat_id = ?, telegram_username = COALESCE(?, telegram_username)
+         WHERE user_id = ?`,
+        [identity.chatId, identity.username ?? null, row.user_id],
+      );
+    }
     await connection.execute(
       `UPDATE marathon_bot_links SET consumed_at = CURRENT_TIMESTAMP WHERE id = ?`,
       [row.id],

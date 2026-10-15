@@ -133,7 +133,10 @@ const MARATHON_COLUMNS: Array<[string, string]> = [
   ["subject", "VARCHAR(64) NOT NULL DEFAULT 'math' AFTER title"],
   ["start_date", "CHAR(10) NULL AFTER subject"],
   ["unlock_hour", "CHAR(5) NOT NULL DEFAULT '09:00' AFTER start_date"],
-  ["days_count", "TINYINT UNSIGNED NOT NULL DEFAULT 5 AFTER unlock_hour"],
+  ["reminder_hour", "CHAR(5) NOT NULL DEFAULT '19:00' AFTER unlock_hour"],
+  ["nudge_from", "TINYINT UNSIGNED NOT NULL DEFAULT 10 AFTER reminder_hour"],
+  ["nudge_until", "TINYINT UNSIGNED NOT NULL DEFAULT 21 AFTER nudge_from"],
+  ["days_count", "TINYINT UNSIGNED NOT NULL DEFAULT 5 AFTER nudge_until"],
   ["pass_threshold", "TINYINT UNSIGNED NOT NULL DEFAULT 60 AFTER days_count"],
   ["final_cta_text", "VARCHAR(500) NULL AFTER pass_threshold"],
   ["final_cta_url", "VARCHAR(500) NULL AFTER final_cta_text"],
@@ -151,6 +154,7 @@ const PARTICIPANT_COLUMNS: Array<[string, string]> = [
   ["delivery_channel", "ENUM('site','telegram') NULL AFTER notify_bot"],
   ["intro_seen_at", "TIMESTAMP NULL DEFAULT NULL AFTER delivery_channel"],
   ["notify_paused", "TINYINT(1) NOT NULL DEFAULT 0 AFTER intro_seen_at"],
+  ["telegram_selected_at", "TIMESTAMP NULL AFTER notify_paused"],
 ];
 
 async function columnNames(
