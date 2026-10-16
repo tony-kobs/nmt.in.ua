@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { AdminEntryPoints } from "@/components/admin/AdminEntryPoints";
 import { AdminProfilesPanel } from "@/components/admin/AdminProfilesPanel";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { getNavItem } from "@/constants/navigation";
@@ -14,6 +15,10 @@ import { getPendingTeacherApplications } from "@/modules/teacher-moderation/stor
 import type { TeacherModerationApplication } from "@/modules/teacher-moderation/types";
 import { TeacherModerationPanel } from "@/components/admin/TeacherModerationPanel/TeacherModerationPanel";
 import { readSearchParam } from "@/lib/queryHref";
+import {
+  listRecentLoginEntries,
+  type LoginEntry,
+} from "@/modules/auth/userSessions";
 
 const item = getNavItem("/profiles");
 
@@ -66,6 +71,7 @@ export default async function ProfilesPage({
 
   let profilesPage: AdminProfilesPage = EMPTY_PAGE;
   let teacherApplications: TeacherModerationApplication[] = [];
+  let loginEntries: LoginEntry[] = [];
   try {
     profilesPage = await getAdminProfiles({ page, role: roleFilter });
   } catch (error) {
@@ -75,6 +81,11 @@ export default async function ProfilesPage({
     teacherApplications = await getPendingTeacherApplications();
   } catch (error) {
     console.error("profiles: getPendingTeacherApplications failed", error);
+  }
+  try {
+    loginEntries = await listRecentLoginEntries();
+  } catch (error) {
+    console.error("profiles: listRecentLoginEntries failed", error);
   }
 
   return (
@@ -86,6 +97,7 @@ export default async function ProfilesPage({
         currentUserId={user.id}
         roleFilter={roleFilter}
       />
+      <AdminEntryPoints entries={loginEntries} />
     </PageFrame>
   );
 }

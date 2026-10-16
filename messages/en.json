@@ -71,10 +71,31 @@
     "telegramLoading": "Creating link...",
     "telegramOpen": "Open Telegram to connect",
     "telegramError": "Could not create a Telegram link. Try again.",
+    "notificationsTitle": "Notification settings",
+    "notificationsLead": "The site bell stays on. Here you choose email and Telegram for each category.",
+    "notificationsSave": "Save notifications",
+    "notificationsSaved": "Saved",
+    "notificationsError": "Could not save. Try again.",
+    "channelEmail": "Email",
+    "channelTelegram": "Telegram",
+    "notifications": {
+      "marathon": {
+        "title": "Marathons",
+        "hint": "Email and bot messages about marathon days. Turning both off skips a new marathon invitation on the site, by email, and in Telegram."
+      },
+      "news": {
+        "title": "News",
+        "hint": "News mailings are not sent yet. The choice is stored for later."
+      },
+      "system": {
+        "title": "Essentials",
+        "hint": "Telegram for new tasks, deadlines, and digests. The email box is stored — there is no separate system email yet. Sign-in and password emails always go out."
+      }
+    },
     "kicker": "Profile",
     "title": "Personal account",
-    "lead": "Profile photo, password, and recent results.",
-    "leadAdmin": "Profile photo, password, and sign out.",
+    "lead": "Profile photo, notifications, password, and recent results.",
+    "leadAdmin": "Profile photo, notifications, password, and sign out.",
     "photoTitle": "Profile photo",
     "photoLead": "JPEG, PNG, or WebP. A square photo is cropped from the center and appears in the header.",
     "photoHint": "Up to {maxKb} KB. A square photo is cropped from the center and replaces the initials in the header.",
@@ -906,6 +927,7 @@
       "finalCtaText": "Button label",
       "finalCtaUrl": "Button link",
       "introVideo": "Intro video",
+      "inviteAudience": "Who to notify",
       "order": "Order",
       "riddleTitle": "Riddle title",
       "body": "Text",
@@ -921,6 +943,11 @@
       "options": "Options",
       "correct": "Correct option number",
       "explanation": "Explanation"
+    },
+    "audiences": {
+      "none": "Nobody",
+      "all": "All users",
+      "students": "Students only"
     },
     "materialTypes": {
       "text": "Text",
@@ -939,6 +966,7 @@
       "passThreshold": "An integer from 0 to 100.",
       "finalCtaUrl": "A path starting with / or a full http:// or https:// URL.",
       "introVideo": "Optional. A YouTube or Loom link. Shown once at the start.",
+      "inviteAudience": "Sent once, when the marathon becomes active. A draft notifies nobody. Saving again does not send another invitation. The home card stays visible to everyone.",
       "materialVideo": "For YouTube or Loom, paste the video link.",
       "taskEither": "Either a bank ID, or your own prompt with options."
     },
@@ -1002,6 +1030,9 @@
       },
       "introVideo": {
         "format": "The intro video must be a YouTube or Loom link."
+      },
+      "inviteAudience": {
+        "format": "Choose who to notify: nobody, all users, or students only."
       },
       "copyKey": {
         "unknown": "Unknown text. Reload the page."
@@ -1115,27 +1146,33 @@
   "MarathonLeaderboard": {
     "kicker": "Marathon",
     "title": "Marathon leaderboard",
-    "lead": "Rankings for the active marathon. Sorted by average % correct, then speed (sec/task).",
+    "lead": "Standings for the selected marathon. A daily course ranks whoever has more correct answers.",
     "leadTeacher": "Marathon rankings for monitoring. Your students are highlighted; you do not need to join.",
-    "leadAdmin": "Monitor the pilot marathon and participant rankings. Marathon admin tools will follow PM sign-off.",
+    "leadAdmin": "Standings for the selected marathon.",
     "teacherRoster": "Your students in the marathon: {joined} of {total}.",
     "teacherStudentsLink": "Open My students",
     "adminMonitor": "Participants in the ranking: {count}.",
-    "noActiveMarathon": "No active marathon right now. The table will appear when a marathon is published.",
+    "noActiveMarathon": "There is no marathon with a standings table right now.",
+    "pickerLabel": "Marathon",
+    "statusFinished": "finished",
+    "openMarathon": "Open the marathon",
     "joinTitle": "Join",
     "joinLead": "After you join, only completed sessions that started after you joined and fall inside the marathon dates count.",
     "joinCta": "Join the marathon",
     "joinPending": "Joining…",
     "yourRank": "Your place: {rank} of {total}",
     "rules": "Only completed sessions with at least {min} tasks that started after you joined, and before the marathon ends, count.",
+    "rulesDaily": "Place is the sum of correct answers on submitted days, the same as Telegram. A tie goes to whoever finished their latest day earlier.",
     "empty": "No participants yet, or no completed sessions in the marathon period.",
-    "hint": "Daily portions and streaks will come later — this leaderboard stays tied to the marathon.",
+    "emptyDaily": "No participants yet.",
     "tableAria": "Marathon leaderboard table",
     "colRank": "Rank",
     "colName": "Participant",
     "avgPercent": "Avg. %",
     "speed": "sec/task",
     "sessions": "Sessions",
+    "days": "Days",
+    "points": "Points",
     "errors": {
       "no_marathon": "No active marathon found.",
       "forbidden": "This role cannot join.",
@@ -2083,7 +2120,17 @@
     "you": "you",
     "online": "online",
     "offline": "offline",
+    "presenceJustNow": "last seen less than a minute ago",
+    "presenceAgoMinutes": "last seen {count} min ago",
+    "presenceAgoHours": "last seen {count} h ago",
     "never": "never signed in",
+    "entryPointsTitle": "Sign-in points",
+    "entryPointsLead": "Recent sign-ins. When the address was not stored, the IP column shows —.",
+    "entryWhen": "When",
+    "entryUser": "User",
+    "entryIp": "IP",
+    "entryAgent": "Device",
+    "entryEmpty": "No sign-ins yet.",
     "bannedBadge": "banned",
     "marathonOnlyBadge": "marathon only",
     "promote": "Make a platform student",

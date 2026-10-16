@@ -1,5 +1,6 @@
 import { parseUnlockHour } from "./calendar";
 import { isCopyKey, unknownPlaceholders, type CopyKey } from "./copy";
+import { isInviteAudience, type InviteAudience } from "./invite";
 import { loomEmbedSrc, youtubeEmbedSrc } from "./richText";
 import { normalizeCtaUrl, readUtm, serializeUtm, type UtmParams } from "./utm";
 
@@ -106,6 +107,8 @@ export type MarathonInput = {
   finalCtaText: string;
   finalCtaUrl: string;
   introVideoUrl: string;
+  /** Who receives the one invitation when the marathon first becomes active. */
+  inviteAudience: InviteAudience;
 };
 
 export function parseMarathonInput(formData: FormData): ParseResult<MarathonInput> {
@@ -127,6 +130,8 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
   const finalCtaUrl = normalizeCtaUrl(finalCtaRaw);
   const introVideoRaw = readText(formData.get("introVideoUrl"), 500);
   const introVideoUrl = introVideoRaw;
+  const audienceRaw = readText(formData.get("inviteAudience"), 16);
+  const inviteAudience: InviteAudience = isInviteAudience(audienceRaw) ? audienceRaw : "none";
   if (!slug) issue(issues, "slug", "required");
   else if (!isSlug(slug)) issue(issues, "slug", "format");
   if (title.length < 2) issue(issues, "title", "required");
@@ -150,6 +155,9 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
   if (introVideoRaw && !youtubeEmbedSrc(introVideoRaw) && !loomEmbedSrc(introVideoRaw)) {
     issue(issues, "introVideo", "format");
   }
+  if (audienceRaw && !isInviteAudience(audienceRaw)) {
+    issue(issues, "inviteAudience", "format");
+  }
   if (issues.length > 0 || !finalCtaUrl || nudgeFrom == null || nudgeUntil == null) {
     return { ok: false, issues };
   }
@@ -170,6 +178,7 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
       finalCtaText,
       finalCtaUrl,
       introVideoUrl,
+      inviteAudience,
     },
   };
 }

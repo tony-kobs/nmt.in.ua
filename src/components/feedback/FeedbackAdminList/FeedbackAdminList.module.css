@@ -35,6 +35,10 @@
   text-transform: uppercase;
 }
 
+.table tbody tr {
+  scroll-margin-top: 5.5rem;
+}
+
 .table tbody tr:last-child td {
   border-bottom: 0;
 }

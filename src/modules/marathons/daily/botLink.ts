@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
 import type { SqlConnection } from "@/lib/db/mysql";
+import { saveUserChannelPreference } from "@/modules/notifications/channelStore";
 
 export const MARATHON_START_PREFIX = "mth_";
 const TOKEN_TTL_MS = 30 * 60 * 1000;
@@ -94,14 +95,29 @@ export async function consumeMarathonStart(
       await connection.rollback();
       return false;
     }
+    const paused = await connection.query<{ notify_paused: number }>(
+      `SELECT notify_paused FROM marathon_participants
+       WHERE marathon_id = ? AND user_id = ? LIMIT 1 FOR UPDATE`,
+      [row.marathon_id, row.user_id],
+    );
     await connection.execute(
       `UPDATE marathon_participants
        SET telegram_chat_id = ?,
-           telegram_selected_at = CURRENT_TIMESTAMP,
-           notify_bot = CASE WHEN notify_paused = 1 THEN 0 ELSE 1 END
+           telegram_selected_at = CURRENT_TIMESTAMP
        WHERE marathon_id = ? AND user_id = ?`,
       [identity.chatId, row.marathon_id, row.user_id],
     );
+    if (!paused[0] || Number(paused[0].notify_paused) === 0) {
+      const pref = await connection.query<{ email_on: number }>(
+        `SELECT email_on FROM user_channel_preferences
+         WHERE user_id = ? AND category = 'marathon' LIMIT 1`,
+        [row.user_id],
+      );
+      await saveUserChannelPreference(connection, row.user_id, "marathon", {
+        email: pref[0] ? Number(pref[0].email_on) !== 0 : true,
+        telegram: true,
+      });
+    }
     const linked = await connection.query<{ user_id: number; telegram_user_id: number | string }>(
       `SELECT user_id, telegram_user_id FROM user_telegram_accounts
        WHERE user_id = ? OR telegram_user_id = ? FOR UPDATE`,

@@ -48,8 +48,8 @@ export async function FeedbackAdminList({ page }: FeedbackAdminListProps) {
             </tr>
           </thead>
           <tbody>
-            {items.map((row) => (
-              <tr key={row.id}>
+              {items.map((row) => (
+                <tr key={row.id} id={`fb-${row.id}`}>
                 <td>{formatWhen(row.createdAt, locale)}</td>
                 <td>{row.score}</td>
                 <td>

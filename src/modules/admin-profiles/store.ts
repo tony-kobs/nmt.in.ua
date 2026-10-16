@@ -1,12 +1,18 @@
 import type { SqlConnection } from "@/lib/db/mysql";
-import { isUserOnline } from "@/modules/auth/presence";
+import { onlineSessionExistsSql } from "@/modules/auth/presenceRules";
+import { ensureUserSessionsSchema } from "@/modules/auth/userSessions";
 import type { UserRole } from "@/modules/auth/types";
 import { ensureAuthSchema } from "@/modules/auth/users";
 import { AdminProfilesError, ADMIN_PROFILES_PAGE_SIZE, type AdminProfile, type AdminProfilesPage, type AdminProfilesRoleCounts } from "./types";
 
+const SQL_PRESENCE = `
+         TIMESTAMPDIFF(MINUTE, last_seen_at, CURRENT_TIMESTAMP) AS seen_minutes_ago,
+         ${onlineSessionExistsSql("app_users.id")} AS is_online`;
+
 const SQL_LIST_PROFILES = `
   SELECT id, login, display_name, email, email_verified_at, role, cabinet_scope,
-         is_banned, last_login_at, last_seen_at, created_at
+         is_banned, last_login_at, last_seen_at, created_at,
+${SQL_PRESENCE}
   FROM app_users
 `;
 
@@ -23,7 +29,8 @@ const SQL_ROLE_COUNTS = `
 
 const SQL_FIND_TARGET = `
   SELECT id, login, display_name, email, email_verified_at, role, cabinet_scope,
-         is_banned, last_login_at, last_seen_at, created_at
+         is_banned, last_login_at, last_seen_at, created_at,
+${SQL_PRESENCE}
   FROM app_users
   WHERE id = ?
   LIMIT 1
@@ -55,6 +62,8 @@ type ProfileRow = {
   last_login_at: Date | string | null;
   last_seen_at: Date | string | null;
   created_at: Date | string;
+  is_online?: number | boolean | null;
+  seen_minutes_ago?: number | string | null;
 };
 
 type CountRow = { count: number };
@@ -85,6 +94,20 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
+async function ensureProfileSchema(deps: {
+  getConnection: () => Promise<SqlConnection>;
+}): Promise<void> {
+  await ensureAuthSchema(deps);
+  await ensureUserSessionsSchema(deps);
+}
+
+function seenMinutes(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const numeric = typeof value === "bigint" ? Number(value) : Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return numeric;
+}
+
 function formatTimestamp(value: Date | string | null | undefined): string | null {
   if (value == null) return null;
   if (value instanceof Date) {
@@ -96,10 +119,11 @@ function formatTimestamp(value: Date | string | null | undefined): string | null
 }
 
 function isTruthyFlag(value: unknown): boolean {
+  if (typeof value === "bigint") return value === BigInt(1);
   return value === true || value === 1 || value === "1";
 }
 
-function mapProfile(row: ProfileRow, nowMs = Date.now()): AdminProfile {
+function mapProfile(row: ProfileRow): AdminProfile {
   const lastSeenAt = formatTimestamp(row.last_seen_at);
   const lastLoginAt = formatTimestamp(row.last_login_at);
   const email = row.email?.trim() || null;
@@ -112,7 +136,8 @@ function mapProfile(row: ProfileRow, nowMs = Date.now()): AdminProfile {
     role: row.role,
     cabinetScope: row.cabinet_scope === "marathon" ? "marathon" : "full",
     isBanned: isTruthyFlag(row.is_banned),
-    isOnline: isUserOnline(lastSeenAt, nowMs),
+    isOnline: isTruthyFlag(row.is_online),
+    seenMinutesAgo: seenMinutes(row.seen_minutes_ago),
     lastLoginAt,
     lastSeenAt,
     createdAt: formatTimestamp(row.created_at) ?? String(row.created_at),
@@ -131,7 +156,7 @@ export async function getAdminProfiles(
     getConnection: loadDefaultConnection,
   },
 ): Promise<AdminProfilesPage> {
-  await ensureAuthSchema(deps);
+  await ensureProfileSchema(deps);
   const pageSize = Math.max(
     1,
     Math.floor(options.pageSize ?? ADMIN_PROFILES_PAGE_SIZE),
@@ -247,7 +272,7 @@ export async function setProfileBanned(
 ): Promise<AdminProfile> {
   assertValidIds(input.actorUserId, input.targetUserId);
 
-  await ensureAuthSchema(deps);
+  await ensureProfileSchema(deps);
   const connection = await deps.getConnection();
   try {
     const target = await loadTarget(connection, input.targetUserId);
@@ -293,7 +318,7 @@ export async function deleteProfile(
 ): Promise<AdminProfile> {
   assertValidIds(input.actorUserId, input.targetUserId);
 
-  await ensureAuthSchema(deps);
+  await ensureProfileSchema(deps);
   const connection = await deps.getConnection();
   try {
     const target = await loadTarget(connection, input.targetUserId);
@@ -360,7 +385,7 @@ export async function promotePlatformStudent(
   },
 ): Promise<AdminProfile> {
   assertValidIds(input.actorUserId, input.targetUserId);
-  await ensureAuthSchema(deps);
+  await ensureProfileSchema(deps);
   const connection = await deps.getConnection();
   try {
     const target = await loadTarget(connection, input.targetUserId);
