@@ -94,6 +94,7 @@ function readOrder(raw: FormDataEntryValue | null, issues: FieldIssue[]) {
 export type MarathonInput = {
   slug: string;
   title: string;
+  description: string;
   subject: string;
   startDate: string;
   unlockHour: string;
@@ -111,6 +112,7 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
   const issues: FieldIssue[] = [];
   const slug = readText(formData.get("slug"), 64).toLowerCase();
   const title = readText(formData.get("title"), 255);
+  const description = readText(formData.get("description"), 2000);
   const subject = readText(formData.get("subject"), 64) || "math";
   const startDate = readText(formData.get("startDate"), 10);
   const unlockHour = readText(formData.get("unlockHour"), 5);
@@ -156,6 +158,7 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
     value: {
       slug,
       title,
+      description,
       subject,
       startDate,
       unlockHour,

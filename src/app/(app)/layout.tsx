@@ -6,10 +6,7 @@ import {
   sessionCookieNeedsUpgrade,
 } from "@/modules/auth/getCurrentUser";
 import { findUserById } from "@/modules/auth/users";
-import {
-  isMarathonOnlyStudent,
-  marathonOnlyRedirectTarget,
-} from "@/modules/marathons/daily/access";
+import { ensureStudentMarathonInvites } from "@/modules/marathons/daily/invites";
 import { getStudentMarathonHref } from "@/modules/marathons/daily/store";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
@@ -41,9 +38,10 @@ export default async function AppLayout({
     cabinetScope = account.cabinetScope ?? "full";
     if (user.role === "student") {
       marathonHref = await getStudentMarathonHref(user.id);
-      if (isMarathonOnlyStudent(user.role, cabinetScope)) {
-        const target = marathonOnlyRedirectTarget(pathname, marathonHref);
-        if (target) redirect(target);
+      try {
+        await ensureStudentMarathonInvites(user.id);
+      } catch (error) {
+        console.error("marathon invites", error);
       }
     }
   }

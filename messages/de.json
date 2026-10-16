@@ -19,6 +19,14 @@
     },
     "siteName": "NMT-Vorbereitung"
   },
+  "Notifications": {
+    "bell": "Hinweise",
+    "bellUnread": "Hinweise, ungelesen: {count}",
+    "empty": "Keine Hinweise",
+    "markAll": "Alle als gelesen markieren",
+    "accept": "Annehmen",
+    "decline": "Ablehnen"
+  },
   "LanguageSwitcher": {
     "aria": "Sprache der Website",
     "triggerAria": "Sprache der Website, aktuell {name}",
@@ -817,6 +825,13 @@
     "introTitle": "Marathon-Regeln",
     "introContinue": "Weiter",
     "introAgain": "Regeln",
+    "homeTitle": "Aktive Marathons",
+    "homeJoin": "Mitmachen",
+    "homeContinue": "Weiter",
+    "inviteTitle": "Einladung zum Marathon",
+    "inviteBody": "„{title}“ ist aktiv. Du kannst mitmachen oder ablehnen.",
+    "inviteAccept": "Annehmen",
+    "inviteDecline": "Ablehnen",
     "channelTitle": "Wie teilnehmen",
     "emailFallback": "Der Bot ist noch nicht verknüpft — bis dahin kommen Erinnerungen per E-Mail.",
     "finalTitle": "Marathon-Zusammenfassung",
@@ -880,6 +895,7 @@
       "slug": "Adresse",
       "title": "Titel",
       "subject": "Fach",
+      "description": "Beschreibung",
       "startDate": "Startdatum",
       "unlockHour": "Uhrzeit (Kiew)",
       "reminderHour": "Erinnerung (Kiew)",
@@ -913,6 +929,7 @@
     },
     "hints": {
       "slug": "Kleine lateinische Buchstaben, Ziffern und Bindestrich. Zum Beispiel math-5.",
+      "description": "Text der Karte auf der Startseite. Getrennt vom Fach. Darf leer bleiben.",
       "startDate": "Standard ist heute nach Kiewer Zeit.",
       "unlockHour": "Format HH:MM, zum Beispiel 09:00.",
       "reminderHour": "Abendliche Erinnerung, HH:MM. Standard 19:00.",

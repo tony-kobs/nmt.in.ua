@@ -11,28 +11,28 @@ import {
 
 const MAP = "/marathon/math-5/map";
 
-test("marathon-only student menu is a single marathon link", () => {
+test("a legacy marathon scope still sees the full student cabinet", () => {
   const links = visibleSidebar({
     role: "student",
     cabinetScope: "marathon",
     marathonHref: MAP,
   });
-  assert.deepEqual(
-    links.map((item) => item.href),
-    [MAP],
-  );
-  assert.equal(links[0]?.labelKey, "marathon");
+  const hrefs = links.map((item) => item.href);
+  assert.ok(hrefs.includes("/"));
+  assert.ok(hrefs.includes("/results"));
+  assert.ok(hrefs.includes("/simulator"));
+  assert.ok(hrefs.includes(MAP));
+  assert.equal(links.find((item) => item.href === MAP)?.labelKey, "marathon");
 });
 
-test("marathon-only student without a marathon has no cabinet sections", () => {
-  assert.deepEqual(
-    visibleSidebar({
-      role: "student",
-      cabinetScope: "marathon",
-      marathonHref: null,
-    }),
-    [],
-  );
+test("a legacy marathon scope without a joined marathon still has cabinet sections", () => {
+  const hrefs = visibleSidebar({
+    role: "student",
+    cabinetScope: "marathon",
+    marathonHref: null,
+  }).map((item) => item.href);
+  assert.ok(hrefs.includes("/results"));
+  assert.ok(!hrefs.some((href) => href.startsWith("/marathon/")));
 });
 
 test("a platform student sees the marathon item beside the usual sections", () => {
@@ -84,20 +84,13 @@ test("teachers and admins keep their menus when a marathon href is present", () 
   assert.equal(isMarathonOnlyStudent("student", "marathon"), true);
 });
 
-test("marathon-only direct URLs redirect to the map, profile and marathon stay", () => {
-  assert.equal(marathonOnlyRedirectTarget("/results", MAP), MAP);
-  assert.equal(marathonOnlyRedirectTarget("/", MAP), MAP);
-  assert.equal(marathonOnlyRedirectTarget("/simulator", MAP), MAP);
-  assert.equal(marathonOnlyRedirectTarget("/materials/textbook", MAP), MAP);
-  assert.equal(marathonOnlyRedirectTarget("/sessions", MAP), MAP);
-  assert.equal(marathonOnlyRedirectTarget("/consultations", MAP), MAP);
-  assert.equal(marathonOnlyRedirectTarget("/leaderboard", MAP), MAP);
-  assert.equal(marathonOnlyRedirectTarget("/join/ABCD", MAP), MAP);
-  assert.equal(marathonOnlyRedirectTarget("/practice/fractions", MAP), MAP);
+test("marathon scope no longer redirects cabinet URLs", () => {
+  assert.equal(marathonOnlyRedirectTarget("/results", MAP), null);
+  assert.equal(marathonOnlyRedirectTarget("/", MAP), null);
+  assert.equal(marathonOnlyRedirectTarget("/simulator", MAP), null);
   assert.equal(marathonOnlyRedirectTarget("/account", MAP), null);
-  assert.equal(marathonOnlyRedirectTarget("/account/password", MAP), null);
   assert.equal(marathonOnlyRedirectTarget("/marathon/math-5/day/2", MAP), null);
-  assert.equal(marathonOnlyRedirectTarget(MAP, MAP), null);
   assert.equal(marathonOnlyMayOpen("/marathon/math-5/final"), true);
-  assert.equal(marathonOnlyRedirectTarget("/results", null), "/account");
+  assert.equal(marathonOnlyMayOpen("/account"), true);
+  assert.equal(marathonOnlyMayOpen("/results"), false);
 });

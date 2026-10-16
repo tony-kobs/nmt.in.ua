@@ -1,5 +1,6 @@
 import "server-only";
 
+import { notifyUser } from "@/modules/notifications/store";
 import { getTelegramLinkRecord } from "@/modules/telegram/link";
 import {
   claimNotification,
@@ -11,6 +12,7 @@ import {
 } from "./store";
 import {
   deliverRegistrationNotice,
+  formatMarathonStartDate,
   type RegistrationNoticeEvent,
 } from "./registrationNotice";
 
@@ -53,6 +55,16 @@ export async function notifyMarathonRegistration(input: {
       ?? usableChatId(participant.telegramChatId)
       ?? usableChatId(account?.chatId);
     const copy = await loadMarathonCopy(marathon.id);
+    if (input.event === "register") {
+      await notifyUser({
+        userId: input.userId,
+        kind: "marathon.registered",
+        title: "Реєстрацію підтверджено",
+        body: `Ви в марафоні «${marathon.title}». Старт: ${formatMarathonStartDate(marathon.startDate)}. Дні можна проходити на сайті і в Telegram.`,
+        link: `/marathon/${marathon.slug}/map`,
+        once: true,
+      });
+    }
     await deliverRegistrationNotice(
       {
         marathonId: marathon.id,

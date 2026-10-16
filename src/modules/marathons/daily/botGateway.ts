@@ -50,7 +50,7 @@ import {
   selectChatMarathon,
   saveMarathonBotTokens,
   savePartialAnswers,
-  setDeliveryChannel,
+  setNotifyToggles,
   type DailyMarathon,
   type DayProgress,
   type MarathonDay,
@@ -212,7 +212,7 @@ export async function marathonBareStart(chatId: string): Promise<TelegramReply |
     ? absoluteUrl(`/marathon/${encodeURIComponent(linked.marathon.slug)}/map`)
     : absoluteUrl("/");
   const messages = startText(copy, Boolean(linked), mapUrl);
-  if (linked && linked.participant.channel === "telegram" && !linked.participant.introSeen) {
+  if (linked && !linked.participant.introSeen) {
     const rules = renderResolved("intro_rules", copy, {
       name: linked.participant.displayName || "учаснику",
       link: mapUrl,
@@ -230,7 +230,7 @@ export async function marathonWelcome(chatId: string): Promise<TelegramReply | n
     ? absoluteUrl(`/marathon/${encodeURIComponent(linked.marathon.slug)}/map`)
     : absoluteUrl("/");
   const messages: Outgoing[] = [{ text: linkOkText(copy) }];
-  if (linked && linked.participant.channel === "telegram" && !linked.participant.introSeen) {
+  if (linked && !linked.participant.introSeen) {
     const rules = renderResolved("intro_rules", copy, {
       name: linked.participant.displayName || "учаснику",
       link: mapUrl,
@@ -308,12 +308,10 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     }]);
   }
   if (callback.kind === "channel") {
-    await setDeliveryChannel(
-      marathon.id,
-      participant.userId,
-      callback.channel,
-      Boolean(participant.telegramChatId),
-    );
+    await setNotifyToggles(marathon.id, participant.userId, {
+      notifyEmail: callback.channel === "site" ? true : participant.notifyEmail,
+      notifyBot: callback.channel === "telegram" ? true : participant.notifyBot,
+    });
     if (callback.channel === "telegram") {
       await notifyMarathonRegistration({
         marathonId: marathon.id,
@@ -374,7 +372,7 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
       menu.buttons = [...(menu.buttons ?? []), { text: "Інші марафони", data: "mh:list" }];
     }
   }
-  if (participant.channel === "telegram" && !participant.introSeen) {
+  if (!participant.introSeen) {
     const mapUrl = absoluteUrl(`/marathon/${encodeURIComponent(marathon.slug)}/map`);
     outgoing = [
       ...introFor(marathon.introVideoUrl, renderResolved("intro_rules", copy, {

@@ -5,6 +5,8 @@ import { AdminContentEditor } from "@/components/admin/AdminContentEditor";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { TopicTestStart } from "@/components/dashboard/TopicTestStart";
+import { MarathonHomeCards } from "@/components/marathon/MarathonHomeCards";
+import { MarathonInviteBanner } from "@/components/marathon/MarathonInviteBanner";
 import { UpgradeSessionCookie } from "@/components/auth/UpgradeSessionCookie";
 import { pickClientMessages } from "@/i18n/clientMessages";
 import {
@@ -14,11 +16,8 @@ import {
 } from "@/modules/admin-content";
 import { findUserById } from "@/modules/auth/users";
 import { canImportContent, type AuthUser } from "@/modules/auth/types";
-import {
-  isMarathonOnlyStudent,
-} from "@/modules/marathons/daily/access";
 import { SavedToast } from "@/components/marathon/SavedToast";
-import { withSavedFlag } from "@/modules/marathons/daily/channelPath";
+import { ensureStudentMarathonInvites } from "@/modules/marathons/daily/invites";
 import { getStudentMarathonHref } from "@/modules/marathons/daily/store";
 import { getAvailableTopicThemes } from "@/modules/testing/getAvailableTopicThemes";
 import { countStage2CatalogTasks } from "@/modules/stage2/rounds";
@@ -47,9 +46,13 @@ export async function CabinetHome({
   const cabinetScope = account?.cabinetScope ?? "full";
   const marathonHref =
     user.role === "student" ? await getStudentMarathonHref(user.id) : null;
-  if (isMarathonOnlyStudent(user.role, cabinetScope)) {
-    redirect(withSavedFlag(marathonHref ?? "/account", saved));
-  }
+  const home =
+    user.role === "student"
+      ? await ensureStudentMarathonInvites(user.id).catch((error: unknown) => {
+          console.error("marathon home", error);
+          return { cards: [], invites: [] };
+        })
+      : { cards: [], invites: [] };
 
   if (user.role === "teacher") {
     redirect("/assign");
@@ -116,6 +119,8 @@ export async function CabinetHome({
         marathonHref={marathonHref}
       >
         <SavedToast active={saved} text={savedText} />
+        <MarathonInviteBanner invites={home.invites} />
+        <MarathonHomeCards cards={home.cards} signedIn />
         <TopicTestStart
           themes={themes}
           initialThemeId={initialThemeId}

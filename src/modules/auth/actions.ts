@@ -3,11 +3,6 @@
 import { redirect } from "next/navigation";
 
 import { safeInternalPath } from "@/lib/safeInternalPath";
-import {
-  isMarathonOnlyStudent,
-  marathonOnlyMayOpen,
-} from "@/modules/marathons/daily/access";
-import { getStudentMarathonHref } from "@/modules/marathons/daily/store";
 import { claimGuestProgress } from "@/modules/diagnostic/claimGuestProgress";
 import { clearGuestCookie } from "./guestToken";
 import { verifyPassword } from "./password";
@@ -106,14 +101,7 @@ export async function loginAction(
 
   await recordLoginPresence(user.id);
   await setSessionCookie(user);
-  let destination = nextPath;
-  if (isMarathonOnlyStudent(user.role, user.cabinetScope)) {
-    const pathOnly = destination.split("?")[0] ?? destination;
-    if (!marathonOnlyMayOpen(pathOnly)) {
-      destination = (await getStudentMarathonHref(user.id)) ?? "/account";
-    }
-  }
-  redirect(destination);
+  redirect(nextPath);
 }
 
 /**

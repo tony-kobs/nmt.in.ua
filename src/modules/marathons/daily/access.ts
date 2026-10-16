@@ -71,15 +71,14 @@ export function marathonOnlyMayOpen(pathname: string): boolean {
 }
 
 /**
- * Where to send a marathon-only student who opened another cabinet section.
- * `null` means the path is allowed.
+ * Marathon registration now opens the full cabinet, so this redirect is a no-op.
+ * The helper stays so older call sites compile. Admin promotion still uses the scope flag.
  */
 export function marathonOnlyRedirectTarget(
-  pathname: string,
-  mapPath: string | null,
+  _pathname: string,
+  _mapPath: string | null,
 ): string | null {
-  if (marathonOnlyMayOpen(pathname)) return null;
-  return mapPath ?? "/account";
+  return null;
 }
 
 export function sidebarLinkActive(
@@ -107,8 +106,8 @@ function marathonLink(href: string): SidebarLink {
 
 /**
  * Sidebar for the signed-in role.
- * Marathon-only students see a single «Марафон» item.
- * A platform student also sees it when they have joined a daily marathon.
+ * Students see the usual sections, plus «Марафон» when they have joined one.
+ * A legacy marathon scope no longer hides the rest of the cabinet.
  * Teachers and admins keep their existing menus.
  */
 export function visibleSidebar(input: {
@@ -116,12 +115,8 @@ export function visibleSidebar(input: {
   cabinetScope?: CabinetScope;
   marathonHref?: string | null;
 }): SidebarLink[] {
-  const scope = input.cabinetScope ?? "full";
   const marathonHref = input.marathonHref ?? null;
-
-  if (isMarathonOnlyStudent(input.role, scope)) {
-    return marathonHref ? [marathonLink(marathonHref)] : [];
-  }
+  void input.cabinetScope;
 
   const items: SidebarLink[] = DASHBOARD_NAV.filter((item) => {
     if (input.role === "admin") return ADMIN_NAV_SET.has(item.href);

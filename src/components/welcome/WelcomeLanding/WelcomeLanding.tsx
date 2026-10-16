@@ -10,6 +10,8 @@ import { CtaBanner } from "../CtaBanner";
 import { DevTeam } from "../DevTeam";
 import { Faq } from "../Faq";
 import { Features } from "../Features";
+import { MarathonHomeCards } from "@/components/marathon/MarathonHomeCards";
+import { loadMarathonHomeState } from "@/modules/marathons/daily/store";
 import { Hero } from "../Hero";
 import { LandingFooter } from "../LandingFooter";
 import { LandingHeader } from "../LandingHeader";
@@ -24,6 +26,10 @@ const structuredData = [
 
 export async function WelcomeLanding() {
   const t = await getTranslations("Common");
+  const home = await loadMarathonHomeState({ userId: null, role: null }).catch((error: unknown) => {
+    console.error("marathon home", error);
+    return { cards: [], invites: [] };
+  });
 
   return (
     <div className={css.page}>
@@ -40,6 +46,7 @@ export async function WelcomeLanding() {
         <LandingHeader />
         <main id="main-content" tabIndex={-1}>
           <Hero />
+          <MarathonHomeCards cards={home.cards} signedIn={false} bleed />
           <Features />
           <Teachers />
           <Faq />

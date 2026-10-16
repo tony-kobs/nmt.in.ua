@@ -31,6 +31,7 @@ export async function seedMathMarathon(): Promise<"created" | "exists"> {
   const marathonId = await insertDailyMarathon({
     slug: MATH_MARATHON_SEED.slug,
     title: MATH_MARATHON_SEED.title,
+    description: MATH_MARATHON_SEED.description,
     subject: MATH_MARATHON_SEED.subject,
     startDate: MATH_MARATHON_SEED.startDate,
     unlockHour: MATH_MARATHON_SEED.unlockHour,

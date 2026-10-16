@@ -379,6 +379,10 @@
   gap: var(--space-sm);
 }
 
+.span2 {
+  grid-column: 1 / -1;
+}
+
 .optionGrid {
   display: grid;
   gap: var(--space-xs);
