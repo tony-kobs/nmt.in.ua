@@ -150,6 +150,10 @@ function dedupedEmails(rows: AdminRow[]): string[] {
 /**
  * In-site note for every admin, plus one letter per distinct admin email.
  * Errors are logged. Callers must still treat the feedback row as saved.
+ *
+ * Admin alerts ignore `user_channel_preferences`. Category toggles
+ * (marathon / news / system, including system email off) do not apply:
+ * the bell note and the letter always go.
  */
 export async function notifyAdminsOfFeedback(
   input: FeedbackStoredNotice,

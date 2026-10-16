@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { SqlConnection } from "@/lib/db/mysql";
-import { consumeTelegramLink, createTelegramLink, getTelegramLinkRecord, getTelegramLinkStatus, hashTelegramLinkToken, mintTelegramLinkToken } from "./link";
+import { consumeTelegramLink, createTelegramLink, getTelegramLink, getTelegramLinkRecord, getTelegramLinkStatus, hashTelegramLinkToken, mintTelegramLinkToken } from "./link";
 
 const now = new Date("2026-01-01T12:00:00.000Z");
 
@@ -41,7 +41,7 @@ function fakeDatabase() {
       if (sql.startsWith("UPDATE telegram_link_tokens SET consumed_at") && sql.includes("user_id")) {
         for (const token of tokens) if (token.user_id === params[0] && !token.consumed_at) token.consumed_at = now;
       }
-      if (sql.startsWith("INSERT INTO user_telegram_accounts")) {
+      if (sql.startsWith("INSERT INTO user_telegram_accounts") && sql.includes("VALUES")) {
         if (accounts.some((item) => item.user_id === params[0] || item.telegram_user_id === params[1])) {
           throw Object.assign(new Error("duplicate"), { code: "ER_DUP_ENTRY" });
         }
@@ -127,4 +127,58 @@ test("a linked telegram account exposes the chat id and username", async () => {
     null,
   );
   assert.equal(await getTelegramLinkRecord(0, { getConnection: async () => connection }), null);
+});
+
+test("a marathon chat without an account becomes the same link, and a taken chat is not stolen", async () => {
+  const accounts: Array<{ user_id: number; telegram_user_id: string; telegram_chat_id: string }> = [];
+  const participants = [{ user_id: 7, telegram_chat_id: 9001 }];
+  const connection = {
+    beginTransaction: async () => {},
+    commit: async () => {},
+    rollback: async () => {},
+    release: () => {},
+    query: async <T>(sql: string, params: unknown[] = []) => {
+      if (sql.includes("FROM user_telegram_accounts")) {
+        return accounts.filter((item) =>
+          item.user_id === params[0] || String(item.telegram_user_id) === String(params[1]),
+        ) as T[];
+      }
+      if (sql.includes("FROM marathon_participants")) {
+        return participants.filter((item) => item.user_id === params[0]) as T[];
+      }
+      return [] as T[];
+    },
+    execute: async (sql: string, params: unknown[] = []) => {
+      if (sql.includes("FROM DUAL") && sql.includes("user_telegram_accounts")) {
+        const userId = Number(params[0]);
+        const chatId = String(params[1]);
+        const taken = accounts.some(
+          (item) => item.user_id === userId || item.telegram_user_id === chatId,
+        );
+        if (!taken) {
+          accounts.push({ user_id: userId, telegram_user_id: chatId, telegram_chat_id: chatId });
+        }
+        return { insertId: 1, affectedRows: taken ? 0 : 1 };
+      }
+      return { insertId: 1, affectedRows: 1 };
+    },
+  };
+  const deps = { getConnection: async () => connection };
+  const first = await getTelegramLink(7, deps);
+  assert.equal(first.linked, true);
+  assert.equal(first.chatId, "9001");
+  assert.equal(accounts.length, 1);
+  const second = await getTelegramLink(7, deps);
+  assert.equal(second.chatId, "9001");
+  assert.equal(accounts.length, 1);
+
+  accounts.splice(0, accounts.length, {
+    user_id: 8,
+    telegram_user_id: "9001",
+    telegram_chat_id: "9001",
+  });
+  const collided = await getTelegramLink(7, deps);
+  assert.equal(collided.linked, true);
+  assert.equal(collided.chatId, "9001");
+  assert.equal(accounts.some((item) => item.user_id === 7), false);
 });

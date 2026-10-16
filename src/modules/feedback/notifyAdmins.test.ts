@@ -93,6 +93,55 @@ test("notifyAdminsOfFeedback dedupes mail and keeps going when a send throws", a
   assert.deepEqual(sent, ["admin@example.com"]);
 });
 
+test("notifyAdminsOfFeedback ignores channel prefs and still alerts every admin", async () => {
+  const queries: string[] = [];
+  const notes: number[] = [];
+  const sent: string[] = [];
+  const connection: SqlConnection = {
+    beginTransaction: async () => undefined,
+    commit: async () => undefined,
+    rollback: async () => undefined,
+    release: () => undefined,
+    query: async <T = unknown>(sql: string) => {
+      queries.push(sql);
+      if (sql.includes("role = 'admin'")) {
+        return [
+          { id: 7, email: "lead@example.com" },
+          { id: 8, email: "ops@example.com" },
+        ] as T[];
+      }
+      return [] as T[];
+    },
+    execute: async () => ({ insertId: 0, affectedRows: 0 }),
+  };
+
+  await notifyAdminsOfFeedback(
+    {
+      id: 4,
+      userId: 20,
+      score: 2,
+      message: "Пропозиція",
+      email: null,
+    },
+    {
+      getConnection: async () => connection,
+      notifyUser: async (input) => {
+        notes.push(input.userId);
+        return { id: 1, created: true };
+      },
+      sendMail: async (input: SendMailInput): Promise<SendMailResult> => {
+        sent.push(input.to);
+        return { ok: true, mode: "log" };
+      },
+      absoluteLink: (path) => `https://nmt.in.ua${path}`,
+    },
+  );
+
+  assert.equal(queries.some((sql) => sql.includes("user_channel_preferences")), false);
+  assert.deepEqual(notes, [7, 8]);
+  assert.deepEqual(sent, ["lead@example.com", "ops@example.com"]);
+});
+
 test("submitFeedback still returns the id when admin notify throws", async () => {
   const connection: SqlConnection = {
     beginTransaction: async () => undefined,

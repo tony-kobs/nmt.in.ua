@@ -83,7 +83,7 @@ export default async function MarathonMapPage({ params, searchParams }: PageProp
       <MarathonChannel
         marathon={marathon}
         prompt={channelPrompt}
-        telegramLinked={Boolean(telegramRecord) || Boolean(participant.telegramChatId)}
+        telegramLinked={Boolean(telegramRecord)}
         telegramUsername={telegramRecord?.username ?? null}
         botReady={Boolean(optionalTelegramBot())}
       />
@@ -100,7 +100,7 @@ export default async function MarathonMapPage({ params, searchParams }: PageProp
       locale={locale}
       botReady={Boolean(optionalTelegramBot())}
       channelPrompt={channelPrompt}
-      telegramLinked={Boolean(telegramRecord) || Boolean(participant?.telegramChatId)}
+      telegramLinked={Boolean(telegramRecord)}
       telegramUsername={telegramRecord?.username ?? null}
       error={error}
       saved={saved}

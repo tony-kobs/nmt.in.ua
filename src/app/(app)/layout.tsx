@@ -1,4 +1,5 @@
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { MarathonInviteBanner } from "@/components/marathon/MarathonInviteBanner";
 import { UpgradeSessionCookie } from "@/components/auth/UpgradeSessionCookie";
 import { pickClientMessages } from "@/i18n/clientMessages";
 import {
@@ -8,6 +9,7 @@ import {
 } from "@/modules/auth/getCurrentUser";
 import { touchLoginSession } from "@/modules/auth/userSessions";
 import { findUserById } from "@/modules/auth/users";
+import type { MarathonInvite } from "@/modules/marathons/daily/invite";
 import { ensureStudentMarathonInvites } from "@/modules/marathons/daily/invites";
 import { getStudentMarathonHref } from "@/modules/marathons/daily/store";
 import { NextIntlClientProvider } from "next-intl";
@@ -31,6 +33,7 @@ export default async function AppLayout({
 
   let cabinetScope = user?.cabinetScope ?? "full";
   let marathonHref: string | null = null;
+  let invites: MarathonInvite[] = [];
   if (user) {
     const account = await findUserById(user.id);
     if (!account || account.isBanned) {
@@ -48,11 +51,11 @@ export default async function AppLayout({
     cabinetScope = account.cabinetScope ?? "full";
     if (user.role === "student") {
       marathonHref = await getStudentMarathonHref(user.id);
-      try {
-        await ensureStudentMarathonInvites(user.id);
-      } catch (error) {
-        console.error("marathon invites", error);
-      }
+    }
+    try {
+      invites = (await ensureStudentMarathonInvites(user.id)).invites;
+    } catch (error) {
+      console.error("marathon invites", error);
     }
   }
 
@@ -69,6 +72,7 @@ export default async function AppLayout({
           cabinetScope={cabinetScope}
           marathonHref={marathonHref}
         >
+          <MarathonInviteBanner invites={invites} />
           {children}
         </DashboardShell>
       ) : (

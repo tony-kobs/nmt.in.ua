@@ -41,7 +41,9 @@ test("Telegram schema initializes preferences after accounts, retries failures, 
   const writes = statements.filter((sql) => /^(UPDATE|DELETE|DROP)\s/i.test(sql.trim()));
   assert.ok(
     writes.every(
-      (sql) => sql.includes("cabinet_scope = 'full'") && sql.includes("cabinet_scope = 'marathon'"),
+      (sql) =>
+        (sql.includes("cabinet_scope = 'full'") && sql.includes("cabinet_scope = 'marathon'"))
+        || (sql.includes("UPDATE marathon_participants") && sql.includes("telegram_chat_id")),
     ),
   );
 });

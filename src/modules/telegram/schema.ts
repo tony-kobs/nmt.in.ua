@@ -2,6 +2,8 @@ import "server-only";
 
 import type { SqlConnection } from "@/lib/db/mysql";
 import { ensureAuthSchema } from "@/modules/auth/users";
+import { applyChannelPreferencesSchema } from "@/modules/notifications/channelSchema";
+import { backfillTelegramLinks } from "./linkSync";
 
 export async function loadTelegramConnection(): Promise<SqlConnection> {
   const { getConnection } = await import("@/lib/db/mysql");
@@ -72,6 +74,8 @@ export async function ensureTelegramSchema(
           CONSTRAINT fk_telegram_notification_account FOREIGN KEY (account_id)
             REFERENCES user_telegram_accounts (id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`, []);
+        await backfillTelegramLinks(connection);
+        await applyChannelPreferencesSchema(connection);
       } finally {
         connection.release();
       }

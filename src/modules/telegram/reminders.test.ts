@@ -49,6 +49,7 @@ function fake(input: {
     beginTransaction: async () => {}, commit: async () => {}, rollback: async () => {}, release: () => {},
     query: async <T>(text: string, params: unknown[] = []) => {
       sql.push(text);
+      if (text.includes("user_channel_preferences")) return [] as T[];
       if (text.includes("FROM telegram_notification_preferences")) {
         if (prefs === "missing") throw Object.assign(new Error("Table doesn't exist"), { errno: 1146, code: "ER_NO_SUCH_TABLE" });
         return [...prefs.values()].filter((row) => params.includes(row.account_id)) as T[];

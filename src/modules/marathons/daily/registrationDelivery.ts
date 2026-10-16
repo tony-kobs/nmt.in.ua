@@ -65,6 +65,7 @@ export async function notifyMarathonRegistration(input: {
         once: true,
       });
     }
+    if (!participant.notifyBot) return;
     await deliverRegistrationNotice(
       {
         marathonId: marathon.id,
