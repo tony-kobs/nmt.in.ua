@@ -1,1 +1,0 @@
-export { TeacherRegisterForm } from "./TeacherRegisterForm";

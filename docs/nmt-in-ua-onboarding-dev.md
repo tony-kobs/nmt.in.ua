@@ -1,6 +1,6 @@
 # nmt.in.ua — гід для нового розробника
 
-Локальну TG-007 інтеграцію перевірено 2026-10-06: Telegram API підтвердив повідомлення та кнопку «Деталі», MySQL зберіг `delivered`; другий запуск не створює дубля, сесія й завдання незмінні. Докази та обмеження — в [інтеграції Telegram](telegram-integration.md#завершена-локальна-перевірка-tg-007--2026-10-06).
+Локальну TG-007 інтеграцію перевірено 2026-10-06: Telegram API підтвердив повідомлення та кнопку «Деталі», MySQL зберіг `delivered`; другий запуск не створює дубля, сесія й завдання незмінні.
 
 Як увійти в роботу за перший день, а не блукати тиждень.
 
@@ -8,7 +8,7 @@
 
 Джерело правди — Markdown. Word/docx копій немає.
 
-Оновлено 7 жовтня 2026.
+Оновлено 16 жовтня 2026.
 
 ---
 
@@ -35,7 +35,7 @@ nmt.in.ua — тренажер підготовки до НМТ з матема�
 - `npm install && npm run dev` → <http://localhost:3000>
 - Зареєструй тестовий акаунт на `/register` (або візьми готовий логін у lead). Адміна підвищують у БД: `node scripts/promote-admin.mjs <login>`.
 - Пройди happy-path **учня**: старт тесту → відповідь → фініш → `/results` → `/sessions`. Потім перевір викладача й адміна (див. §13).
-- Прочитай цей файл, `README.md`, `docs/deploy.md` і `.cursor/rules/design-system.mdc` (перед будь-якою версткою).
+- Прочитай цей файл, `README.md`, `.cursor/rules/deploy-hosting.mdc` і `.cursor/rules/design-system.mdc` (перед будь-якою версткою).
 - Візьми задачу з відкритого беклогу (§11), заведи feature-гілку від свіжого `dev`.
 
 Без живої MySQL тести модулів з БД і сам тренажер не заведуться. Локальний Next без `.env.local` відкриє лендінг, але кабінет впаде на запитах до бази.
@@ -113,7 +113,7 @@ git checkout -b feature/коротка-назва
 
 Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.github/workflows/deploy-hosting.yml): Actions збирає Next, переписує шляхи runner у `.next`, кладе tar на хостинг. Сервер лише ставить `npm install` у `releases/<sha>` і міняє `www`. На хості `npm run build` не запускаємо (старий glibc).
 
-Розробнику на хостинг ходити не треба і **не деплоїти самостійно**. Деталі, секрети, відкат: [`docs/deploy.md`](./deploy.md).
+Розробнику на хостинг ходити не треба і **не деплоїти самостійно**. Секрети, відкат і що не робити на хості: [`.cursor/rules/deploy-hosting.mdc`](../.cursor/rules/deploy-hosting.mdc).
 
 ### 4.2. Правило шарів у коді
 
@@ -200,9 +200,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `.cursor/rules/design-system.mdc` | Правила верстки. Читати перед CSS |
 | `.cursor/rules/deploy-hosting.mdc` | Короткі правила релізу |
 | `scripts/sql/` | Міграції. Багато таблиць ще й lazy-create при першому запиті |
-| `docs/deploy.md` | Як зміни потрапляють на nmt.in.ua |
-| `docs/mentor-tasks.md` | Старий розклад задач. Частина статусів застаріла |
-| `docs/6.9-handoff.md` | Передача Stage 2 (інтерактивні формати) |
+| `docs/Goldener-Rechner-beklog-PM.md` | Беклог для PM |
 
 ## 6. Як влаштований продукт у коді
 
@@ -262,9 +260,9 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 
 `scripts/sql/010_theme_codes.sql` — `themes.code` для підручника. Імпорт код приймає опційно.
 
-`scripts/sql/014_fix_theme_geometry_typo.sql` — «геоментрія» → «геометрія». Деплой SQL не ганяє — **прогнати вручну на хостингу**, якщо ще не.
+`scripts/sql/043_fix_theme_geometry_typo.sql` — «геоментрія» → «геометрія». Деплой SQL не ганяє — **прогнати вручну на хостингу**, якщо ще не. Колонки візитки й журнал Telegram створює застосунок (`ensureTeacherProfileSchema`, `ensureTelegramSchema`), окремих SQL з тими самими номерами немає.
 
-**Stage 2 локально:** `026` → `027` → `028` → `029` → `030` → `031` (031 після 028). Без каталогу вкладка «Інтерактивні формати» на `/` **ховається**. Деталі: `docs/6.9-handoff.md`.
+**Stage 2 локально:** `026` → `027` → `028` → `029` → `030` → `031` (031 після 028). Без каталогу вкладка «Інтерактивні формати» на `/` **ховається**.
 
 ### Гостьова діагностика: модель власності
 
@@ -377,12 +375,12 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 
 ## 11. З чого почати новому dev (вільні задачі)
 
-Повний розклад хвилі 6 — [`docs/mentor-tasks.md`](./mentor-tasks.md). Не чіпайте робочий topic-test без узгодження. Статуси в mentor-tasks частково брешуть — орієнтир цей розділ і код.
+Відкриті пункти — у беклозі. Нижче карта вже зробленого. Не чіпайте робочий topic-test без узгодження.
 
 | Задача | Де копати | Складність | Нотатка |
 | --- | --- | --- | --- |
 | 6.1 Підручник + `themes.code` | `src/content/learningMaterials`, `/materials/textbook` | Середня | ✅ 08–09.09: лише підручник; `/materials` і slug → редірект |
-| 6.5 Банк 30–40 / тему | `content-import`, `docs/content-review/` | Контент | Спочатку розширити `varchar(50)` у відповідях |
+| 6.5 Банк 30–40 / тему | `content-import` | Контент | Спочатку розширити `varchar(50)` у відповідях |
 | 6.8 Варіанти НМТ | `startNmtSimulator`, `/simulator`, `nmt_variants*` | Середня | ✅ 09.09 |
 | 6.6 Задачник | `src/app/problems`, таблиця `problems` | Середня | ✅ 08.09 (UI з JSON-каталогу, без MySQL на read) |
 | 6.3–6.4 Діагностика | `/diagnostic` | Велика | ✅; 23.09: adaptive без самооцінки; до 10 задач; +1/−1 складність без стелі; 3 fail@1; тема ≠ попередня |
@@ -400,8 +398,8 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | Пагінація `/results`, `/sessions` | `src/components/ui/Pagination`, `src/lib/pagination.ts` | Мала | ✅ 10.2026: 10/стор., URL `?page=`; лише ≥768px |
 | Мобільний свайпер сесій / результатів | `LearningSessionsTable`, `TopicResultsTable` | Мала | ✅ 10.2026: картки + свайп, без пагінації на телефоні |
 | Лідерборд марафону | `src/modules/marathons`, `/leaderboard` | Середня | ✅ v0: join + рейтинг із `task_sessions` після вступу і в межах дат. Лише `kind=leaderboard`. Пілот не сідається сам |
-| 8.4 Денний марафон | `src/modules/marathons/daily`, `/marathon/[slug]`, `/admin/marathons`, `docs/marathon.md` | Середня | ✅ Меню: `cabinet_scope` (`full` / `marathon`) у `access.ts`. Завдання до здачі — `playTasks.ts` (`PENDING_TASK_SQL`). SQL `040` + `041`. Дозвіл `marathon:manage` (зараз admin). 09.10: вступ і канал на карті; день у боті (`botPlay.ts` / `botGateway.ts`); тексти в `marathon_copy`. Контент у чаті: `telegramContent.ts`, формули MathJax + resvg-wasm. 10.10: таблиця місць `leaderboard.ts` (очки, знімок місця, `/top`, nudge). 12.10: cron — GitHub Actions (`.github/workflows/marathon-cron.yml`), не cron-job.org (nginx ukraine.com.ua віддає 503). 15.10: адмінка задає годину нагадування і вікно nudge; у меню бота «Пройти тестування» (`botQuiz.ts`) — тема і кількість, сесія topic-test. Хостовий cron: `scripts/hosting-telegram-cron.sh`. 16.10: життєвий цикл active→finished після останнього дня, без сповіщень для дня без завдань, один канал доставки. Env, секрет `MARATHON_CRON_SECRET` і `setWebhook` — `docs/marathon.md` |
-| Досягнення | `/account` заглушки | Середня | Відкрито; після подій марафону |
+| 8.4 Денний марафон | `src/modules/marathons/daily`, `/marathon/[slug]`, `/admin/marathons`, `docs/marathon.md` | Середня | ✅ Меню: `cabinet_scope` (`full` / `marathon`) у `access.ts`. Завдання до здачі — `playTasks.ts` (`PENDING_TASK_SQL`). SQL `040` + `041`. Дозвіл `marathon:manage` (зараз admin). 09.10: вступ і канал на карті; день у боті (`botPlay.ts` / `botGateway.ts`); тексти в `marathon_copy`. Контент у чаті: `telegramContent.ts`, формули MathJax + resvg-wasm. 10.10: таблиця місць `leaderboard.ts`. 12.10: cron — GitHub Actions (`.github/workflows/marathon-cron.yml`). 15.10: година нагадування і вікно nudge в адмінці; «Пройти тестування» в боті (`botQuiz.ts`); кілька марафонів в одному чаті. Хостовий cron: `scripts/hosting-telegram-cron.sh`. 16.10: active→finished після останнього дня, день без завдань не сповіщає, один канал доставки. Env і `MARATHON_CRON_SECRET` — `docs/marathon.md` |
+| Досягнення | — | Середня | Відкрито. 16.10 заглушки з `/account` знято; окремого модуля ще немає |
 
 Карта app router: `src/app/page.tsx` — `/` (гість легкий / учень → CabinetHome); `src/app/(marketing)/` — welcome / login / register / diagnostic / `t/[slug]`; `src/app/(app)/` — кабінет (`force-dynamic`). Root layout лише `html`/`body` + `globals.css`. Неіснуючий публічний шлях на кшталт `/welcome/немає` дає кастомний 404; випадковий `/foo` без сесії — редірект на `/login` (auth-guard).
 
@@ -411,9 +409,9 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 
 ### Telegram Tasks API (TG-003)
 
-TG-005–TG-008 реалізовано: `/done`, деталі й підтвердження завершення, ledger сповіщень та захищений POST trigger із GitHub Actions schedule. Потрібні чинні схеми, міграція 037 і серверні `TELEGRAM_*` та `DB_*`. Невизначена доставка лишається `sending` і автоматично не повторюється (скидає оператор); підтверджена відмова повертає `ready` і повторюється одразу. TG-011–TG-016 (меню, нагадування, `/stats`, сповіщення вчителя, налаштування, міграція 042) — у [інтеграції Telegram](telegram-integration.md#tg-011tg-016--меню-нагадування-статистика-сповіщення-вчителя-налаштування). Сповіщення не змінюють стан завдань. Локальні команди, live сценарії та обмеження rate limiting/аудиту — у [TG-010](telegram-integration.md#tg-010--перевірки-та-відомі-обмеження).
+TG-005–TG-008 реалізовано: `/done`, деталі й підтвердження завершення, ledger сповіщень та захищений POST trigger із GitHub Actions schedule. Потрібні чинні схеми (журнал доставки створює `ensureTelegramSchema`) і серверні `TELEGRAM_*` та `DB_*`. Невизначена доставка лишається `sending` і автоматично не повторюється (скидає оператор); підтверджена відмова повертає `ready` і повторюється одразу. TG-011–TG-016 (меню, нагадування, `/stats`, сповіщення вчителя, налаштування, міграція 042) живуть у `src/modules/telegram`. Сповіщення не змінюють стан завдань.
 
-Read-only сервіс `src/modules/telegram/tasks.ts` приймає Telegram identity, а не application userId. Прив'язка через `user_telegram_accounts` визначає власника; джерело даних — наявні таблиці сесій і завдань. DTO не містить правильних відповідей чи секретів. Міграція для TG-003 не потрібна. `TELEGRAM_*` залишаються опційними: без них сайт працює, але `/account` не генерує Telegram link. Webhook після ввімкнення: `https://nmt.in.ua/api/telegram/webhook`. Контракт і правила фільтрації — у [telegram-integration.md](./telegram-integration.md).
+Read-only сервіс `src/modules/telegram/tasks.ts` приймає Telegram identity, а не application userId. Прив'язка через `user_telegram_accounts` визначає власника; джерело даних — наявні таблиці сесій і завдань. DTO не містить правильних відповідей чи секретів. Міграція для TG-003 не потрібна. `TELEGRAM_*` залишаються опційними: без них сайт працює, але `/account` не генерує Telegram link. Webhook після ввімкнення: `https://nmt.in.ua/api/telegram/webhook`. Контракт фільтрації — у `src/modules/telegram/tasks.ts`.
 
 ## 12. Як здати роботу
 
@@ -437,4 +435,4 @@ Read-only сервіс `src/modules/telegram/tasks.ts` приймає Telegram i
 
 ## TG-008 — запуск сповіщень
 
-Реалізовано захищений POST trigger і GitHub Actions schedule кожні 5 хвилин + workflow_dispatch на main для основного хостингу ukraine.com.ua. Потрібен окремий TELEGRAM_NOTIFICATIONS_TRIGGER_SECRET у runtime та GitHub Secrets, міграція 037 і чинні налаштування Telegram. Порядок активації, зупинки й обмеження — у [Telegram integration](telegram-integration.md#tg-008--автоматичний-запуск-сповіщень). Production scheduler ще не запускався; TG-009 заплановано.
+Реалізовано захищений POST trigger і GitHub Actions schedule кожні 5 хвилин + workflow_dispatch на main для основного хостингу ukraine.com.ua. Потрібен окремий TELEGRAM_NOTIFICATIONS_TRIGGER_SECRET у runtime та GitHub Secrets і чинні налаштування Telegram. Журнал доставки створює `ensureTelegramSchema`. Production scheduler ще не запускався; TG-009 заплановано.

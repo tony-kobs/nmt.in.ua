@@ -136,10 +136,16 @@
 }
 
 .accent {
-  background: var(--grad-brand);
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
+  color: var(--green-dark);
+}
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .accent {
+    background: var(--grad-brand);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
 }
 
 .lead {
@@ -174,8 +180,8 @@
 }
 
 .actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-sm);
   margin-top: var(--space-xs);
 }
@@ -185,11 +191,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   min-height: 48px;
   padding: 12px 22px;
   border-radius: var(--radius-pill);
   font-size: var(--fs-body);
   font-weight: 700;
+  text-align: center;
+  transition:
+    transform var(--t) var(--ease),
+    box-shadow var(--t) var(--ease);
 }
 
 .primary {
@@ -222,6 +233,16 @@
 @media (min-width: 768px) {
   .card {
     padding: var(--space-xl);
+  }
+
+  .actions {
+    grid-template-columns: repeat(2, max-content);
+    justify-content: start;
+  }
+
+  .primary,
+  .ghost {
+    width: auto;
   }
 }
 

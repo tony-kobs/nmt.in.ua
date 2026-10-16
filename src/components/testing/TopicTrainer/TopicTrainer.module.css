@@ -154,10 +154,10 @@
   font-size: 1rem;
   cursor: pointer;
   transition:
-    border-color var(--t, 180ms) ease,
-    background-color var(--t, 180ms) ease,
-    transform var(--t, 180ms) ease,
-    box-shadow var(--t, 180ms) ease;
+    border-color var(--t) var(--ease),
+    background-color var(--t) var(--ease),
+    transform var(--t) var(--ease),
+    box-shadow var(--t) var(--ease);
 }
 
 .answerBadge {

@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Деплой nmt.in.ua
 
-Повна пам’ятка: `docs/deploy.md`.
+Цей файл — пам’ятка релізу. Окремого `docs/deploy.md` немає.
 
 ## Процес релізу
 

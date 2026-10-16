@@ -1,6 +1,6 @@
 -- Marathon shell + participants (daily rules come later). Leaderboard scores are
 -- computed from completed task_sessions that started after the student joined
--- and inside the marathon window. 037 is telegram_task_notifications.
+-- and inside the marathon window. The delivery ledger is created by ensureTelegramSchema.
 
 CREATE TABLE IF NOT EXISTS marathons (
   id INT NOT NULL AUTO_INCREMENT,

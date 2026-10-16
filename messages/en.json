@@ -65,7 +65,8 @@
     "telegramError": "Could not create a Telegram link. Try again.",
     "kicker": "Profile",
     "title": "Personal account",
-    "lead": "Profile photo, public teacher card, password, results, and placeholders for achievements and study time.",
+    "lead": "Profile photo, password, and recent results.",
+    "leadAdmin": "Profile photo, password, and sign out.",
     "photoTitle": "Profile photo",
     "photoLead": "JPEG, PNG, or WebP. A square photo is cropped from the center and appears in the header.",
     "photoHint": "Up to {maxKb} KB. A square photo is cropped from the center and replaces the initials in the header.",
@@ -77,10 +78,6 @@
     "photoRemoveConfirm": "Remove the profile photo?",
     "photoRemoving": "Removing…",
     "photoRemoved": "Photo removed.",
-    "achievementsTitle": "Achievements",
-    "achievementsLead": "Badges for tests and the simulator will appear in a later version.",
-    "timeTitle": "Total study time",
-    "timeLead": "We do not sum session time yet — statistics will live here.",
     "passwordTitle": "Change password",
     "passwordLead": "The new password replaces the current one for this login right away.",
     "currentPassword": "Current password",
@@ -353,14 +350,6 @@
       "reserved_login": "That login is reserved.",
       "generic": "Could not save. Please try again."
     }
-  },
-  "StubPage": {
-    "developmentTitle": "Section in progress",
-    "developmentDescription": "The booking form is still being prepared. For now, try the NMT simulator or review theory in the textbook — and practise with a topic test.",
-    "goToTest": "Topic test",
-    "kicker": "Cabinet",
-    "goToSimulator": "NMT simulator",
-    "goToMaterials": "Textbook"
   },
   "Navigation": {
     "simulator": {
@@ -1426,14 +1415,13 @@
     "teachers": {
       "kicker": "Teachers",
       "title": "Teachers on our platform",
-      "lead": "Public teacher cards — experience, bio and next available slot.",
+      "lead": "Public teacher cards: experience, bio, and student count.",
       "verified": "Verified tutor",
       "city": "City",
       "education": "Education",
       "experience": "Experience",
-      "nextSlot": "Next available time",
-      "reviews": "(reviews: {count})",
-      "empty": "Teacher cards will appear here soon.",
+      "reviews": "(students: {count})",
+      "empty": "No public teacher cards yet.",
       "carouselAria": "Platform teachers carousel",
       "prev": "Previous teacher",
       "next": "Next teacher",
@@ -1444,7 +1432,6 @@
         "subjects": "Web development · Entrepreneurship and startups",
         "city": "Kharkiv",
         "experience": "12 years of teaching",
-        "nextSlot": "—",
         "headline": "Graduated from the Kharkiv Physics and Mathematics Lyceum and earned a specialist degree in economic cybernetics at Karazin University.",
         "bio": "Taught “Fundamentals of Entrepreneurship”, “Entrepreneurship and Startups” and “E-governance” at the university’s School of Economics. In 2018 became head of the Scientific Society of students, postgraduates, doctoral students and young researchers at Karazin University. Since 2008 has run a business in IT education and information technology.",
         "publications": "Sole author of six research papers and a participant in many international conferences. Contributed to the Kharkiv regional entrepreneurship support program for 2016–2020 and to the Kharkiv city development strategy. Coached young researchers in the Junior Academy of Sciences and prepared more than 15 winners of regional and national research competitions."
@@ -1496,7 +1483,6 @@
       "carouselAria": "Development team carousel",
       "servicesTitle": "Services the team provides",
       "servicesLead": "We build and support products — from education platforms to business tools.",
-      "formCta": "Discuss a project",
       "services": {
         "product": {
           "title": "Web product development",
@@ -1843,7 +1829,7 @@
     },
     "diagnostic": {
       "title": "Diagnostic test",
-      "description": "Rate your math knowledge and take a short diagnostic test across all topics."
+      "description": "A short diagnostic across topics. Difficulty follows your answers."
     },
     "diagnosticSession": {
       "title": "Diagnostic test",
@@ -1851,7 +1837,7 @@
     },
     "settings": {
       "title": "Settings",
-      "description": "Learning content import and account settings."
+      "description": "Import learning content into the task bank."
     },
     "materials": {
       "title": "Textbook",
@@ -1947,7 +1933,7 @@
   },
   "SettingsPage": {
     "title": "Settings",
-    "description": "Learning content import and account settings."
+    "description": "Import learning content into the task bank."
   },
   "simulator": {
     "eyebrow": "NMT",

@@ -9,7 +9,6 @@ alwaysApply: true
 
 - беклог PM — `docs/Goldener-Rechner-beklog-PM.md`;
 - онбординг dev — `docs/nmt-in-ua-onboarding-dev.md`;
-- старі таски ментора — `docs/mentor-tasks.md` (статуси можуть брехати);
 - перед версткою — `.cursor/rules/design-system.mdc` і `src/app/globals.css`.
 
 Після здачі задачі **онови документи**, якщо змінилось щось із цього:

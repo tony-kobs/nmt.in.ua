@@ -51,7 +51,11 @@ export default async function AccountPage() {
   }
 
   return (
-    <PageFrame kicker={t("kicker")} title={t("title")} lead={t("lead")}>
+    <PageFrame
+      kicker={t("kicker")}
+      title={t("title")}
+      lead={user.role === "admin" ? t("leadAdmin") : t("lead")}
+    >
       <AccountCabinet
         user={user}
         recentResults={recentResults}

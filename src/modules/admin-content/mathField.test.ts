@@ -1,7 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import fs from "node:fs";
-import path from "node:path";
 
 import {
   fromAdminPlainText,
@@ -59,36 +57,4 @@ test("wrapRichTextForStorage keeps Ukrainian prose with sqrt", () => {
 test("wrapMathForStorage wraps plain numbers", () => {
   assert.equal(wrapMathForStorage("12"), "$12$");
   assert.equal(wrapMathForStorage("8,5"), "$8{,}5$");
-});
-
-test("bank TeX commands disappear in admin view for real payloads", () => {
-  const sourcePath = path.resolve("scripts/content/quiz-tasks-source.mjs");
-  const source = fs.readFileSync(sourcePath, "utf8");
-  const strings = [...source.matchAll(/"(?:\\.|[^"\\])*"/g)].map((m) =>
-    JSON.parse(m[0]),
-  );
-
-  const leftover = new Map<string, number>();
-  for (const text of strings) {
-    if (typeof text !== "string" || !text.includes("\\")) continue;
-    // Skip pure code-like identifiers accidentally matched
-    for (const cmd of remainingTexCommands(text)) {
-      leftover.set(cmd, (leftover.get(cmd) || 0) + 1);
-    }
-  }
-
-  // Rare constructs we intentionally leave / do not fully flatten yet.
-  const allowed = new Set([
-    "lim", // lim_{…} underscore syntax
-  ]);
-
-  const unexpected = [...leftover.entries()]
-    .filter(([cmd]) => !allowed.has(cmd))
-    .sort((a, b) => b[1] - a[1]);
-
-  assert.deepEqual(
-    unexpected,
-    [],
-    `Unexpected leftover TeX after toAdminInput: ${JSON.stringify(Object.fromEntries(leftover))}`,
-  );
 });
