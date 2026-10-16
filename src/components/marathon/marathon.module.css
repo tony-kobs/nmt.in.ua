@@ -450,6 +450,52 @@
   font-family: var(--font-display);
 }
 
+.badgeOn {
+  justify-self: start;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--green) 45%, var(--line));
+  border-radius: var(--radius-pill);
+  background: var(--green-bg);
+  color: var(--green-dark);
+  font-family: var(--font-display);
+  font-size: var(--fs-small);
+}
+
+.linkStatus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.toast {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  bottom: var(--space-lg);
+  transform: translateX(-50%);
+  max-width: min(24rem, calc(100% - 2 * var(--container-pad)));
+  margin: 0;
+  padding: 0.7rem 1.1rem;
+  border: 1px solid color-mix(in srgb, var(--green) 45%, var(--line));
+  border-radius: var(--radius-pill);
+  background: var(--green-bg);
+  color: var(--green-dark);
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-display);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    transition: none;
+  }
+}
+
 .tgPreview {
   display: grid;
   gap: var(--space-sm);

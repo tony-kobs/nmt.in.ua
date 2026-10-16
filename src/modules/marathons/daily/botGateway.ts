@@ -20,11 +20,12 @@ import {
 import { renderResolved, resolveCopy } from "./copy";
 import { expandSources, introSources } from "./telegramContent";
 import {
+  currentDayNumber,
   dayUnlockAt,
   evaluateDayAccess,
   formatKyivWhen,
-  kyivDateIso,
 } from "./calendar";
+import { notifyMarathonRegistration } from "./registrationDelivery";
 import { marathonDayUrl } from "./mailCopy";
 import {
   BOARD_TOP,
@@ -116,20 +117,12 @@ function introFor(
 }
 
 function todayNumber(marathon: DailyMarathon, now: Date): number {
-  for (let dayNumber = 1; dayNumber <= marathon.daysCount; dayNumber += 1) {
-    const unlock = dayUnlockAt({
-      startDate: marathon.startDate,
-      unlockHour: marathon.unlockHour,
-      dayNumber,
-    });
-    if (kyivDateIso(unlock) === kyivDateIso(now)) return dayNumber;
-  }
-  const last = dayUnlockAt({
+  return currentDayNumber({
+    now,
     startDate: marathon.startDate,
     unlockHour: marathon.unlockHour,
-    dayNumber: marathon.daysCount,
-  });
-  return now.getTime() >= last.getTime() ? marathon.daysCount : 1;
+    daysCount: marathon.daysCount,
+  }) ?? 1;
 }
 
 function playFrom(progress: DayProgress | undefined): PlayState {
@@ -321,6 +314,15 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
       callback.channel,
       Boolean(participant.telegramChatId),
     );
+    if (callback.channel === "telegram") {
+      await notifyMarathonRegistration({
+        marathonId: marathon.id,
+        userId: participant.userId,
+        event: "channel",
+        channel: "telegram",
+        chatId: participant.telegramChatId,
+      });
+    }
   }
   const now = new Date();
   const [days, progressRows, copy] = await Promise.all([

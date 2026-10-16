@@ -9,8 +9,10 @@ import { createUser, CreateUserError } from "@/modules/auth/users";
 import { sendRegistrationVerificationMail } from "@/modules/auth/emailMessages";
 import { validateRegistrationInput } from "@/modules/auth/validateRegistration";
 import { safeInternalPath } from "@/lib/safeInternalPath";
-import { dayUnlockAt } from "./calendar";
+import { currentDayNumber, dayUnlockAt } from "./calendar";
+import { channelSavedPath } from "./channelPath";
 import { createMarathonBotLink } from "./botLink";
+import { notifyMarathonRegistration } from "./registrationDelivery";
 import {
   DUPLICATE_DAY,
   DUPLICATE_ORDER,
@@ -358,6 +360,11 @@ export async function joinMarathonAction(formData: FormData): Promise<void> {
   const marathon = await openMarathon(slug);
   if (!marathon || marathon.status !== "active") redirect(`/marathon/${slug}?error=closed`);
   await joinParticipant(marathon.id, user.id, utmJsonFromForm(formData));
+  await notifyMarathonRegistration({
+    marathonId: marathon.id,
+    userId: user.id,
+    event: "register",
+  });
   revalidatePath(`/marathon/${slug}/map`);
   redirect(`/marathon/${slug}/map`);
 }
@@ -448,6 +455,11 @@ export async function registerMarathonAction(
   if (!userId) return go(`${back}?error=server`);
   const join = deps.joinParticipant ?? joinParticipant;
   await join(marathon.id, userId, utmJsonFromForm(formData));
+  await notifyMarathonRegistration({
+    marathonId: marathon.id,
+    userId,
+    event: "register",
+  });
   let mailed = false;
   try {
     const send = deps.sendVerificationMail ?? sendRegistrationVerificationMail;
@@ -603,9 +615,33 @@ export async function setChannelAction(formData: FormData): Promise<void> {
     channel,
     Boolean(participant.telegramChatId),
   );
+  if (channel === "telegram") {
+    await notifyMarathonRegistration({
+      marathonId: marathon.id,
+      userId: user.id,
+      event: "channel",
+      channel,
+      chatId: participant.telegramChatId,
+    });
+  }
   revalidatePath(`/marathon/${slug}/map`);
-  const anchor = channel === "telegram" && !participant.telegramChatId ? "#notify" : "";
-  redirect(`/marathon/${slug}/map${anchor}`);
+  let dayNumber: number | null = null;
+  let dayReady = false;
+  try {
+    dayNumber = currentDayNumber({
+      now: new Date(),
+      startDate: marathon.startDate,
+      unlockHour: marathon.unlockHour,
+      daysCount: marathon.daysCount,
+    });
+    if (dayNumber != null) {
+      const days = await listDays(marathon.id);
+      dayReady = days.some((day) => day.dayNumber === dayNumber);
+    }
+  } catch (error) {
+    console.error("marathon channel redirect", error);
+  }
+  redirect(channelSavedPath({ slug: marathon.slug, dayNumber, dayReady }));
 }
 
 export async function notifyPrefsAction(formData: FormData): Promise<void> {
