@@ -13,6 +13,7 @@ import { currentDayNumber, dayUnlockAt } from "./calendar";
 import { channelSavedPath } from "./channelPath";
 import { createMarathonBotLink } from "./botLink";
 import { notifyMarathonRegistration } from "./registrationDelivery";
+import { markNotificationsReadByLink } from "@/modules/notifications/store";
 import {
   DUPLICATE_DAY,
   DUPLICATE_ORDER,
@@ -67,7 +68,8 @@ import {
   resetMarathonCopy,
   saveMarathonCopy,
   setDailyStatus,
-  setDeliveryChannel,
+  setNotifyToggles,
+  declineMarathon,
   setNotifyPrefs,
   updateDailyMarathon,
   updateDay,
@@ -365,8 +367,31 @@ export async function joinMarathonAction(formData: FormData): Promise<void> {
     userId: user.id,
     event: "register",
   });
+  try {
+    await markNotificationsReadByLink(user.id, `/marathon/${slug}`);
+  } catch (error) {
+    console.error("marathon invite read", error);
+  }
   revalidatePath(`/marathon/${slug}/map`);
+  revalidatePath("/");
   redirect(`/marathon/${slug}/map`);
+}
+
+export async function declineMarathonAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const slug = readText(formData.get("slug"), 64);
+  const marathon = await openMarathon(slug);
+  if (!marathon) redirect("/");
+  const participant = await getParticipant(marathon.id, user.id);
+  if (participant) redirect(`/marathon/${slug}/map`);
+  await declineMarathon(marathon.id, user.id);
+  try {
+    await markNotificationsReadByLink(user.id, `/marathon/${slug}`);
+  } catch (error) {
+    console.error("marathon decline read", error);
+  }
+  revalidatePath("/");
+  redirect("/");
 }
 
 type RegisterMarathonDeps = {
@@ -439,7 +464,7 @@ export async function registerMarathonAction(
         email: attempt.value.email,
         password,
         role: "student",
-        cabinetScope: "marathon",
+        cabinetScope: "full",
       });
       userId = user.id;
       break;
@@ -601,26 +626,19 @@ export async function seeIntroAction(formData: FormData): Promise<void> {
 export async function setChannelAction(formData: FormData): Promise<void> {
   const user = await requireUser();
   const slug = readText(formData.get("slug"), 64);
-  const channel = readText(formData.get("channel"), 16);
   const marathon = await openMarathon(slug);
   if (!marathon) redirect("/");
   const participant = await getParticipant(marathon.id, user.id);
   if (!participant) redirect(`/marathon/${slug}`);
-  if (channel !== "site" && channel !== "telegram") {
-    redirect(`/marathon/${slug}/map?error=invalid`);
-  }
-  await setDeliveryChannel(
-    marathon.id,
-    user.id,
-    channel,
-    Boolean(participant.telegramChatId),
-  );
-  if (channel === "telegram") {
+  const notifyEmail = formData.get("notifyEmail") === "1";
+  const notifyBot = formData.get("notifyTelegram") === "1";
+  await setNotifyToggles(marathon.id, user.id, { notifyEmail, notifyBot });
+  if (notifyBot) {
     await notifyMarathonRegistration({
       marathonId: marathon.id,
       userId: user.id,
       event: "channel",
-      channel,
+      channel: "telegram",
       chatId: participant.telegramChatId,
     });
   }

@@ -151,28 +151,15 @@ async function ensureUserColumn(
   return true;
 }
 
-/** Once, when `cabinet_scope` is created. Later boots must not undo an admin promotion. */
-async function backfillMarathonCabinetScope(
+/** Marathon accounts now use the full cabinet. Repeating the update is safe. */
+async function promoteMarathonCabinetScope(
   connection: SqlConnection,
 ): Promise<void> {
   try {
     await connection.execute(
-      `UPDATE ${AUTH_USERS_TABLE} u
-       SET u.cabinet_scope = 'marathon'
-       WHERE u.role = 'student'
-         AND u.cabinet_scope = 'full'
-         AND EXISTS (
-           SELECT 1 FROM marathon_participants p
-           INNER JOIN marathons m ON m.id = p.marathon_id
-           WHERE p.user_id = u.id AND m.kind = 'daily'
-         )
-         AND NOT EXISTS (
-           SELECT 1 FROM marathon_participants p
-           WHERE p.user_id = u.id AND p.converted_at IS NOT NULL
-         )
-         AND NOT EXISTS (
-           SELECT 1 FROM task_sessions s WHERE s.user_id = u.id
-         )`,
+      `UPDATE ${AUTH_USERS_TABLE}
+       SET cabinet_scope = 'full'
+       WHERE cabinet_scope = 'marathon'`,
       [],
     );
   } catch (error) {
@@ -214,14 +201,12 @@ async function runAuthSchemaMigration(
       "is_banned",
       "is_banned TINYINT(1) NOT NULL DEFAULT 0 AFTER role",
     );
-    const addedCabinetScope = await ensureUserColumn(
+    await ensureUserColumn(
       connection,
       "cabinet_scope",
       "cabinet_scope ENUM('full','marathon') NOT NULL DEFAULT 'full' AFTER role",
     );
-    if (addedCabinetScope) {
-      await backfillMarathonCabinetScope(connection);
-    }
+    await promoteMarathonCabinetScope(connection);
     await ensureUserColumn(
       connection,
       "last_login_at",

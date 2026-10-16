@@ -51,6 +51,11 @@ function MarathonFields({ values }: { values: MarathonInput }) {
       <AdminField name="subject" label={t("fields.subject")}>
         <AdminInput name="subject" defaultValue={values.subject} />
       </AdminField>
+      <div className={css.span2}>
+        <AdminField name="description" label={t("fields.description")} hint={t("hints.description")}>
+          <AdminTextarea name="description" defaultValue={values.description} rows={4} />
+        </AdminField>
+      </div>
       <AdminField name="startDate" label={t("fields.startDate")} hint={t("hints.startDate")}>
         <AdminInput name="startDate" type="date" defaultValue={values.startDate} />
       </AdminField>
@@ -135,6 +140,7 @@ export function CreateMarathonForm({ today }: { today: string }) {
         values={{
           slug: "",
           title: "",
+          description: "",
           subject: "math",
           startDate: today,
           unlockHour: "09:00",

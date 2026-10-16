@@ -5,50 +5,41 @@ export function isDeliveryChannel(value: string | null | undefined): value is De
 }
 
 /**
- * How reminders leave the server.
- * Telegram without a linked bot falls back to email until `linked` is true.
- * Pause silences both. A missing choice keeps the historical email default.
- * The two flags are exclusive: a stored pair of 1s must not send twice.
+ * The two toggles are independent.
+ * Pause silences email and Telegram together. The in-site bell is not part of this pair.
  */
 export function notifyFlags(input: {
-  channel: DeliveryChannel | null;
-  linked: boolean;
+  email: boolean;
+  telegram: boolean;
   paused: boolean;
 }): { notifyEmail: boolean; notifyBot: boolean } {
   if (input.paused) return { notifyEmail: false, notifyBot: false };
-  if (input.channel === "telegram") {
-    return input.linked
-      ? { notifyEmail: false, notifyBot: true }
-      : { notifyEmail: true, notifyBot: false };
-  }
-  if (input.channel === "site") return { notifyEmail: true, notifyBot: false };
-  return { notifyEmail: true, notifyBot: false };
+  return {
+    notifyEmail: input.email,
+    notifyBot: input.telegram,
+  };
 }
 
-/**
- * One delivery channel per participant.
- * Telegram is used only when that channel is chosen (or is the only enabled flag) and a chat is linked.
- * Email is the site choice, the unlinked-telegram fallback, or the legacy default.
- * Both flags on still yields a single channel.
- */
-export function personNotifyChannel(person: {
-  channel?: DeliveryChannel | null;
+export type NotifyPersonFlags = {
   email: string | null;
   telegramChatId: string | null;
   notifyEmail: boolean;
   notifyBot: boolean;
-}): "email" | "telegram" | null {
-  const paused = !person.notifyEmail && !person.notifyBot;
-  const linked = Boolean(person.telegramChatId);
-  if (person.channel === "telegram") {
-    if (paused) return null;
-    return linked ? "telegram" : person.email ? "email" : null;
-  }
-  if (person.channel === "site") {
-    if (paused) return null;
-    return person.email ? "email" : null;
-  }
-  if (person.notifyBot && linked) return "telegram";
-  if (person.notifyEmail && person.email) return "email";
-  return null;
+  paused?: boolean;
+  declined?: boolean;
+};
+
+/**
+ * External delivery for one participant.
+ * Email follows its toggle (on by default). Telegram goes to a linked bot when that toggle is on.
+ * A decline or a pause sends nothing. Both channels can be on at once.
+ */
+export function personNotifyChannels(
+  person: NotifyPersonFlags,
+): Array<"email" | "telegram"> {
+  if (person.declined || person.paused) return [];
+  const channels: Array<"email" | "telegram"> = [];
+  if (person.notifyEmail && person.email) channels.push("email");
+  if (person.notifyBot && person.telegramChatId) channels.push("telegram");
+  return channels;
 }

@@ -1,11 +1,8 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
-import {
-  joinMarathonAction,
-  linkBotAction,
-  setChannelAction,
-} from "@/modules/marathons/daily/actions";
+import { joinMarathonAction } from "@/modules/marathons/daily/actions";
+import { DeliveryToggles } from "./DeliveryToggles";
 import { formatKyivWhen } from "@/modules/marathons/daily/calendar";
 import type { BoardLine } from "@/modules/marathons/daily/leaderboard";
 import type { DailyMarathon, DayProgress, Participant } from "@/modules/marathons/daily/store";
@@ -29,8 +26,8 @@ type MarathonMapViewProps = {
   locale: string;
   botReady: boolean;
   channelPrompt: string;
-  siteLabel: string;
-  telegramLabel: string;
+  telegramLinked: boolean;
+  telegramUsername: string | null;
   board: BoardLine[];
   error?: string;
   saved?: boolean;
@@ -43,8 +40,8 @@ export async function MarathonMapView({
   locale,
   botReady,
   channelPrompt,
-  siteLabel,
-  telegramLabel,
+  telegramLinked,
+  telegramUsername,
   board,
   error,
   saved = false,
@@ -131,34 +128,15 @@ export async function MarathonMapView({
               </p>
               <section className={css.card} aria-labelledby="marathon-notify" id="notify">
                 <h2 id="marathon-notify">{t("channelTitle")}</h2>
-                <p className={css.lead}>{channelPrompt}</p>
-                <form action={setChannelAction} className={css.form}>
-                  <input type="hidden" name="slug" value={marathon.slug} />
-                  <div className={css.checks}>
-                    <label>
-                      <input type="radio" name="channel" value="site" defaultChecked={participant.channel !== "telegram"} required />
-                      {siteLabel}
-                    </label>
-                    <label>
-                      <input type="radio" name="channel" value="telegram" defaultChecked={participant.channel === "telegram"} />
-                      {telegramLabel}
-                    </label>
-                  </div>
-                  <button type="submit" className={css.button}>{t("save")}</button>
-                </form>
-                {participant.channel === "telegram" && !participant.telegramChatId ? (
-                  <p className={css.meta}>{t("emailFallback")}</p>
-                ) : null}
-                {botReady ? (
-                  <form action={linkBotAction}>
-                    <input type="hidden" name="slug" value={marathon.slug} />
-                    <button type="submit" className={css.buttonQuiet}>
-                      {participant.telegramChatId ? t("botLinked") : t("linkBot")}
-                    </button>
-                  </form>
-                ) : (
-                  <p className={css.meta}>{t("botOff")}</p>
-                )}
+                <DeliveryToggles
+                  slug={marathon.slug}
+                  prompt={channelPrompt}
+                  emailOn={participant.notifyEmail}
+                  telegramOn={participant.notifyBot}
+                  telegramLinked={telegramLinked || Boolean(participant.telegramChatId)}
+                  telegramUsername={telegramUsername}
+                  botReady={botReady}
+                />
               </section>
             </>
           ) : null}

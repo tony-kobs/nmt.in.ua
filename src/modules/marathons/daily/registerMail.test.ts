@@ -16,7 +16,7 @@ const student: AuthUser = {
   login: "pupil",
   displayName: "Олена К",
   role: "student",
-  cabinetScope: "marathon",
+  cabinetScope: "full",
   email: "pupil@school.ua",
   emailVerifyRequired: true,
 };
@@ -43,7 +43,7 @@ test("marathon join sends the verification letter before check-email", async () 
         createUser: async (input) => {
           events.push("user");
           assert.equal(input.role, "student");
-          assert.equal(input.cabinetScope, "marathon");
+          assert.equal(input.cabinetScope, "full");
           assert.equal(input.email, "pupil@school.ua");
           return student;
         },

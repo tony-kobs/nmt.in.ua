@@ -6,7 +6,7 @@ import {
   kyivHour,
   reminderAt,
 } from "./calendar";
-import { personNotifyChannel, type DeliveryChannel } from "./channel";
+import { personNotifyChannels, type DeliveryChannel } from "./channel";
 
 export type NotifyKind = "day_open" | "reminder" | "tomorrow" | "final" | "nudge";
 
@@ -29,6 +29,8 @@ export type NotifyPerson = {
   telegramChatId: string | null;
   notifyEmail: boolean;
   notifyBot: boolean;
+  paused?: boolean;
+  declined?: boolean;
   channel?: DeliveryChannel | null;
   completedDayNumbers: number[];
 };
@@ -38,9 +40,37 @@ function pushChannel(
   person: NotifyPerson,
   base: Omit<NotifyIntent, "channel">,
 ): void {
-  const channel = personNotifyChannel(person);
-  if (channel === "email" && person.email) intents.push({ ...base, channel });
-  if (channel === "telegram" && person.telegramChatId) intents.push({ ...base, channel });
+  for (const channel of personNotifyChannels(person)) {
+    intents.push({ ...base, channel });
+  }
+}
+
+/** In-site day-open notes. Always on for a participant who has not declined. */
+export function planSiteDayOpens(input: {
+  now: Date;
+  startDate: string;
+  unlockHour: string;
+  daysCount: number;
+  dayNumbers?: number[];
+  people: Array<Pick<NotifyPerson, "userId" | "declined" | "completedDayNumbers">>;
+}): Array<{ userId: number; dayNumber: number }> {
+  const intents: Array<{ userId: number; dayNumber: number }> = [];
+  const nowMs = input.now.getTime();
+  for (const dayNumber of plannedDays(input.daysCount, input.dayNumbers)) {
+    const unlockMs = dayUnlockAt({
+      startDate: input.startDate,
+      unlockHour: input.unlockHour,
+      dayNumber,
+    }).getTime();
+    const openWindow = nowMs >= unlockMs && nowMs < unlockMs + DAY_OPEN_NOTIFY_WINDOW_MS;
+    if (!openWindow) continue;
+    for (const person of input.people) {
+      if (person.declined) continue;
+      if (person.completedDayNumbers.includes(dayNumber)) continue;
+      intents.push({ userId: person.userId, dayNumber });
+    }
+  }
+  return intents;
 }
 
 function plannedDays(daysCount: number, dayNumbers?: number[]): number[] {

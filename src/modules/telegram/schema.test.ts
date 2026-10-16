@@ -38,5 +38,10 @@ test("Telegram schema initializes preferences after accounts, retries failures, 
   assert.match(statements[preferencesIndex], /daily_reminder TINYINT\(1\) NOT NULL DEFAULT 0/);
   assert.match(statements[preferencesIndex], /FOREIGN KEY \(account_id\)\s+REFERENCES user_telegram_accounts \(id\) ON DELETE CASCADE/);
   assert.ok(statements.some((sql) => /ALTER TABLE telegram_notification_preferences ALTER COLUMN daily_reminder SET DEFAULT 0/.test(sql)));
-  assert.equal(statements.some((sql) => /^(UPDATE|DELETE|DROP)\s/i.test(sql.trim())), false);
+  const writes = statements.filter((sql) => /^(UPDATE|DELETE|DROP)\s/i.test(sql.trim()));
+  assert.ok(
+    writes.every(
+      (sql) => sql.includes("cabinet_scope = 'full'") && sql.includes("cabinet_scope = 'marathon'"),
+    ),
+  );
 });
