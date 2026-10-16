@@ -7,30 +7,35 @@ import { rememberDeferred } from "@/modules/telegram/outbox";
 import { sendThrottled, sharedTelegramPace } from "@/modules/telegram/throttle";
 import { sendTelegramMessage } from "@/modules/telegram/transport";
 import { optionalTelegramBot } from "./botLink";
+import { personNotifyChannel } from "./channel";
 import { dayUnlockAt, formatKyivWhen } from "./calendar";
+import { shouldFinishDailyMarathon } from "./lifecycle";
 import { renderResolved, resolveCopy, type CopyKey } from "./copy";
 import { publicLeaderName, rankNoticeText, type BoardLine } from "./leaderboard";
 import { expandSources, materialSources } from "./telegramContent";
 import { marathonDayUrl, wrapMarathonMail } from "./mailCopy";
 import {
   deliverNotifications,
+  fallbackEmailAfterTelegram,
+  isDefinitiveTelegramFailure,
   planFollowUps,
   planNotifications,
   planNudges,
   unsubscribeToken,
   type NotifyIntent,
   type NotifyKind,
+  type TelegramAttempt,
 } from "./notifications";
 import {
   claimNotification,
   confirmNotification,
+  finishElapsedDailyMarathons,
+  listContentDayNumbers,
   listDays,
   listMaterials,
   loadMarathonBoard,
   loadNotifyAudience,
-  markMaterialsViewed,
   releaseNotification,
-  type DailyMarathon,
   type NotifyAudienceMarathon,
 } from "./store";
 
@@ -77,8 +82,17 @@ async function buildDeliveries(
 ): Promise<Delivery[]> {
   const deliveries: Delivery[] = [];
   for (const marathon of audience) {
+    if (shouldFinishDailyMarathon(now, marathon)) continue;
+    const dayNumbers = marathon.contentDayNumbers;
+    if (dayNumbers.length === 0) continue;
     const board = await loadBoard(marathon.marathonId);
     const standing = new Map(board.map((row) => [row.userId, row]));
+    const schedule = {
+      reminderHour: marathon.reminderHour,
+      nudgeFrom: marathon.nudgeFrom,
+      nudgeUntil: marathon.nudgeUntil,
+      dayNumbers,
+    };
     const intents = [
       ...planNotifications({
         now,
@@ -86,11 +100,14 @@ async function buildDeliveries(
         startDate: marathon.startDate,
         unlockHour: marathon.unlockHour,
         daysCount: marathon.daysCount,
+        reminderHour: schedule.reminderHour,
+        dayNumbers: schedule.dayNumbers,
         people: marathon.people,
       }),
       ...planFollowUps({
         marathonId: marathon.marathonId,
         daysCount: marathon.daysCount,
+        dayNumbers: schedule.dayNumbers,
         people: marathon.people,
       }),
       ...planNudges({
@@ -99,6 +116,9 @@ async function buildDeliveries(
         startDate: marathon.startDate,
         unlockHour: marathon.unlockHour,
         daysCount: marathon.daysCount,
+        nudgeFrom: schedule.nudgeFrom,
+        nudgeUntil: schedule.nudgeUntil,
+        dayNumbers: schedule.dayNumbers,
         people: marathon.people,
       }),
     ];
@@ -163,6 +183,7 @@ async function queueOpenedDay(
   dayNumber: number,
   chatId: string,
   announcement: string,
+  includeAnnouncement = true,
 ): Promise<boolean> {
   const bot = optionalTelegramBot();
   if (!bot) return false;
@@ -170,6 +191,7 @@ async function queueOpenedDay(
   const day = days.find((item) => item.dayNumber === dayNumber);
   const announce = { chatId, text: announcement };
   if (!day) {
+    if (!includeAnnouncement) return true;
     await rememberDeferred([announce]);
     return true;
   }
@@ -181,27 +203,38 @@ async function queueOpenedDay(
     { text: label, buttons: [{ text: label, data: `mh:mat:${day.dayNumber}` }] },
   ];
   const replies = piecesToReplies(chatId, expandSources(sources));
-  await rememberDeferred([announce, ...replies]);
-  const shell = {
-    id: marathon.marathonId,
-    slug: marathon.slug,
-    title: marathon.title,
-    subject: "math",
-    startDate: marathon.startDate,
-    unlockHour: marathon.unlockHour,
-    daysCount: marathon.daysCount,
-    passThreshold: 60,
-    finalCtaText: "",
-    finalCtaUrl: "",
-    introVideoUrl: "",
-    status: "active",
-  } satisfies DailyMarathon;
-  try {
-    await markMaterialsViewed({ marathon: shell, userId, day, now: new Date() });
-  } catch (error) {
-    console.error("marathon day viewed", error);
+  const last = replies[replies.length - 1];
+  if (last) {
+    last.materialsViewed = { marathonId: marathon.marathonId, userId, dayId: day.id };
   }
+  const queued = includeAnnouncement ? [announce, ...replies] : replies;
+  if (queued.length === 0) return true;
+  await rememberDeferred(queued);
   return true;
+}
+
+async function classifyTelegramSend(chatId: string, text: string): Promise<TelegramAttempt> {
+  const bot = optionalTelegramBot();
+  if (!bot) return "retry";
+  let definitive = false;
+  const paced = await sendThrottled([{ chatId, text }], {
+    chatId: (item) => item.chatId,
+    pace: sharedTelegramPace(),
+    budgetMs: 8_000,
+    send: async (item) => {
+      const result = await sendTelegramMessage({ chatId: item.chatId, text: item.text }, bot.token);
+      if (result.status === "sent") return { ok: true };
+      if (isDefinitiveTelegramFailure({
+        status: result.status,
+        errorCode: result.context.errorCode,
+        retryAfter: result.context.retryAfter,
+      })) definitive = true;
+      return { ok: false, ...(result.context.retryAfter != null ? { retryAfter: result.context.retryAfter } : {}) };
+    },
+  });
+  if (paced.sent.length === 1) return "sent";
+  if (definitive && paced.deferred.length === 0) return "definitive";
+  return "retry";
 }
 
 export async function runMarathonNotifications(deps: {
@@ -211,12 +244,19 @@ export async function runMarathonNotifications(deps: {
   release?: typeof releaseNotification;
   confirm?: typeof confirmNotification;
   sendEmail?: (input: { to: string; subject: string; html: string; text: string }) => Promise<boolean>;
-  sendTelegram?: (chatId: string, text: string) => Promise<boolean>;
+  sendTelegram?: (chatId: string, text: string) => Promise<boolean | "definitive">;
   telegramEnabled?: boolean;
   secret?: string | null;
   loadBoard?: (marathonId: number) => Promise<BoardLine[]>;
 } = {}): Promise<{ sent: number; skipped: number; failed: number }> {
   const now = deps.now?.() ?? new Date();
+  if (!deps.load) {
+    try {
+      await finishElapsedDailyMarathons(now);
+    } catch (error) {
+      console.error("marathon finish elapsed", error);
+    }
+  }
   const audience = await (deps.load ?? loadNotifyAudience)();
   const secret = deps.secret === undefined ? unsubscribeSecret() : deps.secret;
   const telegramEnabled = deps.telegramEnabled ?? Boolean(optionalTelegramBot());
@@ -233,28 +273,17 @@ export async function runMarathonNotifications(deps: {
     const result = await sendMail(input);
     return result.ok;
   });
-  const sendTelegram = deps.sendTelegram ?? (async (chatId, text) => {
-    const bot = optionalTelegramBot();
-    if (!bot) return false;
-    const paced = await sendThrottled([{ chatId, text }], {
-      chatId: (item) => item.chatId,
-      pace: sharedTelegramPace(),
-      budgetMs: 8_000,
-      send: async (item) => {
-        const result = await sendTelegramMessage({ chatId: item.chatId, text: item.text }, bot.token);
-        if (result.status === "sent") return { ok: true };
-        return { ok: false, ...(result.context.retryAfter != null ? { retryAfter: result.context.retryAfter } : {}) };
-      },
-    });
-    return paced.sent.length === 1;
-  });
+  const sendTelegram = deps.sendTelegram ?? (async (chatId, text) => classifyTelegramSend(chatId, text));
+  const claim = deps.claim ?? claimNotification;
+  const release = deps.release ?? releaseNotification;
+  const confirm = deps.confirm ?? (deps.claim ? undefined : confirmNotification);
   const audienceById = new Map(audience.map((item) => [item.marathonId, item]));
   return deliverNotifications(
     deliveries.map((item) => item.intent),
     {
-      claim: deps.claim ?? claimNotification,
-      release: deps.release ?? releaseNotification,
-      confirm: deps.confirm ?? (deps.claim ? undefined : confirmNotification),
+      claim,
+      release,
+      confirm,
       send: async (intent) => {
         const item = byKey.get(intentKey(intent));
         if (!item) return false;
@@ -267,20 +296,51 @@ export async function runMarathonNotifications(deps: {
             text: item.text,
           });
         }
-        if (!item.chatId) return false;
-        if (intent.kind === "day_open" && !deps.sendTelegram) {
+        let attempt: TelegramAttempt;
+        if (!item.chatId) {
+          attempt = "definitive";
+        } else if (intent.kind === "day_open" && !deps.sendTelegram) {
           const marathon = audienceById.get(intent.marathonId);
-          if (marathon) {
-            try {
-              return await queueOpenedDay(marathon, intent.userId, intent.dayNumber, item.chatId, item.text);
-            } catch (error) {
-              console.error("marathon day content", error);
-              return false;
+          if (!marathon) {
+            attempt = "retry";
+          } else {
+            attempt = await classifyTelegramSend(item.chatId, item.text);
+            if (attempt === "sent") {
+              try {
+                await queueOpenedDay(
+                  marathon,
+                  intent.userId,
+                  intent.dayNumber,
+                  item.chatId,
+                  item.text,
+                  false,
+                );
+              } catch (error) {
+                console.error("marathon day content", error);
+              }
             }
           }
+        } else {
+          const sent = await sendTelegram(item.chatId, item.text);
+          attempt = sent === true || sent === "sent" ? "sent" : sent === "definitive" ? "definitive" : "retry";
         }
-        const sent = await sendTelegram(item.chatId, item.text);
-        return sent;
+        return fallbackEmailAfterTelegram({
+          intent,
+          email: item.email,
+          attempt,
+          claim,
+          release,
+          confirm,
+          sendEmail: async () => {
+            if (!item.email) return false;
+            return sendEmail({
+              to: item.email,
+              subject: item.subject,
+              html: item.html,
+              text: item.text,
+            });
+          },
+        });
       },
     },
   );
@@ -307,9 +367,11 @@ export async function sendCompletedDayFollowUp(input: {
 }): Promise<{ sent: number; skipped: number; failed: number }> {
   void input.title;
   const secret = unsubscribeSecret();
+  const dayNumbers = await listContentDayNumbers(input.marathonId);
   const planned = planFollowUps({
     marathonId: input.marathonId,
     daysCount: input.daysCount,
+    dayNumbers,
     people: [{ ...input.person, completedDayNumbers: [input.completedDay] }],
   });
   if (input.skipTelegram) {
@@ -380,19 +442,27 @@ export async function sendCompletedDayFollowUp(input: {
           });
           return result.ok;
         }
-        const bot = optionalTelegramBot();
-        if (!bot || !item.chatId) return false;
-        const paced = await sendThrottled([{ chatId: item.chatId, text: item.text }], {
-          chatId: (entry) => entry.chatId,
-          pace: sharedTelegramPace(),
-          budgetMs: 8_000,
-          send: async (entry) => {
-            const result = await sendTelegramMessage({ chatId: entry.chatId, text: entry.text }, bot.token);
-            if (result.status === "sent") return { ok: true };
-            return { ok: false, ...(result.context.retryAfter != null ? { retryAfter: result.context.retryAfter } : {}) };
+        const attempt = item.chatId
+          ? await classifyTelegramSend(item.chatId, item.text)
+          : "definitive";
+        return fallbackEmailAfterTelegram({
+          intent,
+          email: item.email,
+          attempt,
+          claim: claimNotification,
+          release: releaseNotification,
+          confirm: confirmNotification,
+          sendEmail: async () => {
+            if (!item.email) return false;
+            const result = await sendMail({
+              to: item.email,
+              subject: item.subject,
+              html: item.html,
+              text: item.text,
+            });
+            return result.ok;
           },
         });
-        return paced.sent.length === 1;
       },
     },
   );
@@ -426,7 +496,9 @@ export async function sendRankNotice(input: {
       )
     : null;
   const mail = wrapMarathonMail({ rendered, unsubscribeUrl: unsub });
-  if (input.person.notifyEmail && input.person.email) {
+  const channel = personNotifyChannel(input.person);
+  const sendLetter = async () => {
+    if (!input.person.email) return;
     try {
       await sendMail({
         to: input.person.email,
@@ -437,30 +509,14 @@ export async function sendRankNotice(input: {
     } catch (error) {
       console.error("marathon rank mail", error);
     }
-  }
-  if (!input.skipTelegram && input.person.notifyBot && input.person.telegramChatId) {
-    const bot = optionalTelegramBot();
-    if (bot) {
-      try {
-        await sendThrottled([{ chatId: input.person.telegramChatId, text: rendered }], {
-          chatId: (entry) => entry.chatId,
-          pace: sharedTelegramPace(),
-          budgetMs: 8_000,
-          send: async (entry) => {
-            const result = await sendTelegramMessage(
-              { chatId: entry.chatId, text: entry.text },
-              bot.token,
-            );
-            if (result.status === "sent") return { ok: true };
-            return {
-              ok: false,
-              ...(result.context.retryAfter != null ? { retryAfter: result.context.retryAfter } : {}),
-            };
-          },
-        });
-      } catch (error) {
-        console.error("marathon rank telegram", error);
-      }
+  };
+  if (channel === "email") await sendLetter();
+  if (channel === "telegram" && !input.skipTelegram && input.person.telegramChatId) {
+    try {
+      const attempt = await classifyTelegramSend(input.person.telegramChatId, rendered);
+      if (attempt === "definitive") await sendLetter();
+    } catch (error) {
+      console.error("marathon rank telegram", error);
     }
   }
   return rendered;

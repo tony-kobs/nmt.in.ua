@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { joinMarathonAction } from "@/modules/marathons/daily/actions";
+import type { BoardLine } from "@/modules/marathons/daily/leaderboard";
 import type { DailyMarathon, Riddle } from "@/modules/marathons/daily/store";
 import type { UtmParams } from "@/modules/marathons/daily/utm";
+import { MarathonBoard } from "./MarathonBoard";
 import { UtmFields } from "./UtmFields";
 import { marathonErrorText } from "./errors";
 import css from "./marathon.module.css";
@@ -13,6 +15,8 @@ type MarathonLandingProps = {
   loggedIn: boolean;
   utm: UtmParams;
   error?: string;
+  board?: BoardLine[];
+  viewerId?: number | null;
 };
 
 export async function MarathonLanding({
@@ -21,6 +25,8 @@ export async function MarathonLanding({
   loggedIn,
   utm,
   error,
+  board = [],
+  viewerId = null,
 }: MarathonLandingProps) {
   const t = await getTranslations("Marathon");
   const query = new URLSearchParams();
@@ -76,7 +82,19 @@ export async function MarathonLanding({
           </div>
         )
       ) : (
-        <p className={css.lead}>{t("finishedNote")}</p>
+        <>
+          <p className={css.lead}>{t("finishedNote")}</p>
+          <MarathonBoard
+            rows={board}
+            selfId={viewerId}
+            titleId="marathon-finished-board"
+          />
+          {loggedIn ? (
+            <Link href={`/marathon/${marathon.slug}/map`} className={css.button}>
+              {t("finishedMap")}
+            </Link>
+          ) : null}
+        </>
       )}
     </div>
   );

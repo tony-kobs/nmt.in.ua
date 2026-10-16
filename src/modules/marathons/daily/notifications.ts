@@ -6,6 +6,7 @@ import {
   kyivHour,
   reminderAt,
 } from "./calendar";
+import { personNotifyChannel, type DeliveryChannel } from "./channel";
 
 export type NotifyKind = "day_open" | "reminder" | "tomorrow" | "final" | "nudge";
 
@@ -28,8 +29,27 @@ export type NotifyPerson = {
   telegramChatId: string | null;
   notifyEmail: boolean;
   notifyBot: boolean;
+  channel?: DeliveryChannel | null;
   completedDayNumbers: number[];
 };
+
+function pushChannel(
+  intents: NotifyIntent[],
+  person: NotifyPerson,
+  base: Omit<NotifyIntent, "channel">,
+): void {
+  const channel = personNotifyChannel(person);
+  if (channel === "email" && person.email) intents.push({ ...base, channel });
+  if (channel === "telegram" && person.telegramChatId) intents.push({ ...base, channel });
+}
+
+function plannedDays(daysCount: number, dayNumbers?: number[]): number[] {
+  if (!dayNumbers) {
+    return Array.from({ length: daysCount }, (_, index) => index + 1);
+  }
+  return [...new Set(dayNumbers.filter((day) => Number.isInteger(day) && day >= 1 && day <= daysCount))]
+    .sort((left, right) => left - right);
+}
 
 export function planNotifications(input: {
   now: Date;
@@ -37,12 +57,15 @@ export function planNotifications(input: {
   startDate: string;
   unlockHour: string;
   daysCount: number;
+  reminderHour?: string;
+  /** When set, days without a row are not announced. */
+  dayNumbers?: number[];
   people: NotifyPerson[];
 }): NotifyIntent[] {
   const intents: NotifyIntent[] = [];
   const nowMs = input.now.getTime();
   const today = kyivDateIso(input.now);
-  for (let dayNumber = 1; dayNumber <= input.daysCount; dayNumber += 1) {
+  for (const dayNumber of plannedDays(input.daysCount, input.dayNumbers)) {
     const unlockAt = dayUnlockAt({
       startDate: input.startDate,
       unlockHour: input.unlockHour,
@@ -55,6 +78,7 @@ export function planNotifications(input: {
     const remindAt = reminderAt({
       startDate: input.startDate,
       dayNumber,
+      reminderHour: input.reminderHour,
     }).getTime();
     const nextUnlock = dayUnlockAt({
       startDate: input.startDate,
@@ -70,24 +94,12 @@ export function planNotifications(input: {
       if (openWindow) kinds.push("day_open");
       if (reminderWindow) kinds.push("reminder");
       for (const kind of kinds) {
-        if (person.notifyEmail && person.email) {
-          intents.push({
-            marathonId: input.marathonId,
-            userId: person.userId,
-            dayNumber,
-            kind,
-            channel: "email",
-          });
-        }
-        if (person.notifyBot && person.telegramChatId) {
-          intents.push({
-            marathonId: input.marathonId,
-            userId: person.userId,
-            dayNumber,
-            kind,
-            channel: "telegram",
-          });
-        }
+        pushChannel(intents, person, {
+          marathonId: input.marathonId,
+          userId: person.userId,
+          dayNumber,
+          kind,
+        });
       }
     }
   }
@@ -105,13 +117,18 @@ export function planNudges(input: {
   startDate: string;
   unlockHour: string;
   daysCount: number;
+  nudgeFrom?: number;
+  nudgeUntil?: number;
+  dayNumbers?: number[];
   people: NotifyPerson[];
 }): NotifyIntent[] {
+  const from = input.nudgeFrom ?? NUDGE_HOUR_FROM;
+  const until = input.nudgeUntil ?? NUDGE_HOUR_UNTIL;
   const hour = kyivHour(input.now);
-  if (hour < NUDGE_HOUR_FROM || hour >= NUDGE_HOUR_UNTIL) return [];
+  if (hour < from || hour >= until) return [];
   const intents: NotifyIntent[] = [];
   const nowMs = input.now.getTime();
-  for (let dayNumber = 1; dayNumber <= input.daysCount; dayNumber += 1) {
+  for (const dayNumber of plannedDays(input.daysCount, input.dayNumbers)) {
     let nextUnlock = 0;
     try {
       nextUnlock = dayUnlockAt({
@@ -125,24 +142,12 @@ export function planNudges(input: {
     if (nowMs < nextUnlock) continue;
     for (const person of input.people) {
       if (person.completedDayNumbers.includes(dayNumber)) continue;
-      if (person.notifyEmail && person.email) {
-        intents.push({
-          marathonId: input.marathonId,
-          userId: person.userId,
-          dayNumber,
-          kind: "nudge",
-          channel: "email",
-        });
-      }
-      if (person.notifyBot && person.telegramChatId) {
-        intents.push({
-          marathonId: input.marathonId,
-          userId: person.userId,
-          dayNumber,
-          kind: "nudge",
-          channel: "telegram",
-        });
-      }
+      pushChannel(intents, person, {
+        marathonId: input.marathonId,
+        userId: person.userId,
+        dayNumber,
+        kind: "nudge",
+      });
     }
   }
   return intents;
@@ -156,40 +161,85 @@ export function planNudges(input: {
 export function planFollowUps(input: {
   marathonId: number;
   daysCount: number;
+  dayNumbers?: number[];
   people: NotifyPerson[];
 }): NotifyIntent[] {
+  const known = input.dayNumbers ? new Set(plannedDays(input.daysCount, input.dayNumbers)) : null;
+  const last = known && known.size > 0 ? Math.max(...known) : input.daysCount;
   const intents: NotifyIntent[] = [];
   for (const person of input.people) {
     const done = new Set(person.completedDayNumbers);
     const queue: Array<{ dayNumber: number; kind: NotifyKind }> = [];
-    for (let day = 1; day < input.daysCount; day += 1) {
+    for (let day = 1; day < last; day += 1) {
+      if (known && (!known.has(day) || !known.has(day + 1))) continue;
       if (done.has(day)) queue.push({ dayNumber: day + 1, kind: "tomorrow" });
     }
-    if (input.daysCount > 0 && done.has(input.daysCount)) {
-      queue.push({ dayNumber: input.daysCount, kind: "final" });
+    if (last > 0 && done.has(last) && (!known || known.has(last))) {
+      queue.push({ dayNumber: last, kind: "final" });
     }
     for (const item of queue) {
-      if (person.notifyEmail && person.email) {
-        intents.push({
-          marathonId: input.marathonId,
-          userId: person.userId,
-          dayNumber: item.dayNumber,
-          kind: item.kind,
-          channel: "email",
-        });
-      }
-      if (person.notifyBot && person.telegramChatId) {
-        intents.push({
-          marathonId: input.marathonId,
-          userId: person.userId,
-          dayNumber: item.dayNumber,
-          kind: item.kind,
-          channel: "telegram",
-        });
-      }
+      pushChannel(intents, person, {
+        marathonId: input.marathonId,
+        userId: person.userId,
+        dayNumber: item.dayNumber,
+        kind: item.kind,
+      });
     }
   }
   return intents;
+}
+
+export type TelegramAttempt = "sent" | "retry" | "definitive";
+
+/**
+ * 400/403 without retry_after means the chat will not accept this bot
+ * (blocked, deactivated, chat not found). 401/429/network stay retryable.
+ */
+export function isDefinitiveTelegramFailure(input: {
+  status: string;
+  errorCode?: number;
+  retryAfter?: number;
+}): boolean {
+  if (input.retryAfter != null) return false;
+  if (input.status !== "rejected") return false;
+  return input.errorCode === 400 || input.errorCode === 403;
+}
+
+/**
+ * Email is a fallback claim on channel `email`, not a second copy of a successful telegram send.
+ * A transient telegram failure releases nothing here: the caller retries telegram.
+ * A definitive failure confirms the email row when the letter goes out, and returns false
+ * (so the telegram claim is released) when the letter itself fails and should be retried.
+ * No inbox closes the telegram attempt: there is nowhere else to deliver it.
+ */
+export async function fallbackEmailAfterTelegram(input: {
+  intent: NotifyIntent;
+  email: string | null;
+  attempt: TelegramAttempt;
+  claim: (intent: NotifyIntent) => Promise<"claimed" | "duplicate">;
+  release: (intent: NotifyIntent) => Promise<void>;
+  confirm?: (intent: NotifyIntent) => Promise<void>;
+  sendEmail: () => Promise<boolean>;
+}): Promise<boolean> {
+  if (input.attempt === "sent") return true;
+  if (input.attempt !== "definitive") return false;
+  if (!input.email) return true;
+  const emailIntent: NotifyIntent = { ...input.intent, channel: "email" };
+  const taken = await input.claim(emailIntent);
+  if (taken === "duplicate") return true;
+  const ok = await input.sendEmail();
+  if (!ok) {
+    await input.release(emailIntent);
+    return false;
+  }
+  if (input.confirm) {
+    try {
+      await input.confirm(emailIntent);
+    } catch (error) {
+      console.error("marathon notification confirm", error);
+    }
+  }
+  return true;
 }
 
 export async function deliverNotifications(

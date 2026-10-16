@@ -85,6 +85,19 @@ test("empty marathon form names every missing field, including the start date", 
   assertCopy(parsed.issues);
 });
 
+test("reminder hour and nudge window explain a bad clock", () => {
+  const parsed = parseMarathonInput(data({
+    ...validMarathon,
+    reminderHour: "9:00",
+    nudgeFrom: "21",
+    nudgeUntil: "10",
+  }));
+  assert.equal(parsed.ok, false);
+  if (parsed.ok) return;
+  assert.deepEqual(codes(parsed.issues), ["reminderHour.format", "nudgeUntil.range"]);
+  assertCopy(parsed.issues);
+});
+
 test("a cleared start date is the only marathon error when the rest is filled", () => {
   const parsed = parseMarathonInput(data({ ...validMarathon, startDate: "" }));
   assert.equal(parsed.ok, false);

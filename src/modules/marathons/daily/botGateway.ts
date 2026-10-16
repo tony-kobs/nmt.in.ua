@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { piecesToReplies } from "@/modules/telegram/deliver";
 import type { TelegramReply } from "@/modules/telegram/taskInteraction";
 import { absoluteUrl } from "@/modules/mail/sendMail";
+import { isQuizCallback, presentBotQuiz } from "./botQuiz";
 import {
   blankPlay,
   callbackFromTokenPayload,
@@ -42,8 +43,10 @@ import {
   loadMarathonCopy,
   markIntroSeen,
   markMaterialsViewed,
+  listChatMarathons,
   pauseMarathonNotifications,
   readMarathonBotToken,
+  selectChatMarathon,
   saveMarathonBotTokens,
   savePartialAnswers,
   setDeliveryChannel,
@@ -257,12 +260,34 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
   if (!parsed) return null;
   let callback = callbackFrom(parsed);
   if (!callback) return null;
-  const linked = await findParticipantByChat(parsed.chatId);
+  let linked = await findParticipantByChat(parsed.chatId);
   if (!linked) {
     const bare = await marathonBareStart(parsed.chatId);
     return bare ? [bare] : null;
   }
+  if (callback.kind === "list") {
+    const rows = await listChatMarathons(parsed.chatId);
+    return toReplies(parsed.chatId, [{
+      text: "Оберіть марафон",
+      buttons: rows.map((row) => ({
+        text: row.title.trim().slice(0, 60) || `Марафон ${row.id}`,
+        data: `mh:pick:${row.id}`,
+      })),
+    }]);
+  }
+  if (callback.kind === "pick") {
+    const selected = await selectChatMarathon(parsed.chatId, callback.marathonId);
+    if (!selected) {
+      return toReplies(parsed.chatId, [{ text: "Цей марафон не прив’язаний до чату." }]);
+    }
+    linked = await findParticipantByChat(parsed.chatId);
+    if (!linked) return toReplies(parsed.chatId, [{ text: "Не вдалося відкрити марафон." }]);
+    callback = { kind: "menu" };
+  }
   const { marathon, participant } = linked;
+  if (isQuizCallback(callback)) {
+    return toReplies(parsed.chatId, await presentBotQuiz(participant.userId, callback));
+  }
   if (callback.kind === "token") {
     const payload = await readMarathonBotToken(callback.token, marathon.id, participant.userId);
     const resolved = payload ? callbackFromTokenPayload(payload) : null;
@@ -340,6 +365,13 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     })));
   }
   let outgoing = presented.messages;
+  if (callback.kind === "menu") {
+    const rows = await listChatMarathons(parsed.chatId);
+    const menu = outgoing[0];
+    if (rows.length > 1 && menu) {
+      menu.buttons = [...(menu.buttons ?? []), { text: "Інші марафони", data: "mh:list" }];
+    }
+  }
   if (participant.channel === "telegram" && !participant.introSeen) {
     const mapUrl = absoluteUrl(`/marathon/${encodeURIComponent(marathon.slug)}/map`);
     outgoing = [
@@ -415,6 +447,7 @@ async function persistPlay(input: {
             telegramChatId: input.participant.telegramChatId,
             notifyEmail: input.participant.notifyEmail,
             notifyBot: input.participant.notifyBot,
+            channel: input.participant.channel,
             completedDayNumbers: [input.day.dayNumber],
           },
         });
@@ -440,6 +473,7 @@ async function persistPlay(input: {
           telegramChatId: input.participant.telegramChatId,
           notifyEmail: input.participant.notifyEmail,
           notifyBot: input.participant.notifyBot,
+          channel: input.participant.channel,
           completedDayNumbers: [input.day.dayNumber],
         },
         skipTelegram: true,

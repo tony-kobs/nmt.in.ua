@@ -56,7 +56,7 @@ export async function submitOpenedDay(
   if (!gate.ok) return gate;
   const graded = deps.grade();
   const score = scorePercent(graded.correct, graded.total);
-  const passed = isDayPassed(score, input.passThreshold);
+  const passed = isDayPassed(score, input.passThreshold, graded.total);
   const completedAt = now.getTime();
   const streak = streakAfterSubmission({
     ...input,

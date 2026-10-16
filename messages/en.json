@@ -780,7 +780,11 @@
     "showAnswer": "Answer",
     "join": "Join",
     "haveAccount": "I already have an account",
-    "finishedNote": "This marathon has finished.",
+    "finishedNote": "This marathon has finished. Results stay available.",
+    "finishedMap": "My map and results",
+    "notReady": "This marathon cannot be activated until it is ready.",
+    "notReadyMissing": "Missing days: {days}. Every day from 1 through the day count is required.",
+    "notReadyEmpty": "No tasks: {days}. Each day needs at least one task.",
     "joinTitle": "Join the marathon",
     "joinLead": "Create an account to take “{title}”. Confirm your email and the day map will open.",
     "name": "Name",
@@ -887,6 +891,9 @@
       "subject": "Subject",
       "startDate": "Start date",
       "unlockHour": "Hour (Kyiv)",
+      "reminderHour": "Reminder (Kyiv)",
+      "nudgeFrom": "Nudge from",
+      "nudgeUntil": "Nudge until",
       "daysCount": "Days",
       "passThreshold": "Threshold, %",
       "finalCtaText": "Button label",
@@ -917,6 +924,9 @@
       "slug": "Lowercase Latin letters, digits, and hyphens. For example, math-5.",
       "startDate": "Defaults to today in Kyiv.",
       "unlockHour": "HH:MM, for example 09:00.",
+      "reminderHour": "Evening reminder, HH:MM. Default 19:00.",
+      "nudgeFrom": "Kyiv hour when a missed-day note may start. Default 10.",
+      "nudgeUntil": "Kyiv hour when that note stops. Default 21.",
       "daysCount": "An integer from 1 to 14.",
       "passThreshold": "An integer from 0 to 100.",
       "finalCtaUrl": "A path starting with / or a full http:// or https:// URL.",
@@ -927,6 +937,7 @@
     "placeholders": {
       "slug": "math-5",
       "unlockHour": "09:00",
+      "reminderHour": "19:00",
       "finalCtaUrl": "/"
     },
     "fieldErrors": {
@@ -949,6 +960,15 @@
       "unlockHour": {
         "required": "Enter the unlock hour.",
         "format": "Use HH:MM, for example 09:00."
+      },
+      "reminderHour": {
+        "format": "Use HH:MM for the reminder, for example 19:00."
+      },
+      "nudgeFrom": {
+        "range": "Hour must be an integer from 0 to 23."
+      },
+      "nudgeUntil": {
+        "range": "The window must end later than it starts, hour 0–23."
       },
       "daysCount": {
         "range": "Days must be an integer from 1 to 14."
@@ -1061,6 +1081,7 @@
     },
     "errors": {
       "closed": "This marathon is not accepting participants.",
+      "not_ready": "Cannot activate: every day from 1 through the day count is required, and each day needs at least one task.",
       "invalid": "Check the form fields.",
       "duplicate": "That entry already exists.",
       "server": "Could not save. Try again.",
