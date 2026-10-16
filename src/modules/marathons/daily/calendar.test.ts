@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  currentDayNumber,
   dayUnlockAt,
   evaluateDayAccess,
   isDayUnlocked,
@@ -97,4 +98,12 @@ test("future day numbers and a forged later clock are not accepted by the gate",
   });
   assert.equal(outOfRange.open, false);
   if (!outOfRange.open) assert.equal(outOfRange.code, "invalid_day");
+});
+
+test("current day is today's unlock, day 1 before the start, and the last day after the end", () => {
+  assert.equal(currentDayNumber({ ...WINTER, now: new Date("2026-01-09T12:00:00.000Z") }), 1);
+  assert.equal(currentDayNumber({ ...WINTER, now: new Date("2026-01-10T07:00:00.000Z") }), 1);
+  assert.equal(currentDayNumber({ ...WINTER, now: new Date("2026-01-11T07:00:00.000Z") }), 2);
+  assert.equal(currentDayNumber({ ...WINTER, now: new Date("2026-01-20T07:00:00.000Z") }), 5);
+  assert.equal(currentDayNumber({ ...WINTER, now: new Date("2026-01-10T07:00:00.000Z"), daysCount: 0 }), null);
 });

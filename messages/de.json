@@ -798,6 +798,8 @@
     "notifyBot": "Telegram",
     "save": "Speichern",
     "botLinked": "Bot ist schon verknüpft",
+    "botJoined": "Bot verbunden",
+    "botNotJoined": "Nicht verbunden",
     "linkBot": "Telegram verknüpfen",
     "botOff": "Der Bot ist noch nicht eingerichtet.",
     "materialsTitle": "Material",
@@ -979,7 +981,7 @@
       },
       "body": {
         "required": "Gib den Text an.",
-        "placeholder": "Unbekannter Platzhalter. Erlaubt sind nur name, day, topic, unlock_time, link, place, prev_place, delta und total in geschweiften Klammern."
+        "placeholder": "Unbekannter Platzhalter. Erlaubt sind nur name, day, topic, unlock_time, link, place, prev_place, delta, total, title und start_date in geschweiften Klammern."
       },
       "introVideo": {
         "format": "Das Einführungsvideo muss ein YouTube- oder Loom-Link sein."
@@ -1023,7 +1025,7 @@
       "reset": "Auf Standard zurücksetzen",
       "tooLong": "Nach dem Einsetzen ist der Text länger als das Telegram-Limit ({limit} Zeichen). Der Bot teilt lange Materialien, diese Vorlage muss in eine Nachricht passen.",
       "buttonLong": "Die Beschriftung ist länger als {limit} Zeichen — Telegram lehnt sie ab.",
-      "placeholdersHint": "Platzhalter in geschweiften Klammern: name, day, topic, unlock_time, link, place, prev_place, delta, total.",
+      "placeholdersHint": "Platzhalter in geschweiften Klammern: name, day, topic, unlock_time, link, place, prev_place, delta, total, title, start_date.",
       "groups": {
         "intro": "Einstieg",
         "day": "Tagesauswertung",
@@ -1059,6 +1061,7 @@
         "bot_btn_telegram": "Button In Telegram",
         "bot_locked": "Tag noch geschlossen",
         "bot_link_ok": "Bot verknüpft",
+        "bot_registered": "Registrierungsbestätigung",
         "bot_open_site": "Button Auf der Website öffnen",
         "bot_to_tasks": "Button Zu den Aufgaben"
       }

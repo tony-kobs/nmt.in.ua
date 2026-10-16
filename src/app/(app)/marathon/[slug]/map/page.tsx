@@ -8,6 +8,7 @@ import { createPageMetadata } from "@/constants/seo";
 import { requireUser } from "@/modules/auth/getCurrentUser";
 import { listDayAccess } from "@/modules/marathons/daily/calendar";
 import { optionalTelegramBot } from "@/modules/marathons/daily/botLink";
+import { getTelegramLinkRecord } from "@/modules/telegram/link";
 import { renderCopy, renderResolved, resolveCopy } from "@/modules/marathons/daily/copy";
 import { renderSafeMarkdown } from "@/modules/marathons/daily/richText";
 import {
@@ -23,7 +24,7 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ error?: string | string[]; panel?: string | string[] }>;
+  searchParams: Promise<{ error?: string | string[]; panel?: string | string[]; saved?: string | string[] }>;
 };
 
 export async function generateMetadata({ params }: PageProps) {
@@ -44,13 +45,17 @@ export default async function MarathonMapPage({ params, searchParams }: PageProp
   const marathon = await getDailyBySlug(slug);
   if (!marathon || marathon.status === "draft") notFound();
   if (marathon.status !== "active" && marathon.status !== "finished") notFound();
-  const [days, participant, progress, locale, copy, board] = await Promise.all([
+  const [days, participant, progress, locale, copy, board, telegramRecord] = await Promise.all([
     listDays(marathon.id),
     getParticipant(marathon.id, user.id),
     listProgress(marathon.id, user.id),
     getLocale(),
     loadMarathonCopy(marathon.id),
     loadMarathonBoard(marathon.id),
+    getTelegramLinkRecord(user.id).catch((error: unknown) => {
+      console.error("marathon channel telegram", error);
+      return null;
+    }),
   ]);
   if (marathon.status === "active" && !participant) {
     // Stay on the map: the view offers join for an existing account.
@@ -63,6 +68,7 @@ export default async function MarathonMapPage({ params, searchParams }: PageProp
   });
   const error = Array.isArray(query.error) ? query.error[0] : query.error;
   const panel = Array.isArray(query.panel) ? query.panel[0] : query.panel;
+  const saved = (Array.isArray(query.saved) ? query.saved[0] : query.saved) === "1";
   const rulesHtml = renderSafeMarkdown(renderCopy(resolveCopy("intro_rules", copy), {
     name: participant?.displayName || user.displayName,
   }));
@@ -81,6 +87,9 @@ export default async function MarathonMapPage({ params, searchParams }: PageProp
         prompt={channelPrompt}
         siteLabel={siteLabel}
         telegramLabel={telegramLabel}
+        telegramLinked={Boolean(telegramRecord) || Boolean(participant.telegramChatId)}
+        telegramUsername={telegramRecord?.username ?? null}
+        botReady={Boolean(optionalTelegramBot())}
       />
     );
   }
@@ -98,6 +107,7 @@ export default async function MarathonMapPage({ params, searchParams }: PageProp
       siteLabel={siteLabel}
       telegramLabel={telegramLabel}
       error={error}
+      saved={saved}
       board={board}
       days={access.map((item) => {
         const content = days.find((day) => day.dayNumber === item.dayNumber);

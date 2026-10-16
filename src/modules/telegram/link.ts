@@ -84,6 +84,37 @@ export async function getTelegramLinkStatus(
   }
 }
 
+export async function getTelegramLinkRecord(
+  userId: number,
+  deps: Pick<LinkDeps, "getConnection"> = defaultDeps,
+): Promise<{ chatId: string; username: string | null } | null> {
+  if (!Number.isSafeInteger(userId) || userId <= 0) return null;
+  await ensureTelegramSchema(deps.getConnection);
+  const connection = await deps.getConnection();
+  try {
+    const rows = await connection.query<{
+      telegram_chat_id: number | string | null;
+      telegram_username: string | null;
+    }>(
+      "SELECT telegram_chat_id, telegram_username FROM user_telegram_accounts WHERE user_id = ? LIMIT 1",
+      [userId],
+    );
+    const row = rows[0];
+    if (!row || row.telegram_chat_id == null) return null;
+    const chatId = String(row.telegram_chat_id);
+    if (!/^[1-9][0-9]{0,19}$/.test(chatId)) return null;
+    const raw = typeof row.telegram_username === "string"
+      ? row.telegram_username.replace(/^@/, "")
+      : "";
+    return {
+      chatId,
+      username: /^[A-Za-z0-9_]{5,32}$/.test(raw) ? raw : null,
+    };
+  } finally {
+    connection.release();
+  }
+}
+
 export type TelegramIdentity = {
   userId: string;
   chatId: string;

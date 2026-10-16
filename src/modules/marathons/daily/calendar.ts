@@ -186,6 +186,30 @@ export function evaluateDayAccess(input: {
   return { open: true, unlockAt };
 }
 
+/**
+ * The day a participant should open now: today's unlock, the last day after
+ * the marathon has passed, or day 1 before the first unlock. `null` when the
+ * calendar itself is invalid.
+ */
+export function currentDayNumber(input: {
+  now: Date;
+  startDate: string;
+  unlockHour: string;
+  daysCount: number;
+}): number | null {
+  if (!Number.isInteger(input.daysCount) || input.daysCount < 1) return null;
+  try {
+    for (let dayNumber = 1; dayNumber <= input.daysCount; dayNumber += 1) {
+      const unlock = dayUnlockAt({ ...input, dayNumber });
+      if (kyivDateIso(unlock) === kyivDateIso(input.now)) return dayNumber;
+    }
+    const last = dayUnlockAt({ ...input, dayNumber: input.daysCount });
+    return input.now.getTime() >= last.getTime() ? input.daysCount : 1;
+  } catch {
+    return null;
+  }
+}
+
 export function listDayAccess(input: {
   now: Date;
   startDate: string;

@@ -66,6 +66,7 @@ export async function consumeMarathonStart(
   await ensureMarathonSchema(getConnection);
   await ensureTelegramSchema(getConnection);
   const connection = await getConnection();
+  let notice: { marathonId: number; userId: number } | null = null;
   try {
     await connection.beginTransaction();
     const rows = await connection.query<{
@@ -139,11 +140,25 @@ export async function consumeMarathonStart(
       [row.id],
     );
     await connection.commit();
-    return true;
+    notice = { marathonId: row.marathon_id, userId: row.user_id };
   } catch (error) {
     await connection.rollback();
     throw error;
   } finally {
     connection.release();
   }
+  if (notice) {
+    try {
+      const { notifyMarathonRegistration } = await import("./registrationDelivery");
+      await notifyMarathonRegistration({
+        marathonId: notice.marathonId,
+        userId: notice.userId,
+        event: "link",
+        chatId: identity.chatId,
+      });
+    } catch (error) {
+      console.error("marathon registration telegram", error);
+    }
+  }
+  return notice != null;
 }

@@ -2,7 +2,8 @@
  * Participant-facing marathon copy.
  * Missing rows fall back to the Ukrainian defaults. Placeholders:
  * `{name}`, `{day}`, `{topic}`, `{unlock_time}`, `{link}`,
- * `{place}`, `{prev_place}`, `{delta}`, `{total}`.
+ * `{place}`, `{prev_place}`, `{delta}`, `{total}`,
+ * `{title}`, `{start_date}`.
  */
 
 export const COPY_PLACEHOLDERS = [
@@ -15,6 +16,8 @@ export const COPY_PLACEHOLDERS = [
   "prev_place",
   "delta",
   "total",
+  "title",
+  "start_date",
 ] as const;
 
 export type CopyPlaceholder = (typeof COPY_PLACEHOLDERS)[number];
@@ -45,6 +48,7 @@ export const COPY_KEYS = [
   "bot_btn_telegram",
   "bot_locked",
   "bot_link_ok",
+  "bot_registered",
   "bot_open_site",
   "bot_to_tasks",
 ] as const;
@@ -76,6 +80,7 @@ export const COPY_GROUPS: Array<{ id: "intro" | "day" | "final" | "notify" | "ra
       "bot_btn_stop",
       "bot_locked",
       "bot_link_ok",
+      "bot_registered",
       "bot_open_site",
       "bot_to_tasks",
     ],
@@ -130,6 +135,8 @@ export const COPY_DEFAULTS: Record<CopyKey, string> = {
   bot_btn_telegram: "В Telegram",
   bot_locked: "День {day} ({topic}) ще закритий. Відкриється {unlock_time}.\n{link}",
   bot_link_ok: "Бот підключено. Нагадування і дні марафону приходитимуть сюди.",
+  bot_registered:
+    "Ви зареєструвалися на марафон «{title}». Старт: {start_date}. Завдання приходитимуть сюди.",
   bot_open_site: "Відкрити на сайті",
   bot_to_tasks: "До завдань",
 };
@@ -146,6 +153,8 @@ export const COPY_PREVIEW_SAMPLE: Record<CopyPlaceholder, string> = {
   prev_place: "4",
   delta: "2",
   total: "7",
+  title: "П'ять днів",
+  start_date: "8 жовтня 2026",
 };
 
 const PLACEHOLDER_RE = /\{([A-Za-z0-9_]+)\}/g;

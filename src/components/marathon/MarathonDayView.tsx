@@ -12,6 +12,7 @@ import type { PendingPlayTask, ReviewedPlayTask } from "@/modules/marathons/dail
 import type { BoardLine } from "@/modules/marathons/daily/leaderboard";
 import type { DailyMarathon, DayProgress, MarathonDay, Material } from "@/modules/marathons/daily/store";
 import { MarathonBoard } from "./MarathonBoard";
+import { SavedToast } from "./SavedToast";
 import { marathonErrorText } from "./errors";
 import css from "./marathon.module.css";
 
@@ -29,15 +30,17 @@ type MarathonDayViewProps = {
   board: BoardLine[];
   selfId: number;
   error?: string;
+  saved?: boolean;
 };
 
 export async function MarathonDayView(props: MarathonDayViewProps) {
   const t = await getTranslations("Marathon");
-  const { marathon, day, materials, tasks, review, progress, lockedUntil, locale, reviewIntro, rankNote, board, selfId, error } = props;
+  const { marathon, day, materials, tasks, review, progress, lockedUntil, locale, reviewIntro, rankNote, board, selfId, error, saved = false } = props;
   const submitted = progress?.completedAt != null;
   const message = marathonErrorText(t, error);
   return (
     <div className={css.narrow}>
+      <SavedToast active={saved} text={t("saved")} />
       <PageFrame
         kicker={t("dayLabel", { n: day.dayNumber })}
         title={day.topic}
