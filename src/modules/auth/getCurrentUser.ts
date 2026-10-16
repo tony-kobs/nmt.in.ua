@@ -13,6 +13,11 @@ import {
 } from "./sessionToken";
 import { findUserById } from "./users";
 import { verifySessionToken } from "./sessionToken";
+import {
+  openLoginSession,
+  revokeLoginSession,
+  touchLoginSession,
+} from "./userSessions";
 
 export async function getSessionPayload() {
   const cookieStore = await cookies();
@@ -115,22 +120,37 @@ export async function requireRole(roles: UserRole[]): Promise<AuthUser> {
   return user;
 }
 
+function cookieOptions(maxAge: number) {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge,
+  };
+}
+
 export async function setSessionCookie(user: AuthUser): Promise<void> {
+  const nowSec = Math.floor(Date.now() / 1000);
+  let sid: number | undefined;
+  try {
+    const opened = await openLoginSession(user.id, {
+      expiresAtSec: nowSec + SESSION_MAX_AGE_SEC,
+    });
+    sid = opened.id;
+  } catch (error) {
+    console.error("setSessionCookie: login session was not stored", error);
+  }
   const token = await createSessionToken({
     userId: user.id,
     role: user.role,
     displayName: user.displayName,
     login: user.login,
     avatarRev: user.avatarRev,
+    sid,
   });
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: SESSION_MAX_AGE_SEC,
-  });
+  cookieStore.set(SESSION_COOKIE_NAME, token, cookieOptions(SESSION_MAX_AGE_SEC));
 }
 
 /**
@@ -161,27 +181,69 @@ export async function renewSessionCookie(user: AuthUser): Promise<boolean> {
       displayName: user.displayName,
       login: user.login,
       avatarRev: user.avatarRev,
+      sid: payload.sid,
     },
     payload.exp,
   );
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: remainingSec,
-  });
+  cookieStore.set(SESSION_COOKIE_NAME, token, cookieOptions(remainingSec));
   return true;
+}
+
+/** Drops the current login row so the user stops counting as online. */
+export async function revokeCurrentLoginSession(): Promise<void> {
+  const payload = await getSessionPayload();
+  if (!payload?.sid) return;
+  await revokeLoginSession(payload.sid, payload.userId);
+}
+
+/**
+ * Heartbeat for a cookie that predates login rows: open one session that
+ * ends at the cookie's existing `exp`, then store its id in the cookie.
+ * Cookies that already have `sid` only refresh `last_seen_at`.
+ */
+export async function ensureCookieLoginSession(): Promise<void> {
+  const payload = await getSessionPayload();
+  if (!payload) return;
+  if (payload.sid) {
+    await touchLoginSession(payload.userId, payload.sid);
+    return;
+  }
+
+  let displayName = payload.displayName;
+  let login = payload.login;
+  let avatarRev = payload.avatarRev;
+  if (!displayName || !login) {
+    const user = await findUserById(payload.userId);
+    if (!user || user.isBanned) return;
+    displayName = user.displayName;
+    login = user.login;
+    avatarRev = user.avatarRev;
+  }
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const remainingSec = payload.exp - nowSec;
+  if (remainingSec <= 0) return;
+
+  const opened = await openLoginSession(payload.userId, {
+    expiresAtSec: payload.exp,
+  });
+  const token = await createRenewedSessionToken(
+    {
+      userId: payload.userId,
+      role: payload.role,
+      displayName,
+      login,
+      avatarRev,
+      sid: opened.id,
+    },
+    payload.exp,
+  );
+  const cookieStore = await cookies();
+  cookieStore.set(SESSION_COOKIE_NAME, token, cookieOptions(remainingSec));
 }
 
 export async function clearSessionCookie(): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, "", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 0,
-  });
+  cookieStore.set(SESSION_COOKIE_NAME, "", cookieOptions(0));
 }

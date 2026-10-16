@@ -4,8 +4,10 @@ import { UpgradeSessionCookie } from "@/components/auth/UpgradeSessionCookie";
 import { pickClientMessages } from "@/i18n/clientMessages";
 import {
   getCurrentUser,
+  getSessionPayload,
   sessionCookieNeedsUpgrade,
 } from "@/modules/auth/getCurrentUser";
+import { touchLoginSession } from "@/modules/auth/userSessions";
 import { findUserById } from "@/modules/auth/users";
 import type { MarathonInvite } from "@/modules/marathons/daily/invite";
 import { ensureStudentMarathonInvites } from "@/modules/marathons/daily/invites";
@@ -37,6 +39,14 @@ export default async function AppLayout({
     if (!account || account.isBanned) {
       // Cookie mutation is illegal during RSC render — use the route handler.
       redirect("/api/auth/clear-session");
+    }
+    const payload = await getSessionPayload();
+    if (payload?.sid) {
+      try {
+        await touchLoginSession(payload.userId, payload.sid);
+      } catch (error) {
+        console.error("presence touch failed", error);
+      }
     }
     cabinetScope = account.cabinetScope ?? "full";
     if (user.role === "student") {

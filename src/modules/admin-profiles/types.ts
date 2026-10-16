@@ -10,6 +10,8 @@ export type AdminProfile = {
   cabinetScope: CabinetScope;
   isBanned: boolean;
   isOnline: boolean;
+  /** Minutes since `last_seen_at`, from MySQL `TIMESTAMPDIFF`. Null if never seen. */
+  seenMinutesAgo: number | null;
   lastLoginAt: string | null;
   lastSeenAt: string | null;
   createdAt: string;

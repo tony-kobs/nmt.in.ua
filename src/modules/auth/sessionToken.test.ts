@@ -73,6 +73,21 @@ test("createSessionToken round-trips an optional avatarRev", async () => {
   assert.equal(payload?.avatarRev, 1_700_000_111);
 });
 
+test("createSessionToken round-trips a login session id", async () => {
+  const token = await createSessionToken(
+    {
+      userId: 4,
+      role: "student",
+      displayName: "Марія",
+      login: "maria_k",
+      sid: 15,
+    },
+    NOW,
+  );
+  const payload = await verifySessionToken(token, NOW);
+  assert.equal(payload?.sid, 15);
+});
+
 test("createSessionToken omits avatarRev when the user has no photo", async () => {
   const token = await createSessionToken(
     {

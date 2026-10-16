@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
-import { clearSessionCookie } from "@/modules/auth/getCurrentUser";
+import {
+  clearSessionCookie,
+  revokeCurrentLoginSession,
+} from "@/modules/auth/getCurrentUser";
 
 /**
  * Clears `nmt_session` then sends the browser to `/login`.
@@ -13,6 +16,11 @@ import { clearSessionCookie } from "@/modules/auth/getCurrentUser";
  * 127.1.10.37 listener behind the hosting proxy.
  */
 export async function GET() {
+  try {
+    await revokeCurrentLoginSession();
+  } catch (error) {
+    console.error("clear-session: revoke failed", error);
+  }
   await clearSessionCookie();
   return NextResponse.redirect(absoluteSiteUrl("/login"));
 }

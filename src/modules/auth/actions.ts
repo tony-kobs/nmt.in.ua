@@ -10,6 +10,7 @@ import {
   clearSessionCookie,
   renewSessionCookie,
   requireUser,
+  revokeCurrentLoginSession,
   setSessionCookie,
 } from "./getCurrentUser";
 import { changePassword, ChangePasswordError } from "./changePassword";
@@ -192,6 +193,11 @@ export async function registerAction(
 }
 
 export async function logoutAction(): Promise<void> {
+  try {
+    await revokeCurrentLoginSession();
+  } catch (error) {
+    console.error("logoutAction: session revoke failed", error);
+  }
   await clearSessionCookie();
   redirect("/login");
 }

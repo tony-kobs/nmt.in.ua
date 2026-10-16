@@ -20,3 +20,9 @@ test("isUserOnline is false after the threshold", () => {
   const stale = new Date(now - ONLINE_THRESHOLD_MS - 1_000).toISOString();
   assert.equal(isUserOnline(stale, now), false);
 });
+
+test("isUserOnline is false when the stamp is in the future", () => {
+  const now = Date.UTC(2026, 8, 16, 12, 0, 0);
+  const ahead = new Date(now + 60 * 60 * 1000).toISOString();
+  assert.equal(isUserOnline(ahead, now), false);
+});

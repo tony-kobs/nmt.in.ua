@@ -9,6 +9,7 @@ export type SessionTokenInput = {
   displayName: string;
   login: string;
   avatarRev?: number;
+  sid?: number;
 };
 
 function readSecret(): string {
@@ -107,6 +108,9 @@ function buildSessionPayload(
   if (isPositiveInt(input.avatarRev)) {
     payload.avatarRev = input.avatarRev;
   }
+  if (isPositiveInt(input.sid)) {
+    payload.sid = input.sid;
+  }
   return payload;
 }
 
@@ -188,6 +192,10 @@ export async function verifySessionToken(
 
   if (isPositiveInt(record.avatarRev)) {
     payload.avatarRev = record.avatarRev;
+  }
+
+  if (isPositiveInt(record.sid)) {
+    payload.sid = record.sid;
   }
 
   return payload;

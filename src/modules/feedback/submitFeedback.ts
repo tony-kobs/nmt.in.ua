@@ -1,4 +1,8 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import {
+  notifyAdminsOfFeedback,
+  type FeedbackStoredNotice,
+} from "./notifyAdmins";
 import { ensureFeedbackSchema, loadFeedbackConnection } from "./schema";
 import {
   EMAIL_MAX_LEN,
@@ -44,6 +48,7 @@ const SQL_INSERT = `
 
 type SubmitFeedbackDeps = {
   getConnection: () => Promise<SqlConnection>;
+  notifyAdmins?: (input: FeedbackStoredNotice) => Promise<void>;
 };
 
 function isPositiveInt(value: unknown): value is number {
@@ -172,7 +177,25 @@ export async function submitFeedback(
           "db_error",
         );
       }
-      return { id: result.insertId };
+      const id = result.insertId;
+      const notify =
+        deps.notifyAdmins ??
+        ((notice: FeedbackStoredNotice) =>
+          notifyAdminsOfFeedback(notice, {
+            getConnection: deps.getConnection,
+          }));
+      try {
+        await notify({
+          id,
+          userId: input.userId,
+          score: input.score,
+          message: input.message,
+          email: input.email,
+        });
+      } catch (notifyError) {
+        console.error("submitFeedback: admin notify failed", notifyError);
+      }
+      return { id };
     } finally {
       connection.release();
     }

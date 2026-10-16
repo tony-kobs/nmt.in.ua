@@ -41,6 +41,48 @@ const studentRow = {
   created_at: "2026-01-01T00:00:00.000Z",
 };
 
+test("setProfileBanned stays offline when only last_seen looks fresh", async () => {
+  const profile = await setProfileBanned(
+    { actorUserId: 3, targetUserId: 10, banned: false },
+    {
+      getConnection: async () =>
+        mockConnection({
+          query: async () => [
+            {
+              ...studentRow,
+              is_online: 0,
+              seen_minutes_ago: 180,
+              last_seen_at: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
+            },
+          ],
+        }),
+    },
+  );
+  assert.equal(profile.isOnline, false);
+  assert.equal(profile.seenMinutesAgo, 180);
+  assert.equal(profile.isBanned, false);
+});
+
+test("setProfileBanned marks online only from the live-session flag", async () => {
+  const profile = await setProfileBanned(
+    { actorUserId: 3, targetUserId: 10, banned: false },
+    {
+      getConnection: async () =>
+        mockConnection({
+          query: async () => [
+            {
+              ...studentRow,
+              is_online: 1,
+              seen_minutes_ago: 1,
+            },
+          ],
+        }),
+    },
+  );
+  assert.equal(profile.isOnline, true);
+  assert.equal(profile.seenMinutesAgo, 1);
+});
+
 test("setProfileBanned blocks self-action", async () => {
   await assert.rejects(
     () =>

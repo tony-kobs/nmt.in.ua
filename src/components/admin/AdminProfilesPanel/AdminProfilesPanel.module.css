@@ -148,6 +148,12 @@
   color: var(--subtle);
 }
 
+.presenceAgo {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: var(--fs-small);
+}
+
 .presenceDot {
   width: 0.55rem;
   height: 0.55rem;
