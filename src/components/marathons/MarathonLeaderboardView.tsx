@@ -1,6 +1,6 @@
 import Link from "next/link";
 import clsx from "clsx";
-import { boardShowsSpeed } from "@/modules/marathons/boardStats";
+import { ALL_MARATHONS_SLUG, boardShowsSpeed } from "@/modules/marathons/boardStats";
 import { formatPercent, formatSpeed } from "@/modules/results/types";
 import type { MarathonLeaderboardView as LeaderboardData } from "@/modules/marathons/types";
 import { getTranslations } from "next-intl/server";
@@ -53,6 +53,7 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
     rosterSize,
   } = data;
   const daily = marathon.kind === "daily";
+  const allTime = marathon.slug === ALL_MARATHONS_SLUG;
   const showSpeed = boardShowsSpeed(marathon.kind, rows);
 
   return (
@@ -63,17 +64,26 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
           value={marathon.slug}
           options={options.map((option) => ({
             value: option.slug,
-            label: optionLabel(option, t("statusFinished")),
+            label:
+              option.slug === ALL_MARATHONS_SLUG
+                ? t("allMarathons")
+                : optionLabel(option, t("statusFinished")),
           }))}
         />
       ) : null}
       <div className={css.marathonMeta}>
-        <p className={css.marathonTitle}>{marathon.title}</p>
-        {daily && marathon.description ? (
+        <p className={css.marathonTitle}>
+          {allTime ? t("allMarathons") : marathon.title}
+        </p>
+        {daily && !allTime && marathon.description ? (
           <p className={css.marathonDesc}>{marathon.description}</p>
         ) : null}
         <p className={css.marathonRules}>
-          {daily ? t("rulesDaily") : t("rules", { min: marathon.min_tasks_per_session })}
+          {allTime
+            ? t("rulesAll")
+            : daily
+              ? t("rulesDaily")
+              : t("rules", { min: marathon.min_tasks_per_session })}
         </p>
       </div>
 
@@ -100,7 +110,7 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
         </p>
       ) : null}
 
-      {mode === "student" && !isParticipant && daily ? (
+      {mode === "student" && !isParticipant && daily && !allTime ? (
         <p className={css.monitorBanner}>
           <Link className={css.joinBtn} href={`/marathon/${marathon.slug}`}>
             {t("openMarathon")}

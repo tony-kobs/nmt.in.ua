@@ -2,7 +2,9 @@ import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
 import {
+  ALL_MARATHONS_SLUG,
   buildDailyBoard,
+  earliestDailyPeople,
   pickMarathonSlug,
   sortBoardChoices,
   type DailyDayResult,
@@ -68,37 +70,60 @@ function decorate(
   };
 }
 
+async function loadParticipants(
+  connection: SqlConnection,
+  marathonIds: readonly number[],
+): Promise<ParticipantRow[]> {
+  if (marathonIds.length === 0) return [];
+  const placeholders = marathonIds.map(() => "?").join(", ");
+  return connection.query<ParticipantRow>(
+    `SELECT mp.user_id, u.display_name, u.login,
+            UNIX_TIMESTAMP(mp.joined_at) AS joined_at
+     FROM marathon_participants mp
+     INNER JOIN app_users u ON u.id = mp.user_id AND u.is_banned = 0
+     WHERE mp.marathon_id IN (${placeholders})
+     ORDER BY u.display_name, mp.joined_at`,
+    [...marathonIds],
+  );
+}
+
 async function dailyRows(
   connection: SqlConnection,
-  marathonId: number,
+  marathonIds: readonly number[],
   participants: ParticipantRow[],
   viewerUserId: number,
   rosterStudentIds: ReadonlySet<number>,
 ): Promise<MarathonLeaderboardRow[]> {
-  await refreshDailyPoints(connection, marathonId);
+  for (const marathonId of marathonIds) {
+    await refreshDailyPoints(connection, marathonId);
+  }
+  if (marathonIds.length === 0) return [];
+  const placeholders = marathonIds.map(() => "?").join(", ");
   const progress = await connection.query<{
+    marathon_id: number | null;
     user_id: number;
     day_id: number | null;
     score: number | null;
     correct_count: number | null;
     completed_at: number | string | null;
   }>(
-    `SELECT pr.user_id, pr.day_id, pr.score, pr.correct_count,
+    `SELECT pr.marathon_id, pr.user_id, pr.day_id, pr.score, pr.correct_count,
             UNIX_TIMESTAMP(pr.completed_at) AS completed_at
      FROM marathon_day_progress pr
-     WHERE pr.marathon_id = ? AND pr.completed_at IS NOT NULL`,
-    [marathonId],
+     WHERE pr.marathon_id IN (${placeholders}) AND pr.completed_at IS NOT NULL`,
+    [...marathonIds],
   );
   const days: DailyDayResult[] = progress
     .filter((row) => row.day_id != null)
     .map((row) => ({
       userId: Number(row.user_id),
       dayId: Number(row.day_id),
+      marathonId: row.marathon_id == null ? undefined : Number(row.marathon_id),
       score: row.score == null ? null : Number(row.score),
       correctCount: Number(row.correct_count) || 0,
       completedAt: Number(row.completed_at) * 1000 || null,
     }));
-  return buildDailyBoard(
+  const people = earliestDailyPeople(
     participants.map((person) => ({
       userId: person.user_id,
       displayName: person.display_name,
@@ -106,8 +131,8 @@ async function dailyRows(
       joinedAt: Number(person.joined_at) * 1000 || 0,
       streak: 0,
     })),
-    days,
-  ).map((row) => decorate({
+  );
+  return buildDailyBoard(people, days).map((row) => decorate({
     rank: row.rank,
     userId: row.userId,
     displayName: row.displayName,
@@ -273,36 +298,53 @@ export async function getMarathonLeaderboard(
         })),
     );
     const slug = pickMarathonSlug(choices, options.marathonSlug);
-    const selected = choices.find((row) => row.slug === slug);
-    if (!selected || selected.status === "draft") return null;
-    const marathon = {
-      id: Number(selected.id),
-      slug: selected.slug,
-      title: selected.title,
-      description: selected.description,
-      status: selected.status,
-      starts_at: Number(selected.starts_at),
-      ends_at: Number(selected.ends_at),
-      min_tasks_per_session: Number(selected.min_tasks_per_session),
-      kind: selected.kind,
-    };
-    const boardOptions = choices.map((row) => ({
-      slug: row.slug,
-      title: row.title,
-      status: row.status,
-    }));
+    const selected = slug === ALL_MARATHONS_SLUG
+      ? null
+      : choices.find((row) => row.slug === slug);
+    if (slug !== ALL_MARATHONS_SLUG && (!selected || selected.status === "draft")) return null;
+    const dailyChoices = choices.filter((row) => row.kind === "daily");
+    const marathon = selected
+      ? {
+          id: Number(selected.id),
+          slug: selected.slug,
+          title: selected.title,
+          description: selected.description,
+          status: selected.status,
+          starts_at: Number(selected.starts_at),
+          ends_at: Number(selected.ends_at),
+          min_tasks_per_session: Number(selected.min_tasks_per_session),
+          kind: selected.kind,
+        }
+      : {
+          id: 0,
+          slug: ALL_MARATHONS_SLUG,
+          title: "",
+          description: null,
+          status: "active",
+          starts_at: 0,
+          ends_at: 0,
+          min_tasks_per_session: 0,
+          kind: "daily" as const,
+        };
+    const boardOptions = [
+      ...(dailyChoices.length > 0
+        ? [{ slug: ALL_MARATHONS_SLUG, title: "", status: "all" }]
+        : []),
+      ...choices.map((row) => ({
+        slug: row.slug,
+        title: row.title,
+        status: row.status,
+      })),
+    ];
+    const marathonIds = slug === ALL_MARATHONS_SLUG
+      ? dailyChoices.map((row) => row.id)
+      : [marathon.id];
 
-    const participants = await connection.query<ParticipantRow>(
-      `SELECT mp.user_id, u.display_name, u.login,
-              UNIX_TIMESTAMP(mp.joined_at) AS joined_at
-       FROM marathon_participants mp
-       INNER JOIN app_users u ON u.id = mp.user_id AND u.is_banned = 0
-       WHERE mp.marathon_id = ?
-       ORDER BY u.display_name`,
-      [marathon.id],
-    );
+    const participants = await loadParticipants(connection, marathonIds);
 
-    const participantIds = participants.map((p) => p.user_id);
+    const participantIds = [
+      ...new Set(participants.map((person) => person.user_id)),
+    ];
     const isParticipant = participantIds.includes(viewerUserId);
 
     const empty = {
@@ -318,7 +360,7 @@ export async function getMarathonLeaderboard(
     if (participantIds.length === 0) return empty;
 
     const rows = marathon.kind === "daily"
-      ? await dailyRows(connection, marathon.id, participants, viewerUserId, rosterStudentIds)
+      ? await dailyRows(connection, marathonIds, participants, viewerUserId, rosterStudentIds)
       : await sessionRows(
           connection,
           marathon,
@@ -335,7 +377,7 @@ export async function getMarathonLeaderboard(
       marathon,
       options: boardOptions,
       rows,
-      participantCount: participants.length,
+      participantCount: participantIds.length,
       isParticipant,
       currentUserRank: current?.rank ?? null,
       rosterParticipantCount,
