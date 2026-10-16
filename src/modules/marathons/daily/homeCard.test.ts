@@ -47,8 +47,10 @@ test("a joined marathon offers continue and a draft stays off the home page", ()
     joinedSlugs: new Set(["math-5"]),
     declinedSlugs: new Set(["math-5"]),
   });
-  assert.equal(cards.length, 1);
-  assert.equal(cards[0]?.action, "continue");
-  assert.equal(cards[0]?.href, "/marathon/math-5/map");
+  const joined = cards.find((card) => card.slug === "math-5");
+  assert.equal(joined?.action, "continue");
+  assert.equal(joined?.href, "/marathon/math-5/map");
+  const open = cards.find((card) => card.slug === "geo");
+  assert.equal(open?.action, "join");
   assert.equal(cards.some((card) => card.slug === "draft-one"), false);
 });
