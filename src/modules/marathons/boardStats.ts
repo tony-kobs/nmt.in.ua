@@ -2,6 +2,9 @@ import { rankParticipants } from "./daily/leaderboard";
 
 export type MarathonBoardKind = "daily" | "sessions";
 
+/** Combined daily board: every active and finished daily marathon. */
+export const ALL_MARATHONS_SLUG = "all";
+
 export type BoardChoice = {
   slug: string;
   kind: MarathonBoardKind;
@@ -19,6 +22,8 @@ export type DailyDayResult = {
   /** Whole-day duration, only when the product stored one. */
   timeSec?: number | null;
   taskCount?: number;
+  /** Set when days from more than one marathon share a board, so day ids do not collide. */
+  marathonId?: number;
 };
 
 export type DailyBoardPerson = {
@@ -43,8 +48,10 @@ export type DailyBoardRow = {
 };
 
 /**
- * Prefer an explicit slug, then an active daily marathon, then whatever is first.
- * Drafts never reach this list.
+ * `all` is every daily marathon together. Otherwise an explicit slug, then the
+ * current active daily marathon (latest start, if several are active), then the
+ * first remaining row. Callers pass that list from `sortBoardChoices`.
+ * Drafts never reach this list. `all` is refused when there is no daily marathon.
  */
 export function pickMarathonSlug(
   options: readonly BoardChoice[],
@@ -52,7 +59,11 @@ export function pickMarathonSlug(
 ): string | null {
   if (options.length === 0) return null;
   const asked = requested?.trim();
-  if (asked && options.some((item) => item.slug === asked)) return asked;
+  const hasDaily = options.some((item) => item.kind === "daily");
+  if (asked === ALL_MARATHONS_SLUG && hasDaily) return ALL_MARATHONS_SLUG;
+  if (asked && asked !== ALL_MARATHONS_SLUG && options.some((item) => item.slug === asked)) {
+    return asked;
+  }
   const activeDaily = options.find((item) => item.kind === "daily" && item.status === "active");
   return (activeDaily ?? options[0]).slug;
 }
@@ -81,11 +92,13 @@ export function buildDailyBoard(
   people: readonly DailyBoardPerson[],
   days: readonly DailyDayResult[],
 ): DailyBoardRow[] {
+  const roster = earliestDailyPeople(people);
   const byUser = new Map<number, DailyDayResult[]>();
   const seen = new Set<string>();
   for (const day of days) {
     if (!Number.isInteger(day.dayId) || day.dayId <= 0 || day.completedAt == null) continue;
-    const key = `${day.userId}:${day.dayId}`;
+    const scope = day.marathonId ?? "one";
+    const key = `${day.userId}:${scope}:${day.dayId}`;
     if (seen.has(key)) continue;
     seen.add(key);
     const list = byUser.get(day.userId) ?? [];
@@ -94,7 +107,7 @@ export function buildDailyBoard(
   }
 
   const ranked = rankParticipants(
-    people.map((person) => {
+    roster.map((person) => {
       const completed = byUser.get(person.userId) ?? [];
       const lastCompletedAt = completed.reduce<number | null>((latest, day) => {
         if (day.completedAt == null) return latest;
@@ -130,7 +143,7 @@ export function buildDailyBoard(
       rank: row.place,
       userId: row.userId,
       displayName: row.displayName,
-      login: people.find((person) => person.userId === row.userId)?.login ?? "",
+      login: roster.find((person) => person.userId === row.userId)?.login ?? "",
       streak: row.streak,
       daysDone: completed.length,
       avgPercent: scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : null,
@@ -138,6 +151,16 @@ export function buildDailyBoard(
       avgSecPerTask: tasks > 0 ? timeSec / tasks : null,
     };
   });
+}
+
+/** One row per person. The earliest join is the tie-break `/top` already uses. */
+export function earliestDailyPeople(people: readonly DailyBoardPerson[]): DailyBoardPerson[] {
+  const byUser = new Map<number, DailyBoardPerson>();
+  for (const person of people) {
+    const prev = byUser.get(person.userId);
+    if (!prev || person.joinedAt < prev.joinedAt) byUser.set(person.userId, person);
+  }
+  return [...byUser.values()];
 }
 
 /** Daily rows hide speed until at least one day stored a duration. Session boards always show it. */

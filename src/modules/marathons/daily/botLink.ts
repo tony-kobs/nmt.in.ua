@@ -54,14 +54,21 @@ export async function createMarathonBotLink(
   return `https://t.me/${bot.username}?start=${code}`;
 }
 
+export type MarathonStartConsume =
+  | { ok: true }
+  | { ok: false; code: "invalid" | "telegram_taken" };
+
+export const TELEGRAM_TAKEN_MESSAGE =
+  "Цей Telegram уже приєднаний до іншого акаунта nmt.in.ua. Від’єднайте його в тому кабінеті або напишіть у підтримку.";
+
 export async function consumeMarathonStart(
   rawToken: string,
   identity: { userId: string; chatId: string; username?: string },
   getConnection: () => Promise<SqlConnection> = loadDefaultConnection,
-): Promise<boolean> {
-  if (!isMarathonStartPayload(rawToken)) return false;
-  if (!/^[1-9][0-9]{0,19}$/.test(identity.userId)) return false;
-  if (!/^[1-9][0-9]{0,19}$/.test(identity.chatId)) return false;
+): Promise<MarathonStartConsume> {
+  if (!isMarathonStartPayload(rawToken)) return { ok: false, code: "invalid" };
+  if (!/^[1-9][0-9]{0,19}$/.test(identity.userId)) return { ok: false, code: "invalid" };
+  if (!/^[1-9][0-9]{0,19}$/.test(identity.chatId)) return { ok: false, code: "invalid" };
   const { ensureMarathonSchema } = await import("../schema");
   const { ensureTelegramSchema } = await import("@/modules/telegram/schema");
   await ensureMarathonSchema(getConnection);
@@ -85,7 +92,7 @@ export async function consumeMarathonStart(
     const expiresAt = row ? new Date(row.expires_at).getTime() : NaN;
     if (!row || row.consumed_at || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
       await connection.rollback();
-      return false;
+      return { ok: false, code: "invalid" };
     }
     const users = await connection.query<{ id: number; is_banned: number }>(
       `SELECT id, is_banned FROM app_users WHERE id = ? LIMIT 1`,
@@ -93,7 +100,7 @@ export async function consumeMarathonStart(
     );
     if (!users[0] || users[0].is_banned) {
       await connection.rollback();
-      return false;
+      return { ok: false, code: "invalid" };
     }
     const paused = await connection.query<{ notify_paused: number }>(
       `SELECT notify_paused FROM marathon_participants
@@ -140,6 +147,9 @@ export async function consumeMarathonStart(
          WHERE user_id = ?`,
         [identity.chatId, identity.username ?? null, row.user_id],
       );
+    } else {
+      await connection.rollback();
+      return { ok: false, code: "telegram_taken" };
     }
     await connection.execute(
       `UPDATE marathon_bot_links SET consumed_at = CURRENT_TIMESTAMP WHERE id = ?`,
@@ -166,5 +176,5 @@ export async function consumeMarathonStart(
       console.error("marathon registration telegram", error);
     }
   }
-  return notice != null;
+  return notice ? { ok: true } : { ok: false, code: "invalid" };
 }

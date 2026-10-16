@@ -1,5 +1,6 @@
 import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ensureSchemaOnce } from "@/lib/db/schemaGuard";
 
 export const SQL_CREATE_TEACHER_RATINGS = `
   CREATE TABLE IF NOT EXISTS teacher_ratings (
@@ -17,30 +18,16 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-let schemaReady: Promise<void> | undefined;
-
-async function runTeacherRatingsSchemaMigration(
-  getConnection: () => Promise<SqlConnection>,
-): Promise<void> {
-  const connection = await getConnection();
-  try {
-    await connection.execute(SQL_CREATE_TEACHER_RATINGS, []);
-  } finally {
-    connection.release();
-  }
-}
-
-/** Creates `teacher_ratings` once per process if the table is missing. */
+/** Creates `teacher_ratings` once per process if the migration is not recorded. */
 export async function ensureTeacherRatingsSchema(
   getConnection: () => Promise<SqlConnection> = loadDefaultConnection,
 ): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = runTeacherRatingsSchemaMigration(getConnection).catch(
-      (error) => {
-        schemaReady = undefined;
-        throw error;
-      },
-    );
-  }
-  await schemaReady;
+  await ensureSchemaOnce(
+    "teacher_ratings",
+    ["032_teacher_ratings.sql"],
+    getConnection,
+    async (connection) => {
+      await connection.execute(SQL_CREATE_TEACHER_RATINGS, []);
+    },
+  );
 }

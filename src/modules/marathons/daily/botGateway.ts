@@ -455,6 +455,7 @@ async function persistPlay(input: {
         console.error("marathon rank notice", error);
       }
     }
+    if (result.ok && result.fresh) {
     try {
       await sendCompletedDayFollowUp({
         marathonId: input.marathon.id,
@@ -480,6 +481,7 @@ async function persistPlay(input: {
       });
     } catch (error) {
       console.error("marathon bot follow-up", error);
+    }
     }
     return rankNote;
   }

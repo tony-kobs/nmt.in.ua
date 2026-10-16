@@ -7,7 +7,7 @@ import { statusCopy } from "@/i18n/statusPages";
 import { createPageMetadata } from "@/constants/seo";
 import { pickClientMessages } from "@/i18n/clientMessages";
 import {
-  getCurrentUser,
+  optionalLiveUser,
   sessionCookieNeedsUpgrade,
 } from "@/modules/auth/getCurrentUser";
 import { parseThemeQueryParam } from "@/modules/testing/parseThemeQueryParam";
@@ -19,7 +19,7 @@ import { parseThemeQueryParam } from "@/modules/testing/parseThemeQueryParam";
  */
 
 export async function generateMetadata() {
-  const user = await getCurrentUser();
+  const user = await optionalLiveUser();
 
   if (!user) {
     const t = await getTranslations("Metadata.welcome");
@@ -68,7 +68,7 @@ function readPageParam(raw: string | string[] | undefined): number {
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const [user, locale, params] = await Promise.all([
-    getCurrentUser(),
+    optionalLiveUser(),
     getLocale(),
     searchParams,
   ]);

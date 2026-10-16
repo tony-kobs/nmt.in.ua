@@ -51,7 +51,8 @@ jobs:
           chmod 600 "$HOME/.ssh/hosting_key"
           ssh-keyscan -H levelhst.ftp.tools >> "$HOME/.ssh/known_hosts"
 
-      - name: Upload release and swap www
+      # Host runs npm install, then npm run migrate, and only then stops Node and swaps www.
+      - name: Upload release, migrate, then swap www
         env:
           RELEASE_ID: ${{ github.sha }}
         run: |

@@ -1028,6 +1028,15 @@ export async function completeParticipantDay(input: {
   now: Date;
 }, getConnection?: Conn): Promise<DayCompletion> {
   return withConn(async (connection) => {
+    await connection.beginTransaction();
+    try {
+    await connection.query(
+      `SELECT user_id FROM marathon_participants
+       WHERE marathon_id = ? AND user_id = ?
+       LIMIT 1
+       FOR UPDATE`,
+      [input.marathon.id, input.userId],
+    );
     const existing = await connection.query<{
       completed_at: unknown;
       score: number | null;
@@ -1039,11 +1048,13 @@ export async function completeParticipantDay(input: {
        INNER JOIN marathon_participants p
          ON p.marathon_id = pr.marathon_id AND p.user_id = pr.user_id
        WHERE pr.marathon_id = ? AND pr.user_id = ? AND pr.day_id = ?
-       LIMIT 1`,
+       LIMIT 1
+       FOR UPDATE`,
       [input.marathon.id, input.userId, input.day.id],
     );
     const prior = existing[0];
     if (prior?.completed_at) {
+      await connection.commit();
       return {
         ok: true,
         score: prior.score == null ? 0 : Number(prior.score),
@@ -1131,9 +1142,13 @@ export async function completeParticipantDay(input: {
         },
       },
     );
-    if (!submitted.ok) return submitted;
+    if (!submitted.ok) {
+      await connection.rollback();
+      return submitted;
+    }
     const board = await composeBoard(connection, input.marathon.id, true);
     const self = board.find((row) => row.userId === input.userId) ?? null;
+    await connection.commit();
     return {
       ...submitted,
       fresh: true,
@@ -1142,6 +1157,10 @@ export async function completeParticipantDay(input: {
         ? { place: self.place, prevPlace: self.prevPlace, points: self.points }
         : null,
     };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    }
   }, getConnection);
 }
 

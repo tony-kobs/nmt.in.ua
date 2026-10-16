@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ensureSchemaOnce } from "@/lib/db/schemaGuard";
 import { ensureAuthSchema } from "@/modules/auth/users";
 import { applyChannelPreferencesSchema } from "@/modules/notifications/channelSchema";
 import { backfillTelegramLinks } from "./linkSync";
@@ -10,17 +11,22 @@ export async function loadTelegramConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-let schemaReady: Promise<void> | undefined;
+const TELEGRAM_MIGRATIONS = [
+  "035_telegram_account_linking.sql",
+  "037_telegram_task_notifications.sql",
+  "042_telegram_notification_preferences.sql",
+];
 
 export async function ensureTelegramSchema(
   getConnection: () => Promise<SqlConnection> = loadTelegramConnection,
 ): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = (async () => {
+  await ensureSchemaOnce(
+    "telegram",
+    TELEGRAM_MIGRATIONS,
+    getConnection,
+    async (connection) => {
       await ensureAuthSchema({ getConnection });
-      const connection = await getConnection();
-      try {
-        await connection.execute(`CREATE TABLE IF NOT EXISTS user_telegram_accounts (
+      await connection.execute(`CREATE TABLE IF NOT EXISTS user_telegram_accounts (
           id BIGINT NOT NULL AUTO_INCREMENT,
           user_id INT NOT NULL,
           telegram_user_id BIGINT NOT NULL,
@@ -74,15 +80,8 @@ export async function ensureTelegramSchema(
           CONSTRAINT fk_telegram_notification_account FOREIGN KEY (account_id)
             REFERENCES user_telegram_accounts (id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`, []);
-        await backfillTelegramLinks(connection);
-        await applyChannelPreferencesSchema(connection);
-      } finally {
-        connection.release();
-      }
-    })().catch((error) => {
-      schemaReady = undefined;
-      throw error;
-    });
-  }
-  await schemaReady;
+      await backfillTelegramLinks(connection);
+      await applyChannelPreferencesSchema(connection);
+    },
+  );
 }

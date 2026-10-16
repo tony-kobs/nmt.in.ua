@@ -1,5 +1,6 @@
 import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ensureSchemaOnce } from "@/lib/db/schemaGuard";
 
 export const SQL_CREATE_USER_AVATARS = `
   CREATE TABLE IF NOT EXISTS user_avatars (
@@ -16,28 +17,16 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-let schemaReady: Promise<void> | undefined;
-
-async function runAvatarSchemaMigration(
-  getConnection: () => Promise<SqlConnection>,
-): Promise<void> {
-  const connection = await getConnection();
-  try {
-    await connection.execute(SQL_CREATE_USER_AVATARS, []);
-  } finally {
-    connection.release();
-  }
-}
-
-/** Creates `user_avatars` once per process if the table is missing. */
+/** Creates `user_avatars` once per process if the migration is not recorded. */
 export async function ensureAvatarSchema(
   getConnection: () => Promise<SqlConnection> = loadDefaultConnection,
 ): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = runAvatarSchemaMigration(getConnection).catch((error) => {
-      schemaReady = undefined;
-      throw error;
-    });
-  }
-  await schemaReady;
+  await ensureSchemaOnce(
+    "avatars",
+    ["015_user_avatars.sql"],
+    getConnection,
+    async (connection) => {
+      await connection.execute(SQL_CREATE_USER_AVATARS, []);
+    },
+  );
 }

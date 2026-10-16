@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ensureSchemaOnce, resetSchemaGuardForTests } from "@/lib/db/schemaGuard";
 import { PRESENCE_TOUCH_GAP_SEC } from "./presenceRules";
 import { loginClientIp, loginUserAgent } from "./loginIp";
 
@@ -68,11 +69,16 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-let schemaReady: Promise<void> | undefined;
 const touchedAt = new Map<string, number>();
 
+export const SQL_REVOKE_USER_SESSIONS = `
+  UPDATE user_sessions
+  SET revoked_at = CURRENT_TIMESTAMP
+  WHERE user_id = ? AND revoked_at IS NULL
+`;
+
 export function resetUserSessionsForTests(): void {
-  schemaReady = undefined;
+  resetSchemaGuardForTests("user_sessions");
   touchedAt.clear();
 }
 
@@ -96,35 +102,47 @@ async function ensureColumn(
   );
 }
 
-async function runSchema(deps: ConnDeps): Promise<void> {
-  const connection = await deps.getConnection();
-  try {
-    await connection.execute(SQL_CREATE, []);
-    await ensureColumn(
-      connection,
-      "ip",
-      "ip VARCHAR(45) NULL DEFAULT NULL AFTER last_seen_at",
-    );
-    await ensureColumn(
-      connection,
-      "user_agent",
-      "user_agent VARCHAR(255) NULL DEFAULT NULL AFTER ip",
-    );
-  } finally {
-    connection.release();
-  }
+async function runSchema(connection: SqlConnection): Promise<void> {
+  await connection.execute(SQL_CREATE, []);
+  await ensureColumn(
+    connection,
+    "ip",
+    "ip VARCHAR(45) NULL DEFAULT NULL AFTER last_seen_at",
+  );
+  await ensureColumn(
+    connection,
+    "user_agent",
+    "user_agent VARCHAR(255) NULL DEFAULT NULL AFTER ip",
+  );
 }
 
 export async function ensureUserSessionsSchema(
   deps: ConnDeps = { getConnection: loadDefaultConnection },
 ): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = runSchema(deps).catch((error) => {
-      schemaReady = undefined;
-      throw error;
-    });
+  await ensureSchemaOnce(
+    "user_sessions",
+    ["044_user_sessions.sql"],
+    deps.getConnection,
+    runSchema,
+  );
+}
+
+/** Ends every open login row for the user. Ban and role change call this. */
+export async function revokeAllLoginSessions(
+  userId: number,
+  deps: ConnDeps = { getConnection: loadDefaultConnection },
+): Promise<void> {
+  if (!Number.isInteger(userId) || userId <= 0) return;
+  await ensureUserSessionsSchema(deps);
+  const connection = await deps.getConnection();
+  try {
+    await connection.execute(SQL_REVOKE_USER_SESSIONS, [userId]);
+    for (const key of touchedAt.keys()) {
+      if (key.startsWith(`${userId}:`)) touchedAt.delete(key);
+    }
+  } finally {
+    connection.release();
   }
-  await schemaReady;
 }
 
 export type LoginRequestMeta = {

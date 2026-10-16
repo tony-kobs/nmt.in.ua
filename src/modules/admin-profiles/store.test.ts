@@ -100,6 +100,55 @@ test("setProfileBanned blocks self-action", async () => {
   );
 });
 
+test("setProfileBanned revokes login sessions only when the ban starts", async () => {
+  const executed: string[] = [];
+  let began = 0;
+  let committed = 0;
+  const connection = mockConnection({
+    query: async () => [studentRow],
+    execute: async (sql) => {
+      executed.push(sql);
+      return { insertId: 0, affectedRows: 1 };
+    },
+  });
+  connection.beginTransaction = async () => {
+    began += 1;
+  };
+  connection.commit = async () => {
+    committed += 1;
+  };
+  await setProfileBanned(
+    { actorUserId: 3, targetUserId: 10, banned: true },
+    { getConnection: async () => connection },
+  );
+  const revokes = executed.filter((sql) => sql.includes("UPDATE user_sessions"));
+  assert.equal(revokes.length, 1);
+  assert.match(revokes[0] ?? "", /revoked_at/);
+  assert.equal(began, 1);
+  assert.equal(committed, 1);
+});
+
+test("setProfileBanned does not revoke sessions when lifting a ban", async () => {
+  const executed: string[] = [];
+  await setProfileBanned(
+    { actorUserId: 3, targetUserId: 10, banned: false },
+    {
+      getConnection: async () =>
+        mockConnection({
+          query: async () => [{ ...studentRow, is_banned: 1 }],
+          execute: async (sql) => {
+            executed.push(sql);
+            return { insertId: 0, affectedRows: 1 };
+          },
+        }),
+    },
+  );
+  assert.equal(
+    executed.some((sql) => sql.includes("UPDATE user_sessions")),
+    false,
+  );
+});
+
 test("setProfileBanned bans a regular student", async () => {
   const profile = await setProfileBanned(
     { actorUserId: 3, targetUserId: 10, banned: true },

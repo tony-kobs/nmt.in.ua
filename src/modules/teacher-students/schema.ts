@@ -1,5 +1,6 @@
 import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ensureSchemaOnce } from "@/lib/db/schemaGuard";
 
 export const SQL_CREATE_TEACHER_STUDENTS = `
   CREATE TABLE IF NOT EXISTS teacher_students (
@@ -80,35 +81,21 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-let schemaReady: Promise<void> | undefined;
-
-async function runTeacherStudentsSchemaMigration(
-  getConnection: () => Promise<SqlConnection>,
-): Promise<void> {
-  const connection = await getConnection();
-  try {
-    await connection.execute(SQL_CREATE_TEACHER_STUDENTS, []);
-    await connection.execute(SQL_CREATE_STUDENT_GROUPS, []);
-    await connection.execute(SQL_CREATE_STUDENT_GROUP_MEMBERS, []);
-    await connection.execute(SQL_CREATE_STUDENT_INVITES, []);
-  } finally {
-    connection.release();
-  }
-}
-
-/** Creates `teacher_students` once per process if the table is missing. */
+/** Creates roster tables once per process if the migrations are not recorded. */
 export async function ensureTeacherStudentsSchema(
   getConnection: () => Promise<SqlConnection> = loadDefaultConnection,
 ): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = runTeacherStudentsSchemaMigration(getConnection).catch(
-      (error) => {
-        schemaReady = undefined;
-        throw error;
-      },
-    );
-  }
-  await schemaReady;
+  await ensureSchemaOnce(
+    "teacher_students",
+    ["017_teacher_students.sql", "034_student_groups_invites.sql"],
+    getConnection,
+    async (connection) => {
+      await connection.execute(SQL_CREATE_TEACHER_STUDENTS, []);
+      await connection.execute(SQL_CREATE_STUDENT_GROUPS, []);
+      await connection.execute(SQL_CREATE_STUDENT_GROUP_MEMBERS, []);
+      await connection.execute(SQL_CREATE_STUDENT_INVITES, []);
+    },
+  );
 }
 
 export async function loadTeacherStudentsConnection(): Promise<SqlConnection> {

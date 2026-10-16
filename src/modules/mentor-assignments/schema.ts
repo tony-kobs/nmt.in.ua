@@ -1,5 +1,6 @@
 import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ensureSchemaOnce } from "@/lib/db/schemaGuard";
 
 export const SQL_CREATE_MENTOR_ASSIGNMENTS = `
   CREATE TABLE IF NOT EXISTS mentor_assignments (
@@ -49,8 +50,6 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-let schemaReady: Promise<void> | undefined;
-
 async function columnNames(connection: SqlConnection): Promise<Set<string>> {
   const rows = await connection.query<{
     COLUMN_NAME?: string;
@@ -99,33 +98,21 @@ export async function migrateMentorAssignmentsDifficulty(
   );
 }
 
-async function runMentorAssignmentsSchemaMigration(
-  getConnection: () => Promise<SqlConnection>
-): Promise<void> {
-  const connection = await getConnection();
-  try {
-    await connection.execute(SQL_CREATE_MENTOR_ASSIGNMENTS, []);
-    await migrateMentorAssignmentsAvailableAt(connection);
-    await migrateMentorAssignmentsDifficulty(connection);
-    await connection.execute(SQL_CREATE_MENTOR_ASSIGNMENT_MEMBERS, []);
-  } finally {
-    connection.release();
-  }
-}
-
-/** Creates assignment tables once per process if missing. */
+/** Creates assignment tables once per process if the migration is not recorded. */
 export async function ensureMentorAssignmentsSchema(
-  getConnection: () => Promise<SqlConnection> = loadDefaultConnection
+  getConnection: () => Promise<SqlConnection> = loadDefaultConnection,
 ): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = runMentorAssignmentsSchemaMigration(getConnection).catch(
-      (error) => {
-        schemaReady = undefined;
-        throw error;
-      }
-    );
-  }
-  await schemaReady;
+  await ensureSchemaOnce(
+    "mentor_assignments",
+    ["033_mentor_assignments.sql"],
+    getConnection,
+    async (connection) => {
+      await connection.execute(SQL_CREATE_MENTOR_ASSIGNMENTS, []);
+      await migrateMentorAssignmentsAvailableAt(connection);
+      await migrateMentorAssignmentsDifficulty(connection);
+      await connection.execute(SQL_CREATE_MENTOR_ASSIGNMENT_MEMBERS, []);
+    },
+  );
 }
 
 export async function loadMentorAssignmentsConnection(): Promise<SqlConnection> {

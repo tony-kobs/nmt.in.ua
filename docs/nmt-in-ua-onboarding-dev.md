@@ -91,7 +91,8 @@ npm run dev
 | `npm test` | Перед PR. Сотні кейсів у `src/**/*.test.ts` |
 | `npm run lint` | Перед PR |
 | `npm run build` | Перед здачею фічі, яка чіпає сторінки / сервер (`next build --webpack`) |
-| `node scripts/promote-admin.mjs <login>` | Підвищити акаунт до admin (локальна / спільна БД) |
+| `npm run migrate` | Застосувати `scripts/sql/` у локальну або хостову БД. Деплой робить це сам перед заміною `www`. Див. `docs/schema-migrations.md` |
+| `node scripts/promote-admin.mjs <login>` | Підвищити акаунт до admin і відкликати його відкриті сесії (локальна / спільна БД) |
 
 Перед здачею секції: `npm run lint && npm test && npm run build`.
 
@@ -111,7 +112,7 @@ git checkout -b feature/коротка-назва
 
 Далі: коміти → push → Pull Request `feature/…` → `dev`. Реліз на прод: `dev` → `main`.
 
-Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.github/workflows/deploy-hosting.yml): Actions збирає Next, переписує шляхи runner у `.next`, кладе tar на хостинг. Сервер лише ставить `npm install` у `releases/<sha>` і міняє `www`. На хості `npm run build` не запускаємо (старий glibc).
+Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.github/workflows/deploy-hosting.yml): Actions збирає Next, переписує шляхи runner у `.next`, кладе tar на хостинг. Сервер у `releases/<sha>` ставить `npm install`, потім `npm run migrate`, і лише після успішної міграції міняє `www`. На хості `npm run build` не запускаємо (старий glibc).
 
 Розробнику на хостинг ходити не треба і **не деплоїти самостійно**. Секрети, відкат і що не робити на хості: [`.cursor/rules/deploy-hosting.mdc`](../.cursor/rules/deploy-hosting.mdc).
 
@@ -122,7 +123,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 - `src/components/` — UI. Стилі — CSS Modules поруч із компонентом.
 - `src/lib/db/mysql.ts` — єдине місце, звідки ходимо в MySQL (`getConnection`).
 
-**Нове правило:** `userId` у Server Actions береться з auth-модуля, ніколи з FormData. Інакше учень A побачить сесії учня B. У «гарячих» діях тренажера (`checkAnswer`, `skip`, `markSessionStarted`, `finish`) беремо `requireSessionUserId()` — id з підписаної cookie, без запиту в `app_users`. `getCurrentUser` для layout теж читає `displayName`/`login`/`role` з cookie (нові токени); legacy-cookie без профілю — fallback на `findUserById`. Там, де потрібна свіжа роль з БД для чутливих дій, лишається `requireUser()` після логіну.
+**Нове правило:** `userId` у Server Actions береться з auth-модуля, ніколи з FormData. Інакше учень A побачить сесії учня B. Cookie лише впізнає сесію. `requireUser` / `requireRole` / `optionalLiveUser` і «гарячі» дії через `requireSessionUserId()` читають роль і бан з `app_users` (один раз на запит, `readLiveAccount`). Забанений або зниклий акаунт іде на `GET /api/auth/clear-session`. `getCurrentUser` лишає профіль з cookie для дешевих читань; захищені сторінки його не вважають джерелом ролі. Проксі теж лишається дешевою перевіркою cookie: повторна перевірка — у серверному шарі. Бан і зміна ролі (`scripts/promote-admin.mjs`) відкликають усі `user_sessions` цього користувача.
 
 Групи маршрутів:
 
@@ -199,7 +200,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `src/app/globals.css` | Дизайн-токени. Новий колір — сюди |
 | `.cursor/rules/design-system.mdc` | Правила верстки. Читати перед CSS |
 | `.cursor/rules/deploy-hosting.mdc` | Короткі правила релізу |
-| `scripts/sql/` | Міграції. Багато таблиць ще й lazy-create при першому запиті |
+| `scripts/sql/` | Міграції. Застосування — `npm run migrate` (`docs/schema-migrations.md`). `ensure*` на запиті нічого не змінює, якщо версії вже в `schema_migrations` |
 | `docs/Goldener-Rechner-beklog-PM.md` | Беклог для PM |
 
 ## 6. Як влаштований продукт у коді
@@ -261,7 +262,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 
 `scripts/sql/010_theme_codes.sql` — `themes.code` для підручника. Імпорт код приймає опційно.
 
-`scripts/sql/043_fix_theme_geometry_typo.sql` — «геоментрія» → «геометрія». Деплой SQL не ганяє — **прогнати вручну на хостингу**, якщо ще не. Колонки візитки й журнал Telegram створює застосунок (`ensureTeacherProfileSchema`, `ensureTelegramSchema`), окремих SQL з тими самими номерами немає.
+`scripts/sql/043_fix_theme_geometry_typo.sql` — «геоментрія» → «геометрія». Деплой проганяє весь каталог `scripts/sql` перед заміною релізу. Колонки візитки — `025_teacher_profile_fields.sql`, журнал Telegram — `037_telegram_task_notifications.sql`. Поки міграція не записана, `ensure*` ще вміє ті самі зміни під локом `nmt_schema`.
 
 **Stage 2 локально:** `026` → `027` → `028` → `029` → `030` → `031` (031 після 028). Без каталогу вкладка «Інтерактивні формати» на `/` **ховається**.
 
@@ -398,7 +399,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | Перф (TTFB / бандл) | `(app)`/`(marketing)` layouts, `catalogCache`, `sampleRandomIds` | — | ✅ 10.09: без `ORDER BY RAND()`, кеш довідників, cookie-профіль |
 | Пагінація `/results`, `/sessions` | `src/components/ui/Pagination`, `src/lib/pagination.ts` | Мала | ✅ 10.2026: 10/стор., URL `?page=`; лише ≥768px |
 | Мобільний свайпер сесій / результатів | `LearningSessionsTable`, `TopicResultsTable` | Мала | ✅ 10.2026: картки + свайп, без пагінації на телефоні |
-| Лідерборд марафону | `src/modules/marathons`, `/leaderboard` | Середня | ✅ 16.10: денний курс з `marathon_day_progress` (дні, середній %, бали), порядок як `/top`. Селект, якщо марафонів кілька. Старий `kind=leaderboard` лишає сесії тренажера |
+| Лідерборд марафону | `src/modules/marathons`, `/leaderboard` | Середня | ✅ 16.10: денний курс з `marathon_day_progress` (дні, середній %, бали), порядок як `/top`. Селект: «Загальні» (`?marathon=all`, сума всіх денних) і кожен курс (`?marathon=<slug>`); без параметра — активний, інакше найновіший. Старий `kind=leaderboard` лишає сесії тренажера і в суму не входить |
 | 8.4 Денний марафон | `src/modules/marathons/daily`, `/marathon/[slug]`, `/admin/marathons`, `docs/marathon.md` | Середня | ✅ Меню: `cabinet_scope` (`full` / `marathon`) у `access.ts`. Завдання до здачі — `playTasks.ts` (`PENDING_TASK_SQL`). SQL `040` + `041`. Дозвіл `marathon:manage` (зараз admin). 09.10: вступ і канал на карті; день у боті (`botPlay.ts` / `botGateway.ts`); тексти в `marathon_copy`. Контент у чаті: `telegramContent.ts`, формули MathJax + resvg-wasm. 10.10: таблиця місць `leaderboard.ts`. 12.10: cron — GitHub Actions (`.github/workflows/marathon-cron.yml`). 15.10: година нагадування і вікно nudge в адмінці; «Пройти тестування» в боті (`botQuiz.ts`); кілька марафонів в одному чаті. Хостовий cron: `scripts/hosting-telegram-cron.sh`. 16.10: active→finished після останнього дня, день без завдань не сповіщає, один канал доставки. 16.10: сторінка каналу показує прив’язку бота; після збереження — поточний день і тост; одне підтвердження `bot_registered` у Telegram. 16.10: реєстрація дає повний кабінет; лист і Telegram незалежні; картка на головній; відмова в `marathon_declines`; дзвіночок `user_notifications` (`notifyUser`). 16.10: спільні канали на `/account` (`user_channel_preferences`); запрошення при активації за `invite_audience`. Env і `MARATHON_CRON_SECRET` — `docs/marathon.md`. 16.10: завдання в боті — одне повідомлення (`taskRender.ts`). |
 | Досягнення | — | Середня | Відкрито. 16.10 заглушки з `/account` знято; окремого модуля ще немає |
 
