@@ -43,6 +43,7 @@ export async function seedMathMarathon(): Promise<"created" | "exists"> {
     finalCtaText: MATH_MARATHON_SEED.finalCtaText,
     finalCtaUrl: MATH_MARATHON_SEED.finalCtaUrl,
     introVideoUrl: "",
+    inviteAudience: "none",
     startsAt,
     endsAt,
   });

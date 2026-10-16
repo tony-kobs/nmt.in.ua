@@ -146,6 +146,18 @@ test("marathon input lowercases a valid slug and keeps the typed values' meaning
   assert.equal(parsed.value.passThreshold, 0);
   assert.equal(parsed.value.daysCount, 14);
   assert.equal(parsed.value.finalCtaUrl, "https://nmt.in.ua/simulator");
+  assert.equal(parsed.value.inviteAudience, "none");
+});
+
+test("a blank invite audience stays nobody, and an unknown value is named", () => {
+  const kept = parseMarathonInput(data({ ...validMarathon, inviteAudience: "students" }));
+  assert.equal(kept.ok, true);
+  if (kept.ok) assert.equal(kept.value.inviteAudience, "students");
+  const parsed = parseMarathonInput(data({ ...validMarathon, inviteAudience: "teachers" }));
+  assert.equal(parsed.ok, false);
+  if (parsed.ok) return;
+  assert.deepEqual(codes(parsed.issues), ["inviteAudience.format"]);
+  assertCopy(parsed.issues);
 });
 
 test("riddle, day and material parsers point at the empty or bad field", () => {

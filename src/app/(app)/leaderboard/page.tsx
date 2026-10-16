@@ -6,9 +6,14 @@ import { requireUser } from "@/modules/auth/getCurrentUser";
 import { canManageStudents } from "@/modules/auth/types";
 import { getMarathonLeaderboard } from "@/modules/marathons";
 import { getTeacherStudents } from "@/modules/teacher-students";
+import { readSearchParam } from "@/lib/queryHref";
 import { getTranslations } from "next-intl/server";
 
 const item = getNavItem("/leaderboard");
+
+type PageProps = {
+  searchParams: Promise<{ marathon?: string | string[] }>;
+};
 
 export const metadata = createPageMetadata({
   title: item.label,
@@ -16,9 +21,10 @@ export const metadata = createPageMetadata({
   path: item.href,
 });
 
-export default async function LeaderboardPage() {
+export default async function LeaderboardPage({ searchParams }: PageProps) {
   const user = await requireUser();
   const t = await getTranslations("MarathonLeaderboard");
+  const marathonSlug = readSearchParam((await searchParams).marathon);
 
   let rosterStudentIds: Set<number> | undefined;
   if (canManageStudents(user.role)) {
@@ -28,6 +34,7 @@ export default async function LeaderboardPage() {
 
   const data = await getMarathonLeaderboard(user.id, {
     rosterStudentIds,
+    marathonSlug,
   });
 
   if (!data) {

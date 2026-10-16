@@ -15,7 +15,9 @@ import { RecentResults } from "@/components/dashboard/RecentResults";
 import { UserAvatar } from "@/components/account/UserAvatar";
 import { TeacherProfileEditor } from "@/components/account/TeacherProfileEditor";
 import { AccountPhotoPanel } from "./AccountPhotoPanel";
+import { NotificationSettings } from "./NotificationSettings";
 import { TelegramLinkControl } from "./TelegramLinkControl";
+import type { UserChannelPreferences } from "@/modules/notifications/channels";
 import type { RecentResultItem } from "@/modules/results/getRecentResults";
 import type { TeacherProfile } from "@/modules/teachers/types";
 import { normalizeSlug } from "@/modules/teachers/validateProfile";
@@ -28,6 +30,8 @@ type AccountCabinetProps = {
   recentResults: RecentResultItem[];
   teacherProfile?: TeacherProfile | null;
   telegramLinked: boolean;
+  telegramUsername?: string | null;
+  notificationPreferences: UserChannelPreferences;
 };
 
 export function AccountCabinet({
@@ -35,6 +39,8 @@ export function AccountCabinet({
   recentResults,
   teacherProfile = null,
   telegramLinked,
+  telegramUsername = null,
+  notificationPreferences,
 }: AccountCabinetProps) {
   const t = useTranslations("AccountCabinet");
   const tHeader = useTranslations("Header");
@@ -75,7 +81,8 @@ export function AccountCabinet({
       </section>
 
       <AccountPhotoPanel user={user} />
-      <TelegramLinkControl linked={telegramLinked} />
+      <TelegramLinkControl linked={telegramLinked} username={telegramUsername} />
+      <NotificationSettings preferences={notificationPreferences} />
 
       {user.role === "student" ? (
         <section className={css.panel} aria-labelledby="account-join-title">
