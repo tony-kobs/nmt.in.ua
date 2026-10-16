@@ -9,6 +9,7 @@
 # Usage (from repo root, Git Bash / Linux / macOS):
 #   bash scripts/deploy-hosting.sh
 #   bash scripts/deploy-hosting.sh --skip-build   # CI already ran npm ci / build
+#   bash scripts/deploy-hosting.sh --pack-only    # pack and check, do not upload
 #
 # Env:
 #   REMOTE_USER REMOTE_HOST REMOTE_SITE SSH_KEY REMOTE_HOST_IP REMOTE_PORT RELEASE_ID
@@ -18,11 +19,13 @@
 set -euo pipefail
 
 SKIP_BUILD=0
+PACK_ONLY=0
 for arg in "$@"; do
   case "$arg" in
     --skip-build) SKIP_BUILD=1 ;;
+    --pack-only) PACK_ONLY=1; SKIP_BUILD=1 ;;
     -h|--help)
-      sed -n '2,16p' "$0"
+      sed -n '2,17p' "$0"
       exit 0
       ;;
     *)
@@ -66,7 +69,7 @@ cd "$ROOT"
 LIB="$ROOT/scripts/hosting-remote-lib.sh"
 REWRITE="$ROOT/scripts/rewrite-next-build-paths.sh"
 
-if [ ! -f "$SSH_KEY" ]; then
+if [ "$PACK_ONLY" -eq 0 ] && [ ! -f "$SSH_KEY" ]; then
   echo "SSH key not found: $SSH_KEY" >&2
   echo "Locally: use the key that already opens ${REMOTE_USER}@${REMOTE_HOST}." >&2
   echo "CI: write secret HOSTING_SSH_KEY to that path and set SSH_KEY." >&2
@@ -116,8 +119,9 @@ for path in "${PACK_PATHS[@]}"; do
 done
 
 ARCHIVE="$(mktemp /tmp/nmt-release-XXXXXX.tar.gz)"
+ARCHIVE_LIST="$(mktemp /tmp/nmt-release-list-XXXXXX)"
 REMOTE_ARCHIVE="/home/${REMOTE_USER}/nmt-release-${RELEASE_ID}.tar.gz"
-cleanup_local() { rm -f "$ARCHIVE"; }
+cleanup_local() { rm -f "$ARCHIVE" "$ARCHIVE_LIST"; }
 trap cleanup_local EXIT
 
 echo "==> Packing release ${RELEASE_ID} (full src, migrate scripts, rewritten .next)..."
@@ -131,9 +135,13 @@ tar \
   -czf "$ARCHIVE" \
   "${PACK_PATHS[@]}"
 
-# Fail before upload if the archive cannot run npm run migrate.
+# List once to a file. `tar -tzf | grep -q` is wrong under pipefail:
+# grep exits on the first hit, tar gets SIGPIPE (141), and a file that
+# is in the archive is reported missing. The release never uploads.
+tar -tzf "$ARCHIVE" > "$ARCHIVE_LIST"
+
 archive_has() {
-  tar -tzf "$ARCHIVE" | grep -qx "$1"
+  grep -qxF -- "$1" "$ARCHIVE_LIST"
 }
 for entry in scripts/migrate.mjs scripts/migrate-sql.mjs; do
   if ! archive_has "$entry"; then
@@ -141,12 +149,18 @@ for entry in scripts/migrate.mjs scripts/migrate-sql.mjs; do
     exit 1
   fi
 done
-if ! tar -tzf "$ARCHIVE" | grep -q '^scripts/sql/[^/]*\.sql$'; then
+if ! grep -qE '^scripts/sql/[^/]*\.sql$' "$ARCHIVE_LIST"; then
   echo "Release archive is missing scripts/sql/*.sql" >&2
   exit 1
 fi
 
 ls -lh "$ARCHIVE"
+echo "Archive listing: $(wc -l < "$ARCHIVE_LIST") entries"
+
+if [ "$PACK_ONLY" -eq 1 ]; then
+  echo "OK: release archive includes migrate scripts; not uploading."
+  exit 0
+fi
 
 echo "==> Uploading to ${REMOTE_USER}@${REMOTE_HOST} (SSH pipe)..."
 "${SSH[@]}" "${REMOTE_USER}@${REMOTE_HOST}" "cat > ${REMOTE_ARCHIVE}" < "$ARCHIVE"
