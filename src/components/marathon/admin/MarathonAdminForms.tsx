@@ -122,6 +122,17 @@ function MarathonFields({ values }: { values: MarathonInput }) {
           spellCheck={false}
         />
       </AdminField>
+      <AdminField
+        name="inviteAudience"
+        label={t("fields.inviteAudience")}
+        hint={t("hints.inviteAudience")}
+      >
+        <AdminSelect name="inviteAudience" defaultValue={values.inviteAudience}>
+          <option value="none">{t("audiences.none")}</option>
+          <option value="all">{t("audiences.all")}</option>
+          <option value="students">{t("audiences.students")}</option>
+        </AdminSelect>
+      </AdminField>
     </div>
   );
 }
@@ -152,6 +163,7 @@ export function CreateMarathonForm({ today }: { today: string }) {
           finalCtaText: t("defaults.finalCta"),
           finalCtaUrl: "/",
           introVideoUrl: "",
+          inviteAudience: "none",
         }}
       />
     </ValidatedForm>

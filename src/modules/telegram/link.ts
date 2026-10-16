@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
 import type { SqlConnection } from "@/lib/db/mysql";
+import { repairUserTelegramLink, usableChatId } from "./linkSync";
 import { ensureTelegramSchema, loadTelegramConnection } from "./schema";
 
 const TOKEN_TTL_MS = 10 * 60 * 1000;
@@ -67,52 +68,84 @@ export async function createTelegramLink(
   }
 }
 
+export type TelegramLink = {
+  linked: boolean;
+  chatId: string | null;
+  username: string | null;
+};
+
+const UNLINKED: TelegramLink = { linked: false, chatId: null, username: null };
+
+function usernameOf(value: unknown): string | null {
+  const raw = typeof value === "string" ? value.replace(/^@/, "") : "";
+  return /^[A-Za-z0-9_]{5,32}$/.test(raw) ? raw : null;
+}
+
+/**
+ * Single source for “is Telegram linked”.
+ * An account row and a marathon chat id are the same link: a missing account is filled
+ * from the participant chat, and a missing participant chat is filled from the account.
+ */
+export async function getTelegramLink(
+  userId: number,
+  deps: Pick<LinkDeps, "getConnection"> = defaultDeps,
+): Promise<TelegramLink> {
+  if (!Number.isSafeInteger(userId) || userId <= 0) return UNLINKED;
+  await ensureTelegramSchema(deps.getConnection);
+  const connection = await deps.getConnection();
+  try {
+    await repairUserTelegramLink(connection, userId);
+    const rows = await connection.query<{
+      telegram_chat_id?: number | string | null;
+      telegram_user_id?: number | string | null;
+      telegram_username?: string | null;
+    }>(
+      `SELECT telegram_chat_id, telegram_user_id, telegram_username
+       FROM user_telegram_accounts WHERE user_id = ? LIMIT 1`,
+      [userId],
+    );
+    const row = rows[0];
+    if (row) {
+      const chatId = usableChatId(row.telegram_chat_id) ?? usableChatId(row.telegram_user_id);
+      if (chatId) {
+        return { linked: true, chatId, username: usernameOf(row.telegram_username) };
+      }
+    }
+    try {
+      const participants = await connection.query<{ telegram_chat_id: number | string | null }>(
+        `SELECT telegram_chat_id FROM marathon_participants
+         WHERE user_id = ? AND telegram_chat_id IS NOT NULL
+         ORDER BY marathon_id DESC LIMIT 1`,
+        [userId],
+      );
+      const chatId = usableChatId(participants[0]?.telegram_chat_id);
+      if (chatId) return { linked: true, chatId, username: null };
+    } catch (error) {
+      const errno = typeof error === "object" && error && "errno" in error
+        ? Number((error as { errno?: number }).errno)
+        : 0;
+      if (errno !== 1146 && errno !== 1054) throw error;
+    }
+    return UNLINKED;
+  } finally {
+    connection.release();
+  }
+}
+
 export async function getTelegramLinkStatus(
   userId: number,
   deps: Pick<LinkDeps, "getConnection"> = defaultDeps,
 ): Promise<boolean> {
-  await ensureTelegramSchema(deps.getConnection);
-  const connection = await deps.getConnection();
-  try {
-    const rows = await connection.query<{ id: number }>(
-      "SELECT id FROM user_telegram_accounts WHERE user_id = ? LIMIT 1",
-      [userId],
-    );
-    return rows.length > 0;
-  } finally {
-    connection.release();
-  }
+  return (await getTelegramLink(userId, deps)).linked;
 }
 
 export async function getTelegramLinkRecord(
   userId: number,
   deps: Pick<LinkDeps, "getConnection"> = defaultDeps,
 ): Promise<{ chatId: string; username: string | null } | null> {
-  if (!Number.isSafeInteger(userId) || userId <= 0) return null;
-  await ensureTelegramSchema(deps.getConnection);
-  const connection = await deps.getConnection();
-  try {
-    const rows = await connection.query<{
-      telegram_chat_id: number | string | null;
-      telegram_username: string | null;
-    }>(
-      "SELECT telegram_chat_id, telegram_username FROM user_telegram_accounts WHERE user_id = ? LIMIT 1",
-      [userId],
-    );
-    const row = rows[0];
-    if (!row || row.telegram_chat_id == null) return null;
-    const chatId = String(row.telegram_chat_id);
-    if (!/^[1-9][0-9]{0,19}$/.test(chatId)) return null;
-    const raw = typeof row.telegram_username === "string"
-      ? row.telegram_username.replace(/^@/, "")
-      : "";
-    return {
-      chatId,
-      username: /^[A-Za-z0-9_]{5,32}$/.test(raw) ? raw : null,
-    };
-  } finally {
-    connection.release();
-  }
+  const link = await getTelegramLink(userId, deps);
+  if (!link.linked || !link.chatId) return null;
+  return { chatId: link.chatId, username: link.username };
 }
 
 export type TelegramIdentity = {
@@ -170,6 +203,19 @@ export async function consumeTelegramLink(
       "INSERT INTO user_telegram_accounts (user_id, telegram_user_id, telegram_chat_id, telegram_username) VALUES (?, ?, ?, ?)",
       [row.user_id, identity.userId, identity.chatId, identity.username ?? null],
     );
+    try {
+      await connection.execute(
+        `UPDATE marathon_participants
+         SET telegram_chat_id = ?
+         WHERE user_id = ? AND (telegram_chat_id IS NULL OR telegram_chat_id = 0)`,
+        [identity.chatId, row.user_id],
+      );
+    } catch (error) {
+      const errno = typeof error === "object" && error && "errno" in error
+        ? Number((error as { errno?: number }).errno)
+        : 0;
+      if (errno !== 1146 && errno !== 1054) throw error;
+    }
     await connection.execute(
       "UPDATE telegram_link_tokens SET consumed_at = CURRENT_TIMESTAMP WHERE id = ?",
       [row.id],

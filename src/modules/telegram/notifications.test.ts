@@ -13,7 +13,7 @@ const config = { botToken: "private-bot-token", webhookSecret: "reference-secret
 type Session = { id: number; user_id: number; session_status: number; expire_time: number | null; tasks_number: number; right_number: number; time: number; available_at: number; due_at: number; cancelled: boolean };
 const session = (id = 42, patch: Partial<Session> = {}): Session => ({ id, user_id: 7, session_status: 2, expire_time: now + 100, tasks_number: 2, right_number: 0, time: 0, available_at: now, due_at: now + 100, cancelled: false, ...patch });
 
-function database(sessions = [session()]) {
+function database(sessions = [session()], options: { systemTelegramOff?: boolean } = {}) {
   const accounts = [{ id: 1, user_id: 7, telegram_user_id: "123", telegram_chat_id: "123", banned: false }];
   const deliveries = new Map<string, { delivery_state: string; messageId: number | null; elapsed_seconds?: number | null }>();
   const replies: TelegramReply[] = [];
@@ -43,6 +43,9 @@ function database(sessions = [session()]) {
       release: () => { assert.equal(unlock, undefined); },
       query: async <T>(sql: string, params: unknown[] = []) => {
         sqlCalls.push(sql);
+        if (sql.includes("user_channel_preferences")) {
+          return (options.systemTelegramOff ? [{ user_id: 7, category: "system", email_on: 0, telegram_on: 0 }] : []) as T[];
+        }
         if (sql.includes("telegram_notification_preferences")) return [] as T[];
         if (sql.includes("SELECT session_id, notification_type")) return [...deliveries].filter(([key, row]) =>
           key.startsWith(params[0] + ":") && (row.delivery_state === "delivered" || (row.delivery_state === "sending" && (row.elapsed_seconds == null || row.elapsed_seconds < 900))))
@@ -96,6 +99,12 @@ function database(sessions = [session()]) {
       send: async (reply: TelegramReply) => { replies.push(reply); return result; } },
   };
 }
+
+test("system telegram off in account settings skips task notifications", async () => {
+  const db = database([session()], { systemTelegramOff: true });
+  assert.equal((await processTelegramTaskNotifications(db.deps)).sent, 0);
+  assert.equal(db.replies.length, 0);
+});
 
 test("eligible owned notification is Ukrainian, persisted once and uses the TG-006 details callback", async () => {
   const db = database([session(), session(99, { user_id: 8 })]);

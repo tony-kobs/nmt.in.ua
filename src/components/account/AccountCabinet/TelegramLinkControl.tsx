@@ -7,13 +7,24 @@ import css from "./AccountCabinet.module.css";
 
 const initialState: TelegramLinkActionState = { status: "idle" };
 
-export function TelegramLinkControl({ linked }: { linked: boolean }) {
+export function TelegramLinkControl({
+  linked,
+  username = null,
+}: {
+  linked: boolean;
+  username?: string | null;
+}) {
   const t = useTranslations("AccountCabinet");
   const [state, action, pending] = useActionState(createTelegramLinkAction, initialState);
   return (
     <section className={css.panel} aria-labelledby="account-telegram-title">
       <h2 id="account-telegram-title" className={css.panelTitle}>Telegram</h2>
-      {linked ? <p className={css.panelLead}>{t("telegramLinked")}</p> : (
+      {linked ? (
+        <p className={css.panelLead}>
+          {t("telegramLinked")}
+          {username ? <span translate="no">{` @${username}`}</span> : null}
+        </p>
+      ) : (
         <>
           <form action={action}>
             <button className={css.joinLink} disabled={pending} type="submit">

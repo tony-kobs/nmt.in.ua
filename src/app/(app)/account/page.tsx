@@ -3,7 +3,9 @@ import { AccountCabinet } from "@/components/account/AccountCabinet";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { createPageMetadata } from "@/constants/seo";
 import { requireUser } from "@/modules/auth/getCurrentUser";
-import { getTelegramLinkStatus } from "@/modules/telegram/link";
+import { defaultChannelPreferences } from "@/modules/notifications/channels";
+import { getUserChannelPreferences } from "@/modules/notifications/channelStore";
+import { getTelegramLink } from "@/modules/telegram/link";
 import { getRecentResults } from "@/modules/results/getRecentResults";
 import {
   canEditTeacherProfile,
@@ -44,10 +46,20 @@ export default async function AccountPage() {
   }
 
   let telegramLinked = false;
+  let telegramUsername: string | null = null;
   try {
-    telegramLinked = await getTelegramLinkStatus(user.id);
+    const link = await getTelegramLink(user.id);
+    telegramLinked = link.linked;
+    telegramUsername = link.username;
   } catch (error) {
-    console.error("account: getTelegramLinkStatus failed", error);
+    console.error("account: getTelegramLink failed", error);
+  }
+
+  let notificationPreferences = defaultChannelPreferences();
+  try {
+    notificationPreferences = await getUserChannelPreferences(user.id);
+  } catch (error) {
+    console.error("account: getUserChannelPreferences failed", error);
   }
 
   return (
@@ -61,6 +73,8 @@ export default async function AccountPage() {
         recentResults={recentResults}
         teacherProfile={teacherProfile}
         telegramLinked={telegramLinked}
+        telegramUsername={telegramUsername}
+        notificationPreferences={notificationPreferences}
       />
     </PageFrame>
   );

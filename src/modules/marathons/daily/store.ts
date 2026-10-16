@@ -1,10 +1,17 @@
 import "server-only";
 
 import type { SqlConnection } from "@/lib/db/mysql";
+import { resolveMarathonDelivery } from "@/modules/notifications/channels";
+import { saveUserChannelPreference } from "@/modules/notifications/channelStore";
 import { evaluateDayAccess } from "./calendar";
 import { isDeliveryChannel, type DeliveryChannel } from "./channel";
 import { selectHomeMarathonCards, type HomeMarathonCard } from "./homeCard";
-import { selectMarathonInvites, type MarathonInvite } from "./invite";
+import {
+  normalizeInviteAudience,
+  selectMarathonInvites,
+  type InviteAudience,
+  type MarathonInvite,
+} from "./invite";
 import { shouldFinishDailyMarathon } from "./lifecycle";
 import { isCopyKey, type CopyKey } from "./copy";
 import type { NotifyIntent, NotifyKind } from "./notifications";
@@ -47,6 +54,8 @@ export type DailyMarathon = {
   finalCtaText: string;
   finalCtaUrl: string;
   introVideoUrl: string;
+  /** Who is invited once, when the course first becomes active. Drafts default to nobody. */
+  inviteAudience: InviteAudience;
   status: DailyStatus;
 };
 
@@ -173,6 +182,7 @@ function mapMarathon(row: {
   final_cta_text: string | null;
   final_cta_url: string | null;
   intro_video_url?: string | null;
+  invite_audience?: string | null;
   status: string;
 }): DailyMarathon | null {
   if (row.status !== "draft" && row.status !== "active" && row.status !== "finished") {
@@ -196,13 +206,14 @@ function mapMarathon(row: {
     finalCtaText: row.final_cta_text ?? "",
     finalCtaUrl: row.final_cta_url ?? "",
     introVideoUrl: row.intro_video_url ?? "",
+    inviteAudience: normalizeInviteAudience(row.invite_audience),
     status: row.status,
   };
 }
 
 const MARATHON_SELECT = `id, slug, title, description, subject, start_date, unlock_hour, reminder_hour,
   nudge_from, nudge_until, days_count, pass_threshold, final_cta_text, final_cta_url,
-  intro_video_url, status`;
+  intro_video_url, invite_audience, status`;
 
 export async function listDailyMarathons(getConnection?: Conn): Promise<DailyMarathon[]> {
   return withConn(async (connection) => {
@@ -255,8 +266,9 @@ export async function insertDailyMarathon(
       `INSERT INTO marathons
         (slug, title, description, status, starts_at, ends_at, min_tasks_per_session,
          kind, subject, start_date, unlock_hour, reminder_hour, nudge_from, nudge_until,
-         days_count, pass_threshold, final_cta_text, final_cta_url, intro_video_url)
-       VALUES (?, ?, ?, 'draft', ?, ?, 5, 'daily', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         days_count, pass_threshold, final_cta_text, final_cta_url, intro_video_url,
+         invite_audience)
+       VALUES (?, ?, ?, 'draft', ?, ?, 5, 'daily', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         input.slug,
         input.title,
@@ -274,6 +286,7 @@ export async function insertDailyMarathon(
         input.finalCtaText,
         input.finalCtaUrl,
         input.introVideoUrl || null,
+        normalizeInviteAudience(input.inviteAudience),
       ],
     );
     return result.insertId;
@@ -291,7 +304,7 @@ export async function updateDailyMarathon(
        SET slug = ?, title = ?, description = ?, subject = ?, start_date = ?, unlock_hour = ?,
            reminder_hour = ?, nudge_from = ?, nudge_until = ?,
            days_count = ?, pass_threshold = ?, final_cta_text = ?, final_cta_url = ?,
-           intro_video_url = ?, starts_at = ?, ends_at = ?
+           intro_video_url = ?, invite_audience = ?, starts_at = ?, ends_at = ?
        WHERE id = ? AND kind = 'daily'`,
       [
         input.slug,
@@ -308,6 +321,7 @@ export async function updateDailyMarathon(
         input.finalCtaText,
         input.finalCtaUrl,
         input.introVideoUrl || null,
+        normalizeInviteAudience(input.inviteAudience),
         input.startsAt,
         input.endsAt,
         id,
@@ -354,6 +368,8 @@ export async function deleteDailyMarathon(id: number, getConnection?: Conn): Pro
     await connection.execute(`DELETE FROM marathon_notifications WHERE marathon_id = ?`, [id]);
     await connection.execute(`DELETE FROM marathon_bot_links WHERE marathon_id = ?`, [id]);
     await connection.execute(`DELETE FROM marathon_participants WHERE marathon_id = ?`, [id]);
+    await connection.execute(`DELETE FROM marathon_invite_recipients WHERE marathon_id = ?`, [id]);
+    await connection.execute(`DELETE FROM marathon_invite_dispatches WHERE marathon_id = ?`, [id]);
     await connection.execute(`DELETE FROM marathons WHERE id = ? AND kind = 'daily'`, [id]);
   }, getConnection);
 }
@@ -734,11 +750,21 @@ function mapParticipant(row: {
   delivery_channel: string | null;
   intro_seen_at: unknown;
   notify_paused: number;
+  pref_email?: number | null;
+  pref_telegram?: number | null;
   email: string | null;
   display_name: string | null;
 }): Participant {
   const channel = isDeliveryChannel(row.delivery_channel) ? row.delivery_channel : null;
   const paused = flag(row.notify_paused);
+  const delivery = resolveMarathonDelivery({
+    columnEmail: flag(row.notify_email),
+    columnTelegram: flag(row.notify_bot),
+    paused,
+    preference: row.pref_email == null && row.pref_telegram == null
+      ? null
+      : { email: flag(row.pref_email), telegram: flag(row.pref_telegram) },
+  });
   return {
     userId: row.user_id,
     source: row.source,
@@ -746,8 +772,8 @@ function mapParticipant(row: {
     finishedAt: row.finished_at ? String(row.finished_at) : null,
     convertedAt: row.converted_at ? String(row.converted_at) : null,
     telegramChatId: row.telegram_chat_id == null ? null : String(row.telegram_chat_id),
-    notifyEmail: flag(row.notify_email) && !paused,
-    notifyBot: flag(row.notify_bot) && !paused,
+    notifyEmail: delivery.notifyEmail,
+    notifyBot: delivery.notifyBot,
     channel,
     introSeen: Boolean(row.intro_seen_at),
     notifyPaused: paused,
@@ -779,9 +805,12 @@ export async function getParticipant(
     }>(
       `SELECT p.user_id, p.source, p.streak, p.finished_at, p.converted_at,
               p.telegram_chat_id, p.notify_email, p.notify_bot, p.delivery_channel,
-              p.intro_seen_at, p.notify_paused, u.email, u.display_name
+              p.intro_seen_at, p.notify_paused, npref.email_on AS pref_email,
+              npref.telegram_on AS pref_telegram, u.email, u.display_name
        FROM marathon_participants p
        INNER JOIN app_users u ON u.id = p.user_id
+       LEFT JOIN user_channel_preferences npref
+         ON npref.user_id = p.user_id AND npref.category = 'marathon'
        WHERE p.marathon_id = ? AND p.user_id = ? LIMIT 1`,
       [marathonId, userId],
     );
@@ -818,9 +847,12 @@ export async function findParticipantByChat(
     const people = await connection.query<Parameters<typeof mapParticipant>[0]>(
       `SELECT p.user_id, p.source, p.streak, p.finished_at, p.converted_at,
               p.telegram_chat_id, p.notify_email, p.notify_bot, p.delivery_channel,
-              p.intro_seen_at, p.notify_paused, u.email, u.display_name
+              p.intro_seen_at, p.notify_paused, npref.email_on AS pref_email,
+              npref.telegram_on AS pref_telegram, u.email, u.display_name
        FROM marathon_participants p
        INNER JOIN app_users u ON u.id = p.user_id
+       LEFT JOIN user_channel_preferences npref
+         ON npref.user_id = p.user_id AND npref.category = 'marathon'
        WHERE p.marathon_id = ? AND p.telegram_chat_id = ?
        LIMIT 1`,
       [id, chatId],
@@ -1147,17 +1179,15 @@ export async function setNotifyToggles(
 ): Promise<void> {
   const marker = prefs.notifyBot ? "telegram" : "site";
   await withConn(async (connection) => {
+    await saveUserChannelPreference(connection, userId, "marathon", {
+      email: prefs.notifyEmail,
+      telegram: prefs.notifyBot,
+    });
     await connection.execute(
       `UPDATE marathon_participants
-       SET delivery_channel = ?, notify_email = ?, notify_bot = ?, notify_paused = 0
+       SET delivery_channel = ?, notify_paused = 0
        WHERE marathon_id = ? AND user_id = ?`,
-      [
-        marker,
-        prefs.notifyEmail ? 1 : 0,
-        prefs.notifyBot ? 1 : 0,
-        marathonId,
-        userId,
-      ],
+      [marker, marathonId, userId],
     );
   }, getConnection);
 }
@@ -1203,9 +1233,13 @@ export async function pauseMarathonNotifications(
   getConnection?: Conn,
 ): Promise<void> {
   await withConn(async (connection) => {
+    await saveUserChannelPreference(connection, userId, "marathon", {
+      email: false,
+      telegram: false,
+    });
     await connection.execute(
       `UPDATE marathon_participants
-       SET notify_paused = 1, notify_email = 0, notify_bot = 0
+       SET notify_paused = 1
        WHERE marathon_id = ? AND user_id = ?`,
       [marathonId, userId],
     );
@@ -1268,14 +1302,7 @@ export async function setNotifyPrefs(
   prefs: { notifyEmail: boolean; notifyBot: boolean },
   getConnection?: Conn,
 ): Promise<void> {
-  await withConn(async (connection) => {
-    await connection.execute(
-      `UPDATE marathon_participants
-       SET notify_email = ?, notify_bot = ?
-       WHERE marathon_id = ? AND user_id = ?`,
-      [prefs.notifyEmail ? 1 : 0, prefs.notifyBot ? 1 : 0, marathonId, userId],
-    );
-  }, getConnection);
+  await setNotifyToggles(marathonId, userId, prefs, getConnection);
 }
 
 export async function silenceEmail(
@@ -1284,12 +1311,28 @@ export async function silenceEmail(
   getConnection?: Conn,
 ): Promise<boolean> {
   return withConn(async (connection) => {
-    const result = await connection.execute(
-      `UPDATE marathon_participants SET notify_email = 0
-       WHERE marathon_id = ? AND user_id = ?`,
+    const rows = await connection.query<{
+      user_id: number;
+      notify_bot: number;
+      notify_paused: number;
+      pref_telegram: number | null;
+    }>(
+      `SELECT p.user_id, p.notify_bot, p.notify_paused, npref.telegram_on AS pref_telegram
+       FROM marathon_participants p
+       LEFT JOIN user_channel_preferences npref
+         ON npref.user_id = p.user_id AND npref.category = 'marathon'
+       WHERE p.marathon_id = ? AND p.user_id = ? LIMIT 1`,
       [marathonId, userId],
     );
-    return result.affectedRows > 0;
+    if (!rows[0]) return false;
+    const telegram = rows[0].pref_telegram == null
+      ? flag(rows[0].notify_bot) && !flag(rows[0].notify_paused)
+      : flag(rows[0].pref_telegram);
+    await saveUserChannelPreference(connection, userId, "marathon", {
+      email: false,
+      telegram,
+    });
+    return true;
   }, getConnection);
 }
 
@@ -1481,6 +1524,9 @@ export async function loadNotifyAudience(
       notify_bot: number;
       delivery_channel: string | null;
       notify_paused: number;
+      pref_email: number | null;
+      pref_telegram: number | null;
+      account_chat_id: number | string | null;
       completed_at: unknown;
       is_banned: number;
     }>(
@@ -1489,10 +1535,15 @@ export async function loadNotifyAudience(
               d.day_number, d.topic,
               (SELECT COUNT(*) FROM marathon_day_tasks tk WHERE tk.day_id = d.id) AS task_count,
               p.user_id, u.email, u.display_name, p.telegram_chat_id, p.notify_email, p.notify_bot,
-              p.delivery_channel, p.notify_paused, pr.completed_at, u.is_banned
+              p.delivery_channel, p.notify_paused, npref.email_on AS pref_email,
+              npref.telegram_on AS pref_telegram, uta.telegram_chat_id AS account_chat_id,
+              pr.completed_at, u.is_banned
        FROM marathons m
        INNER JOIN marathon_participants p ON p.marathon_id = m.id
        INNER JOIN app_users u ON u.id = p.user_id
+       LEFT JOIN user_channel_preferences npref
+         ON npref.user_id = p.user_id AND npref.category = 'marathon'
+       LEFT JOIN user_telegram_accounts uta ON uta.user_id = p.user_id
        LEFT JOIN marathon_days d ON d.marathon_id = m.id
        LEFT JOIN marathon_day_progress pr
          ON pr.marathon_id = m.id AND pr.user_id = p.user_id AND pr.day_id = d.id
@@ -1535,14 +1586,23 @@ export async function loadNotifyAudience(
       if (!person) {
         const channel = isDeliveryChannel(row.delivery_channel) ? row.delivery_channel : null;
         const paused = flag(row.notify_paused);
+        const delivery = resolveMarathonDelivery({
+          columnEmail: flag(row.notify_email),
+          columnTelegram: flag(row.notify_bot),
+          paused,
+          preference: row.pref_email == null && row.pref_telegram == null
+            ? null
+            : { email: flag(row.pref_email), telegram: flag(row.pref_telegram) },
+        });
+        const accountChat = row.account_chat_id == null ? null : String(row.account_chat_id);
         person = {
           userId: row.user_id,
           email: row.email,
           displayName: row.display_name?.trim() || "",
           telegramChatId:
-            row.telegram_chat_id == null ? null : String(row.telegram_chat_id),
-          notifyEmail: flag(row.notify_email) && !paused,
-          notifyBot: flag(row.notify_bot) && !paused,
+            row.telegram_chat_id == null ? accountChat : String(row.telegram_chat_id),
+          notifyEmail: delivery.notifyEmail,
+          notifyBot: delivery.notifyBot,
           paused,
           channel,
           completedDayNumbers: [],
@@ -1992,6 +2052,14 @@ export async function loadMarathonHomeState(
       declinedSlugs = new Set(declined.map((row) => row.slug));
       declinedIds = new Set(declined.map((row) => Number(row.id)));
     }
+    let invitedIds = new Set<number>();
+    if (input.userId != null) {
+      const invited = await connection.query<{ marathon_id: number }>(
+        `SELECT marathon_id FROM marathon_invite_recipients WHERE user_id = ?`,
+        [input.userId],
+      );
+      invitedIds = new Set(invited.map((row) => Number(row.marathon_id)));
+    }
     return {
       cards: selectHomeMarathonCards({
         marathons: marathons.map((row) => ({
@@ -2004,7 +2072,6 @@ export async function loadMarathonHomeState(
         declinedSlugs,
       }),
       invites: selectMarathonInvites({
-        role: input.role ?? "",
         marathons: marathons.map((row) => ({
           id: Number(row.id),
           slug: row.slug,
@@ -2013,6 +2080,7 @@ export async function loadMarathonHomeState(
         })),
         joinedIds,
         declinedIds,
+        invitedIds,
       }),
     };
   }, getConnection);

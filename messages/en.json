@@ -71,10 +71,31 @@
     "telegramLoading": "Creating link...",
     "telegramOpen": "Open Telegram to connect",
     "telegramError": "Could not create a Telegram link. Try again.",
+    "notificationsTitle": "Notification settings",
+    "notificationsLead": "The site bell stays on. Here you choose email and Telegram for each category.",
+    "notificationsSave": "Save notifications",
+    "notificationsSaved": "Saved",
+    "notificationsError": "Could not save. Try again.",
+    "channelEmail": "Email",
+    "channelTelegram": "Telegram",
+    "notifications": {
+      "marathon": {
+        "title": "Marathons",
+        "hint": "Email and bot messages about marathon days. Turning both off skips a new marathon invitation on the site, by email, and in Telegram."
+      },
+      "news": {
+        "title": "News",
+        "hint": "News mailings are not sent yet. The choice is stored for later."
+      },
+      "system": {
+        "title": "Essentials",
+        "hint": "Telegram for new tasks, deadlines, and digests. The email box is stored — there is no separate system email yet. Sign-in and password emails always go out."
+      }
+    },
     "kicker": "Profile",
     "title": "Personal account",
-    "lead": "Profile photo, password, and recent results.",
-    "leadAdmin": "Profile photo, password, and sign out.",
+    "lead": "Profile photo, notifications, password, and recent results.",
+    "leadAdmin": "Profile photo, notifications, password, and sign out.",
     "photoTitle": "Profile photo",
     "photoLead": "JPEG, PNG, or WebP. A square photo is cropped from the center and appears in the header.",
     "photoHint": "Up to {maxKb} KB. A square photo is cropped from the center and replaces the initials in the header.",
@@ -906,6 +927,7 @@
       "finalCtaText": "Button label",
       "finalCtaUrl": "Button link",
       "introVideo": "Intro video",
+      "inviteAudience": "Who to notify",
       "order": "Order",
       "riddleTitle": "Riddle title",
       "body": "Text",
@@ -921,6 +943,11 @@
       "options": "Options",
       "correct": "Correct option number",
       "explanation": "Explanation"
+    },
+    "audiences": {
+      "none": "Nobody",
+      "all": "All users",
+      "students": "Students only"
     },
     "materialTypes": {
       "text": "Text",
@@ -939,6 +966,7 @@
       "passThreshold": "An integer from 0 to 100.",
       "finalCtaUrl": "A path starting with / or a full http:// or https:// URL.",
       "introVideo": "Optional. A YouTube or Loom link. Shown once at the start.",
+      "inviteAudience": "Sent once, when the marathon becomes active. A draft notifies nobody. Saving again does not send another invitation. The home card stays visible to everyone.",
       "materialVideo": "For YouTube or Loom, paste the video link.",
       "taskEither": "Either a bank ID, or your own prompt with options."
     },
@@ -1002,6 +1030,9 @@
       },
       "introVideo": {
         "format": "The intro video must be a YouTube or Loom link."
+      },
+      "inviteAudience": {
+        "format": "Choose who to notify: nobody, all users, or students only."
       },
       "copyKey": {
         "unknown": "Unknown text. Reload the page."

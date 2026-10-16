@@ -163,7 +163,16 @@ export async function setMarathonStatusAction(formData: FormData): Promise<void>
       redirect(`${adminPath(id)}?error=not_ready`);
     }
   }
+  const previous = await getDailyById(id);
   await setDailyStatus(id, status);
+  if (status === "active" && previous && previous.status !== "active") {
+    try {
+      const { dispatchMarathonInvites } = await import("./inviteDispatch");
+      await dispatchMarathonInvites(id);
+    } catch (error) {
+      console.error("marathon invite dispatch", error);
+    }
+  }
   revalidatePath(adminPath(id));
   redirect(savedPath(id));
 }

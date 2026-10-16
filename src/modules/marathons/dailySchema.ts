@@ -1,5 +1,7 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { applyChannelPreferencesSchema } from "@/modules/notifications/channelSchema";
 import { createUserNotificationsTable } from "@/modules/notifications/schema";
+import { backfillTelegramLinks } from "@/modules/telegram/linkSync";
 
 const CHILD_TABLES = [
   `CREATE TABLE IF NOT EXISTS marathon_riddles (
@@ -122,6 +124,25 @@ const CHILD_TABLES = [
     CONSTRAINT fk_marathon_decline_user FOREIGN KEY (user_id)
       REFERENCES app_users (id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS marathon_invite_dispatches (
+    marathon_id INT NOT NULL,
+    audience VARCHAR(16) NOT NULL,
+    sent_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (marathon_id),
+    CONSTRAINT fk_marathon_invite_dispatch FOREIGN KEY (marathon_id)
+      REFERENCES marathons (id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS marathon_invite_recipients (
+    marathon_id INT NOT NULL,
+    user_id INT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (marathon_id, user_id),
+    KEY idx_invite_recipient_user (user_id, marathon_id),
+    CONSTRAINT fk_marathon_invite_recipient_marathon FOREIGN KEY (marathon_id)
+      REFERENCES marathons (id) ON DELETE CASCADE,
+    CONSTRAINT fk_marathon_invite_recipient_user FOREIGN KEY (user_id)
+      REFERENCES app_users (id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   `CREATE TABLE IF NOT EXISTS marathon_bot_links (
     id INT NOT NULL AUTO_INCREMENT,
     marathon_id INT NOT NULL,
@@ -153,6 +174,7 @@ const MARATHON_COLUMNS: Array<[string, string]> = [
   ["final_cta_text", "VARCHAR(500) NULL AFTER pass_threshold"],
   ["final_cta_url", "VARCHAR(500) NULL AFTER final_cta_text"],
   ["intro_video_url", "VARCHAR(500) NULL AFTER final_cta_url"],
+  ["invite_audience", "ENUM('none','students','all') NOT NULL DEFAULT 'none' AFTER intro_video_url"],
 ];
 
 const PARTICIPANT_COLUMNS: Array<[string, string]> = [
@@ -340,6 +362,8 @@ export async function migrateDailyMarathon(
   await promoteMarathonCabinets(connection);
   await backfillDailyDescription(connection);
   await createUserNotificationsTable(connection);
+  await backfillTelegramLinks(connection);
+  await applyChannelPreferencesSchema(connection);
 }
 
 const SQL_SCHEMA_FLAGS = `

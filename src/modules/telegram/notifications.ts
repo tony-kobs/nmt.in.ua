@@ -21,6 +21,8 @@ import { getKyivClock } from "./taskDay";
 import type { InlineKeyboard, TelegramReply } from "./taskInteraction";
 import { cleanTitle, effectiveDeadline, formatKyivDateTime, html, MENU } from "./ui";
 import { sendTelegramMessage, type TelegramSendResult } from "./transport";
+import { loadChannelPreferences } from "@/modules/notifications/channelStore";
+import { mysqlErrno } from "@/modules/teacher-students/mysqlErrno";
 
 /** A deadline reminder goes out once the effective deadline is this close. */
 export const DEADLINE_REMINDER_WINDOW_SEC = 6 * 60 * 60;
@@ -149,6 +151,15 @@ export async function processTelegramTaskNotifications(
     accounts.splice(NOTIFICATION_ACCOUNT_BATCH);
     // Keep the TG-007 new-task behavior if a recovery caller supplies an older schema.
     const preferences = await loadNotificationPreferences(connection, accounts.map((account) => Number(account.id)));
+    const systemTelegramOff = new Set<number>();
+    try {
+      const channels = await loadChannelPreferences(connection, accounts.map((account) => Number(account.user_id)));
+      for (const [userId, pref] of channels) {
+        if (!pref.system.telegram) systemTelegramOff.add(userId);
+      }
+    } catch (error) {
+      if (mysqlErrno(error) !== 1146 && mysqlErrno(error) !== 1054) throw error;
+    }
     const borrowed = { ...connection, release: () => {} };
     const taskDeps = { getConnection: async () => borrowed, nowSec: deps.nowSec, logError: log };
 
@@ -215,6 +226,11 @@ export async function processTelegramTaskNotifications(
       for (const account of accounts) {
         checkBudget();
         const finishAccount = () => { cursor = Number(account.id); processedAccounts++; };
+        if (systemTelegramOff.has(Number(account.user_id))) {
+          counts.skipped++;
+          finishAccount();
+          continue;
+        }
         const prefs: NotificationPreferences = preferences?.get(Number(account.id)) ?? DEFAULT_NOTIFICATION_PREFERENCES;
         if (preferences && isQuietHour(prefs, clock.hour)) {
           // Nothing is claimed: new-task rows stay unclaimed and go out after the quiet hours.

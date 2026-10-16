@@ -71,10 +71,31 @@
     "telegramLoading": "Link wird erstellt...",
     "telegramOpen": "Telegram zum Verbinden öffnen",
     "telegramError": "Telegram-Link konnte nicht erstellt werden. Bitte erneut versuchen.",
+    "notificationsTitle": "Benachrichtigungen",
+    "notificationsLead": "Die Glocke auf der Website bleibt an. Hier wählst du E-Mail und Telegram für jede Kategorie.",
+    "notificationsSave": "Benachrichtigungen speichern",
+    "notificationsSaved": "Gespeichert",
+    "notificationsError": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+    "channelEmail": "E-Mail",
+    "channelTelegram": "Telegram",
+    "notifications": {
+      "marathon": {
+        "title": "Marathons",
+        "hint": "E-Mail und Bot-Nachrichten zu Marathontagen. Sind beide aus, kommt keine Einladung zu einem neuen Marathon — weder auf der Website, noch per E-Mail, noch in Telegram."
+      },
+      "news": {
+        "title": "Neuigkeiten",
+        "hint": "Nachrichten werden noch nicht versendet. Die Auswahl wird für später gespeichert."
+      },
+      "system": {
+        "title": "Wesentliches",
+        "hint": "Telegram zu neuen Aufgaben, Fristen und Zusammenfassungen. Die E-Mail-Auswahl wird gespeichert — eine eigene Systemmail gibt es noch nicht. Anmelde- und Passwort-Mails gehen immer raus."
+      }
+    },
     "kicker": "Profil",
     "title": "Persönliches Konto",
-    "lead": "Profilfoto, Passwort und letzte Ergebnisse.",
-    "leadAdmin": "Profilfoto, Passwort und Abmeldung.",
+    "lead": "Profilfoto, Benachrichtigungen, Passwort und letzte Ergebnisse.",
+    "leadAdmin": "Profilfoto, Benachrichtigungen, Passwort und Abmeldung.",
     "photoTitle": "Profilfoto",
     "photoLead": "JPEG, PNG oder WebP. Ein quadratisches Foto wird mittig zugeschnitten und erscheint in der Kopfzeile.",
     "photoHint": "Bis {maxKb} KB. Ein quadratisches Foto wird mittig zugeschnitten und ersetzt die Initialen in der Kopfzeile.",
@@ -906,6 +927,7 @@
       "finalCtaText": "Button-Text",
       "finalCtaUrl": "Button-Link",
       "introVideo": "Einführungsvideo",
+      "inviteAudience": "Wen benachrichtigen",
       "order": "Reihenfolge",
       "riddleTitle": "Titel des Rätsels",
       "body": "Text",
@@ -921,6 +943,11 @@
       "options": "Optionen",
       "correct": "Nummer der richtigen Antwort",
       "explanation": "Erklärung"
+    },
+    "audiences": {
+      "none": "Niemanden",
+      "all": "Alle Nutzer",
+      "students": "Nur Schüler"
     },
     "materialTypes": {
       "text": "Text",
@@ -939,6 +966,7 @@
       "passThreshold": "Ganze Zahl von 0 bis 100.",
       "finalCtaUrl": "Pfad mit / oder volle Adresse http:// bzw. https://.",
       "introVideo": "Optional. Ein YouTube- oder Loom-Link. Wird einmal am Anfang gezeigt.",
+      "inviteAudience": "Einmal, wenn der Marathon aktiv wird. Ein Entwurf benachrichtigt niemanden. Erneutes Speichern sendet keine zweite Einladung. Die Karte auf der Startseite bleibt für alle sichtbar.",
       "materialVideo": "Für YouTube oder Loom den Videolink einfügen.",
       "taskEither": "Entweder eine Bank-ID oder eine eigene Formulierung mit Optionen."
     },
@@ -1002,6 +1030,9 @@
       },
       "introVideo": {
         "format": "Das Einführungsvideo muss ein YouTube- oder Loom-Link sein."
+      },
+      "inviteAudience": {
+        "format": "Wähle, wen du benachrichtigen willst: niemanden, alle Nutzer oder nur Schüler."
       },
       "copyKey": {
         "unknown": "Unbekannter Text. Lade die Seite neu."
