@@ -6,7 +6,10 @@
 
 ```bash
 npm run migrate
+node scripts/migrate.mjs --check
 ```
+
+`node scripts/migrate.mjs --check` лише перевіряє, що `mysql2` і `scripts/sql/` відкриваються, і виходить. Базу не чіпає і значення змінних не друкує.
 
 Скрипт `scripts/migrate.mjs` читає `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` з оточення, інакше з `.env.production`, інакше з `.env.local` (вже задані змінні не перезаписує). Бере `GET_LOCK('nmt_schema')`, застосовує кожен ще не записаний файл, після успіху всього файлу пише версію.
 
@@ -17,6 +20,8 @@ npm run migrate
 ## Деплой
 
 `.github/workflows/deploy-hosting.yml` викликає `scripts/deploy-hosting.sh`. На хості, у каталозі нового релізу, після `npm install` і **до** зупинки Node і `mv` у `www` виконується `npm run migrate`. Помилка міграції залишає живий сайт на попередньому релізі.
+
+У tar входять `scripts/migrate.mjs`, `scripts/migrate-sql.mjs` і `scripts/sql/`. Якщо їх немає в архіві, вивантаження не починається. `mysql2` — production-залежність: на хості її дає копія `node_modules` живого сайту і `npm install --omit=dev`. Скрипт `dotenv` не імпортує. Немає `scripts/migrate.mjs`, `scripts/sql` або `node_modules/mysql2` — staging стирається, `www` лишається попереднім.
 
 Порожня база цей набір не підніме: старі `ALTER` (наприклад `quiz_tasks`, `themes`) розраховані на вже наявні таблиці контенту. Ціль — поточна база хостингу. Не ігнорувати errno 1146: інакше пропущений `ALTER` записався б як застосований.
 

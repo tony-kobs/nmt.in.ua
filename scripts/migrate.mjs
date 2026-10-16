@@ -8,6 +8,9 @@
  * Usage (from the release directory, with DB_* in the environment or in
  * .env.production / .env.local):
  *   npm run migrate
+ *   node scripts/migrate.mjs --check
+ *
+ * --check loads mysql2 and the SQL directory and exits before any connection.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -17,6 +20,44 @@ import { isIgnorableMigrationErrno, splitSqlStatements } from "./migrate-sql.mjs
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sqlDir = path.join(root, "scripts", "sql");
+
+const args = process.argv.slice(2);
+if (args.includes("-h") || args.includes("--help")) {
+  console.log(`Usage: node scripts/migrate.mjs [--check]
+
+Apply scripts/sql/*.sql in filename order and record them in schema_migrations.
+
+  --check      Load mysql2 and list SQL files. Do not read credentials or connect.
+  -h, --help   Show this help.`);
+  process.exit(0);
+}
+
+const unknown = args.filter((arg) => arg !== "--check");
+if (unknown.length > 0) {
+  console.error(`Unknown argument: ${unknown[0]}`);
+  process.exit(1);
+}
+
+if (!fs.existsSync(sqlDir)) {
+  throw new Error("Missing SQL directory: scripts/sql");
+}
+
+const files = fs
+  .readdirSync(sqlDir)
+  .filter((name) => name.endsWith(".sql"))
+  .sort((left, right) => left.localeCompare(right, "en"));
+
+if (files.length === 0) {
+  throw new Error("No SQL files in scripts/sql.");
+}
+
+if (args.includes("--check")) {
+  if (typeof mysql.createConnection !== "function") {
+    throw new Error("mysql2/promise did not resolve.");
+  }
+  console.log(`migrate check ok (${files.length} sql files, mysql2 resolved)`);
+  process.exit(0);
+}
 
 function loadEnvFile(file) {
   if (!fs.existsSync(file)) return;
@@ -53,11 +94,6 @@ function errnoOf(error) {
   }
   return undefined;
 }
-
-const files = fs
-  .readdirSync(sqlDir)
-  .filter((name) => name.endsWith(".sql"))
-  .sort((left, right) => left.localeCompare(right, "en"));
 
 const conn = await mysql.createConnection({
   host: required("DB_HOST"),
