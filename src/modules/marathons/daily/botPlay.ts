@@ -1,4 +1,5 @@
 import { composeRichText, composeTelegramTask } from "@/modules/telegram/taskRender";
+import { MAIN_MENU_LABEL, MENU, mainMenuDataButton } from "@/modules/telegram/ui";
 import { materialSources } from "./telegramContent";
 import { isDayPassed, scorePercent } from "./score";
 import {
@@ -281,6 +282,51 @@ function buttonLabel(copy: Partial<Record<CopyKey, string>> | undefined, key: Co
   return resolveCopy(key, copy).slice(0, 64);
 }
 
+function withMainMenu(buttons?: Outgoing["buttons"]): NonNullable<Outgoing["buttons"]> {
+  const home = mainMenuDataButton();
+  const list = [...(buttons ?? [])];
+  if (!list.some((button) => button.data === home.data)) list.push(home);
+  return list;
+}
+
+/** Bottom menu for a marathon chat. The map stays inline: a reply button cannot open a URL. */
+export function marathonReplyKeyboard(copy: Partial<Record<CopyKey, string>> | undefined): {
+  keyboard: { text: string }[][];
+  resize_keyboard: true;
+  is_persistent: true;
+} {
+  return {
+    keyboard: [
+      [{ text: buttonLabel(copy, "bot_btn_today") }, { text: buttonLabel(copy, "bot_btn_top") }],
+      [{ text: buttonLabel(copy, "bot_btn_stop") }],
+      [{ text: MAIN_MENU_LABEL }],
+    ],
+    resize_keyboard: true,
+    is_persistent: true,
+  };
+}
+
+/** Label of a marathon bottom button → the same callback the inline button uses. */
+export function marathonCallbackFromText(
+  text: string,
+  copy: Partial<Record<CopyKey, string>> | undefined,
+): string | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const rows = [
+    { text: buttonLabel(copy, "bot_btn_today"), data: "mh:today" },
+    { text: buttonLabel(copy, "bot_btn_top"), data: "mh:top" },
+    { text: buttonLabel(copy, "bot_btn_stop"), data: "mh:stop" },
+    { text: MAIN_MENU_LABEL, data: MENU.home },
+  ];
+  return rows.find((button) => button.text.trim() === trimmed)?.data ?? null;
+}
+
+export function isDefaultMarathonMenuLabel(text: string): boolean {
+  const data = marathonCallbackFromText(text, undefined);
+  return data != null && data !== MENU.home;
+}
+
 export function menuMessages(
   copy: Partial<Record<CopyKey, string>> | undefined,
   mapUrl: string,
@@ -288,13 +334,12 @@ export function menuMessages(
   return [
     {
       text: resolveCopy("bot_menu", copy),
-      buttons: [
+      buttons: withMainMenu([
         { text: buttonLabel(copy, "bot_btn_today"), data: "mh:today" },
         { text: buttonLabel(copy, "bot_btn_top"), data: "mh:top" },
         { text: buttonLabel(copy, "bot_btn_map"), url: mapUrl },
-        { text: "Пройти тестування", data: "mh:quiz" },
         { text: buttonLabel(copy, "bot_btn_stop"), data: "mh:stop" },
-      ],
+      ]),
     },
   ];
 }
@@ -303,10 +348,10 @@ function channelMessages(copy: Partial<Record<CopyKey, string>> | undefined): Ou
   return [
     {
       text: resolveCopy("channel_prompt", copy),
-      buttons: [
+      buttons: withMainMenu([
         { text: buttonLabel(copy, "bot_btn_site"), data: "mh:ch:s" },
         { text: buttonLabel(copy, "bot_btn_telegram"), data: "mh:ch:t" },
-      ],
+      ]),
     },
   ];
 }
@@ -336,6 +381,7 @@ function taskMessage(
         ? tokenFor({ day: day.dayNumber, taskId: task.id, option: index + 1 })
         : `mh:a:${day.dayNumber}:${task.id}:${index + 1}`
     )),
+    trailingButtons: [mainMenuDataButton()],
     siteUrl: day.pageUrl,
     siteLabel: buttonLabel(copy, "bot_open_site"),
   });
@@ -373,9 +419,12 @@ function reviewMessages(
       siteLabel: buttonLabel(copy, "bot_open_site"),
     }));
   }
-  if (!withFollowUp) return messages;
-  const follow = followUpText(day, copy, name);
-  if (follow) messages.push({ text: follow });
+  if (withFollowUp) {
+    const follow = followUpText(day, copy, name);
+    if (follow) messages.push({ text: follow });
+  }
+  const last = messages[messages.length - 1];
+  if (last) last.buttons = withMainMenu(last.buttons);
   return messages;
 }
 
@@ -414,7 +463,7 @@ function currentStep(
     return [
       {
         text: renderResolved("bot_locked", copy, varsFor(day, name)),
-        buttons: [{ text: buttonLabel(copy, "bot_open_site"), url: day.pageUrl }],
+        buttons: withMainMenu([{ text: buttonLabel(copy, "bot_open_site"), url: day.pageUrl }]),
       },
     ];
   }
@@ -426,7 +475,7 @@ function currentStep(
     if (messages.length === 0) messages.push({ text: " " });
     messages.push({
       text: buttonLabel(copy, "bot_to_tasks"),
-      buttons: [{ text: buttonLabel(copy, "bot_to_tasks"), data: `mh:mat:${day.dayNumber}` }],
+      buttons: withMainMenu([{ text: buttonLabel(copy, "bot_to_tasks"), data: `mh:mat:${day.dayNumber}` }]),
     });
     return messages;
   }

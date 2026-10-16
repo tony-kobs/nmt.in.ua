@@ -5,13 +5,14 @@ import { consumeTelegramLink } from "./link";
 import { getTelegramTaskSessions, getTelegramTodayTaskSessions } from "./tasks";
 import { completeTelegramTask } from "./completeTask";
 import { handleTaskCallback, parseTaskCallback, type TelegramReply } from "./taskInteraction";
-import { isMarathonCallbackData } from "@/modules/marathons/daily/botPlay";
+import { isDefaultMarathonMenuLabel, isMarathonCallbackData } from "@/modules/marathons/daily/botPlay";
 import { TELEGRAM_TAKEN_MESSAGE } from "@/modules/marathons/daily/botLink";
 import { getTelegramTaskDetails } from "./taskDetails";
 import { getTelegramAccountProfile } from "./account";
 import { loadTelegramConnection } from "./schema";
 import { buildTaskListReply } from "./taskList";
-import { handleMenuRequest, parseMenuCallback, parseMenuCommand, type MenuDeps } from "./menu";
+import { handleMenuRequest, parseMenuCallback, parseMenuCommand, parseMenuData, type MenuDeps } from "./menu";
+import { accountCallbackFromText, accountReplyKeyboard, parsePrivateMenuText } from "./replyKeyboard";
 import { MENU } from "./ui";
 
 type TelegramMessage = {
@@ -79,6 +80,62 @@ export async function handleTelegramUpdate(
     referenceSecret: deps.referenceSecret,
     logError: deps.logError,
   };
+  const log = deps.logError ?? ((value: unknown) => console.error("telegram update failed", value));
+  async function accountKeyboard(chatId: string, userId: string) {
+    try {
+      const profile = await (deps.getProfile ?? getTelegramAccountProfile)(userId, {
+        getConnection: menuDeps.getConnection ?? loadTelegramConnection,
+        logError: deps.logError,
+      });
+      if (profile.status !== "success") return undefined;
+      let marathon = false;
+      try { marathon = await menuDeps.hasMarathon?.(chatId) ?? false; } catch (error) { log(error); }
+      return accountReplyKeyboard(profile.profile.role, marathon);
+    } catch (error) {
+      log(error);
+      return undefined;
+    }
+  }
+  async function runMarathon(source: unknown): Promise<TelegramReply | null> {
+    try {
+      const handler = deps.marathon ?? (await import("@/modules/marathons/daily/botGateway")).handleMarathonGateway;
+      return packReplies(await handler(source));
+    } catch (error) {
+      log(error);
+      const chatId = callbackChatId(source) ?? messageChatId(source);
+      return chatId ? { chatId, text: "Не вдалося обробити дію. Спробуйте пізніше." } : null;
+    }
+  }
+  async function replyToMenuText(source: unknown): Promise<TelegramReply | null> {
+    const menuText = parsePrivateMenuText(source);
+    if (!menuText) return null;
+    const data = accountCallbackFromText(menuText.text);
+    if (data) {
+      if (data.startsWith("mh:")) {
+        const id = Number(menuText.chatId);
+        return runMarathon({
+          callback_query: {
+            id: "reply-keyboard",
+            data,
+            from: { id },
+            message: { message_id: 1, chat: { id, type: "private" } },
+          },
+        });
+      }
+      try {
+        return await handleMenuRequest({
+          chatId: menuText.chatId,
+          userId: menuText.userId,
+          action: parseMenuData(data),
+        }, menuDeps);
+      } catch (error) {
+        log(error);
+        return { chatId: menuText.chatId, text: "Не вдалося обробити дію. Спробуйте пізніше." };
+      }
+    }
+    if (!deps.marathon && !isDefaultMarathonMenuLabel(menuText.text)) return null;
+    return runMarathon(source);
+  }
   const callbackData = callbackDataOf(update);
   const entry = parseMenuCommand(update);
   if (entry && entry.action.kind === "screen" && entry.action.screen === "home" && !isMarathonCallbackData(callbackData)) {
@@ -159,7 +216,7 @@ export async function handleTelegramUpdate(
     }
   }
   const start = parseTelegramStart(update);
-  if (!start) return null;
+  if (!start) return replyToMenuText(update);
   if (start.payload && start.payload.startsWith("mth_") && start.payload.length !== 43) {
     try {
       const consumeMarathon = deps.consumeMarathon
@@ -178,6 +235,7 @@ export async function handleTelegramUpdate(
       const linkedText = accepted && deps.marathonLinkText
         ? await deps.marathonLinkText(start.chatId)
         : null;
+      const keyboard = accepted ? await accountKeyboard(start.chatId, start.userId) : undefined;
       return {
         chatId: start.chatId,
         text: taken
@@ -185,6 +243,7 @@ export async function handleTelegramUpdate(
           : accepted
             ? linkedText || "Бот марафону підключено. Нагадування про дні приходитимуть сюди."
             : "Код марафону недійсний або його термін минув. Створіть новий у кабінеті марафону.",
+        ...(keyboard ? { replyKeyboard: keyboard } : {}),
       };
     } catch (error) {
       (deps.logError ?? ((value) => console.error("marathon telegram link failed", value)))(error);
@@ -207,13 +266,16 @@ export async function handleTelegramUpdate(
     chatId: start.chatId,
     username: start.username,
   });
-  return linked
-    ? {
-        chatId: start.chatId,
-        text: "✅ Telegram успішно підключено до вашого облікового запису.",
-        replyMarkup: { inline_keyboard: [[{ text: "🏠 Відкрити меню", callback_data: MENU.home }]] },
-      }
-    : { chatId: start.chatId, text: "Посилання недійсне або термін його дії минув. Створіть нове у своєму кабінеті." };
+  if (!linked) {
+    return { chatId: start.chatId, text: "Посилання недійсне або термін його дії минув. Створіть нове у своєму кабінеті." };
+  }
+  const keyboard = await accountKeyboard(start.chatId, start.userId);
+  return {
+    chatId: start.chatId,
+    text: "✅ Telegram успішно підключено до вашого облікового запису.",
+    replyMarkup: { inline_keyboard: [[{ text: "🏠 Відкрити меню", callback_data: MENU.home }]] },
+    ...(keyboard ? { replyKeyboard: keyboard } : {}),
+  };
 }
 
 export function parseTelegramDoneCommand(update: unknown): { chatId: string; userId: string; reference: string | null } | null {
