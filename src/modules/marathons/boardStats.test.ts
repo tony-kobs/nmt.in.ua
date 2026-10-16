@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { rankParticipants } from "./daily/leaderboard";
 import {
+  ALL_MARATHONS_SLUG,
   boardShowsSpeed,
   buildDailyBoard,
   pickMarathonSlug,
@@ -85,6 +86,36 @@ test("a repeated day is counted once", () => {
   assert.equal(row.points, 3);
 });
 
+test("days from two marathons add up even when the day id is the same", () => {
+  const days = [
+    day({ userId: 1, dayId: 1, marathonId: 4, correctCount: 4, score: 80, completedAt: 10_000 }),
+    day({ userId: 1, dayId: 1, marathonId: 9, correctCount: 2, score: 50, completedAt: 30_000 }),
+  ];
+  const board = buildDailyBoard(
+    [
+      { ...people[0], joinedAt: 5_000, displayName: "Пізніший запис" },
+      people[0],
+    ],
+    days,
+  );
+  assert.equal(board.length, 1);
+  assert.equal(board[0]?.daysDone, 2);
+  assert.equal(board[0]?.points, 6);
+  assert.equal(board[0]?.avgPercent, 65);
+  assert.equal(board[0]?.displayName, "Анна Коваль");
+  const tied = buildDailyBoard(
+    [
+      { ...people[0], joinedAt: 1_000 },
+      { ...people[1], joinedAt: 4_000 },
+    ],
+    [
+      day({ userId: 1, dayId: 1, marathonId: 4, correctCount: 3, completedAt: 20_000 }),
+      day({ userId: 2, dayId: 1, marathonId: 9, correctCount: 3, completedAt: 20_000 }),
+    ],
+  );
+  assert.deepEqual(tied.map((row) => row.userId), [1, 2]);
+});
+
 test("the selector prefers the requested marathon, otherwise an active daily one", () => {
   const options = sortBoardChoices([
     { slug: "pilot", kind: "sessions" as const, status: "active", startsAt: 9, id: 1 },
@@ -96,5 +127,18 @@ test("the selector prefers the requested marathon, otherwise an active daily one
   assert.equal(pickMarathonSlug(options, undefined), "later");
   assert.equal(pickMarathonSlug(options, "pilot"), "pilot");
   assert.equal(pickMarathonSlug(options, "missing"), "later");
+  assert.equal(pickMarathonSlug(options, ALL_MARATHONS_SLUG), ALL_MARATHONS_SLUG);
   assert.equal(pickMarathonSlug([], "math-5"), null);
+  assert.equal(pickMarathonSlug([], ALL_MARATHONS_SLUG), null);
+
+  const finished = sortBoardChoices([
+    { slug: "older", kind: "daily" as const, status: "finished", startsAt: 1, id: 1 },
+    { slug: "newer", kind: "daily" as const, status: "finished", startsAt: 5, id: 2 },
+  ]);
+  assert.equal(pickMarathonSlug(finished, undefined), "newer");
+
+  const sessionsOnly = [
+    { slug: "pilot", kind: "sessions" as const, status: "active" },
+  ];
+  assert.equal(pickMarathonSlug(sessionsOnly, ALL_MARATHONS_SLUG), "pilot");
 });
