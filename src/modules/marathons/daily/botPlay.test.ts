@@ -187,9 +187,42 @@ test("callback data hides the task and the correct option behind an opaque token
   assert.equal(/:2$/.test(answer.data), false);
   assert.equal(issued[0]?.taskId, 15);
   assert.equal(issued[0]?.option, 1);
-  const taskMessage = result.messages.find((message) => message.siteUrl);
-  assert.equal(taskMessage?.siteUrl, "https://nmt.in.ua/marathon/math-5/day/1");
-  assert.equal(taskMessage?.buttons?.some((button) => button.url), false);
+  const taskMessage = result.messages.find((message) => message.text.includes("2+2"));
+  assert.ok(taskMessage);
+  assert.equal(taskMessage.siteUrl, undefined);
+  assert.equal(taskMessage.buttons?.some((button) => button.url), false);
+  assert.equal(taskMessage.buttons?.[0]?.text, "А. 3");
+  assert.equal(blob(result.messages).includes(EXPLANATION), false);
+});
+
+test("a marathon formula task stays one message and the site link waits for a failed picture", () => {
+  const result = presentMarathon({
+    callback: { kind: "today" },
+    day: day({
+      tasks: [
+        {
+          ...tasks[0],
+          prompt: "Спростіть вираз $\\begin{cases}x\\\\y\\end{cases}$.",
+          options: ["$5x$", "$6x$"],
+        },
+        tasks[1],
+      ],
+    }),
+    state: viewed,
+    name: "Марія",
+    mapUrl: "https://nmt.in.ua/marathon/math-5/map",
+  });
+  const formulaMessages = result.messages.filter((message) => message.formulaTex || message.text.includes("Спростіть"));
+  assert.equal(formulaMessages.length, 1);
+  const task = formulaMessages[0]!;
+  assert.match(task.text, /Спростіть вираз/);
+  assert.match(task.text, /А\. 5x/);
+  assert.match(task.text, /Б\. 6x/);
+  assert.equal(task.siteOnFail, true);
+  assert.equal(task.siteUrl, "https://nmt.in.ua/marathon/math-5/day/1");
+  assert.equal(task.buttons?.some((button) => button.url), false);
+  assert.equal(task.buttons?.[0]?.text, "А. 5x");
+  assert.equal(task.text.trim() === ".", false);
   assert.equal(blob(result.messages).includes(EXPLANATION), false);
 });
 
