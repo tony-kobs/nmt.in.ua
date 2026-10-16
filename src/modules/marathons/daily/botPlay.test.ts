@@ -249,3 +249,42 @@ test("a formula task answered in the bot can be finished on the site", () => {
   assert.equal(fromSite.completedNow, true);
   assert.equal(fromSite.state.score, 100);
 });
+
+test("marathon menu drops generic practice and can return home", () => {
+  const result = presentMarathon({
+    callback: { kind: "menu" },
+    day: null,
+    state: blankPlay(),
+    name: "Марія",
+    mapUrl: "https://nmt.in.ua/marathon/math-5/map",
+  });
+  const buttons = result.messages.flatMap((message) => message.buttons ?? []);
+  assert.equal(buttons.some((button) => button.text === "Пройти тестування" || button.data === "mh:quiz"), false);
+  assert.equal(buttons.some((button) => button.data === "mh:today"), true);
+  assert.equal(buttons.some((button) => button.url?.endsWith("/map")), true);
+  assert.equal(buttons.some((button) => button.text === "🏠 Головне меню" && button.data === "m:home"), true);
+});
+
+test("a marathon day keeps answer buttons inline and offers the main menu", () => {
+  const result = presentMarathon({
+    callback: { kind: "today" },
+    day: day(),
+    state: viewed,
+    name: "Марія",
+    mapUrl: "https://nmt.in.ua/marathon/math-5/map",
+  });
+  const task = result.messages.find((message) => message.text.includes("2+2"));
+  assert.equal(task?.buttons?.[0]?.text, "А. 3");
+  assert.equal(task?.buttons?.some((button) => button.text === "Пройти тестування"), false);
+  assert.equal(task?.buttons?.at(-1)?.data, "m:home");
+  const finished = presentMarathon({
+    callback: { kind: "today" },
+    day: day(),
+    state: { ...viewed, completed: true, answers: { 15: 2, 16: 1 }, score: 100, passed: true },
+    name: "Марія",
+    mapUrl: "https://nmt.in.ua/marathon/math-5/map",
+  });
+  const labels = finished.messages.flatMap((message) => message.buttons ?? []).map((button) => button.text);
+  assert.equal(labels.includes("🏠 Головне меню"), true);
+  assert.equal(labels.includes("Пройти тестування"), false);
+});

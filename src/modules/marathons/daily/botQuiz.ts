@@ -14,6 +14,7 @@ import {
 } from "@/modules/testing/types";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
 import { composeTelegramTask } from "@/modules/telegram/taskRender";
+import { mainMenuDataButton } from "@/modules/telegram/ui";
 import type { BotCallback, Outgoing } from "./botPlay";
 
 const PAGE_SIZE = 6;
@@ -43,10 +44,6 @@ export function quizCountChoices(bankSize: number): number[] {
   const full = Math.min(bankSize, COUNT_CHOICES[COUNT_CHOICES.length - 1]!);
   if (!offered.includes(full)) offered.push(full);
   return offered;
-}
-
-function menuButton(): { text: string; data: string } {
-  return { text: "Меню", data: "mh:menu" };
 }
 
 function note(text: string, buttons?: Outgoing["buttons"]): Outgoing[] {
@@ -89,7 +86,7 @@ async function openSession(userId: number): Promise<OpenSession | null> {
 async function themeList(page: number): Promise<Outgoing[]> {
   const themes = await getAvailableTopicThemes();
   if (themes.length === 0) {
-    return note("У банку ще немає тем із завданнями.", [menuButton()]);
+    return note("У банку ще немає тем із завданнями.", [mainMenuDataButton()]);
   }
   const pages = Math.ceil(themes.length / PAGE_SIZE);
   const safePage = Math.min(Math.max(page, 0), pages - 1);
@@ -100,7 +97,7 @@ async function themeList(page: number): Promise<Outgoing[]> {
   }));
   if (safePage > 0) buttons.push({ text: "Назад", data: `mh:qp:${safePage - 1}` });
   if (safePage + 1 < pages) buttons.push({ text: "Далі", data: `mh:qp:${safePage + 1}` });
-  buttons.push(menuButton());
+  buttons.push(mainMenuDataButton());
   return [{
     text: pages > 1 ? `Оберіть тему (${safePage + 1}/${pages})` : "Оберіть тему",
     buttons,
@@ -110,7 +107,7 @@ async function themeList(page: number): Promise<Outgoing[]> {
 async function countPicker(themeId: number): Promise<Outgoing[]> {
   const themes = await getAvailableTopicThemes();
   const theme = themes.find((item) => item.id === themeId);
-  if (!theme) return note("Цієї теми немає в банку.", [{ text: "До тем", data: "mh:qp:0" }, menuButton()]);
+  if (!theme) return note("Цієї теми немає в банку.", [{ text: "До тем", data: "mh:qp:0" }, mainMenuDataButton()]);
   const choices = quizCountChoices(theme.taskCount);
   return [{
     text: `${theme.name}\nУ банку ${theme.taskCount}. Скільки завдань взяти?`,
@@ -120,7 +117,7 @@ async function countPicker(themeId: number): Promise<Outgoing[]> {
         data: `mh:qn:${theme.id}:${count}`,
       })),
       { text: "До тем", data: "mh:qp:0" },
-      menuButton(),
+      mainMenuDataButton(),
     ],
   }];
 }
@@ -187,7 +184,7 @@ export function buildQuizQuestion(input: {
     optionData: input.options.map((_, option) => (
       `mh:q${prefix}:${input.sessionId}:${input.mappingId}:${option + 1}`
     )),
-    trailingButtons: [menuButton()],
+    trailingButtons: [mainMenuDataButton()],
     siteUrl: absoluteSiteUrl(`/session/${input.sessionId}`),
     siteLabel: "Відкрити на сайті",
   });
@@ -220,7 +217,7 @@ async function showSession(userId: number, sessionId: number, preface?: string):
     // The clock is optional; the question still has to open.
   }
   const rows = await loadPlay(userId, sessionId);
-  if (!rows) return note("Цю сесію не знайдено.", [menuButton()]);
+  if (!rows) return note("Цю сесію не знайдено.", [mainMenuDataButton()]);
   const question = questionMessage(sessionId, rows, preface);
   if (question.length > 0) return question;
   try {
@@ -228,13 +225,13 @@ async function showSession(userId: number, sessionId: number, preface?: string):
     const lead = preface?.trim() ? `${preface.trim()}\n\n` : "";
     return note(
       `${lead}${rows[0]?.theme_name?.trim() || "Тест"} завершено.\nЗ першої спроби: ${summary.rightNumber} з ${summary.tasksNumber} (${summary.percent}%).`,
-      [{ text: "Ще тест", data: "mh:qp:0" }, menuButton()],
+      [{ text: "Ще тест", data: "mh:qp:0" }, mainMenuDataButton()],
     );
   } catch (error) {
     if (error instanceof FinishTrainerSessionError && error.code === "session_expired") {
-      return note("Час цієї сесії минув. Почніть нову.", [{ text: "Новий тест", data: "mh:qp:0" }, menuButton()]);
+      return note("Час цієї сесії минув. Почніть нову.", [{ text: "Новий тест", data: "mh:qp:0" }, mainMenuDataButton()]);
     }
-    return note("Не вдалося зберегти підсумок. Спробуйте ще раз.", [menuButton()]);
+    return note("Не вдалося зберегти підсумок. Спробуйте ще раз.", [mainMenuDataButton()]);
   }
 }
 
@@ -245,7 +242,7 @@ export async function presentBotQuiz(userId: number, callback: QuizCallback): Pr
     return note(`Є незавершений тест: ${open.themeName}.`, [
       { text: "Продовжити", data: "mh:qc" },
       { text: "Нова тема", data: "mh:qp:0" },
-      menuButton(),
+      mainMenuDataButton(),
     ]);
   }
   if (callback.kind === "quizPage") return themeList(callback.page);
@@ -258,9 +255,9 @@ export async function presentBotQuiz(userId: number, callback: QuizCallback): Pr
   if (callback.kind === "quizStart") {
     const themes = await getAvailableTopicThemes();
     const theme = themes.find((item) => item.id === callback.themeId);
-    if (!theme) return note("Цієї теми немає в банку.", [{ text: "До тем", data: "mh:qp:0" }, menuButton()]);
+    if (!theme) return note("Цієї теми немає в банку.", [{ text: "До тем", data: "mh:qp:0" }, mainMenuDataButton()]);
     const count = clampTaskCount(callback.count, Math.min(theme.taskCount, 20));
-    if (count < 1) return note("У цій темі ще немає завдань.", [menuButton()]);
+    if (count < 1) return note("У цій темі ще немає завдань.", [mainMenuDataButton()]);
     try {
       const started = await startTopicTest({
         userId,
@@ -271,18 +268,18 @@ export async function presentBotQuiz(userId: number, callback: QuizCallback): Pr
       return showSession(userId, started.sessionId);
     } catch (error) {
       if (error instanceof StartTopicTestError && error.code === "insufficient_tasks") {
-        return note("У цій темі ще немає завдань.", [menuButton()]);
+        return note("У цій темі ще немає завдань.", [mainMenuDataButton()]);
       }
       if (error instanceof StartTopicTestError && error.code === "already_in_progress") {
-        return note("Тест уже запускається. Спробуйте ще раз за секунду.", [menuButton()]);
+        return note("Тест уже запускається. Спробуйте ще раз за секунду.", [mainMenuDataButton()]);
       }
-      return note("Не вдалося почати тест. Спробуйте пізніше.", [menuButton()]);
+      return note("Не вдалося почати тест. Спробуйте пізніше.", [mainMenuDataButton()]);
     }
   }
   try {
     const answerNumber = callback.option;
     if (answerNumber !== 1 && answerNumber !== 2 && answerNumber !== 3 && answerNumber !== 4) {
-      return note("Такого варіанта немає.", [menuButton()]);
+      return note("Такого варіанта немає.", [mainMenuDataButton()]);
     }
     const result = await checkAnswer({
       userId,
@@ -306,8 +303,8 @@ export async function presentBotQuiz(userId: number, callback: QuizCallback): Pr
     return showSession(userId, callback.sessionId, result.correct ? "Правильно." : "Відповідь збережено.");
   } catch (error) {
     if (error instanceof CheckAnswerError && error.code === "session_expired") {
-      return note("Час цієї сесії минув. Почніть нову.", [{ text: "Новий тест", data: "mh:qp:0" }, menuButton()]);
+      return note("Час цієї сесії минув. Почніть нову.", [{ text: "Новий тест", data: "mh:qp:0" }, mainMenuDataButton()]);
     }
-    return note("Не вдалося перевірити відповідь. Спробуйте ще раз.", [menuButton()]);
+    return note("Не вдалося перевірити відповідь. Спробуйте ще раз.", [mainMenuDataButton()]);
   }
 }

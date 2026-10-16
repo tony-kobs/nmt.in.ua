@@ -34,10 +34,12 @@ test("simple school formulas become unicode and a practice task is one message",
   assert.equal(reply.text.split("\n").some((line) => line.trim() === "." || /^[АБВГ]\.$/.test(line.trim())), false);
   assert.deepEqual(
     reply.replyMarkup?.inline_keyboard.map((row) => row[0]?.text),
-    ["А. 5x", "Б. 6x", "В. x", "Г. 2x", "Меню"],
+    ["А. 5x", "Б. 6x", "В. x", "Г. 2x", "🏠 Головне меню"],
   );
   assert.equal(reply.replyMarkup?.inline_keyboard.some((row) => row.some((button) => button.url)), false);
   assert.equal(reply.replyMarkup?.inline_keyboard[0]?.[0]?.callback_data, "mh:qa:9:15:1");
+  assert.equal(reply.replyMarkup?.inline_keyboard.at(-1)?.[0]?.callback_data, "m:home");
+  assert.equal(reply.replyMarkup?.inline_keyboard.at(-1)?.[0]?.text, "🏠 Головне меню");
 });
 
 test("a complex formula is one photo caption and the site link is not shown yet", () => {

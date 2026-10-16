@@ -11,6 +11,7 @@ import { formatTelegramStudentStats, getTelegramStudentStats, type TelegramStude
 import { buildTaskListReply, type TaskListDeps } from "./taskList";
 import { formatTeacherSummary, getTeacherAssignmentSummary, teacherSummaryKeyboard } from "./teacher";
 import type { InlineKeyboard, TelegramReply } from "./taskInteraction";
+import { accountInlineKeyboard, accountReplyKeyboard } from "./replyKeyboard";
 import { formatKyivDateTime, html, MENU, navRow, NOT_LINKED_TEXT, screen, siteButton, STALE_TEXT } from "./ui";
 
 export type MenuScreen = "home" | "tasks" | "today" | "stats" | "notif" | "acct" | "help" | "stud";
@@ -89,23 +90,6 @@ const HELP_TEXT = [
   "Відповіді на завдання зберігайте в кабінеті на nmt.in.ua, а завершити сесію можна тут кнопкою «✅ Завершити».",
 ].join("\n");
 
-function homeKeyboard(profile: TelegramAccountProfile, marathon: boolean): InlineKeyboard["inline_keyboard"] {
-  const rows: InlineKeyboard["inline_keyboard"] = profile.role === "teacher"
-    ? [
-        [{ text: "👥 Мої учні", callback_data: MENU.students }, ...(marathon ? [{ text: "🏆 Рейтинг", callback_data: MENU.leaderboard }] : [])],
-        [{ text: "🔔 Сповіщення", callback_data: MENU.notifications }, { text: "👤 Мій акаунт", callback_data: MENU.account }],
-        [{ text: "❓ Допомога", callback_data: MENU.help }],
-      ]
-    : [
-        [{ text: "📚 Мої завдання", callback_data: MENU.tasks }, { text: "📅 Сьогодні", callback_data: MENU.today }],
-        [{ text: "📊 Моя статистика", callback_data: MENU.stats }, { text: "🔔 Сповіщення", callback_data: MENU.notifications }],
-        [{ text: "👤 Мій акаунт", callback_data: MENU.account }, { text: "❓ Допомога", callback_data: MENU.help }],
-        ...(marathon ? [[{ text: "🏆 Рейтинг", callback_data: MENU.leaderboard }]] : []),
-      ];
-  // `mh:menu` is the marathon bot's own entry point; the marathon flow stays untouched.
-  if (marathon) rows.push([{ text: "🏁 Марафон", callback_data: "mh:menu" }]);
-  return rows;
-}
 
 function notificationsScreen(chatId: string, profile: TelegramAccountProfile, prefs: Awaited<ReturnType<typeof getNotificationPreferences>>, messageId?: number): TelegramReply {
   if (!prefs) {
@@ -170,7 +154,11 @@ export async function handleMenuRequest(request: MenuRequest, deps: MenuDeps = {
         let marathon = false;
         try { marathon = deps.hasMarathon ? await deps.hasMarathon(chatId) : false; } catch (error) { log(error); }
         const greeting = profile.displayName ? `, ${html(profile.displayName)}` : "";
-        return screen(chatId, `<b>👋 Вітаємо${greeting}!</b>\n\nОберіть розділ:`, homeKeyboard(profile, marathon), messageId);
+        // A new message, not an edit: only a fresh send can attach the bottom keyboard.
+        return {
+          ...screen(chatId, `<b>👋 Вітаємо${greeting}!</b>\n\nОберіть розділ:`, accountInlineKeyboard(profile.role, marathon)),
+          replyKeyboard: accountReplyKeyboard(profile.role, marathon),
+        };
       }
       case "tasks":
       case "today":
