@@ -9,6 +9,7 @@
  * Attribution stays in each variant's source_note / task source_url.
  * Images are downloaded under public/nmt/osvita/ so the trainer does not
  * hotlink a third-party CDN.
+ * variants.json is a local import artifact (gitignored). The site reads MySQL.
  */
 import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
@@ -17,7 +18,6 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_JSON = join(ROOT, "content/nmt-variants/variants.json");
-const OUT_REVIEW = join(ROOT, "docs/content-review/nmt-variants-2026-09-09.md");
 const IMG_DIR = join(ROOT, "public/nmt/osvita");
 const BASE = "https://zno.osvita.ua";
 
@@ -287,29 +287,6 @@ async function importToDb(variants) {
   await c.end();
 }
 
-function writeReview(variants) {
-  const lines = [
-    "# NMT variants — content review",
-    "",
-    `Дата: 2026-09-09. Джерело: відкриті тести [ЗНО-ОНЛАЙН](https://zno.osvita.ua/mathematics/) (сесії / демоваріанти УЦОЯО).`,
-    "",
-    "Окремий банк `nmt_quiz_tasks` — **не** змішується з `quiz_tasks`.",
-    "",
-  ];
-  for (const v of variants) {
-    lines.push(`## ${v.label}`);
-    lines.push("");
-    lines.push(`- URL: ${v.source_url}`);
-    lines.push(`- Завдань: ${v.tasks.length}`);
-    lines.push(
-      `- Види: ${["mcq", "match", "open"].map((k) => `${k}=${v.tasks.filter((t) => t.task_kind === k).length}`).join(", ")}`,
-    );
-    lines.push("");
-  }
-  mkdirSync(dirname(OUT_REVIEW), { recursive: true });
-  writeFileSync(OUT_REVIEW, lines.join("\n"), "utf8");
-}
-
 const doImport = process.argv.includes("--import");
 mkdirSync(IMG_DIR, { recursive: true });
 mkdirSync(dirname(OUT_JSON), { recursive: true });
@@ -326,7 +303,6 @@ for (const meta of VARIANT_IDS) {
 }
 
 writeFileSync(OUT_JSON, JSON.stringify(variants, null, 2), "utf8");
-writeReview(variants);
 console.log(`wrote ${OUT_JSON}`);
 
 if (doImport) {

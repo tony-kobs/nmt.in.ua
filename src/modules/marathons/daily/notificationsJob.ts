@@ -24,13 +24,12 @@ import {
 import {
   claimNotification,
   confirmNotification,
+  finishElapsedDailyMarathons,
   listDays,
   listMaterials,
   loadMarathonBoard,
   loadNotifyAudience,
-  markMaterialsViewed,
   releaseNotification,
-  type DailyMarathon,
   type NotifyAudienceMarathon,
 } from "./store";
 
@@ -77,8 +76,18 @@ async function buildDeliveries(
 ): Promise<Delivery[]> {
   const deliveries: Delivery[] = [];
   for (const marathon of audience) {
+    const dayNumbers = Object.keys(marathon.topics)
+      .map((day) => Number(day))
+      .filter((day) => Number.isInteger(day) && day >= 1);
+    if (dayNumbers.length === 0) continue;
     const board = await loadBoard(marathon.marathonId);
     const standing = new Map(board.map((row) => [row.userId, row]));
+    const schedule = {
+      reminderHour: marathon.reminderHour,
+      nudgeFrom: marathon.nudgeFrom,
+      nudgeUntil: marathon.nudgeUntil,
+      dayNumbers,
+    };
     const intents = [
       ...planNotifications({
         now,
@@ -86,11 +95,14 @@ async function buildDeliveries(
         startDate: marathon.startDate,
         unlockHour: marathon.unlockHour,
         daysCount: marathon.daysCount,
+        reminderHour: schedule.reminderHour,
+        dayNumbers: schedule.dayNumbers,
         people: marathon.people,
       }),
       ...planFollowUps({
         marathonId: marathon.marathonId,
         daysCount: marathon.daysCount,
+        dayNumbers: schedule.dayNumbers,
         people: marathon.people,
       }),
       ...planNudges({
@@ -99,6 +111,9 @@ async function buildDeliveries(
         startDate: marathon.startDate,
         unlockHour: marathon.unlockHour,
         daysCount: marathon.daysCount,
+        nudgeFrom: schedule.nudgeFrom,
+        nudgeUntil: schedule.nudgeUntil,
+        dayNumbers: schedule.dayNumbers,
         people: marathon.people,
       }),
     ];
@@ -181,26 +196,11 @@ async function queueOpenedDay(
     { text: label, buttons: [{ text: label, data: `mh:mat:${day.dayNumber}` }] },
   ];
   const replies = piecesToReplies(chatId, expandSources(sources));
-  await rememberDeferred([announce, ...replies]);
-  const shell = {
-    id: marathon.marathonId,
-    slug: marathon.slug,
-    title: marathon.title,
-    subject: "math",
-    startDate: marathon.startDate,
-    unlockHour: marathon.unlockHour,
-    daysCount: marathon.daysCount,
-    passThreshold: 60,
-    finalCtaText: "",
-    finalCtaUrl: "",
-    introVideoUrl: "",
-    status: "active",
-  } satisfies DailyMarathon;
-  try {
-    await markMaterialsViewed({ marathon: shell, userId, day, now: new Date() });
-  } catch (error) {
-    console.error("marathon day viewed", error);
+  const last = replies[replies.length - 1];
+  if (last) {
+    last.materialsViewed = { marathonId: marathon.marathonId, userId, dayId: day.id };
   }
+  await rememberDeferred([announce, ...replies]);
   return true;
 }
 
@@ -217,6 +217,13 @@ export async function runMarathonNotifications(deps: {
   loadBoard?: (marathonId: number) => Promise<BoardLine[]>;
 } = {}): Promise<{ sent: number; skipped: number; failed: number }> {
   const now = deps.now?.() ?? new Date();
+  if (!deps.load) {
+    try {
+      await finishElapsedDailyMarathons(now);
+    } catch (error) {
+      console.error("marathon finish elapsed", error);
+    }
+  }
   const audience = await (deps.load ?? loadNotifyAudience)();
   const secret = deps.secret === undefined ? unsubscribeSecret() : deps.secret;
   const telegramEnabled = deps.telegramEnabled ?? Boolean(optionalTelegramBot());

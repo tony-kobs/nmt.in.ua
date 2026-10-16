@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
+import { StatusScene } from "@/components/status/StatusScene";
 import { WelcomeLanding } from "@/components/welcome/WelcomeLanding";
+import { statusCopy } from "@/i18n/statusPages";
 import { createPageMetadata } from "@/constants/seo";
 import { pickClientMessages } from "@/i18n/clientMessages";
 import {
@@ -88,7 +90,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   ]);
 
   return (
-    <Suspense fallback={null}>
+    <Suspense
+      fallback={
+        <StatusScene variant="loading" copy={statusCopy(locale)} />
+      }
+    >
       <CabinetHome
         locale={locale}
         displayName={user.displayName}

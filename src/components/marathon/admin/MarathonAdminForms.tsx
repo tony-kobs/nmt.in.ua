@@ -62,6 +62,20 @@ function MarathonFields({ values }: { values: MarathonInput }) {
           spellCheck={false}
         />
       </AdminField>
+      <AdminField name="reminderHour" label={t("fields.reminderHour")} hint={t("hints.reminderHour")}>
+        <AdminInput
+          name="reminderHour"
+          defaultValue={values.reminderHour}
+          placeholder={t("placeholders.reminderHour")}
+          spellCheck={false}
+        />
+      </AdminField>
+      <AdminField name="nudgeFrom" label={t("fields.nudgeFrom")} hint={t("hints.nudgeFrom")}>
+        <AdminInput name="nudgeFrom" type="number" min={0} max={23} defaultValue={values.nudgeFrom} />
+      </AdminField>
+      <AdminField name="nudgeUntil" label={t("fields.nudgeUntil")} hint={t("hints.nudgeUntil")}>
+        <AdminInput name="nudgeUntil" type="number" min={0} max={23} defaultValue={values.nudgeUntil} />
+      </AdminField>
       <AdminField name="daysCount" label={t("fields.daysCount")} hint={t("hints.daysCount")}>
         <AdminInput
           name="daysCount"
@@ -124,6 +138,9 @@ export function CreateMarathonForm({ today }: { today: string }) {
           subject: "math",
           startDate: today,
           unlockHour: "09:00",
+          reminderHour: "19:00",
+          nudgeFrom: 10,
+          nudgeUntil: 21,
           daysCount: 5,
           passThreshold: 60,
           finalCtaText: t("defaults.finalCta"),

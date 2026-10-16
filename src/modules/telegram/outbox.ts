@@ -5,6 +5,7 @@ import {
   claimMarathonTelegram,
   enqueueMarathonTelegram,
   finishMarathonTelegram,
+  recordMaterialsDelivered,
 } from "@/modules/marathons/daily/store";
 import { deliverTelegramReplies } from "./deliver";
 import type { TelegramReply } from "./taskInteraction";
@@ -86,6 +87,19 @@ export async function drainTelegramOutbox(options: {
       });
       if (result.sent > 0 && result.deferred.length === 0) {
         await finish(row.id, "sent", null);
+        const viewed = reply.materialsViewed;
+        if (
+          viewed
+          && Number.isInteger(viewed.marathonId)
+          && Number.isInteger(viewed.userId)
+          && Number.isInteger(viewed.dayId)
+        ) {
+          try {
+            await recordMaterialsDelivered(viewed.marathonId, viewed.userId, viewed.dayId, new Date());
+          } catch (error) {
+            console.error("marathon materials viewed", error);
+          }
+        }
         sent += 1;
         progressed = true;
         continue;

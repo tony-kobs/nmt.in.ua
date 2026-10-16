@@ -38,7 +38,6 @@ export async function DevTeam() {
         agencyLogoAlt: t("agencyLogoAlt"),
         servicesTitle: t("servicesTitle"),
         servicesLead: t("servicesLead"),
-        formCta: t("formCta"),
       }}
     />
   );

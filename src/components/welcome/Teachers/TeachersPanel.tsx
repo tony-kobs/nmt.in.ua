@@ -25,7 +25,6 @@ export type LandingTeacherCard = {
   subject: string;
   education: string;
   experience: string;
-  nextSlot: string;
   bioLead: string;
   bioRest: string;
   rating: number;
@@ -39,7 +38,6 @@ export type TeachersPanelLabels = {
   verified: string;
   education: string;
   experience: string;
-  nextSlot: string;
   reviews: string;
   empty: string;
   carouselAria: string;
@@ -87,6 +85,11 @@ function StarIcon() {
       />
     </svg>
   );
+}
+
+function hasCardText(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed.length > 0 && trimmed !== "—" && trimmed !== "-";
 }
 
 function TeacherCard({
@@ -149,20 +152,20 @@ function TeacherCard({
 
       <div className={css.main}>
         <p className={css.subject}>{teacher.subject}</p>
-        <p className={css.fact}>
-          <span className={css.factLabel}>{labels.education}:</span>{" "}
-          {teacher.education}
-        </p>
-        <div className={css.factRow}>
+        {hasCardText(teacher.education) ? (
           <p className={css.fact}>
-            <span className={css.factLabel}>{labels.experience}:</span>{" "}
-            {teacher.experience}
+            <span className={css.factLabel}>{labels.education}:</span>{" "}
+            {teacher.education}
           </p>
-          <p className={css.nextSlot}>
-            {labels.nextSlot}:{" "}
-            <span className={css.nextSlotTime}>{teacher.nextSlot}</span>
-          </p>
-        </div>
+        ) : null}
+        {hasCardText(teacher.experience) ? (
+          <div className={css.factRow}>
+            <p className={css.fact}>
+              <span className={css.factLabel}>{labels.experience}:</span>{" "}
+              {teacher.experience}
+            </p>
+          </div>
+        ) : null}
         <div className={css.bio}>
           <p className={css.bioLead}>{teacher.bioLead}</p>
           <p className={css.bioRest}>{teacher.bioRest}</p>
@@ -381,7 +384,7 @@ export function TeachersPanel({
                 </li>
               ))}
             </ul>
-            <Link href="/register/teacher" className={css.joinCta}>
+            <Link href="/register?role=teacher" className={css.joinCta}>
               {labels.joinCta}
             </Link>
           </aside>

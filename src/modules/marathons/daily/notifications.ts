@@ -31,18 +31,29 @@ export type NotifyPerson = {
   completedDayNumbers: number[];
 };
 
+function plannedDays(daysCount: number, dayNumbers?: number[]): number[] {
+  if (!dayNumbers) {
+    return Array.from({ length: daysCount }, (_, index) => index + 1);
+  }
+  return [...new Set(dayNumbers.filter((day) => Number.isInteger(day) && day >= 1 && day <= daysCount))]
+    .sort((left, right) => left - right);
+}
+
 export function planNotifications(input: {
   now: Date;
   marathonId: number;
   startDate: string;
   unlockHour: string;
   daysCount: number;
+  reminderHour?: string;
+  /** When set, days without a row are not announced. */
+  dayNumbers?: number[];
   people: NotifyPerson[];
 }): NotifyIntent[] {
   const intents: NotifyIntent[] = [];
   const nowMs = input.now.getTime();
   const today = kyivDateIso(input.now);
-  for (let dayNumber = 1; dayNumber <= input.daysCount; dayNumber += 1) {
+  for (const dayNumber of plannedDays(input.daysCount, input.dayNumbers)) {
     const unlockAt = dayUnlockAt({
       startDate: input.startDate,
       unlockHour: input.unlockHour,
@@ -55,6 +66,7 @@ export function planNotifications(input: {
     const remindAt = reminderAt({
       startDate: input.startDate,
       dayNumber,
+      reminderHour: input.reminderHour,
     }).getTime();
     const nextUnlock = dayUnlockAt({
       startDate: input.startDate,
@@ -105,13 +117,18 @@ export function planNudges(input: {
   startDate: string;
   unlockHour: string;
   daysCount: number;
+  nudgeFrom?: number;
+  nudgeUntil?: number;
+  dayNumbers?: number[];
   people: NotifyPerson[];
 }): NotifyIntent[] {
+  const from = input.nudgeFrom ?? NUDGE_HOUR_FROM;
+  const until = input.nudgeUntil ?? NUDGE_HOUR_UNTIL;
   const hour = kyivHour(input.now);
-  if (hour < NUDGE_HOUR_FROM || hour >= NUDGE_HOUR_UNTIL) return [];
+  if (hour < from || hour >= until) return [];
   const intents: NotifyIntent[] = [];
   const nowMs = input.now.getTime();
-  for (let dayNumber = 1; dayNumber <= input.daysCount; dayNumber += 1) {
+  for (const dayNumber of plannedDays(input.daysCount, input.dayNumbers)) {
     let nextUnlock = 0;
     try {
       nextUnlock = dayUnlockAt({
@@ -156,17 +173,21 @@ export function planNudges(input: {
 export function planFollowUps(input: {
   marathonId: number;
   daysCount: number;
+  dayNumbers?: number[];
   people: NotifyPerson[];
 }): NotifyIntent[] {
+  const known = input.dayNumbers ? new Set(plannedDays(input.daysCount, input.dayNumbers)) : null;
+  const last = known && known.size > 0 ? Math.max(...known) : input.daysCount;
   const intents: NotifyIntent[] = [];
   for (const person of input.people) {
     const done = new Set(person.completedDayNumbers);
     const queue: Array<{ dayNumber: number; kind: NotifyKind }> = [];
-    for (let day = 1; day < input.daysCount; day += 1) {
+    for (let day = 1; day < last; day += 1) {
+      if (known && (!known.has(day) || !known.has(day + 1))) continue;
       if (done.has(day)) queue.push({ dayNumber: day + 1, kind: "tomorrow" });
     }
-    if (input.daysCount > 0 && done.has(input.daysCount)) {
-      queue.push({ dayNumber: input.daysCount, kind: "final" });
+    if (last > 0 && done.has(last) && (!known || known.has(last))) {
+      queue.push({ dayNumber: last, kind: "final" });
     }
     for (const item of queue) {
       if (person.notifyEmail && person.email) {

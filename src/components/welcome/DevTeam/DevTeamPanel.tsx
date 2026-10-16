@@ -39,7 +39,6 @@ export type DevTeamPanelLabels = {
   agencyLogoAlt: string;
   servicesTitle: string;
   servicesLead: string;
-  formCta: string;
 };
 
 export type DevTeamPanelProps = {
@@ -401,9 +400,6 @@ export function DevTeamPanel({ members, services, labels }: DevTeamPanelProps) {
                   </li>
                 ))}
               </ul>
-              <button type="button" className={css.formCta}>
-                {labels.formCta}
-              </button>
             </aside>
           </div>
         </section>

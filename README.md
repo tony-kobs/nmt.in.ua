@@ -22,7 +22,7 @@ npm run dev
 
 ## Онбординг розробника
 
-Новим учасникам команди варто почати з [docs/onboarding.md](docs/onboarding.md).
+Новим учасникам команди варто почати з [docs/nmt-in-ua-onboarding-dev.md](docs/nmt-in-ua-onboarding-dev.md). Беклог — [docs/Goldener-Rechner-beklog-PM.md](docs/Goldener-Rechner-beklog-PM.md).
 
 ## Команди
 
@@ -159,7 +159,7 @@ git checkout -b feature/коротка-назва
 
 ## Деплой
 
-Повна памʼятка: [`docs/deploy.md`](docs/deploy.md).
+Памʼятка релізу: [`.cursor/rules/deploy-hosting.mdc`](.cursor/rules/deploy-hosting.mdc).
 
 | Середовище | Як оновлюється |
 | --- | --- |
@@ -228,8 +228,8 @@ scripts/hosting-remote-lib.sh     стоп / старт / health на хості
 scripts/rollback-hosting.sh       аварійно повернути попередній www
 scripts/promote-admin.mjs         підвищити логін до admin (DB_* з .env.local)
 scripts/sql/                      DDL для app_users та інших таблиць
-docs/deploy.md                    як потрапляє на nmt.in.ua
-docs/mentor-tasks.md              pending-таски для команди
+docs/nmt-in-ua-onboarding-dev.md  онбординг розробника
+docs/Goldener-Rechner-beklog-PM.md  беклог PM
 ```
 
 ## Архітектура
@@ -321,11 +321,9 @@ JSON-схема:
 На головній (`/`): тест за темою — кількість завдань з поля (макс. розмір банку), миттєвий розбір після кожної відповіді.
 
 ```ts
-import {
-  startTopicTest,
-  checkAnswer,
-  finishTrainerSession,
-} from "@/modules/testing";
+import { startTopicTest } from "@/modules/testing/startTopicTest";
+import { checkAnswer } from "@/modules/testing/checkAnswer";
+import { finishTrainerSession } from "@/modules/testing/finishTrainerSession";
 ```
 
 ---
@@ -404,4 +402,4 @@ npm test
 
 Покриття: import API, content-import validation/DB, testing actions, auth (password, session token), recommendations (включно з графом), sessions, admin API, SEO helpers.
 
-Pending-робота для команди — [`docs/mentor-tasks.md`](docs/mentor-tasks.md).
+Відкриті пункти — у [`docs/Goldener-Rechner-beklog-PM.md`](docs/Goldener-Rechner-beklog-PM.md).

@@ -18,8 +18,7 @@
 
 @supports not (backdrop-filter: blur(4px)) {
   .identity,
-  .panel,
-  .stub {
+  .panel {
     background: rgb(253 251 244 / 92%);
   }
 }
@@ -57,13 +56,6 @@
   font-weight: 600;
 }
 
-.stubs {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-md);
-}
-
-.stub,
 .panel {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -76,27 +68,6 @@
   backdrop-filter: blur(10px);
 }
 
-.stub {
-  border-style: dashed;
-  background: rgb(253 251 244 / 72%);
-}
-
-.soon {
-  display: inline-flex;
-  justify-self: start;
-  margin: 0;
-  padding: 4px 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-pill);
-  background: var(--surface-muted);
-  color: var(--subtle);
-  font-size: var(--fs-kicker);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.stubTitle,
 .panelTitle {
   margin: 0;
   font-family: var(--font-display);
@@ -104,7 +75,6 @@
   font-weight: 700;
 }
 
-.stubLead,
 .panelLead {
   margin: 0;
   max-width: 40rem;
@@ -304,10 +274,6 @@
 @media (min-width: 1240px) {
   .layout {
     gap: var(--space-xl);
-  }
-
-  .stubs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
