@@ -1,8 +1,9 @@
 import "server-only";
 
 import type { SqlConnection } from "@/lib/db/mysql";
-import { DAY_OPEN_NOTIFY_WINDOW_MS, dayUnlockAt, evaluateDayAccess } from "./calendar";
-import { isDeliveryChannel, notifyFlags } from "./channel";
+import { evaluateDayAccess } from "./calendar";
+import { isDeliveryChannel, notifyFlags, type DeliveryChannel } from "./channel";
+import { shouldFinishDailyMarathon } from "./lifecycle";
 import { isCopyKey, type CopyKey } from "./copy";
 import type { NotifyIntent, NotifyKind } from "./notifications";
 import {
@@ -200,6 +201,7 @@ const MARATHON_SELECT = `id, slug, title, subject, start_date, unlock_hour, remi
 
 export async function listDailyMarathons(getConnection?: Conn): Promise<DailyMarathon[]> {
   return withConn(async (connection) => {
+    await finishElapsedOn(connection, new Date());
     const rows = await connection.query<Parameters<typeof mapMarathon>[0]>(
       `SELECT ${MARATHON_SELECT} FROM marathons WHERE kind = 'daily' ORDER BY id DESC`,
       [],
@@ -216,6 +218,7 @@ export async function getDailyBySlug(
   getConnection?: Conn,
 ): Promise<DailyMarathon | null> {
   return withConn(async (connection) => {
+    await finishElapsedOn(connection, new Date());
     const rows = await connection.query<Parameters<typeof mapMarathon>[0]>(
       `SELECT ${MARATHON_SELECT} FROM marathons WHERE slug = ? AND kind = 'daily' LIMIT 1`,
       [slug],
@@ -229,6 +232,7 @@ export async function getDailyById(
   getConnection?: Conn,
 ): Promise<DailyMarathon | null> {
   return withConn(async (connection) => {
+    await finishElapsedOn(connection, new Date());
     const rows = await connection.query<Parameters<typeof mapMarathon>[0]>(
       `SELECT ${MARATHON_SELECT} FROM marathons WHERE id = ? AND kind = 'daily' LIMIT 1`,
       [id],
@@ -398,6 +402,35 @@ export async function deleteRiddle(
       [riddleId, marathonId],
     );
   }, getConnection);
+}
+
+export async function listDayTaskCounts(
+  marathonId: number,
+  getConnection?: Conn,
+): Promise<Array<{ dayNumber: number; taskCount: number }>> {
+  return withConn(async (connection) => {
+    const rows = await connection.query<{ day_number: number; task_count: number }>(
+      `SELECT d.day_number, COUNT(t.id) AS task_count
+       FROM marathon_days d
+       LEFT JOIN marathon_day_tasks t ON t.day_id = d.id
+       WHERE d.marathon_id = ?
+       GROUP BY d.id, d.day_number
+       ORDER BY d.day_number`,
+      [marathonId],
+    );
+    return rows.map((row) => ({
+      dayNumber: Number(row.day_number),
+      taskCount: Number(row.task_count),
+    }));
+  }, getConnection);
+}
+
+export async function listContentDayNumbers(
+  marathonId: number,
+  getConnection?: Conn,
+): Promise<number[]> {
+  const counts = await listDayTaskCounts(marathonId, getConnection);
+  return counts.filter((day) => day.taskCount > 0).map((day) => day.dayNumber);
 }
 
 export async function listDays(marathonId: number, getConnection?: Conn): Promise<MarathonDay[]> {
@@ -1328,6 +1361,8 @@ export type NotifyAudienceMarathon = {
   nudgeFrom: number;
   nudgeUntil: number;
   daysCount: number;
+  /** Day numbers that have at least one task. Topic-only rows are not content. */
+  contentDayNumbers: number[];
   topics: Record<number, string>;
   copy: Partial<Record<CopyKey, string>>;
   people: Array<{
@@ -1337,56 +1372,60 @@ export type NotifyAudienceMarathon = {
     telegramChatId: string | null;
     notifyEmail: boolean;
     notifyBot: boolean;
+    channel: DeliveryChannel | null;
     completedDayNumbers: number[];
   }>;
 };
 
-/** Closes an active course once its last real day is past the open window. */
+/**
+ * Active daily courses past the scheduled close become finished.
+ * Missing day rows do not keep the course active: the clock is start + days_count.
+ * A day that was stored as passed with no tasks is unmarked. Both writes are idempotent.
+ */
+async function finishElapsedOn(connection: SqlConnection, now: Date): Promise<number> {
+  const rows = await connection.query<{
+    id: number;
+    start_date: unknown;
+    unlock_hour: string;
+    days_count: number;
+  }>(
+    `SELECT id, start_date, unlock_hour, days_count
+     FROM marathons
+     WHERE kind = 'daily' AND status = 'active'`,
+    [],
+  );
+  let finished = 0;
+  for (const row of rows) {
+    const startDate = isoDate(row.start_date);
+    if (!startDate) continue;
+    if (!shouldFinishDailyMarathon(now, {
+      startDate,
+      unlockHour: String(row.unlock_hour).slice(0, 5),
+      daysCount: Number(row.days_count),
+    })) continue;
+    const result = await connection.execute(
+      `UPDATE marathons SET status = 'finished'
+       WHERE id = ? AND status = 'active' AND kind = 'daily'`,
+      [row.id],
+    );
+    finished += result.affectedRows;
+  }
+  await connection.execute(
+    `UPDATE marathon_day_progress pr
+     INNER JOIN marathon_days d ON d.id = pr.day_id
+     LEFT JOIN marathon_day_tasks t ON t.day_id = d.id
+     SET pr.score = 0, pr.passed = 0
+     WHERE t.id IS NULL AND pr.passed <> 0`,
+    [],
+  );
+  return finished;
+}
+
 export async function finishElapsedDailyMarathons(
   now: Date,
   getConnection?: Conn,
 ): Promise<number> {
-  return withConn(async (connection) => {
-    const rows = await connection.query<{
-      id: number;
-      start_date: unknown;
-      unlock_hour: string;
-      days_count: number;
-      day_rows: number;
-      max_day: number | null;
-    }>(
-      `SELECT m.id, m.start_date, m.unlock_hour, m.days_count,
-              (SELECT COUNT(*) FROM marathon_days d WHERE d.marathon_id = m.id) AS day_rows,
-              (SELECT MAX(d.day_number) FROM marathon_days d WHERE d.marathon_id = m.id) AS max_day
-       FROM marathons m
-       WHERE m.kind = 'daily' AND m.status = 'active'`,
-      [],
-    );
-    let finished = 0;
-    for (const row of rows) {
-      const startDate = isoDate(row.start_date);
-      const daysCount = Number(row.days_count);
-      const maxDay = row.max_day == null ? 0 : Number(row.max_day);
-      if (!startDate || Number(row.day_rows) < 1 || maxDay < daysCount) continue;
-      let closesAt = 0;
-      try {
-        closesAt = dayUnlockAt({
-          startDate,
-          unlockHour: String(row.unlock_hour).slice(0, 5),
-          dayNumber: daysCount,
-        }).getTime() + DAY_OPEN_NOTIFY_WINDOW_MS;
-      } catch {
-        continue;
-      }
-      if (now.getTime() < closesAt) continue;
-      const result = await connection.execute(
-        `UPDATE marathons SET status = 'finished' WHERE id = ? AND status = 'active' AND kind = 'daily'`,
-        [row.id],
-      );
-      finished += result.affectedRows;
-    }
-    return finished;
-  }, getConnection);
+  return withConn((connection) => finishElapsedOn(connection, now), getConnection);
 }
 
 export async function loadNotifyAudience(
@@ -1405,6 +1444,7 @@ export async function loadNotifyAudience(
       days_count: number;
       day_number: number | null;
       topic: string | null;
+      task_count: number | null;
       user_id: number;
       email: string | null;
       display_name: string | null;
@@ -1419,6 +1459,7 @@ export async function loadNotifyAudience(
       `SELECT m.id AS marathon_id, m.slug, m.title, m.start_date, m.unlock_hour,
               m.reminder_hour, m.nudge_from, m.nudge_until, m.days_count,
               d.day_number, d.topic,
+              (SELECT COUNT(*) FROM marathon_day_tasks tk WHERE tk.day_id = d.id) AS task_count,
               p.user_id, u.email, u.display_name, p.telegram_chat_id, p.notify_email, p.notify_bot,
               p.delivery_channel, p.notify_paused, pr.completed_at, u.is_banned
        FROM marathons m
@@ -1432,6 +1473,7 @@ export async function loadNotifyAudience(
     );
     const grouped = new Map<number, NotifyAudienceMarathon>();
     const people = new Map<string, NotifyAudienceMarathon["people"][number]>();
+    const contentDays = new Map<number, Set<number>>();
     for (const row of rows) {
       if (flag(row.is_banned)) continue;
       let marathon = grouped.get(row.marathon_id);
@@ -1448,14 +1490,17 @@ export async function loadNotifyAudience(
           nudgeFrom: clampHour(row.nudge_from, 10),
           nudgeUntil: clampHour(row.nudge_until, 21),
           daysCount: Number(row.days_count),
+          contentDayNumbers: [],
           topics: {},
           copy: {},
           people: [],
         };
         grouped.set(row.marathon_id, marathon);
+        contentDays.set(row.marathon_id, new Set());
       }
-      if (row.day_number != null && row.topic) {
-        marathon.topics[row.day_number] = row.topic;
+      if (row.day_number != null && Number(row.task_count) > 0) {
+        contentDays.get(row.marathon_id)?.add(Number(row.day_number));
+        if (row.topic) marathon.topics[row.day_number] = row.topic;
       }
       const personKey = `${row.marathon_id}:${row.user_id}`;
       let person = people.get(personKey);
@@ -1477,6 +1522,7 @@ export async function loadNotifyAudience(
             row.telegram_chat_id == null ? null : String(row.telegram_chat_id),
           notifyEmail: flags.notifyEmail,
           notifyBot: flags.notifyBot,
+          channel,
           completedDayNumbers: [],
         };
         people.set(personKey, person);
@@ -1503,6 +1549,11 @@ export async function loadNotifyAudience(
           marathon.copy[row.copy_key] = row.body;
         }
       }
+    }
+    for (const marathon of grouped.values()) {
+      marathon.contentDayNumbers = [...(contentDays.get(marathon.marathonId) ?? [])].sort(
+        (left, right) => left - right,
+      );
     }
     return [...grouped.values()];
   }, getConnection);

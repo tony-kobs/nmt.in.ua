@@ -2,6 +2,7 @@ import type { useTranslations } from "next-intl";
 
 const KNOWN = [
   "closed",
+  "not_ready",
   "invalid",
   "duplicate",
   "server",

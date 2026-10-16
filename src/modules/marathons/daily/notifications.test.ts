@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   deliverNotifications,
+  fallbackEmailAfterTelegram,
+  isDefinitiveTelegramFailure,
   planFollowUps,
   planNotifications,
   planNudges,
@@ -32,7 +34,8 @@ test("day-open is planned inside the window and not as a late-joiner backlog", (
     ...marathon,
     now: new Date("2026-01-10T07:30:00.000Z"),
   });
-  assert.equal(open.filter((item) => item.kind === "day_open").length, 2);
+  assert.equal(open.filter((item) => item.kind === "day_open").length, 1);
+  assert.ok(open.every((item) => item.channel === "telegram"));
   assert.equal(open.some((item) => item.kind === "reminder"), false);
 
   const late = planNotifications({
@@ -127,7 +130,7 @@ test("a missed day is nudged once, only after the next unlock and inside 10:00â€
   });
   assert.deepEqual(
     due.map((item) => `${item.kind}:${item.dayNumber}:${item.channel}`),
-    ["nudge:1:email", "nudge:1:telegram"],
+    ["nudge:1:telegram"],
   );
 
   const done = planNudges({
@@ -160,8 +163,8 @@ test("a missed day is nudged once, only after the next unlock and inside 10:00â€
     release: async () => undefined,
     send: async () => true,
   });
-  assert.deepEqual(first, { sent: 2, skipped: 0, failed: 0 });
-  assert.deepEqual(second, { sent: 0, skipped: 2, failed: 0 });
+  assert.deepEqual(first, { sent: 1, skipped: 0, failed: 0 });
+  assert.deepEqual(second, { sent: 0, skipped: 1, failed: 0 });
 });
 
 test("tomorrow announcement is claimed once", async () => {
@@ -198,6 +201,133 @@ test("unsubscribe token matches only the same participant and secret", () => {
   assert.equal(verifyUnsubscribeToken(4, 9, token, "secret"), true);
   assert.equal(verifyUnsubscribeToken(4, 8, token, "secret"), false);
   assert.equal(verifyUnsubscribeToken(4, 9, token, "other"), false);
+});
+
+test("a day with no content is not announced, reminded or nudged", () => {
+  const empty = planNotifications({
+    ...marathon,
+    now: new Date("2026-01-10T07:30:00.000Z"),
+    dayNumbers: [],
+  });
+  assert.deepEqual(empty, []);
+  const otherDay = planNotifications({
+    ...marathon,
+    now: new Date("2026-01-12T07:30:00.000Z"),
+    dayNumbers: [1],
+  });
+  assert.equal(otherDay.some((item) => item.dayNumber === 3), false);
+  const nudges = planNudges({
+    ...marathon,
+    now: new Date("2026-01-11T08:00:00.000Z"),
+    dayNumbers: [],
+  });
+  assert.deepEqual(nudges, []);
+});
+
+test("telegram is the only channel when it is chosen and linked", () => {
+  const linked = planNotifications({
+    ...marathon,
+    now: new Date("2026-01-10T07:30:00.000Z"),
+    people: [{ ...person, channel: "telegram" }],
+  });
+  assert.ok(linked.length > 0);
+  assert.ok(linked.every((item) => item.channel === "telegram"));
+
+  const unlinked = planNotifications({
+    ...marathon,
+    now: new Date("2026-01-10T07:30:00.000Z"),
+    people: [{ ...person, channel: "telegram", telegramChatId: null }],
+  });
+  assert.ok(unlinked.length > 0);
+  assert.ok(unlinked.every((item) => item.channel === "email"));
+
+  const site = planNotifications({
+    ...marathon,
+    now: new Date("2026-01-10T07:30:00.000Z"),
+    people: [{ ...person, channel: "site" }],
+  });
+  assert.ok(site.every((item) => item.channel === "email"));
+});
+
+test("email is only the fallback after a definitive telegram failure", async () => {
+  assert.equal(isDefinitiveTelegramFailure({ status: "rejected", errorCode: 403 }), true);
+  assert.equal(isDefinitiveTelegramFailure({ status: "rejected", errorCode: 400 }), true);
+  assert.equal(
+    isDefinitiveTelegramFailure({ status: "rejected", errorCode: 400, retryAfter: 2 }),
+    false,
+  );
+  assert.equal(isDefinitiveTelegramFailure({ status: "rejected", errorCode: 401 }), false);
+  assert.equal(isDefinitiveTelegramFailure({ status: "rejected", errorCode: 429, retryAfter: 3 }), false);
+  assert.equal(isDefinitiveTelegramFailure({ status: "unknown" }), false);
+
+  const seen = new Set<string>();
+  const sent: string[] = [];
+  const intent: NotifyIntent = {
+    marathonId: 1,
+    userId: 7,
+    dayNumber: 1,
+    kind: "day_open",
+    channel: "telegram",
+  };
+  const claim = async (item: NotifyIntent) => {
+    if (seen.has(item.channel)) return "duplicate" as const;
+    seen.add(item.channel);
+    return "claimed" as const;
+  };
+  const release = async (item: NotifyIntent) => {
+    seen.delete(item.channel);
+  };
+  const retry = await fallbackEmailAfterTelegram({
+    intent,
+    email: "a@example.com",
+    attempt: "retry",
+    claim,
+    release,
+    sendEmail: async () => {
+      sent.push("email");
+      return true;
+    },
+  });
+  assert.equal(retry, false);
+  assert.deepEqual([...sent], []);
+
+  const letterFailed = await fallbackEmailAfterTelegram({
+    intent,
+    email: "a@example.com",
+    attempt: "definitive",
+    claim,
+    release,
+    sendEmail: async () => false,
+  });
+  assert.equal(letterFailed, false);
+  assert.equal(seen.has("email"), false);
+
+  const letter = await fallbackEmailAfterTelegram({
+    intent,
+    email: "a@example.com",
+    attempt: "definitive",
+    claim,
+    release,
+    confirm: async () => undefined,
+    sendEmail: async () => {
+      sent.push("email");
+      return true;
+    },
+  });
+  const again = await fallbackEmailAfterTelegram({
+    intent,
+    email: "a@example.com",
+    attempt: "definitive",
+    claim,
+    release,
+    sendEmail: async () => {
+      sent.push("again");
+      return true;
+    },
+  });
+  assert.equal(letter, true);
+  assert.equal(again, true);
+  assert.deepEqual(sent, ["email"]);
 });
 
 test("a claim is confirmed only after a successful send", async () => {
