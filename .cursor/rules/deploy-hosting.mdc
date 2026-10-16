@@ -9,7 +9,7 @@ alwaysApply: true
 
 ## Процес релізу
 
-1. PR → `dev` → lead мерджить. Реліз: `dev` → `main`.
+1. PR → `dev` → lead мерджить. Реліз у `main`: pull request з `dev` відкривають і мерджать `tony-kobs` і `groteskzp`.
 2. Actions на `main` збирає Next (не на хості). Одразу `scripts/rewrite-next-build-paths.sh` — інакше RSC-маніфест тримає `/home/runner/work/...` і сайт дає 500. Не фейлити через `.next/trace` (телеметрія збірки).
 3. У tar — увесь `src/`, не лише i18n. SSH-pipe, не SCP/appleboy.
 4. На хості install у `releases/<id>`, **поки старий www живий**. `node_modules` копіювати з живого `www` (glibc 2.28), потім `npm install`.
