@@ -63,6 +63,10 @@ async function readSession(request: NextRequest): Promise<SessionPayload | null>
   return verifySessionToken(token);
 }
 
+/**
+ * Cheap cookie gate only. Admin, teacher, and marathon:manage pages call
+ * `requireUser` / `requireRole`, which re-read role and ban from `app_users`.
+ */
 function authGuard(
   request: NextRequest,
   session: SessionPayload | null,

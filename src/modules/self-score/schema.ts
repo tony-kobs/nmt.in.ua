@@ -1,5 +1,6 @@
 import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ensureSchemaOnce } from "@/lib/db/schemaGuard";
 
 const SQL_CREATE_SELF_SCORES = `
   CREATE TABLE IF NOT EXISTS user_self_scores (
@@ -21,30 +22,18 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-let schemaReady: Promise<void> | undefined;
-
-async function runSelfScoreSchemaMigration(
-  getConnection: () => Promise<SqlConnection>,
-): Promise<void> {
-  const connection = await getConnection();
-  try {
-    await connection.execute(SQL_CREATE_SELF_SCORES, []);
-  } finally {
-    connection.release();
-  }
-}
-
-/** Creates `user_self_scores` once per process if the table is missing. */
+/** Creates `user_self_scores` once per process if the migration is not recorded. */
 export async function ensureSelfScoreSchema(
   getConnection: () => Promise<SqlConnection> = loadDefaultConnection,
 ): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = runSelfScoreSchemaMigration(getConnection).catch((error) => {
-      schemaReady = undefined;
-      throw error;
-    });
-  }
-  await schemaReady;
+  await ensureSchemaOnce(
+    "self_score",
+    ["007_user_self_scores.sql"],
+    getConnection,
+    async (connection) => {
+      await connection.execute(SQL_CREATE_SELF_SCORES, []);
+    },
+  );
 }
 
 export async function loadSelfScoreConnection(): Promise<SqlConnection> {

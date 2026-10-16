@@ -17,6 +17,7 @@ function adminDeps(overrides: {
   return {
     runContentImport: overrides.runContentImport ?? (async () => OK_SUMMARY),
     getCurrentUser: async () => ADMIN_USER,
+    readAccount: async () => ADMIN_USER,
     isContentImportConfigured: () =>
       Boolean(process.env.CONTENT_IMPORT_API_KEY?.trim()),
   };

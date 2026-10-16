@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ensureSchemaOnce, resetSchemaGuardForTests } from "@/lib/db/schemaGuard";
 
 const SQL_CREATE = `
   CREATE TABLE IF NOT EXISTS user_notifications (
@@ -18,36 +19,24 @@ const SQL_CREATE = `
 
 type Conn = () => Promise<SqlConnection>;
 
-let schemaReady: Promise<void> | undefined;
-
 export async function createUserNotificationsTable(
   connection: SqlConnection,
 ): Promise<void> {
   await connection.execute(SQL_CREATE, []);
 }
 
-async function run(getConnection: Conn): Promise<void> {
-  const connection = await getConnection();
-  try {
-    await createUserNotificationsTable(connection);
-  } finally {
-    connection.release();
-  }
-}
-
 export async function ensureUserNotificationsSchema(
   getConnection: Conn,
 ): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = run(getConnection).catch((error) => {
-      schemaReady = undefined;
-      throw error;
-    });
-  }
-  await schemaReady;
+  await ensureSchemaOnce(
+    "user_notifications",
+    ["024_user_notifications.sql"],
+    getConnection,
+    createUserNotificationsTable,
+  );
 }
 
 /** Test helper: the next ensure opens a fresh connection. */
 export function resetUserNotificationsSchemaForTests(): void {
-  schemaReady = undefined;
+  resetSchemaGuardForTests("user_notifications");
 }

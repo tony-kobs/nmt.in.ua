@@ -59,11 +59,26 @@ try {
     if (user.role === "admin") {
       console.log("Already admin.");
     } else {
-      const [upd] = await conn.execute(
-        `UPDATE app_users SET role = 'admin' WHERE id = ?`,
-        [user.id],
-      );
-      console.log(`Promoted to admin (affected=${upd.affectedRows}).`);
+      await conn.beginTransaction();
+      try {
+        const [upd] = await conn.execute(
+          `UPDATE app_users SET role = 'admin' WHERE id = ?`,
+          [user.id],
+        );
+        const [revoked] = await conn.execute(
+          `UPDATE user_sessions
+           SET revoked_at = CURRENT_TIMESTAMP
+           WHERE user_id = ? AND revoked_at IS NULL`,
+          [user.id],
+        );
+        await conn.commit();
+        console.log(
+          `Promoted to admin (affected=${upd.affectedRows}, sessions revoked=${revoked.affectedRows}).`,
+        );
+      } catch (error) {
+        await conn.rollback();
+        throw error;
+      }
     }
   }
 } finally {

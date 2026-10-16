@@ -1,5 +1,6 @@
 import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ensureSchemaOnce } from "@/lib/db/schemaGuard";
 import { migrateDailyMarathon } from "./dailySchema";
 
 const SQL_CREATE_MARATHONS = `
@@ -38,7 +39,12 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-let schemaReady: Promise<void> | undefined;
+const MARATHON_MIGRATIONS = [
+  "038_marathons_leaderboard.sql",
+  "040_daily_marathon.sql",
+  "044_notification_channels_and_invites.sql",
+  "045_cabinet_scope_full.sql",
+];
 
 async function participantForeignKeys(
   connection: SqlConnection,
@@ -109,30 +115,20 @@ async function addParticipantForeignKey(
   }
 }
 
-async function runMarathonSchemaMigration(
-  getConnection: () => Promise<SqlConnection>,
-): Promise<void> {
-  const connection = await getConnection();
-  try {
-    await connection.execute(SQL_CREATE_MARATHONS, []);
-    await connection.execute(SQL_CREATE_PARTICIPANTS, []);
-    await ensureParticipantForeignKeys(connection);
-    await migrateDailyMarathon(connection);
-  } finally {
-    connection.release();
-  }
-}
-
 export async function ensureMarathonSchema(
   getConnection: () => Promise<SqlConnection> = loadDefaultConnection,
 ): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = runMarathonSchemaMigration(getConnection).catch((error) => {
-      schemaReady = undefined;
-      throw error;
-    });
-  }
-  await schemaReady;
+  await ensureSchemaOnce(
+    "marathons",
+    MARATHON_MIGRATIONS,
+    getConnection,
+    async (connection) => {
+      await connection.execute(SQL_CREATE_MARATHONS, []);
+      await connection.execute(SQL_CREATE_PARTICIPANTS, []);
+      await ensureParticipantForeignKeys(connection);
+      await migrateDailyMarathon(connection);
+    },
+  );
 }
 
 /** Active rows past ends_at stop accepting joins and disappear from the board. */

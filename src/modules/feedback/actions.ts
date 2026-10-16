@@ -1,6 +1,6 @@
 "use server";
 
-import { getCurrentUser } from "@/modules/auth/getCurrentUser";
+import { getCurrentUser, readLiveAccount } from "@/modules/auth/getCurrentUser";
 import {
   submitFeedback,
   SubmitFeedbackError,
@@ -32,6 +32,7 @@ export type SubmitFeedbackActionErrorCode =
 
 type SubmitFeedbackActionDeps = {
   getCurrentUser: typeof getCurrentUser;
+  readAccount: typeof readLiveAccount;
   submitFeedback: typeof submitFeedback;
 };
 
@@ -47,10 +48,16 @@ export async function submitFeedbackAction(
   input: SubmitFeedbackActionInput,
   deps: SubmitFeedbackActionDeps = {
     getCurrentUser,
+    readAccount: readLiveAccount,
     submitFeedback,
   },
 ): Promise<SubmitFeedbackActionState> {
-  const user = await deps.getCurrentUser();
+  const cookieUser = await deps.getCurrentUser();
+  const account = cookieUser ? await deps.readAccount(cookieUser.id) : null;
+  if (cookieUser && (!account || account.isBanned)) {
+    return { status: "error", code: "generic" };
+  }
+  const user = account;
 
   if (!isFeedbackScore(input.score) || !isFeedbackSource(input.source)) {
     return { status: "error", code: "invalid_input" };

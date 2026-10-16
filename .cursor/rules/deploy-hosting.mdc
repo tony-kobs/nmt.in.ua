@@ -12,10 +12,10 @@ alwaysApply: true
 1. PR → `dev` → lead мерджить. Реліз: `dev` → `main`.
 2. Actions на `main` збирає Next (не на хості). Одразу `scripts/rewrite-next-build-paths.sh` — інакше RSC-маніфест тримає `/home/runner/work/...` і сайт дає 500. Не фейлити через `.next/trace` (телеметрія збірки).
 3. У tar — увесь `src/`, не лише i18n. SSH-pipe, не SCP/appleboy.
-4. На хості install у `releases/<id>`, **поки старий www живий**.
-5. Перед `mv` стоп лише процесів з `127.1.10.37` і `node server.js`/`npm run start`. На хості немає `ss`/`lsof` і немає `/dev/fd` — ніякого `<(…)`.
-6. Старт як панель: `npm run start -- --port=3000 --host=127.1.10.37`. Не `killall`.
-7. `node_modules` копіювати з живого `www` (glibc 2.28), потім `npm install`.
+4. На хості install у `releases/<id>`, **поки старий www живий**. `node_modules` копіювати з живого `www` (glibc 2.28), потім `npm install`.
+5. Одразу після install, ще до зупинки Node: `npm run migrate` у каталозі релізу (`.env.production` уже скопійовано). Помилка міграції не чіпає живий `www`. Деталі — `docs/schema-migrations.md`.
+6. Перед `mv` стоп лише процесів з `127.1.10.37` і `node server.js`/`npm run start`. На хості немає `ss`/`lsof` і немає `/dev/fd` — ніякого `<(…)`.
+7. Старт як панель: `npm run start -- --port=3000 --host=127.1.10.37`. Не `killall`.
 8. Healthcheck друкує HTTP-код; 5xx → rollback + хвіст лога.
 
 ## Залізно не робити
@@ -27,7 +27,8 @@ alwaysApply: true
 
 ## Скрипти
 
-- `scripts/deploy-hosting.sh` — єдиний шлях (локально і CI, `--skip-build`).
+- `scripts/deploy-hosting.sh` — єдиний шлях (локально і CI, `--skip-build`). Міграція — крок цього скрипта перед swap.
+- `scripts/migrate.mjs` — `npm run migrate`. На хості його викликає деплой, не окремий крок Actions.
 - `scripts/rewrite-next-build-paths.sh` — після кожної збірки перед tar.
 - `scripts/hosting-remote-lib.sh` — стоп / старт / health (`ps`/`awk`); Node `TMPDIR` = `nmt.in.ua/tmp`, не `~/.system/tmp`.
 - `scripts/hosting-clean-php-tmp.sh` — прибрати PHP-шелли з акаунтного tmp (`sess_*` не чіпає).

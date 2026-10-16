@@ -1,16 +1,22 @@
 import "server-only";
 
-import { getSessionPayload } from "@/modules/auth/getCurrentUser";
+import { redirect } from "next/navigation";
+
+import { getSessionPayload, readLiveAccount } from "@/modules/auth/getCurrentUser";
 import { getGuestId, getOrCreateGuestId } from "@/modules/auth/guestToken";
 
 /**
- * Owner resolution runs on every diagnostic answer, so it reads the id from the
- * signed session cookie instead of loading the `app_users` row: the queries it
- * feeds all filter by `user_id`, and only the id is ever used here.
+ * The signed cookie supplies the id. Role is unused here, but a banned or
+ * deleted account is rejected before any diagnostic write.
  */
 async function sessionUserId(): Promise<number | null> {
   const payload = await getSessionPayload();
-  return payload?.userId ?? null;
+  if (!payload) return null;
+  const account = await readLiveAccount(payload.userId);
+  if (!account || account.isBanned) {
+    redirect("/api/auth/clear-session");
+  }
+  return payload.userId;
 }
 
 /**

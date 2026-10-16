@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ensureSchemaOnce } from "@/lib/db/schemaGuard";
 import { ensureAuthSchema } from "@/modules/auth/users";
 
 export type AuthTokenPurpose = "email_verify" | "password_reset";
@@ -31,30 +32,18 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-let schemaReady: Promise<void> | undefined;
-
-async function runAuthTokenMigration(
-  getConnection: () => Promise<SqlConnection>,
-): Promise<void> {
-  await ensureAuthSchema({ getConnection });
-  const connection = await getConnection();
-  try {
-    await connection.execute(SQL_CREATE_AUTH_TOKENS, []);
-  } finally {
-    connection.release();
-  }
-}
-
 export async function ensureAuthTokenSchema(
   getConnection: () => Promise<SqlConnection> = loadDefaultConnection,
 ): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = runAuthTokenMigration(getConnection).catch((error) => {
-      schemaReady = undefined;
-      throw error;
-    });
-  }
-  await schemaReady;
+  await ensureSchemaOnce(
+    "auth_tokens",
+    ["023_auth_tokens.sql"],
+    getConnection,
+    async (connection) => {
+      await ensureAuthSchema({ getConnection });
+      await connection.execute(SQL_CREATE_AUTH_TOKENS, []);
+    },
+  );
 }
 
 export function hashAuthToken(rawToken: string): string {

@@ -585,6 +585,7 @@ export async function submitDayAction(formData: FormData): Promise<void> {
     channel: participant.channel,
     completedDayNumbers: [day.dayNumber],
   };
+  if (result.fresh) {
   try {
     await sendCompletedDayFollowUp({
       marathonId: marathon.id,
@@ -601,7 +602,7 @@ export async function submitDayAction(formData: FormData): Promise<void> {
   } catch (error) {
     console.error("marathon follow-up", error);
   }
-  if (result.fresh && result.rank) {
+  if (result.rank) {
     try {
       await sendRankNotice({
         marathonId: marathon.id,
@@ -616,6 +617,7 @@ export async function submitDayAction(formData: FormData): Promise<void> {
     } catch (error) {
       console.error("marathon rank notice", error);
     }
+  }
   }
   redirect(dayPath);
 }
