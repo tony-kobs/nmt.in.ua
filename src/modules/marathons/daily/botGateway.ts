@@ -447,6 +447,7 @@ async function persistPlay(input: {
             telegramChatId: input.participant.telegramChatId,
             notifyEmail: input.participant.notifyEmail,
             notifyBot: input.participant.notifyBot,
+            channel: input.participant.channel,
             completedDayNumbers: [input.day.dayNumber],
           },
         });
@@ -472,6 +473,7 @@ async function persistPlay(input: {
           telegramChatId: input.participant.telegramChatId,
           notifyEmail: input.participant.notifyEmail,
           notifyBot: input.participant.notifyBot,
+          channel: input.participant.channel,
           completedDayNumbers: [input.day.dayNumber],
         },
         skipTelegram: true,

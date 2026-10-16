@@ -35,6 +35,7 @@ import {
   type AdminFormState,
 } from "./forms";
 import { isCopyKey } from "./copy";
+import { activationBlockers, marathonIsReady } from "./readiness";
 import { sendCompletedDayFollowUp, sendRankNotice } from "./notificationsJob";
 import { seedMathMarathon } from "./seed";
 import {
@@ -44,6 +45,7 @@ import {
   deleteMaterial,
   deleteRiddle,
   deleteTask,
+  getDailyById,
   getDailyBySlug,
   getParticipant,
   insertDailyMarathon,
@@ -52,6 +54,7 @@ import {
   insertRiddle,
   insertTask,
   joinParticipant,
+  listDayTaskCounts,
   listDays,
   listProgress,
   loadMarathonCopy,
@@ -148,6 +151,14 @@ export async function setMarathonStatusAction(formData: FormData): Promise<void>
   const id = readInt(formData.get("id"));
   const status = readText(formData.get("status"), 16);
   if (!id || !isDailyStatus(status)) redirect(`${adminPath(id ?? undefined)}?error=invalid`);
+  if (status === "active") {
+    const marathon = await getDailyById(id);
+    if (!marathon) redirect(`${adminPath(id)}?error=invalid`);
+    const days = await listDayTaskCounts(id);
+    if (!marathonIsReady(activationBlockers({ daysCount: marathon.daysCount, days }))) {
+      redirect(`${adminPath(id)}?error=not_ready`);
+    }
+  }
   await setDailyStatus(id, status);
   revalidatePath(adminPath(id));
   redirect(savedPath(id));
@@ -525,6 +536,7 @@ export async function submitDayAction(formData: FormData): Promise<void> {
     telegramChatId: participant.telegramChatId,
     notifyEmail: participant.notifyEmail,
     notifyBot: participant.notifyBot,
+    channel: participant.channel,
     completedDayNumbers: [day.dayNumber],
   };
   try {

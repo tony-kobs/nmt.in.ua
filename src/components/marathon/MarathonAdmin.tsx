@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
 import { kyivDateIso } from "@/modules/marathons/daily/calendar";
+import { activationBlockers, marathonIsReady } from "@/modules/marathons/daily/readiness";
 import { loadMarathonBoard, loadMarathonCopy } from "@/modules/marathons/daily/store";
 import {
   deleteDayAction,
@@ -113,6 +114,11 @@ export async function MarathonAdminEditor({
 }) {
   const t = await getTranslations("Marathon");
   const message = marathonErrorText(t, error);
+  const blockers = activationBlockers({
+    daysCount: marathon.daysCount,
+    days: days.map((day) => ({ dayNumber: day.dayNumber, taskCount: day.tasks.length })),
+  });
+  const notReady = !marathonIsReady(blockers);
   const [copy, board] = await Promise.all([
     loadMarathonCopy(marathon.id),
     loadMarathonBoard(marathon.id),
@@ -130,6 +136,17 @@ export async function MarathonAdminEditor({
           draft={marathon.status === "draft"}
           prominent
         />
+        {notReady ? (
+          <div className={css.alert} role="alert">
+            <p>{t("notReady")}</p>
+            {blockers.missingDays.length > 0 ? (
+              <p>{t("notReadyMissing", { days: blockers.missingDays.join(", ") })}</p>
+            ) : null}
+            {blockers.emptyDays.length > 0 ? (
+              <p>{t("notReadyEmpty", { days: blockers.emptyDays.join(", ") })}</p>
+            ) : null}
+          </div>
+        ) : null}
         <div className={css.actions}>
           {(["draft", "active", "finished"] as const).map((status) => (
             <form key={status} action={setMarathonStatusAction}>

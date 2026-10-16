@@ -769,7 +769,11 @@
     "showAnswer": "Antwort",
     "join": "Mitmachen",
     "haveAccount": "Ich habe schon ein Konto",
-    "finishedNote": "Dieser Marathon ist beendet.",
+    "finishedNote": "Dieser Marathon ist beendet. Die Ergebnisse bleiben sichtbar.",
+    "finishedMap": "Meine Karte und Ergebnisse",
+    "notReady": "Der Marathon lässt sich erst aktivieren, wenn er fertig ist.",
+    "notReadyMissing": "Fehlende Tage: {days}. Jeder Tag von 1 bis zur Tageszahl muss da sein.",
+    "notReadyEmpty": "Ohne Aufgaben: {days}. Jeder Tag braucht mindestens eine Aufgabe.",
     "joinTitle": "Am Marathon teilnehmen",
     "joinLead": "Lege ein Konto an, um «{title}» zu machen. Bestätige die E-Mail — dann öffnet sich die Tageskarte.",
     "name": "Name",
@@ -953,7 +957,7 @@
         "range": "Die Stunde ist eine ganze Zahl von 0 bis 23."
       },
       "nudgeUntil": {
-        "range": "Das Ende muss später als der Anfang sein, Stunde von 0 bis 23."
+        "range": "Das Fenster muss später enden, als es beginnt, Stunde 0–23."
       },
       "daysCount": {
         "range": "Die Anzahl der Tage ist eine ganze Zahl von 1 bis 14."
@@ -1066,6 +1070,7 @@
     },
     "errors": {
       "closed": "Dieser Marathon nimmt gerade keine Teilnehmer auf.",
+      "not_ready": "Aktivieren geht nicht: jeder Tag von 1 bis zur Tageszahl muss da sein, und jeder Tag braucht mindestens eine Aufgabe.",
       "invalid": "Prüfe die Felder.",
       "duplicate": "Dieser Eintrag gibt es schon.",
       "server": "Speichern fehlgeschlagen. Versuche es noch einmal.",

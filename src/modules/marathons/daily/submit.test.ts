@@ -12,9 +12,11 @@ const schedule = {
 
 test("score uses the threshold only as a passed mark", () => {
   assert.equal(scorePercent(3, 4), 75);
-  assert.equal(scorePercent(0, 0), 100);
+  assert.equal(scorePercent(0, 0), 0);
   assert.equal(isDayPassed(59, 60), false);
   assert.equal(isDayPassed(60, 60), true);
+  assert.equal(isDayPassed(100, 60, 0), false);
+  assert.equal(isDayPassed(0, 0, 0), false);
 });
 
 test("submit refuses a locked day and does not grade or persist", async () => {

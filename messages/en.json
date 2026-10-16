@@ -769,7 +769,11 @@
     "showAnswer": "Answer",
     "join": "Join",
     "haveAccount": "I already have an account",
-    "finishedNote": "This marathon has finished.",
+    "finishedNote": "This marathon has finished. Results stay available.",
+    "finishedMap": "My map and results",
+    "notReady": "This marathon cannot be activated until it is ready.",
+    "notReadyMissing": "Missing days: {days}. Every day from 1 through the day count is required.",
+    "notReadyEmpty": "No tasks: {days}. Each day needs at least one task.",
     "joinTitle": "Join the marathon",
     "joinLead": "Create an account to take “{title}”. Confirm your email and the day map will open.",
     "name": "Name",
@@ -950,10 +954,10 @@
         "format": "Use HH:MM for the reminder, for example 19:00."
       },
       "nudgeFrom": {
-        "range": "The hour must be an integer from 0 to 23."
+        "range": "Hour must be an integer from 0 to 23."
       },
       "nudgeUntil": {
-        "range": "The end hour must be later than the start, from 0 to 23."
+        "range": "The window must end later than it starts, hour 0–23."
       },
       "daysCount": {
         "range": "Days must be an integer from 1 to 14."
@@ -1066,6 +1070,7 @@
     },
     "errors": {
       "closed": "This marathon is not accepting participants.",
+      "not_ready": "Cannot activate: every day from 1 through the day count is required, and each day needs at least one task.",
       "invalid": "Check the form fields.",
       "duplicate": "That entry already exists.",
       "server": "Could not save. Try again.",
