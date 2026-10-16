@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentUser, requireUser } from "@/modules/auth/getCurrentUser";
+import { getCurrentUser, readLiveAccount, requireUser } from "@/modules/auth/getCurrentUser";
 import { defaultChannelPreferences, type UserChannelPreferences } from "./channels";
 import { saveUserChannelPreferences } from "./channelStore";
 import {
@@ -13,7 +13,10 @@ import {
 
 async function viewerId(): Promise<number | null> {
   const user = await getCurrentUser();
-  return user?.id ?? null;
+  if (!user) return null;
+  const account = await readLiveAccount(user.id);
+  if (!account || account.isBanned) return null;
+  return account.id;
 }
 
 export async function listMyNotificationsAction(): Promise<UserNotification[]> {

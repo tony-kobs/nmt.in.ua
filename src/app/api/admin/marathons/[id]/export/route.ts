@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/modules/auth/getCurrentUser";
+import { getCurrentUser, readLiveAccount } from "@/modules/auth/getCurrentUser";
 import { hasPermission } from "@/modules/auth/permissions";
 import { getDailyById, listParticipantReports } from "@/modules/marathons/daily/store";
 import { parseUtmSource, toCsv } from "@/modules/marathons/daily/utm";
@@ -10,8 +10,9 @@ export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const user = await getCurrentUser();
-  if (!user || !hasPermission(user.role, "marathon:manage")) {
+  const cookieUser = await getCurrentUser();
+  const account = cookieUser ? await readLiveAccount(cookieUser.id) : null;
+  if (!account || account.isBanned || !hasPermission(account.role, "marathon:manage")) {
     return new NextResponse(null, { status: 401 });
   }
   const { id } = await context.params;

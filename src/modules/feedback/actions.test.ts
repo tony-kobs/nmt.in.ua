@@ -27,6 +27,7 @@ test("submitFeedbackAction uses the session user and ignores client email", asyn
     },
     {
       getCurrentUser: async () => student,
+      readAccount: async () => student,
       submitFeedback: spy,
     },
   );
@@ -58,6 +59,7 @@ test("submitFeedbackAction stores a guest with optional email", async () => {
     },
     {
       getCurrentUser: async () => null,
+      readAccount: async () => null,
       submitFeedback: spy,
     },
   );
@@ -89,6 +91,7 @@ test("submitFeedbackAction keeps sessionId only for post_test", async () => {
     },
     {
       getCurrentUser: async () => student,
+      readAccount: async () => student,
       submitFeedback: spy,
     },
   );
@@ -108,6 +111,7 @@ test("submitFeedbackAction maps message_required for the client", async () => {
     { score: 1, message: "", source: "footer" },
     {
       getCurrentUser: async () => null,
+      readAccount: async () => null,
       submitFeedback: spy,
     },
   );

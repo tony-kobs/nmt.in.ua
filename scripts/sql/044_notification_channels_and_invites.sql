@@ -35,3 +35,13 @@ CREATE TABLE IF NOT EXISTS marathon_invite_recipients (
   CONSTRAINT fk_marathon_invite_recipient_user FOREIGN KEY (user_id)
     REFERENCES app_users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- One-time copy from the old per-marathon flags. INSERT IGNORE keeps a later edit.
+-- Same statement as applyChannelPreferencesSchema. Missing source columns are a
+-- real failure (do not record this file). Re-running does not overwrite.
+INSERT IGNORE INTO user_channel_preferences (user_id, category, email_on, telegram_on)
+SELECT p.user_id, 'marathon',
+  MAX(CASE WHEN p.notify_paused = 0 AND p.notify_email <> 0 THEN 1 ELSE 0 END),
+  MAX(CASE WHEN p.notify_paused = 0 AND p.notify_bot <> 0 THEN 1 ELSE 0 END)
+FROM marathon_participants p
+GROUP BY p.user_id;

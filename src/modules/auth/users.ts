@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ensureSchemaOnce } from "@/lib/db/schemaGuard";
 import type { AuthUser, CabinetScope, UserRole, StudentOption } from "./types";
 import { SQL_CREATE_USER_AVATARS } from "./avatar/schema";
 import { hashPassword } from "./password";
@@ -125,8 +126,6 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-let schemaReady: Promise<void> | undefined;
-
 async function ensureUserColumn(
   connection: SqlConnection,
   columnName: string,
@@ -190,12 +189,19 @@ async function ensureEmailUniqueIndex(connection: SqlConnection): Promise<void> 
   );
 }
 
-async function runAuthSchemaMigration(
-  deps: { getConnection: () => Promise<SqlConnection> },
-): Promise<void> {
-  const connection = await deps.getConnection();
-  try {
-    await connection.execute(SQL_CREATE_USERS, []);
+const AUTH_MIGRATIONS = [
+  "001_app_users.sql",
+  "015_user_avatars.sql",
+  "020_app_users_is_banned.sql",
+  "021_app_users_presence.sql",
+  "022_app_users_email.sql",
+  "036_app_users_email_verify_required.sql",
+  "041_marathon_student_access.sql",
+  "045_cabinet_scope_full.sql",
+];
+
+async function runAuthSchemaMigration(connection: SqlConnection): Promise<void> {
+  await connection.execute(SQL_CREATE_USERS, []);
     await ensureUserColumn(
       connection,
       "is_banned",
@@ -234,9 +240,6 @@ async function runAuthSchemaMigration(
     );
     await ensureEmailUniqueIndex(connection);
     await connection.execute(SQL_CREATE_USER_AVATARS, []);
-  } finally {
-    connection.release();
-  }
 }
 
 export async function ensureAuthSchema(
@@ -244,13 +247,12 @@ export async function ensureAuthSchema(
     getConnection: loadDefaultConnection,
   },
 ): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = runAuthSchemaMigration(deps).catch((error) => {
-      schemaReady = undefined;
-      throw error;
-    });
-  }
-  await schemaReady;
+  await ensureSchemaOnce(
+    "auth",
+    AUTH_MIGRATIONS,
+    deps.getConnection,
+    runAuthSchemaMigration,
+  );
 }
 
 const SQL_LIST_STUDENTS = `

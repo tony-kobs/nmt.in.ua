@@ -1,5 +1,6 @@
 import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ensureSchemaOnce } from "@/lib/db/schemaGuard";
 
 const SQL_CREATE_CONSULTATION_REQUESTS = `
   CREATE TABLE IF NOT EXISTS consultation_requests (
@@ -23,32 +24,18 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-let schemaReady: Promise<void> | undefined;
-
-async function runConsultationSchemaMigration(
-  getConnection: () => Promise<SqlConnection>,
-): Promise<void> {
-  const connection = await getConnection();
-  try {
-    await connection.execute(SQL_CREATE_CONSULTATION_REQUESTS, []);
-  } finally {
-    connection.release();
-  }
-}
-
-/** Creates `consultation_requests` once per process if the table is missing. */
+/** Creates `consultation_requests` once per process if the migration is not recorded. */
 export async function ensureConsultationSchema(
   getConnection: () => Promise<SqlConnection> = loadDefaultConnection,
 ): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = runConsultationSchemaMigration(getConnection).catch(
-      (error) => {
-        schemaReady = undefined;
-        throw error;
-      },
-    );
-  }
-  await schemaReady;
+  await ensureSchemaOnce(
+    "consultations",
+    ["019_consultation_requests.sql"],
+    getConnection,
+    async (connection) => {
+      await connection.execute(SQL_CREATE_CONSULTATION_REQUESTS, []);
+    },
+  );
 }
 
 export async function loadConsultationConnection(): Promise<SqlConnection> {

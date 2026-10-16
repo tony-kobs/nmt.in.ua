@@ -177,6 +177,17 @@ async function buildDeliveries(
  * Returns false when nothing could be queued, so the claim is released and cron retries.
  * The outbox drain sends, retries and falls back per piece; one bad image no longer drops the day.
  */
+/**
+ * A day_open claim is confirmed only after the outbox accepted the day.
+ * A failed enqueue stays unconfirmed so the next cron can retry.
+ * A definitive Telegram failure has nowhere to deliver, so it is closed.
+ */
+export function dayOpenDeliveryOk(attempt: TelegramAttempt, queued: boolean): boolean {
+  if (attempt === "definitive") return true;
+  if (attempt !== "sent") return false;
+  return queued;
+}
+
 async function queueOpenedDay(
   marathon: NotifyAudienceMarathon,
   userId: number,
@@ -310,9 +321,10 @@ export async function runMarathonNotifications(deps: {
             attempt = "retry";
           } else {
             attempt = await classifyTelegramSend(item.chatId, item.text);
+            let queued = attempt !== "sent";
             if (attempt === "sent") {
               try {
-                await queueOpenedDay(
+                queued = await queueOpenedDay(
                   marathon,
                   intent.userId,
                   intent.dayNumber,
@@ -322,8 +334,10 @@ export async function runMarathonNotifications(deps: {
                 );
               } catch (error) {
                 console.error("marathon day content", error);
+                queued = false;
               }
             }
+            return dayOpenDeliveryOk(attempt, queued);
           }
         } else {
           const sent = await sendTelegram(item.chatId, item.text);

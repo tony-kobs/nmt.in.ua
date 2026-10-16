@@ -1,6 +1,9 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { onlineSessionExistsSql } from "@/modules/auth/presenceRules";
-import { ensureUserSessionsSchema } from "@/modules/auth/userSessions";
+import {
+  ensureUserSessionsSchema,
+  SQL_REVOKE_USER_SESSIONS,
+} from "@/modules/auth/userSessions";
 import type { UserRole } from "@/modules/auth/types";
 import { ensureAuthSchema } from "@/modules/auth/users";
 import { AdminProfilesError, ADMIN_PROFILES_PAGE_SIZE, type AdminProfile, type AdminProfilesPage, type AdminProfilesRoleCounts } from "./types";
@@ -286,10 +289,20 @@ export async function setProfileBanned(
       return target;
     }
 
-    await connection.execute(SQL_SET_BANNED, [
-      input.banned ? 1 : 0,
-      input.targetUserId,
-    ]);
+    await connection.beginTransaction();
+    try {
+      await connection.execute(SQL_SET_BANNED, [
+        input.banned ? 1 : 0,
+        input.targetUserId,
+      ]);
+      if (input.banned) {
+        await connection.execute(SQL_REVOKE_USER_SESSIONS, [input.targetUserId]);
+      }
+      await connection.commit();
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    }
 
     return {
       ...target,

@@ -48,11 +48,10 @@ export async function TelegramDayPreview({
                     ? t("previewTask")
                     : t("previewText")}
           </p>
-          {bubble.kind === "formula" ? (
-            <MathText text={`$$${bubble.body}$$`} as="div" />
-          ) : (
+          {bubble.formula ? <MathText text={`$$${bubble.formula}$$`} as="div" /> : null}
+          {bubble.body && bubble.body !== bubble.formula ? (
             <p className={css.tgBody}>{visibleText(bubble.body)}</p>
-          )}
+          ) : null}
           {bubble.buttons.length > 0 ? (
             <div className={css.tgButtons}>
               {bubble.buttons.map((label, buttonIndex) => (
