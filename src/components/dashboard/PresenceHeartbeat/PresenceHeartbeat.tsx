@@ -5,8 +5,8 @@ import { useEffect } from "react";
 const HEARTBEAT_MS = 60_000;
 
 /**
- * Keeps `app_users.last_seen_at` fresh while the cabinet tab is open.
- * Online = last_seen within ~3 minutes (see `isUserOnline`).
+ * Keeps the open login session fresh while the cabinet tab is visible.
+ * Online = that session is unexpired and active within 5 minutes.
  */
 export function PresenceHeartbeat() {
   useEffect(() => {

@@ -13,7 +13,8 @@ import {
   setProfileBannedAction,
   type ProfileModerationActionState,
 } from "@/modules/admin-profiles/actions";
-import type { AdminProfilesPage } from "@/modules/admin-profiles/types";
+import type { AdminProfile, AdminProfilesPage } from "@/modules/admin-profiles/types";
+import { presenceAgo } from "@/modules/auth/presenceRules";
 import css from "./AdminProfilesPanel.module.css";
 
 const BAN_INITIAL: ProfileModerationActionState = { status: "idle" };
@@ -42,6 +43,20 @@ function formatDateTime(iso: string, locale: string): string {
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);
+}
+
+function presenceText(
+  profile: Pick<AdminProfile, "isOnline" | "seenMinutesAgo">,
+  t: (key: string, values?: { count: number }) => string,
+): string {
+  if (profile.isOnline) return t("online");
+  const ago = presenceAgo(profile.seenMinutesAgo);
+  if (ago.kind === "never") return t("never");
+  if (ago.kind === "just") return t("presenceJustNow");
+  if (ago.kind === "minutes") {
+    return t("presenceAgoMinutes", { count: ago.count });
+  }
+  return t("presenceAgoHours", { count: ago.count });
 }
 
 function profilesHref(role: RoleFilter, page: number): string {
@@ -173,13 +188,12 @@ export function AdminProfilesPanel({
                             profile.isOnline
                               ? css.presenceOnline
                               : css.presenceOffline,
+                            !profile.isOnline && css.presenceAgo,
                           )}
-                          title={
-                            profile.isOnline ? t("online") : t("offline")
-                          }
+                          title={presenceText(profile, t)}
                         >
                           <span className={css.presenceDot} aria-hidden />
-                          {profile.isOnline ? t("online") : t("offline")}
+                          {presenceText(profile, t)}
                         </span>
                         {isSelf ? (
                           <span className={css.you}>{t("you")}</span>

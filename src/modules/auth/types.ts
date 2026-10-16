@@ -49,6 +49,8 @@ export type SessionPayload = {
   login?: string;
   /** Present on tokens issued after avatar upload landed; older cookies omit it. */
   avatarRev?: number;
+  /** `user_sessions.id`. Older cookies omit it until the next presence ping. */
+  sid?: number;
 };
 
 export function avatarSrc(

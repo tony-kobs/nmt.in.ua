@@ -233,6 +233,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | Таблиця | Навіщо | Важливі поля |
 | --- | --- | --- |
 | `app_users` | Наші акаунти | `login`, `email` / `email_verified_at` (022), `email_verify_required` (036: публічна реєстрація = 1, логін до підтвердження закритий; 0 — старі рядки й учні, яких створив викладач, входять і бачать банер). Демо exempt. `role`, `is_banned` (020), `last_login_at` / `last_seen_at` (021). Не плутати з legacy `users` |
+| `user_sessions` | Точки входу | `user_id`, `expires_at`, `revoked_at`, `last_seen_at`, `ip`, `user_agent`. Онлайн = невідкликана і не прострочена сесія з активністю за 5 хв. SQL `044` + lazy `ensureUserSessionsSchema`. Старий `ip` — NULL, у списку «—» |
 | `auth_tokens` | Verify / reset | `user_id`, `purpose` email_verify\|password_reset, `token_hash`, `expires_at`, `used_at`. Підтвердження email — 24 год, одноразове. SQL `023_auth_tokens.sql` + lazy `ensureAuthTokenSchema`. Листи через Brevo (`BREVO_API_KEY` / `MAIL_FROM`) або log у dev |
 | `user_avatars` | Фото профілю | `user_id`, `mime`, `bytes` MEDIUMBLOB. Лениво `CREATE` у `ensureAuthSchema` / `015_user_avatars.sql` |
 | `teacher_profiles` | Публічна візитка | `user_id`, `slug` unique, `headline`, `bio`, `city`, `subjects` (JSON), `contact_url`, `is_public`. `018_teacher_profiles.sql` + lazy `ensureTeacherProfileSchema` |
@@ -245,7 +246,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `nmt_variants` / `nmt_quiz_tasks` / `nmt_variant_tasks` | Офіційні варіанти симулятора | **Не** змішувати з `quiz_tasks`. SQL `011`–`013` |
 | `task_sessions` | Спроба учня | `session_type` 1 user / 2 auto / 3 mentor / 4 NMT / **5 diagnostic**; status 1 done / 2 created / 3 planned. `user_id` і `theme_id` nullable + `guest_token`. `expire_time` — фіксований дедлайн 24 год від створення рядка |
 | `tasks2session` | Мапінг завдання↔сесія | `status` 0 / 1 / −1; той самий owner, що в сесії |
-| `site_feedback` | Відгук про сайт | `score` 1–10; `message` обов’язкове якщо score < 5 |
+| `site_feedback` | Відгук про сайт | `score` 1–10; `message` обов’язкове якщо score < 5. Після збереження адміни отримують `user_notifications` (`admin.feedback`) і лист; збій сповіщення не відкочує відгук |
 | `consultation_requests` | Заявки на консультацію | один відкритий запит на учня. `019` |
 | `user_self_scores` | Самооцінка, **історія** | рівно один з `user_id` / `guest_token`; `score` 1–10. `007` |
 | `teacher_students` | Roster | unique pair викладач↔учень. `017` |
@@ -371,7 +372,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 - Логіни з префіксом `demo-` зарезервовані (реєстрація відхилить). Окремих seed-демо-акаунтів немає.
 - Статика з `public/` не повинна потрапляти під auth-guard.
 - Cookie сесії: `setSessionCookie` дає новий `exp`; `renewSessionCookie` **зберігає старий `exp`**. Не повертай `setSessionCookie` у профільні дії (аватар, upgrade cookie). `task_sessions.expire_time` ставиться раз при створенні. Див. `src/modules/testing/sessionExpiry.ts`.
-- Presence: `POST /api/presence` раз на хвилину з кабінету. Online ≈ `last_seen` за ~3 хв.
+- Presence: `POST /api/presence` раз на хвилину з кабінету і оновлення `last_seen_at` на запитах кабінету (не частіше раз на хвилину). Онлайн = відкрита `user_sessions` з активністю за 5 хв. Вихід ставить `revoked_at`. Інакше на `/profiles` — «був(ла) N хв/год тому».
 
 ## 11. З чого почати новому dev (вільні задачі)
 

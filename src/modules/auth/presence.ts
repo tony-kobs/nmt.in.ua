@@ -1,10 +1,15 @@
 import "server-only";
 
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ONLINE_WINDOW_MS } from "./presenceRules";
 import { ensureAuthSchema } from "./users";
 
-/** User is online when last_seen_at is within this window. */
-export const ONLINE_THRESHOLD_MS = 3 * 60 * 1000;
+/**
+ * Kept for callers that only have a timestamp. The admin list does not use
+ * this: a future-shifted MySQL `Date` used to stay "online" for hours, and
+ * logout never cleared it. Online is a live `user_sessions` row.
+ */
+export const ONLINE_THRESHOLD_MS = ONLINE_WINDOW_MS;
 
 async function loadDefaultConnection(): Promise<SqlConnection> {
   const { getConnection } = await import("@/lib/db/mysql");
@@ -19,7 +24,8 @@ export function isUserOnline(
   const seen =
     lastSeenAt instanceof Date ? lastSeenAt : new Date(lastSeenAt);
   if (Number.isNaN(seen.getTime())) return false;
-  return nowMs - seen.getTime() < ONLINE_THRESHOLD_MS;
+  const age = nowMs - seen.getTime();
+  return age >= 0 && age <= ONLINE_THRESHOLD_MS;
 }
 
 /**

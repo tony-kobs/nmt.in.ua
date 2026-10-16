@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionPayload } from "@/modules/auth/getCurrentUser";
-import { touchLastSeen } from "@/modules/auth/presence";
+import { ensureCookieLoginSession, getSessionPayload } from "@/modules/auth/getCurrentUser";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +11,7 @@ export async function POST(): Promise<NextResponse> {
   }
 
   try {
-    await touchLastSeen(session.userId);
+    await ensureCookieLoginSession();
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("POST /api/presence failed", error);
