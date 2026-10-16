@@ -10,6 +10,7 @@ import { formatKyivWhen } from "@/modules/marathons/daily/calendar";
 import type { BoardLine } from "@/modules/marathons/daily/leaderboard";
 import type { DailyMarathon, DayProgress, Participant } from "@/modules/marathons/daily/store";
 import { MarathonBoard } from "./MarathonBoard";
+import { SavedToast } from "./SavedToast";
 import { marathonErrorText } from "./errors";
 import css from "./marathon.module.css";
 
@@ -32,6 +33,7 @@ type MarathonMapViewProps = {
   telegramLabel: string;
   board: BoardLine[];
   error?: string;
+  saved?: boolean;
 };
 
 export async function MarathonMapView({
@@ -45,11 +47,13 @@ export async function MarathonMapView({
   telegramLabel,
   board,
   error,
+  saved = false,
 }: MarathonMapViewProps) {
   const t = await getTranslations("Marathon");
   const message = marathonErrorText(t, error);
   return (
     <div className={css.narrow}>
+      <SavedToast active={saved} text={t("saved")} />
       <PageFrame
         kicker={t("kicker")}
         title={marathon.title}

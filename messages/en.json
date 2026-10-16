@@ -798,6 +798,8 @@
     "notifyBot": "Telegram",
     "save": "Save",
     "botLinked": "Bot already linked",
+    "botJoined": "Bot connected",
+    "botNotJoined": "Not connected",
     "linkBot": "Link Telegram",
     "botOff": "The bot is not configured yet.",
     "materialsTitle": "Materials",
@@ -979,7 +981,7 @@
       },
       "body": {
         "required": "Enter the text.",
-        "placeholder": "Unknown placeholder. Only name, day, topic, unlock_time, link, place, prev_place, delta and total are allowed, each in curly braces."
+        "placeholder": "Unknown placeholder. Only name, day, topic, unlock_time, link, place, prev_place, delta, total, title and start_date are allowed, each in curly braces."
       },
       "introVideo": {
         "format": "The intro video must be a YouTube or Loom link."
@@ -1023,7 +1025,7 @@
       "reset": "Reset to default",
       "tooLong": "After substitution the text is longer than Telegram’s limit ({limit} characters). The bot splits long materials, but this template must fit in one message.",
       "buttonLong": "The button label is longer than {limit} characters — Telegram will reject it.",
-      "placeholdersHint": "Placeholders in curly braces: name, day, topic, unlock_time, link, place, prev_place, delta, total.",
+      "placeholdersHint": "Placeholders in curly braces: name, day, topic, unlock_time, link, place, prev_place, delta, total, title, start_date.",
       "groups": {
         "intro": "Intro",
         "day": "Day review",
@@ -1059,6 +1061,7 @@
         "bot_btn_telegram": "In Telegram button",
         "bot_locked": "Day still locked",
         "bot_link_ok": "Bot linked",
+        "bot_registered": "Registration confirmation",
         "bot_open_site": "Open on the site button",
         "bot_to_tasks": "To the tasks button"
       }

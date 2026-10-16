@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ slug: string; n: string }>;
-  searchParams: Promise<{ error?: string | string[] }>;
+  searchParams: Promise<{ error?: string | string[]; saved?: string | string[] }>;
 };
 
 export async function generateMetadata({ params }: PageProps) {
@@ -110,6 +110,7 @@ export default async function MarathonDayPage({ params, searchParams }: PageProp
       lockedUntil={open ? null : access.unlockAt}
       locale={locale}
       error={Array.isArray(query.error) ? query.error[0] : query.error}
+      saved={(Array.isArray(query.saved) ? query.saved[0] : query.saved) === "1"}
     />
   );
 }

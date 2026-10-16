@@ -1721,8 +1721,8 @@ async function saveRanks(
 /** A claim that was never confirmed (the run died mid-send) can be taken again after this. */
 export const STALE_NOTIFICATION_CLAIM_MINUTES = 10;
 
-type NotifyKey = Pick<NotifyIntent, "marathonId" | "userId" | "dayNumber" | "kind" | "channel"> & {
-  kind: NotifyKind;
+type NotifyKey = Pick<NotifyIntent, "marathonId" | "userId" | "dayNumber" | "channel"> & {
+  kind: NotifyKind | "registered";
 };
 
 function notifyKeyParams(intent: NotifyKey): unknown[] {

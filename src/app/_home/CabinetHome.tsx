@@ -17,6 +17,8 @@ import { canImportContent, type AuthUser } from "@/modules/auth/types";
 import {
   isMarathonOnlyStudent,
 } from "@/modules/marathons/daily/access";
+import { SavedToast } from "@/components/marathon/SavedToast";
+import { withSavedFlag } from "@/modules/marathons/daily/channelPath";
 import { getStudentMarathonHref } from "@/modules/marathons/daily/store";
 import { getAvailableTopicThemes } from "@/modules/testing/getAvailableTopicThemes";
 import { countStage2CatalogTasks } from "@/modules/stage2/rounds";
@@ -28,6 +30,7 @@ type CabinetHomeProps = {
   initialThemeId?: number;
   initialPage?: number;
   needsCookieUpgrade: boolean;
+  saved?: boolean;
 };
 
 /** Loaded only for authenticated `/` — keeps cabinet out of the guest graph. */
@@ -38,18 +41,21 @@ export async function CabinetHome({
   initialThemeId,
   initialPage = 1,
   needsCookieUpgrade,
+  saved = false,
 }: CabinetHomeProps) {
   const account = user.role === "student" ? await findUserById(user.id) : null;
   const cabinetScope = account?.cabinetScope ?? "full";
   const marathonHref =
     user.role === "student" ? await getStudentMarathonHref(user.id) : null;
   if (isMarathonOnlyStudent(user.role, cabinetScope)) {
-    redirect(marathonHref ?? "/account");
+    redirect(withSavedFlag(marathonHref ?? "/account", saved));
   }
 
   if (user.role === "teacher") {
     redirect("/assign");
   }
+
+  const savedText = saved ? (await getTranslations("Marathon"))("saved") : "";
 
   if (canImportContent(user.role)) {
     const [rawMessages, t, themes] = await Promise.all([
@@ -76,6 +82,7 @@ export async function CabinetHome({
       <NextIntlClientProvider locale={locale} messages={messages}>
         {needsCookieUpgrade ? <UpgradeSessionCookie /> : null}
         <DashboardShell user={user}>
+          <SavedToast active={saved} text={savedText} />
           <PageFrame
             kicker={t("kicker")}
             title={t("title")}
@@ -108,6 +115,7 @@ export async function CabinetHome({
         cabinetScope={cabinetScope}
         marathonHref={marathonHref}
       >
+        <SavedToast active={saved} text={savedText} />
         <TopicTestStart
           themes={themes}
           initialThemeId={initialThemeId}

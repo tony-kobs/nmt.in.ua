@@ -67,7 +67,7 @@ const CHILD_TABLES = [
     marathon_id INT NOT NULL,
     user_id INT NOT NULL,
     day_number TINYINT UNSIGNED NOT NULL,
-    kind ENUM('day_open', 'reminder', 'tomorrow', 'final', 'nudge') NOT NULL,
+    kind ENUM('day_open', 'reminder', 'tomorrow', 'final', 'nudge', 'registered') NOT NULL,
     channel ENUM('email', 'telegram') NOT NULL,
     sent_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     delivered TINYINT(1) NOT NULL DEFAULT 1,
@@ -289,10 +289,10 @@ export async function migrateDailyMarathon(
     const kindType = String(
       kindRows[0]?.COLUMN_TYPE ?? kindRows[0]?.column_type ?? "",
     );
-    if (kindType && !kindType.includes("nudge")) {
+    if (kindType && !kindType.includes("registered")) {
       await connection.execute(
         `ALTER TABLE marathon_notifications
-         MODIFY COLUMN kind ENUM('day_open','reminder','tomorrow','final','nudge') NOT NULL`,
+         MODIFY COLUMN kind ENUM('day_open','reminder','tomorrow','final','nudge','registered') NOT NULL`,
         [],
       );
     }

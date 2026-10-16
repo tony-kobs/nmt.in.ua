@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { SqlConnection } from "@/lib/db/mysql";
-import { consumeTelegramLink, createTelegramLink, getTelegramLinkStatus, hashTelegramLinkToken, mintTelegramLinkToken } from "./link";
+import { consumeTelegramLink, createTelegramLink, getTelegramLinkRecord, getTelegramLinkStatus, hashTelegramLinkToken, mintTelegramLinkToken } from "./link";
 
 const now = new Date("2026-01-01T12:00:00.000Z");
 
@@ -104,4 +104,27 @@ test("failed token consumption rolls back the inserted account", async () => {
   assert.equal(db.tokens[0].consumed_at, null);
   assert.equal(db.commits, 1);
   assert.equal(db.rollbacks, 1);
+});
+
+test("a linked telegram account exposes the chat id and username", async () => {
+  const row = { telegram_chat_id: 4242, telegram_username: "@pupil_name" };
+  const connection = {
+    beginTransaction: async () => {},
+    commit: async () => {},
+    rollback: async () => {},
+    release: () => {},
+    query: async <T>(sql: string) => (sql.includes("telegram_username") ? [row] as T[] : []),
+    execute: async () => ({ insertId: 1, affectedRows: 1 }),
+  };
+  assert.deepEqual(
+    await getTelegramLinkRecord(7, { getConnection: async () => connection }),
+    { chatId: "4242", username: "pupil_name" },
+  );
+  assert.equal(
+    await getTelegramLinkRecord(7, {
+      getConnection: async () => ({ ...connection, query: async () => [] }),
+    }),
+    null,
+  );
+  assert.equal(await getTelegramLinkRecord(0, { getConnection: async () => connection }), null);
 });

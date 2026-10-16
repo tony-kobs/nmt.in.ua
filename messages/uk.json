@@ -798,6 +798,8 @@
     "notifyBot": "Повідомлення в Telegram",
     "save": "Зберегти",
     "botLinked": "Бот уже прив’язано",
+    "botJoined": "Бот приєднано",
+    "botNotJoined": "Не приєднано",
     "linkBot": "Прив’язати Telegram",
     "botOff": "Бот ще не налаштовано.",
     "materialsTitle": "Матеріали",
@@ -979,7 +981,7 @@
       },
       "body": {
         "required": "Вкажіть текст.",
-        "placeholder": "Невідомий плейсхолдер. Дозволені лише name, day, topic, unlock_time, link, place, prev_place, delta і total у фігурних дужках."
+        "placeholder": "Невідомий плейсхолдер. Дозволені лише name, day, topic, unlock_time, link, place, prev_place, delta, total, title і start_date у фігурних дужках."
       },
       "introVideo": {
         "format": "Вступне відео має бути посиланням YouTube або Loom."
@@ -1023,7 +1025,7 @@
       "reset": "Скинути до типового",
       "tooLong": "Після підстановки текст довший за ліміт Telegram ({limit} символів). Бот розіб’є довгі матеріали, але цей шаблон має вміститися в одне повідомлення.",
       "buttonLong": "Підпис кнопки довший за {limit} символів — Telegram його не прийме.",
-      "placeholdersHint": "Плейсхолдери у фігурних дужках: name, day, topic, unlock_time, link, place, prev_place, delta, total.",
+      "placeholdersHint": "Плейсхолдери у фігурних дужках: name, day, topic, unlock_time, link, place, prev_place, delta, total, title, start_date.",
       "groups": {
         "intro": "Вступ",
         "day": "Розбір дня",
@@ -1059,6 +1061,7 @@
         "bot_btn_telegram": "Кнопка «В Telegram»",
         "bot_locked": "День ще закритий",
         "bot_link_ok": "Бот підключено",
+        "bot_registered": "Підтвердження реєстрації",
         "bot_open_site": "Кнопка «Відкрити на сайті»",
         "bot_to_tasks": "Кнопка «До завдань»"
       }
