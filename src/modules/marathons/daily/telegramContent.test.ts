@@ -46,6 +46,7 @@ test("day material stays in the chat and a formula task keeps opaque buttons", (
   const task = expandSources([taskSource()]);
   const formula = task.find((item) => item.formulaTex === "x^2");
   assert.ok(formula);
+  assert.equal(formula.siteUrl, undefined);
   const buttons = task[task.length - 1]?.buttons ?? [];
   assert.deepEqual(buttons.map((button) => button.data ?? button.url), [
     "mh:z:opaqueToken01",
@@ -57,6 +58,7 @@ test("day material stays in the chat and a formula task keeps opaque buttons", (
   assert.equal(packed.includes("correct"), false);
   assert.equal(packed.includes("mh:a:"), false);
   assert.equal(optionLabel("$x^2$", 0), "1");
+  assert.equal(task.some((item) => item.text.trim() === "."), false);
 });
 
 test("admin preview shows the day as chat bubbles with a secondary site button", () => {
@@ -68,8 +70,9 @@ test("admin preview shows the day as chat bubbles with a secondary site button",
   });
   assert.match(bubbles.map((item) => item.body).join("\n"), /Сьогодні дроби/);
   assert.ok(bubbles.some((item) => item.kind === "video" && item.body.includes("loom.com")));
-  const task = bubbles.find((item) => item.buttons.includes("1. 3"));
+  const task = bubbles.find((item) => item.buttons.includes("А. 3"));
   assert.ok(task);
-  assert.equal(task.buttons.at(-1), "Відкрити на сайті");
-  assert.equal(task.buttons[0], "1. 3");
+  assert.equal(task.buttons.includes("Відкрити на сайті"), false);
+  assert.deepEqual(task.buttons, ["А. 3", "Б. 4"]);
+  assert.match(task.body, /2\+2/);
 });

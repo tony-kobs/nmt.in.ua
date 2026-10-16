@@ -57,6 +57,36 @@ function keyboard(reply: TelegramReply): InlineKeyboard | undefined {
   return reply.replyMarkup;
 }
 
+function withSiteButton(reply: TelegramReply): InlineKeyboard | undefined {
+  const rows = (reply.replyMarkup?.inline_keyboard ?? []).map((row) => [...row]);
+  const url = reply.siteUrl?.trim();
+  if (url && !rows.some((row) => row.some((button) => button.url === url))) {
+    const label = (reply.siteLabel?.trim() || "Відкрити на сайті").slice(0, 64);
+    rows.push([{ text: label, url }]);
+  }
+  return rows.length > 0 ? { inline_keyboard: rows } : undefined;
+}
+
+function formulaFallbackText(reply: TelegramReply): string {
+  const caption = reply.text.trim();
+  if (caption) return caption.slice(0, 4096);
+  const url = reply.siteUrl?.trim();
+  if (!url) return "";
+  const label = reply.siteLabel?.trim() || "Відкрити на сайті";
+  return `${label}\n${url}`.slice(0, 4096);
+}
+
+function formulaFallback(reply: TelegramReply): TelegramReply | null {
+  const text = formulaFallbackText(reply);
+  if (!text) return null;
+  const markup = withSiteButton(reply);
+  return {
+    chatId: reply.chatId,
+    text,
+    ...(markup ? { replyMarkup: markup } : {}),
+  };
+}
+
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&").slice(0, 4096);
 }
@@ -67,8 +97,9 @@ export function mediaFallback(reply: TelegramReply): TelegramReply | null {
   if (urls.length === 0) return null;
   const caption = reply.text.trim();
   const text = [caption, ...urls.map((url) => `🖼 ${url}`)].filter(Boolean).join("\n").slice(0, 4096);
-  const { photoUrl: _p, albumUrls: _a, videoUrl: _v, videoFileId: _f, ...rest } = reply;
-  return { ...rest, text };
+  const { photoUrl: _p, albumUrls: _a, videoUrl: _v, videoFileId: _f, formulaTex: _tex, ...rest } = reply;
+  const markup = withSiteButton(reply);
+  return { ...rest, text, ...(markup ? { replyMarkup: markup } : {}) };
 }
 
 async function sendOne(
@@ -78,6 +109,10 @@ async function sendOne(
 ): Promise<TelegramSendResult> {
   const result = await sendOneRaw(reply, token, options);
   if (result.status !== "rejected" || result.context.retryAfter != null) return result;
+  if (reply.formulaTex) {
+    const fallback = formulaFallback(reply);
+    if (fallback) return sendTelegramMessage(fallback, token, options.request ?? fetch);
+  }
   console.error("telegram reply rejected", {
     chatId: reply.chatId,
     kind: reply.formulaTex ? "formula" : reply.albumUrls ? "album" : reply.photoUrl ? "photo" : reply.videoUrl || reply.videoFileId ? "video" : "text",
@@ -119,13 +154,9 @@ async function sendOneRaw(
         file: { field: "photo", filename: "formula.png", bytes: png, type: "image/png" },
       });
     }
-    const label = reply.siteLabel?.trim() || "Відкрити на сайті";
-    const url = reply.siteUrl?.trim();
-    return sendTelegramMessage({
-      chatId: reply.chatId,
-      text: url ? `${label}\n${url}` : label,
-      ...(url ? { replyMarkup: { inline_keyboard: [[{ text: label.slice(0, 64), url }]] } } : {}),
-    }, token, request);
+    const fallback = formulaFallback(reply);
+    if (fallback) return sendTelegramMessage(fallback, token, request);
+    return { status: "sent", messageId: 0 };
   }
   if (reply.albumUrls && reply.albumUrls.length > 1) {
     const media = reply.albumUrls.map((url, index) => ({

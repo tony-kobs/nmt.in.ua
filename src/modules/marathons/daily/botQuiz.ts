@@ -12,6 +12,8 @@ import {
   TASK_STATUS_INCORRECT,
   TASK_STATUS_UNANSWERED,
 } from "@/modules/testing/types";
+import { absoluteSiteUrl } from "@/lib/siteOrigin";
+import { composeTelegramTask } from "@/modules/telegram/taskRender";
 import type { BotCallback, Outgoing } from "./botPlay";
 
 const PAGE_SIZE = 6;
@@ -162,6 +164,35 @@ function pending(row: PlayRow): boolean {
   return Number(row.status) === TASK_STATUS_INCORRECT && Number(row.retry_used) === 0;
 }
 
+export function buildQuizQuestion(input: {
+  themeName: string;
+  index: number;
+  total: number;
+  prompt: string;
+  options: string[];
+  sessionId: number;
+  mappingId: number;
+  retry: boolean;
+  preface?: string;
+}): Outgoing {
+  const prefix = input.retry ? "r" : "a";
+  const heading = [
+    input.preface?.trim() ?? "",
+    `${input.themeName.trim() || "Тема"} · ${input.index}/${input.total}`,
+  ].filter(Boolean).join("\n");
+  return composeTelegramTask({
+    heading,
+    prompt: input.prompt.trim() || "Завдання",
+    options: input.options,
+    optionData: input.options.map((_, option) => (
+      `mh:q${prefix}:${input.sessionId}:${input.mappingId}:${option + 1}`
+    )),
+    trailingButtons: [menuButton()],
+    siteUrl: absoluteSiteUrl(`/session/${input.sessionId}`),
+    siteLabel: "Відкрити на сайті",
+  });
+}
+
 function questionMessage(sessionId: number, rows: PlayRow[], preface?: string): Outgoing[] {
   const index = rows.findIndex(pending);
   const row = index >= 0 ? rows[index] : undefined;
@@ -169,27 +200,17 @@ function questionMessage(sessionId: number, rows: PlayRow[], preface?: string): 
   const options = [row.answer_1, row.answer_2, row.answer_3, row.answer_4]
     .map((text) => text?.trim() ?? "")
     .filter((text) => text.length > 0);
-  const retry = Number(row.status) === TASK_STATUS_INCORRECT;
-  const lines = [
-    preface?.trim() || "",
-    `${row.theme_name?.trim() || "Тема"} · ${index + 1}/${rows.length}`,
-    "",
-    row.task_text?.trim() || "Завдання",
-    "",
-    ...options.map((text, option) => `${LETTERS[option] ?? option + 1}. ${text}`),
-  ].filter((line, lineIndex) => line.length > 0 || lineIndex > 0);
-  const prefix = retry ? "r" : "a";
-  return [{
-    text: lines.join("\n").trim(),
-    rich: true,
-    buttons: [
-      ...options.map((_, option) => ({
-        text: LETTERS[option] ?? String(option + 1),
-        data: `mh:q${prefix}:${sessionId}:${row.mapping_id}:${option + 1}`,
-      })),
-      menuButton(),
-    ],
-  }];
+  return [buildQuizQuestion({
+    themeName: row.theme_name?.trim() || "Тема",
+    index: index + 1,
+    total: rows.length,
+    prompt: row.task_text?.trim() || "Завдання",
+    options,
+    sessionId,
+    mappingId: Number(row.mapping_id),
+    retry: Number(row.status) === TASK_STATUS_INCORRECT,
+    ...(preface ? { preface } : {}),
+  })];
 }
 
 async function showSession(userId: number, sessionId: number, preface?: string): Promise<Outgoing[]> {

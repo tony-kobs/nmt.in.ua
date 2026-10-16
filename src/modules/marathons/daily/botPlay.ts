@@ -1,4 +1,5 @@
-import { materialSources, optionLabel } from "./telegramContent";
+import { composeRichText, composeTelegramTask } from "@/modules/telegram/taskRender";
+import { materialSources } from "./telegramContent";
 import { isDayPassed, scorePercent } from "./score";
 import {
   COPY_DEFAULTS,
@@ -73,8 +74,11 @@ export type Outgoing = {
   videoUrl?: string;
   videoFileId?: string;
   photoUrl?: string;
+  formulaTex?: string;
+  formulaDisplay?: boolean;
   siteUrl?: string;
   siteLabel?: string;
+  siteOnFail?: boolean;
 };
 
 export function blankPlay(): PlayState {
@@ -324,22 +328,17 @@ function taskMessage(
   copy: Partial<Record<CopyKey, string>> | undefined,
   tokenFor?: (action: { day: number; taskId: number; option: number }) => string,
 ): Outgoing {
-  const lines = [
-    task.prompt,
-    ...task.options.map((option, index) => `${index + 1}. ${option}`),
-  ];
-  return {
-    text: lines.join("\n"),
-    rich: true,
+  return composeTelegramTask({
+    prompt: task.prompt,
+    options: task.options,
+    optionData: task.options.map((_, index) => (
+      tokenFor
+        ? tokenFor({ day: day.dayNumber, taskId: task.id, option: index + 1 })
+        : `mh:a:${day.dayNumber}:${task.id}:${index + 1}`
+    )),
     siteUrl: day.pageUrl,
     siteLabel: buttonLabel(copy, "bot_open_site"),
-    buttons: task.options.map((option, index) => ({
-      text: optionLabel(option, index),
-      data: tokenFor
-        ? tokenFor({ day: day.dayNumber, taskId: task.id, option: index + 1 })
-        : `mh:a:${day.dayNumber}:${task.id}:${index + 1}`,
-    })),
-  };
+  });
 }
 
 function nextTask(day: DayPacket, state: PlayState): GradedTask | null {
@@ -368,7 +367,11 @@ function reviewMessages(
       `Правильна відповідь: ${correct}`,
     ];
     if (task.explanation) lines.push(task.explanation);
-    messages.push({ text: lines.join("\n"), rich: true });
+    messages.push(composeRichText({
+      text: lines.join("\n"),
+      siteUrl: day.pageUrl,
+      siteLabel: buttonLabel(copy, "bot_open_site"),
+    }));
   }
   if (!withFollowUp) return messages;
   const follow = followUpText(day, copy, name);

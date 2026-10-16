@@ -1,4 +1,5 @@
 import { parseMathText } from "@/components/ui/MathText/parseMathText";
+import { composeTelegramTask } from "@/modules/telegram/taskRender";
 import {
   markdownToTelegramHtml,
   splitTelegramHtml,
@@ -17,6 +18,10 @@ export type RichSource = {
   photoUrl?: string;
   siteUrl?: string;
   siteLabel?: string;
+  /** Keep the site URL for a failed picture, but do not show the button yet. */
+  siteOnFail?: boolean;
+  formulaTex?: string;
+  formulaDisplay?: boolean;
 };
 
 export type DeliveryPiece = {
@@ -32,6 +37,7 @@ export type DeliveryPiece = {
   formulaDisplay?: boolean;
   siteUrl?: string;
   siteLabel?: string;
+  siteOnFail?: boolean;
 };
 
 const IMAGE = /!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)|<img\b[^>]*\bsrc=["'](https?:\/\/[^"']+)["'][^>]*>|https?:\/\/\S+\.(?:png|jpe?g|gif|webp)(?:\?\S*)?/gi;
@@ -91,7 +97,7 @@ function segmentsOf(source: string): Segment[] {
 function withButtons(pieces: DeliveryPiece[], source: RichSource): DeliveryPiece[] {
   if (pieces.length === 0) pieces.push({ text: source.text.trim() || " " });
   const buttons = [...(source.buttons ?? [])];
-  if (source.siteUrl && source.siteLabel) {
+  if (source.siteUrl && source.siteLabel && !source.siteOnFail) {
     buttons.push({ text: source.siteLabel.slice(0, 64), url: source.siteUrl });
   }
   const last = pieces[pieces.length - 1]!;
@@ -122,8 +128,6 @@ function expandRich(source: RichSource): DeliveryPiece[] {
         text: "",
         formulaTex: segment.tex,
         formulaDisplay: segment.display,
-        siteUrl: source.siteUrl,
-        siteLabel: source.siteLabel,
       });
       continue;
     }
@@ -136,9 +140,35 @@ function expandRich(source: RichSource): DeliveryPiece[] {
   return withButtons(pieces, source);
 }
 
+function isNoise(piece: DeliveryPiece): boolean {
+  if (
+    piece.photoUrl ||
+    piece.photoUrls?.length ||
+    piece.videoUrl ||
+    piece.videoFileId ||
+    piece.formulaTex ||
+    piece.previewUrl ||
+    (piece.buttons && piece.buttons.length > 0)
+  ) {
+    return false;
+  }
+  const text = piece.text.replace(/<[^>]+>/g, "").trim();
+  if (!text) return true;
+  if (/^[.·…,;:!?]+$/.test(text)) return true;
+  return /^[АБВГДЕЄ]\.$/.test(text);
+}
+
 export function expandSources(sources: RichSource[]): DeliveryPiece[] {
   const pieces: DeliveryPiece[] = [];
   for (const source of sources) {
+    if (source.formulaTex) {
+      pieces.push(...withButtons([{
+        text: source.text.trim(),
+        formulaTex: source.formulaTex,
+        formulaDisplay: source.formulaDisplay !== false,
+      }], source));
+      continue;
+    }
     if (source.videoUrl) {
       pieces.push(...withButtons([{ text: source.text.trim(), videoUrl: source.videoUrl }], source));
       continue;
@@ -164,19 +194,22 @@ export function expandSources(sources: RichSource[]): DeliveryPiece[] {
     pieces.push(...expandRich(source));
   }
   return pieces.filter((piece) =>
-    piece.text.trim().length > 0 ||
-    piece.photoUrl ||
-    piece.photoUrls ||
-    piece.videoUrl ||
-    piece.videoFileId ||
-    piece.formulaTex ||
-    (piece.buttons && piece.buttons.length > 0),
+    !isNoise(piece) && (
+      piece.text.trim().length > 0 ||
+      piece.photoUrl ||
+      piece.photoUrls ||
+      piece.videoUrl ||
+      piece.videoFileId ||
+      piece.formulaTex ||
+      (piece.buttons && piece.buttons.length > 0)
+    ),
   );
 }
 
 export type PreviewBubble = {
   kind: "text" | "video" | "photo" | "formula" | "task";
   body: string;
+  formula?: string;
   buttons: string[];
 };
 
@@ -190,14 +223,19 @@ export function previewChat(input: {
   if (input.introText?.trim()) sources.push({ text: input.introText.trim(), rich: true });
   for (const material of input.materials) sources.push(...materialSources(material));
   for (const task of input.tasks) {
-    sources.push({
-      text: [task.prompt, ...task.options.map((option, index) => `${index + 1}. ${option}`)].join("\n"),
-      rich: true,
-      buttons: task.options.map((option, index) => ({
-        text: optionLabel(option, index),
-      })),
-      siteLabel: input.siteLabel,
+    const composed = composeTelegramTask({
+      prompt: task.prompt,
+      options: task.options,
       siteUrl: "https://nmt.in.ua",
+      siteLabel: input.siteLabel,
+    });
+    sources.push({
+      text: composed.text,
+      ...(composed.buttons ? { buttons: composed.buttons } : {}),
+      ...(composed.photoUrl ? { photoUrl: composed.photoUrl } : {}),
+      ...(composed.formulaTex ? { formulaTex: composed.formulaTex, formulaDisplay: true } : {}),
+      ...(composed.siteUrl ? { siteUrl: composed.siteUrl, siteLabel: composed.siteLabel } : {}),
+      ...(composed.siteOnFail ? { siteOnFail: true } : {}),
     });
   }
   return expandSources(sources).map((piece) => ({
@@ -210,9 +248,15 @@ export function previewChat(input: {
           : piece.buttons && piece.buttons.length > 0
             ? "task"
             : "text",
-    body: piece.formulaTex
-      ? piece.formulaTex
-      : piece.previewUrl || piece.videoUrl || piece.videoFileId || piece.photoUrl || piece.photoUrls?.join("\n") || piece.text,
+    body: piece.text.trim()
+      || piece.formulaTex
+      || piece.previewUrl
+      || piece.videoUrl
+      || piece.videoFileId
+      || piece.photoUrl
+      || piece.photoUrls?.join("\n")
+      || "",
+    ...(piece.formulaTex ? { formula: piece.formulaTex } : {}),
     buttons: (piece.buttons ?? []).map((button) => button.text),
   }));
 }
