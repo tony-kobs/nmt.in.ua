@@ -132,7 +132,7 @@ test("deep links, marathon codes, leaderboard aliases and callbacks keep their e
   for (const command of ["/top", "/leaderboard", "/leaderboard@nmt_bot"]) await handleTelegramUpdate(message(command), deps);
   await handleTelegramUpdate(press("mh:top"), deps);
   await handleTelegramUpdate(press("mh:today"), deps);
-  assert.deepEqual(seen, ["link:abc", "marathon-link:mth_code", "marathon", "marathon", "marathon", "marathon", "marathon"]);
+  assert.deepEqual(seen, ["link:abc", "profile", "marathon-link:mth_code", "profile", "marathon", "marathon", "marathon", "marathon", "marathon"]);
   const invalid = await handleTelegramUpdate(message("/start bad"), { ...deps, consume: async () => false });
   assert.equal(invalid!.replyMarkup, undefined);
   assert.match(invalid!.text, /недійсне/);

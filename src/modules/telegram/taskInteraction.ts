@@ -5,11 +5,19 @@ import { createTaskReference, resolveTaskReference } from "./taskReference";
 import { formatKyivDateTime, html, MENU, menuButton, NOT_LINKED_TEXT, siteButton } from "./ui";
 
 export type InlineKeyboard = { inline_keyboard: { text: string; callback_data?: string; url?: string }[][] };
+/** Bottom menu. A message can also carry an inline keyboard; delivery keeps both. */
+export type ReplyKeyboardMarkup = {
+  keyboard: { text: string }[][];
+  resize_keyboard: true;
+  is_persistent: true;
+};
 export type TelegramReply = {
   chatId: string;
   text: string;
   parseMode?: "HTML";
   replyMarkup?: InlineKeyboard;
+  /** Persistent bottom menu. Inline answer buttons stay on `replyMarkup`. */
+  replyKeyboard?: ReplyKeyboardMarkup;
   /** YouTube or Loom, shown as a large link preview above the text. */
   linkPreviewUrl?: string;
   photoUrl?: string;

@@ -48,8 +48,15 @@ export function siteButton(text: string, path: string): Button {
   return { text, url: absoluteUrl(path) };
 }
 
+export const MAIN_MENU_LABEL = "🏠 Головне меню";
+
 export function menuButton(): Button {
-  return { text: "🏠 Головне меню", callback_data: MENU.home };
+  return { text: MAIN_MENU_LABEL, callback_data: MENU.home };
+}
+
+/** Same return action for marathon messages, which use `{ text, data }` rather than callback_data. */
+export function mainMenuDataButton(): { text: string; data: string } {
+  return { text: MAIN_MENU_LABEL, data: MENU.home };
 }
 
 /** Contextual navigation row: optional Back to the parent screen, then Main Menu. */

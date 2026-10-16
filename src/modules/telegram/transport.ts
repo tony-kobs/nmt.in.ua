@@ -45,10 +45,10 @@ function interpret(response: Response, body: unknown): TelegramSendResult {
   return { status: "unknown", context: { httpStatus: response.status } };
 }
 
-export async function sendTelegramMessage(reply: TelegramReply, botToken: string, request: typeof fetch = fetch): Promise<TelegramSendResult> {
+function messageJson(reply: TelegramReply, markup: unknown): Record<string, unknown> {
   const body: Record<string, unknown> = { chat_id: reply.chatId, text: reply.text };
   if (reply.parseMode) body.parse_mode = reply.parseMode;
-  if (reply.replyMarkup) body.reply_markup = reply.replyMarkup;
+  if (markup) body.reply_markup = markup;
   if (reply.linkPreviewUrl) {
     body.link_preview_options = {
       is_disabled: false,
@@ -59,18 +59,54 @@ export async function sendTelegramMessage(reply: TelegramReply, botToken: string
   } else if (reply.disablePreview) {
     body.link_preview_options = { is_disabled: true };
   }
+  return body;
+}
+
+export async function sendTelegramMessage(reply: TelegramReply, botToken: string, request: typeof fetch = fetch): Promise<TelegramSendResult> {
+  const inline = reply.replyMarkup;
+  const keyboard = reply.replyKeyboard;
+  // Edits can change an inline keyboard only. The bottom menu stays as it was.
   if (reply.editMessageId !== undefined) {
     if (!Number.isSafeInteger(reply.editMessageId) || reply.editMessageId <= 0) {
       return { status: "rejected", context: {} };
     }
-    body.message_id = reply.editMessageId;
-    return sendTelegramPayload({ method: "editMessageText", token: botToken, request, json: body });
+    return sendTelegramPayload({
+      method: "editMessageText",
+      token: botToken,
+      request,
+      json: { ...messageJson(reply, inline), message_id: reply.editMessageId },
+    });
+  }
+  // One message accepts a single reply_markup. Send the bottom menu first, then put
+  // the inline buttons on that same message. Later inline-only messages do not clear it.
+  if (keyboard && inline) {
+    const sent = await sendTelegramPayload({
+      method: "sendMessage",
+      token: botToken,
+      request,
+      json: messageJson(reply, keyboard),
+    });
+    if (sent.status !== "sent" || sent.messageId <= 0) return sent;
+    const edited = await sendTelegramPayload({
+      method: "editMessageText",
+      token: botToken,
+      request,
+      json: { ...messageJson(reply, inline), message_id: sent.messageId },
+    });
+    if (edited.status === "sent" || (edited.status === "rejected" && edited.context.notModified)) return sent;
+    await sendTelegramPayload({
+      method: "sendMessage",
+      token: botToken,
+      request,
+      json: messageJson(reply, inline),
+    });
+    return sent;
   }
   return sendTelegramPayload({
     method: "sendMessage",
     token: botToken,
     request,
-    json: body,
+    json: messageJson(reply, keyboard ?? inline),
   });
 }
 

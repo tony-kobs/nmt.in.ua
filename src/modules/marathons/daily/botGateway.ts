@@ -2,13 +2,17 @@ import "server-only";
 
 import { randomBytes } from "node:crypto";
 import { piecesToReplies } from "@/modules/telegram/deliver";
+import { attachReplyKeyboardList } from "@/modules/telegram/replyKeyboard";
 import type { TelegramReply } from "@/modules/telegram/taskInteraction";
+import { mainMenuDataButton } from "@/modules/telegram/ui";
 import { absoluteUrl } from "@/modules/mail/sendMail";
 import { isQuizCallback, presentBotQuiz } from "./botQuiz";
 import {
   blankPlay,
   callbackFromTokenPayload,
   linkOkText,
+  marathonCallbackFromText,
+  marathonReplyKeyboard,
   parseBotCallback,
   presentMarathon,
   startText,
@@ -212,6 +216,7 @@ export async function marathonBareStart(chatId: string): Promise<TelegramReply |
     ? absoluteUrl(`/marathon/${encodeURIComponent(linked.marathon.slug)}/map`)
     : absoluteUrl("/");
   const messages = startText(copy, Boolean(linked), mapUrl);
+  if (!linked) return pack(toReplies(chatId, messages));
   if (linked && !linked.participant.introSeen) {
     const rules = renderResolved("intro_rules", copy, {
       name: linked.participant.displayName || "учаснику",
@@ -220,7 +225,7 @@ export async function marathonBareStart(chatId: string): Promise<TelegramReply |
     messages.unshift(...introFor(linked.marathon.introVideoUrl, rules));
     await markIntroSeen(linked.marathon.id, linked.participant.userId, new Date());
   }
-  return pack(toReplies(chatId, messages));
+  return pack(attachReplyKeyboardList(toReplies(chatId, messages), marathonReplyKeyboard(copy)));
 }
 
 export async function marathonWelcome(chatId: string): Promise<TelegramReply | null> {
@@ -239,7 +244,8 @@ export async function marathonWelcome(chatId: string): Promise<TelegramReply | n
     await markIntroSeen(linked.marathon.id, linked.participant.userId, new Date());
   }
   if (linked) messages.push(...startText(copy, true, mapUrl));
-  return pack(toReplies(chatId, messages));
+  const replies = toReplies(chatId, messages);
+  return pack(linked ? attachReplyKeyboardList(replies, marathonReplyKeyboard(copy)) : replies);
 }
 
 export async function marathonLinkText(chatId: string): Promise<string> {
@@ -252,6 +258,14 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
   const parsed = readPrivate(update);
   if (!parsed) return null;
   let callback = callbackFrom(parsed);
+  if (!callback && parsed.text && !parsed.text.startsWith("/")) {
+    const linkedForText = await findParticipantByChat(parsed.chatId);
+    if (!linkedForText) return null;
+    const copyForText = await loadMarathonCopy(linkedForText.marathon.id);
+    const data = marathonCallbackFromText(parsed.text, copyForText);
+    if (!data || data === "m:home") return null;
+    callback = parseBotCallback(data);
+  }
   if (!callback) return null;
   let linked = await findParticipantByChat(parsed.chatId);
   if (!linked) {
@@ -262,19 +276,22 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     const rows = await listChatMarathons(parsed.chatId);
     return toReplies(parsed.chatId, [{
       text: "Оберіть марафон",
-      buttons: rows.map((row) => ({
-        text: row.title.trim().slice(0, 60) || `Марафон ${row.id}`,
-        data: `mh:pick:${row.id}`,
-      })),
+      buttons: [
+        ...rows.map((row) => ({
+          text: row.title.trim().slice(0, 60) || `Марафон ${row.id}`,
+          data: `mh:pick:${row.id}`,
+        })),
+        mainMenuDataButton(),
+      ],
     }]);
   }
   if (callback.kind === "pick") {
     const selected = await selectChatMarathon(parsed.chatId, callback.marathonId);
     if (!selected) {
-      return toReplies(parsed.chatId, [{ text: "Цей марафон не прив’язаний до чату." }]);
+      return toReplies(parsed.chatId, [{ text: "Цей марафон не прив’язаний до чату.", buttons: [mainMenuDataButton()] }]);
     }
     linked = await findParticipantByChat(parsed.chatId);
-    if (!linked) return toReplies(parsed.chatId, [{ text: "Не вдалося відкрити марафон." }]);
+    if (!linked) return toReplies(parsed.chatId, [{ text: "Не вдалося відкрити марафон.", buttons: [mainMenuDataButton()] }]);
     callback = { kind: "menu" };
   }
   const { marathon, participant } = linked;
@@ -285,7 +302,10 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     const payload = await readMarathonBotToken(callback.token, marathon.id, participant.userId);
     const resolved = payload ? callbackFromTokenPayload(payload) : null;
     if (!resolved || resolved.kind !== "answer") {
-      return toReplies(parsed.chatId, [{ text: "Кнопка застаріла. Відкрийте сьогоднішній день ще раз." }]);
+      return toReplies(parsed.chatId, [{
+        text: "Кнопка застаріла. Відкрийте сьогоднішній день ще раз.",
+        buttons: [mainMenuDataButton()],
+      }]);
     }
     callback = resolved;
   }
@@ -304,7 +324,10 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
         self: view.self,
         selfOutside: view.selfOutside,
       }),
-      buttons: [{ text: resolveCopy("bot_btn_map", copy).slice(0, 64), url: mapUrl }],
+      buttons: [
+        { text: resolveCopy("bot_btn_map", copy).slice(0, 64), url: mapUrl },
+        mainMenuDataButton(),
+      ],
     }]);
   }
   if (callback.kind === "channel") {
@@ -398,7 +421,10 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     now,
   });
   if (rankNote) outgoing = [...outgoing, { text: rankNote }];
-  return toReplies(parsed.chatId, outgoing);
+  const replies = toReplies(parsed.chatId, outgoing);
+  const showKeyboard = callback.kind === "menu" || callback.kind === "stop"
+    || callback.kind === "channel" || callback.kind === "channels";
+  return showKeyboard ? attachReplyKeyboardList(replies, marathonReplyKeyboard(copy)) : replies;
 }
 
 async function persistPlay(input: {
