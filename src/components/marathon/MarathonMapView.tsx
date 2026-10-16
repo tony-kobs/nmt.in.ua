@@ -56,6 +56,9 @@ export async function MarathonMapView({
         lead={t("mapLead", { days: marathon.daysCount })}
       >
         <div className={css.stack}>
+          {marathon.status === "finished" ? (
+            <p className={css.lead}>{t("finishedNote")}</p>
+          ) : null}
           {message ? <p className={css.alert} role="alert">{message}</p> : null}
           {participant ? (
             <>
@@ -66,12 +69,12 @@ export async function MarathonMapView({
                 titleId="marathon-board"
               />
             </>
-          ) : (
+          ) : marathon.status === "active" ? (
             <form action={joinMarathonAction} className={css.actions}>
               <input type="hidden" name="slug" value={marathon.slug} />
               <button type="submit" className={css.button}>{t("join")}</button>
             </form>
-          )}
+          ) : null}
           <ol className={css.days}>
             {days.map((day) => {
               const body = (

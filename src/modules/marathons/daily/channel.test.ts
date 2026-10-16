@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { notifyFlags } from "./channel";
+import { notifyFlags, personNotifyChannel } from "./channel";
 import { planNotifications } from "./notifications";
 
 const person = {
@@ -47,4 +47,24 @@ test("a linked telegram choice uses the bot and silence stops both", () => {
     people: [{ ...person, ...silent }],
   });
   assert.deepEqual(planned, []);
+  assert.equal(
+    personNotifyChannel({
+      channel: "telegram",
+      email: person.email,
+      telegramChatId: person.telegramChatId,
+      notifyEmail: true,
+      notifyBot: true,
+    }),
+    "telegram",
+  );
+  assert.equal(
+    personNotifyChannel({
+      channel: "telegram",
+      email: person.email,
+      telegramChatId: null,
+      notifyEmail: true,
+      notifyBot: true,
+    }),
+    "email",
+  );
 });

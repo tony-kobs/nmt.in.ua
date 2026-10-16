@@ -203,7 +203,7 @@ function grade(
     if (answers[task.id] === task.correct) correct += 1;
   }
   const score = scorePercent(correct, tasks.length);
-  return { score, passed: isDayPassed(score, passThreshold) };
+  return { score, passed: isDayPassed(score, passThreshold, tasks.length) };
 }
 
 export type PlayEvent =
