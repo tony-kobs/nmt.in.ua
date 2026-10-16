@@ -90,6 +90,8 @@ fi
 
 bash "$REWRITE" "$REMOTE_SITE"
 
+# scripts/migrate.mjs imports ./migrate-sql.mjs and reads scripts/sql.
+# mysql2 is a production dependency (npm install --omit=dev on the host).
 PACK_PATHS=(
   .next
   public
@@ -101,6 +103,9 @@ PACK_PATHS=(
   messages
   src
   tsconfig.json
+  scripts/migrate.mjs
+  scripts/migrate-sql.mjs
+  scripts/sql
 )
 
 for path in "${PACK_PATHS[@]}"; do
@@ -115,7 +120,7 @@ REMOTE_ARCHIVE="/home/${REMOTE_USER}/nmt-release-${RELEASE_ID}.tar.gz"
 cleanup_local() { rm -f "$ARCHIVE"; }
 trap cleanup_local EXIT
 
-echo "==> Packing release ${RELEASE_ID} (full src, rewritten .next)..."
+echo "==> Packing release ${RELEASE_ID} (full src, migrate scripts, rewritten .next)..."
 tar \
   --exclude='.next/cache' \
   --exclude='.next/trace' \
@@ -125,6 +130,21 @@ tar \
   --exclude='**/*.test.tsx' \
   -czf "$ARCHIVE" \
   "${PACK_PATHS[@]}"
+
+# Fail before upload if the archive cannot run npm run migrate.
+archive_has() {
+  tar -tzf "$ARCHIVE" | grep -qx "$1"
+}
+for entry in scripts/migrate.mjs scripts/migrate-sql.mjs; do
+  if ! archive_has "$entry"; then
+    echo "Release archive is missing ${entry}" >&2
+    exit 1
+  fi
+done
+if ! tar -tzf "$ARCHIVE" | grep -q '^scripts/sql/[^/]*\.sql$'; then
+  echo "Release archive is missing scripts/sql/*.sql" >&2
+  exit 1
+fi
 
 ls -lh "$ARCHIVE"
 
@@ -268,6 +288,12 @@ chmod 700 "${APP_ROOT}/tmp" 2>/dev/null || true
 
 if [ ! -d "${STAGE}/node_modules/next" ]; then
   echo "Staging install did not produce node_modules/next" >&2
+  rm -rf "$STAGE"
+  exit 1
+fi
+
+if [ ! -f "${STAGE}/scripts/migrate.mjs" ] || [ ! -d "${STAGE}/scripts/sql" ] || [ ! -d "${STAGE}/node_modules/mysql2" ]; then
+  echo "Release cannot migrate (scripts/migrate.mjs, scripts/sql, or mysql2 missing); leaving the live site on the previous release." >&2
   rm -rf "$STAGE"
   exit 1
 fi

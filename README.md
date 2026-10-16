@@ -172,10 +172,11 @@ git checkout -b feature/коротка-назва
 
 1. `npm ci` / test / lint / `npm run build` на Ubuntu, Node 24.
 2. `scripts/rewrite-next-build-paths.sh` — інакше RSC-маніфест тримає `/home/runner/work/...` і сайт дає 500.
-3. Tar (весь `src/`, без `.next/trace`) → SSH-pipe → `releases/<sha>` поруч із живим `www`.
+3. Tar (весь `src/`, `scripts/migrate.mjs`, `scripts/migrate-sql.mjs`, `scripts/sql/`, без `.next/trace`) → SSH-pipe → `releases/<sha>` поруч із живим `www`.
 4. Копія `node_modules` з живого сайту + `npm install` (поки старий процес ще відповідає).
-5. Стоп лише nmt Node (`127.1.10.37`), swap директорій, старт як панель: `npm run start -- --port=3000 --host=127.1.10.37`.
-6. Healthcheck з HTTP-кодом; 5xx → `releases/previous`.
+5. `npm run migrate` у каталозі релізу. Помилка — попередній `www` лишається.
+6. Стоп лише nmt Node (`127.1.10.37`), swap директорій, старт як панель: `npm run start -- --port=3000 --host=127.1.10.37`.
+7. Healthcheck з HTTP-кодом; 5xx → `releases/previous`.
 
 Локально той самий скрипт: `bash scripts/deploy-hosting.sh`. Відкат: `bash scripts/rollback-hosting.sh --yes`.
 
