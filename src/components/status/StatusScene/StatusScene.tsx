@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import clsx from "clsx";
@@ -29,6 +30,12 @@ export function StatusScene({
   digest,
 }: StatusSceneProps) {
   const reduce = useReducedMotion();
+  const regionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (variant === "loading") return;
+    regionRef.current?.focus({ preventScroll: true });
+  }, [variant]);
   const pack =
     variant === "notFound"
       ? copy.notFound
@@ -41,6 +48,7 @@ export function StatusScene({
       : variant === "error"
         ? "/status/error.webp"
         : null;
+  const Region = layout === "embed" ? motion.section : motion.main;
 
   return (
     <div className={clsx(css.page, layout === "embed" && css.embed)}>
@@ -59,11 +67,13 @@ export function StatusScene({
             {SITE_NAME}
           </Link>
         ) : null}
-        <motion.main
-          id="main-content"
+        <Region
+          ref={regionRef}
+          id={layout === "page" ? "main-content" : undefined}
           tabIndex={-1}
           className={css.card}
           aria-labelledby="status-title"
+          aria-busy={variant === "loading" || undefined}
           initial={reduce ? false : revealHidden}
           animate={revealShown}
           transition={tweenSlow}
@@ -124,7 +134,7 @@ export function StatusScene({
             </div>
           ) : null}
           {digest ? <p className={css.digest}>{digest}</p> : null}
-        </motion.main>
+        </Region>
       </div>
     </div>
   );

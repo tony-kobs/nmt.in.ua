@@ -14,7 +14,12 @@ function splitBio(bio: string): { lead: string; rest: string } {
 
 export async function Teachers() {
   const t = await getTranslations("WelcomeLanding.teachers");
-  const profiles = await listPublicTeachersForLanding();
+  let profiles: Awaited<ReturnType<typeof listPublicTeachersForLanding>> = [];
+  try {
+    profiles = await listPublicTeachersForLanding();
+  } catch (error) {
+    console.error("welcome: listPublicTeachersForLanding failed", error);
+  }
 
   const fromDb: LandingTeacherCard[] = profiles.map((profile) => {
     const bio = splitBio(profile.bio || profile.headline);
@@ -27,9 +32,8 @@ export async function Teachers() {
         profile.subjects.length > 0
           ? profile.subjects.join(" · ")
           : profile.headline || profile.city || "—",
-      education: profile.city || "—",
-      experience: profile.experience || "—",
-      nextSlot: "—",
+      education: profile.city || "",
+      experience: profile.experience || "",
       bioLead: bio.lead || profile.headline || "—",
       bioRest: bio.rest || profile.publications || "",
       rating: 0,
@@ -45,7 +49,6 @@ export async function Teachers() {
     subject: t("demo.subjects"),
     education: t("demo.city"),
     experience: t("demo.experience"),
-    nextSlot: t("demo.nextSlot"),
     bioLead: t("demo.headline"),
     bioRest: [t("demo.bio"), t("demo.publications")].filter(Boolean).join(" "),
     rating: 0,
@@ -71,7 +74,6 @@ export async function Teachers() {
         verified: t("verified"),
         education: t("city"),
         experience: t("experience"),
-        nextSlot: t("nextSlot"),
         reviews: t.raw("reviews") as string,
         empty: t("empty"),
         carouselAria: t("carouselAria"),

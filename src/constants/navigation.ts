@@ -76,7 +76,7 @@ export const DASHBOARD_NAV: NavItem[] = [
   {
     href: "/settings",
     label: "Налаштування",
-    description: "Імпорт навчального контенту та параметри облікового запису.",
+    description: "Імпорт навчального контенту в банк завдань.",
     status: "ready",
   },
   {

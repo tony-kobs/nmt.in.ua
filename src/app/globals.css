@@ -67,6 +67,19 @@ label,
   cursor: pointer;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  a,
+  button,
+  summary,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"] {
+    transition:
+      transform var(--t) var(--ease),
+      opacity var(--t) var(--ease);
+  }
+}
+
 :disabled,
 [aria-disabled="true"] {
   cursor: not-allowed;

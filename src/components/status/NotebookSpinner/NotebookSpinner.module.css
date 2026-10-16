@@ -50,9 +50,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .trace,
+  .trace {
+    animation: none;
+    stroke-dasharray: none;
+  }
+
   .nib {
     animation: none;
+    opacity: 0;
   }
 }
 

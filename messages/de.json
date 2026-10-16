@@ -65,7 +65,8 @@
     "telegramError": "Telegram-Link konnte nicht erstellt werden. Bitte erneut versuchen.",
     "kicker": "Profil",
     "title": "Persönliches Konto",
-    "lead": "Profilfoto, öffentliche Lehrerkarte, Passwort, Ergebnisse und Platzhalter für Erfolge und Lernzeit.",
+    "lead": "Profilfoto, Passwort und letzte Ergebnisse.",
+    "leadAdmin": "Profilfoto, Passwort und Abmeldung.",
     "photoTitle": "Profilfoto",
     "photoLead": "JPEG, PNG oder WebP. Ein quadratisches Foto wird mittig zugeschnitten und erscheint in der Kopfzeile.",
     "photoHint": "Bis {maxKb} KB. Ein quadratisches Foto wird mittig zugeschnitten und ersetzt die Initialen in der Kopfzeile.",
@@ -77,10 +78,6 @@
     "photoRemoveConfirm": "Profilfoto entfernen?",
     "photoRemoving": "Wird entfernt…",
     "photoRemoved": "Foto entfernt.",
-    "achievementsTitle": "Erfolge",
-    "achievementsLead": "Abzeichen für Tests und den Simulator erscheinen in einer späteren Version.",
-    "timeTitle": "Gesamte Lernzeit",
-    "timeLead": "Die Sitzungszeit wird noch nicht summiert — die Statistik kommt hierher.",
     "passwordTitle": "Passwort ändern",
     "passwordLead": "Das neue Passwort ersetzt sofort das aktuelle für dieses Login.",
     "currentPassword": "Aktuelles Passwort",
@@ -353,14 +350,6 @@
       "reserved_login": "Dieser Login ist reserviert.",
       "generic": "Speichern fehlgeschlagen. Bitte erneut versuchen."
     }
-  },
-  "StubPage": {
-    "developmentTitle": "Bereich in Arbeit",
-    "developmentDescription": "Das Buchungsformular wird noch vorbereitet. Nutze vorerst den NMT-Simulator oder die Theorie im Lehrbuch — und übe mit einem Thementest.",
-    "goToTest": "Thementest",
-    "kicker": "Kabinett",
-    "goToSimulator": "NMT-Simulator",
-    "goToMaterials": "Lehrbuch"
   },
   "Navigation": {
     "simulator": {
@@ -1426,14 +1415,13 @@
     "teachers": {
       "kicker": "Lehrkräfte",
       "title": "Lehrkräfte unserer Plattform",
-      "lead": "Öffentliche Lehrerkarten — Erfahrung, Beschreibung und nächster freier Termin.",
+      "lead": "Öffentliche Lehrerkarten: Erfahrung, Beschreibung und Anzahl der Schüler.",
       "verified": "Geprüfte Lehrkraft",
       "city": "Stadt",
       "education": "Ausbildung",
       "experience": "Erfahrung",
-      "nextSlot": "Nächster freier Termin",
-      "reviews": "(Bewertungen: {count})",
-      "empty": "Bald erscheinen hier Lehrerkarten.",
+      "reviews": "(Schüler: {count})",
+      "empty": "Noch keine öffentlichen Lehrerkarten.",
       "carouselAria": "Karussell der Plattform-Lehrkräfte",
       "prev": "Vorherige Lehrkraft",
       "next": "Nächste Lehrkraft",
@@ -1444,7 +1432,6 @@
         "subjects": "Webentwicklung · Unternehmertum und Start-ups",
         "city": "Charkiw",
         "experience": "12 Jahre Lehrerfahrung",
-        "nextSlot": "—",
         "headline": "Absolvent des Physikalisch-Mathematischen Lyzeums Charkiw, Spezialist für Wirtschaftskybernetik an der Karasin-Universität.",
         "bio": "Lehrte an der Wirtschaftsfakultät die Kurse „Grundlagen des Unternehmertums“, „Unternehmertum und Start-ups“ und „E-Government“. Wurde 2018 Vorsitzender der Wissenschaftlichen Gesellschaft der Studierenden, Promovierenden und jungen Forschenden der Karasin-Universität. Seit 2008 unternehmerisch in IT-Bildung und Informationstechnologie tätig.",
         "publications": "Alleinautor von sechs wissenschaftlichen Arbeiten und Teilnehmer vieler internationaler Konferenzen. Beteiligt am regionalen Programm zur Förderung des Unternehmertums in Charkiw 2016–2020 und an der Entwicklungsstrategie der Stadt Charkiw. Betreute begabte Jugendliche in der Kleinen Akademie der Wissenschaften und bereitete mehr als 15 Sieger regionaler und landesweiter Forschungsarbeiten vor."
@@ -1496,7 +1483,6 @@
       "carouselAria": "Karussell des Entwicklerteams",
       "servicesTitle": "Leistungen des Teams",
       "servicesLead": "Wir entwickeln und betreuen Produkte — von Bildungsplattformen bis zu Business-Tools.",
-      "formCta": "Projekt besprechen",
       "services": {
         "product": {
           "title": "Webprodukt-Entwicklung",
@@ -1843,7 +1829,7 @@
     },
     "diagnostic": {
       "title": "Einstufungstest",
-      "description": "Schätze deine Mathekenntnisse ein und mache einen kurzen Einstufungstest zu allen Themen."
+      "description": "Ein kurzer Test über mehrere Themen. Die Schwierigkeit folgt deinen Antworten."
     },
     "diagnosticSession": {
       "title": "Einstufungstest",
@@ -1851,7 +1837,7 @@
     },
     "settings": {
       "title": "Einstellungen",
-      "description": "Import von Lerninhalten und Kontoeinstellungen."
+      "description": "Lerninhalte in die Aufgabenbank importieren."
     },
     "materials": {
       "title": "Lehrbuch",
@@ -1947,7 +1933,7 @@
   },
   "SettingsPage": {
     "title": "Einstellungen",
-    "description": "Import von Lerninhalten und Kontoeinstellungen."
+    "description": "Lerninhalte in die Aufgabenbank importieren."
   },
   "simulator": {
     "eyebrow": "NMT",

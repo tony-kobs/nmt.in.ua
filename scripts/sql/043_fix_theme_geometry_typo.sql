@@ -3,10 +3,12 @@
 --
 -- The misspelling lives in MySQL `themes.name`, not in git content.
 -- Theme code GEO-07-PROOFS is id 9 (`scripts/sql/010_theme_codes.sql`).
+-- Formerly 014, which collided with 014_teacher_payments.sql.
 --
 -- MUST be applied on hosting / production MySQL. Deploy does not run SQL.
+-- The app does not run this UPDATE.
 --
---   mysql ... < scripts/sql/014_fix_theme_geometry_typo.sql
+--   mysql ... < scripts/sql/043_fix_theme_geometry_typo.sql
 --
 -- Safe to re-run: REPLACE is a no-op when the typo is already gone.
 
