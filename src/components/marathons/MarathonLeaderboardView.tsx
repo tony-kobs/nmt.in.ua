@@ -1,9 +1,11 @@
 import Link from "next/link";
 import clsx from "clsx";
+import { boardShowsSpeed } from "@/modules/marathons/boardStats";
 import { formatPercent, formatSpeed } from "@/modules/results/types";
 import type { MarathonLeaderboardView as LeaderboardData } from "@/modules/marathons/types";
 import { getTranslations } from "next-intl/server";
 import { MarathonJoinForm } from "./MarathonJoinForm";
+import { MarathonPicker } from "./MarathonPicker";
 import css from "./MarathonLeaderboard.module.css";
 
 export type MarathonLeaderboardMode = "student" | "teacher" | "admin";
@@ -16,6 +18,13 @@ type Props = {
 function formatAvgSec(sec: number | null): string {
   if (sec == null) return "—";
   return formatSpeed(sec);
+}
+
+function optionLabel(
+  option: { title: string; status: string },
+  finished: string,
+): string {
+  return option.status === "finished" ? `${option.title} · ${finished}` : option.title;
 }
 
 function visibleLogin(
@@ -35,6 +44,7 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
   const t = await getTranslations("MarathonLeaderboard");
   const {
     marathon,
+    options,
     rows,
     participantCount,
     isParticipant,
@@ -42,15 +52,29 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
     rosterParticipantCount,
     rosterSize,
   } = data;
+  const daily = marathon.kind === "daily";
+  const showSpeed = boardShowsSpeed(marathon.kind, rows);
 
   return (
     <div className={css.root}>
+      {options.length > 1 ? (
+        <MarathonPicker
+          label={t("pickerLabel")}
+          value={marathon.slug}
+          options={options.map((option) => ({
+            value: option.slug,
+            label: optionLabel(option, t("statusFinished")),
+          }))}
+        />
+      ) : null}
       <div className={css.marathonMeta}>
         <p className={css.marathonTitle}>{marathon.title}</p>
-        {marathon.description ? (
+        {daily && marathon.description ? (
           <p className={css.marathonDesc}>{marathon.description}</p>
         ) : null}
-        <p className={css.marathonRules}>{t("rules", { min: marathon.min_tasks_per_session })}</p>
+        <p className={css.marathonRules}>
+          {daily ? t("rulesDaily") : t("rules", { min: marathon.min_tasks_per_session })}
+        </p>
       </div>
 
       {mode === "teacher" ? (
@@ -76,7 +100,15 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
         </p>
       ) : null}
 
-      {mode === "student" && !isParticipant ? (
+      {mode === "student" && !isParticipant && daily ? (
+        <p className={css.monitorBanner}>
+          <Link className={css.joinBtn} href={`/marathon/${marathon.slug}`}>
+            {t("openMarathon")}
+          </Link>
+        </p>
+      ) : null}
+
+      {mode === "student" && !isParticipant && !daily ? (
         <section className={css.joinPanel} aria-labelledby="marathon-join-title">
           <h2 id="marathon-join-title" className={css.joinTitle}>
             {t("joinTitle")}
@@ -93,7 +125,7 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
 
       {rows.length === 0 ? (
         <p className={css.empty} role="status">
-          {t("empty")}
+          {daily ? t("emptyDaily") : t("empty")}
         </p>
       ) : (
         <>
@@ -119,18 +151,34 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
                   </span>
                 </div>
                 <dl className={css.meta}>
+                  {daily ? (
+                    <div>
+                      <dt>{t("days")}</dt>
+                      <dd>{row.daysDone}</dd>
+                    </div>
+                  ) : null}
                   <div>
                     <dt>{t("avgPercent")}</dt>
                     <dd>{formatPercent(row.avgPercent)}</dd>
                   </div>
-                  <div>
-                    <dt>{t("speed")}</dt>
-                    <dd>{formatAvgSec(row.avgSecPerTask)}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("sessions")}</dt>
-                    <dd>{row.sessionsCount}</dd>
-                  </div>
+                  {daily ? (
+                    <div>
+                      <dt>{t("points")}</dt>
+                      <dd>{row.points}</dd>
+                    </div>
+                  ) : null}
+                  {showSpeed ? (
+                    <div>
+                      <dt>{t("speed")}</dt>
+                      <dd>{formatAvgSec(row.avgSecPerTask)}</dd>
+                    </div>
+                  ) : null}
+                  {daily ? null : (
+                    <div>
+                      <dt>{t("sessions")}</dt>
+                      <dd>{row.sessionsCount}</dd>
+                    </div>
+                  )}
                 </dl>
               </li>
               );
@@ -143,9 +191,11 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
                 <tr>
                   <th scope="col">{t("colRank")}</th>
                   <th scope="col">{t("colName")}</th>
+                  {daily ? <th scope="col">{t("days")}</th> : null}
                   <th scope="col">{t("avgPercent")}</th>
-                  <th scope="col">{t("speed")}</th>
-                  <th scope="col">{t("sessions")}</th>
+                  {daily ? <th scope="col">{t("points")}</th> : null}
+                  {showSpeed ? <th scope="col">{t("speed")}</th> : null}
+                  {daily ? null : <th scope="col">{t("sessions")}</th>}
                 </tr>
               </thead>
               <tbody>
@@ -166,13 +216,17 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
                       {row.displayName}
                       {login ? <span className={css.login}>@{login}</span> : null}
                     </td>
+                    {daily ? <td className={css.colMetric}>{row.daysDone}</td> : null}
                     <td className={css.colMetric}>
                       {formatPercent(row.avgPercent)}
                     </td>
-                    <td className={css.colMetric}>
-                      {formatAvgSec(row.avgSecPerTask)}
-                    </td>
-                    <td className={css.colMetric}>{row.sessionsCount}</td>
+                    {daily ? <td className={css.colMetric}>{row.points}</td> : null}
+                    {showSpeed ? (
+                      <td className={css.colMetric}>
+                        {formatAvgSec(row.avgSecPerTask)}
+                      </td>
+                    ) : null}
+                    {daily ? null : <td className={css.colMetric}>{row.sessionsCount}</td>}
                   </tr>
                   );
                 })}
@@ -182,7 +236,6 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
         </>
       )}
 
-      <p className={css.hint}>{t("hint")}</p>
     </div>
   );
 }

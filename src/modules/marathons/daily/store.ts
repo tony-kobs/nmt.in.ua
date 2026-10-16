@@ -1671,6 +1671,14 @@ async function composeBoard(
   }));
 }
 
+/** Fill missing correct_count so the public board matches Telegram /top. */
+export async function refreshDailyPoints(
+  connection: SqlConnection,
+  marathonId: number,
+): Promise<void> {
+  await backfillCorrectCounts(connection, marathonId);
+}
+
 async function backfillCorrectCounts(
   connection: SqlConnection,
   marathonId: number,

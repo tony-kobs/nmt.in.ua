@@ -52,16 +52,19 @@
 
 .joinBtn {
   justify-self: start;
+  display: inline-flex;
+  align-items: center;
   min-height: 44px;
   padding: 10px 18px;
   border: 0;
   border-radius: var(--radius-pill);
   background: var(--grad-brand);
-  color: #fdfbf4;
+  color: #f6f1e2;
   font: inherit;
   font-size: var(--fs-small);
   font-weight: 700;
   cursor: pointer;
+  text-decoration: none;
   box-shadow: 0 10px 22px rgb(17 83 42 / 24%);
 }
 
@@ -206,10 +209,22 @@
   font-weight: 600;
 }
 
+.picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  max-width: 28rem;
+}
+
+.pickerLabel {
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
 .meta {
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
   gap: 8px;
 }
 
