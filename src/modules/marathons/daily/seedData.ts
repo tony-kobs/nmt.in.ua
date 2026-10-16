@@ -39,6 +39,7 @@ export type SeedDay = {
 export const MATH_MARATHON_SEED = {
   slug: MATH_MARATHON_SLUG,
   title: "Математичний марафон: 5 днів",
+  description: "П'ять коротких днів математики: одна тема на день.",
   subject: "math",
   startDate: "2026-10-08",
   unlockHour: "09:00",

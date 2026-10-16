@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import type { AuthUser } from "@/modules/auth/client";
 import { UserAvatar } from "@/components/account/UserAvatar";
+import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { useTranslations } from "next-intl";
 import css from "./AppHeader.module.css";
 
@@ -58,6 +59,7 @@ export function AppHeader({
         </Link>
 
         <div className={css.actions}>
+          <NotificationBell />
           <Link href="/welcome" className={css.homeLink}>
             <span className={css.homeLinkShort}>{t("goHomeShort")}</span>
             <span className={css.homeLinkFull}>{t("goHome")}</span>

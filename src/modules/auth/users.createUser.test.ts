@@ -80,7 +80,11 @@ test("createUser maps MySQL duplicate key to login_taken", async () => {
     beginTransaction: async () => {},
     query: async <T,>() => [{ count: 3 }] as T[],
     execute: async (sql) => {
-      if (sql.includes("CREATE TABLE") || sql.includes("ON DUPLICATE KEY")) {
+      if (
+        sql.includes("CREATE TABLE") ||
+        sql.includes("ON DUPLICATE KEY") ||
+        sql.includes("cabinet_scope = 'full'")
+      ) {
         return { insertId: 0, affectedRows: 0 };
       }
       const err = Object.assign(new Error("Duplicate entry"), { errno: 1062 });
@@ -112,7 +116,13 @@ test("createUser maps MySQL duplicate email to email_taken", async () => {
     beginTransaction: async () => {},
     query: async <T,>() => [{ count: 3 }] as T[],
     execute: async (sql) => {
-      if (sql.includes("CREATE TABLE") || sql.includes("ON DUPLICATE KEY") || sql.includes("ADD COLUMN") || sql.includes("ADD UNIQUE")) {
+      if (
+        sql.includes("CREATE TABLE") ||
+        sql.includes("ON DUPLICATE KEY") ||
+        sql.includes("ADD COLUMN") ||
+        sql.includes("ADD UNIQUE") ||
+        sql.includes("cabinet_scope = 'full'")
+      ) {
         return { insertId: 0, affectedRows: 0 };
       }
       const err = Object.assign(

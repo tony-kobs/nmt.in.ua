@@ -6,6 +6,7 @@ import type { AbstractIntlMessages } from "next-intl";
  */
 export const CORE_CLIENT_NAMESPACES = [
   "Header",
+  "Notifications",
   "Sidebar",
   "Dashboard",
   "Common",

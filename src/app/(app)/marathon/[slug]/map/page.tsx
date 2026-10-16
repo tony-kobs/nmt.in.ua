@@ -72,8 +72,6 @@ export default async function MarathonMapPage({ params, searchParams }: PageProp
   const rulesHtml = renderSafeMarkdown(renderCopy(resolveCopy("intro_rules", copy), {
     name: participant?.displayName || user.displayName,
   }));
-  const siteLabel = resolveCopy("bot_btn_site", copy);
-  const telegramLabel = resolveCopy("bot_btn_telegram", copy);
   const channelPrompt = renderResolved("channel_prompt", copy, {
     name: participant?.displayName || user.displayName,
   });
@@ -85,8 +83,6 @@ export default async function MarathonMapPage({ params, searchParams }: PageProp
       <MarathonChannel
         marathon={marathon}
         prompt={channelPrompt}
-        siteLabel={siteLabel}
-        telegramLabel={telegramLabel}
         telegramLinked={Boolean(telegramRecord) || Boolean(participant.telegramChatId)}
         telegramUsername={telegramRecord?.username ?? null}
         botReady={Boolean(optionalTelegramBot())}
@@ -104,8 +100,8 @@ export default async function MarathonMapPage({ params, searchParams }: PageProp
       locale={locale}
       botReady={Boolean(optionalTelegramBot())}
       channelPrompt={channelPrompt}
-      siteLabel={siteLabel}
-      telegramLabel={telegramLabel}
+      telegramLinked={Boolean(telegramRecord) || Boolean(participant?.telegramChatId)}
+      telegramUsername={telegramRecord?.username ?? null}
       error={error}
       saved={saved}
       board={board}

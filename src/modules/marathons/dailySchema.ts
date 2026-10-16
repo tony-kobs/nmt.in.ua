@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { createUserNotificationsTable } from "@/modules/notifications/schema";
 
 const CHILD_TABLES = [
   `CREATE TABLE IF NOT EXISTS marathon_riddles (
@@ -111,6 +112,16 @@ const CHILD_TABLES = [
     PRIMARY KEY (id),
     KEY idx_marathon_tg_outbox (status, not_before, id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS marathon_declines (
+    marathon_id INT NOT NULL,
+    user_id INT NOT NULL,
+    declined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (marathon_id, user_id),
+    CONSTRAINT fk_marathon_decline_marathon FOREIGN KEY (marathon_id)
+      REFERENCES marathons (id) ON DELETE CASCADE,
+    CONSTRAINT fk_marathon_decline_user FOREIGN KEY (user_id)
+      REFERENCES app_users (id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   `CREATE TABLE IF NOT EXISTS marathon_bot_links (
     id INT NOT NULL AUTO_INCREMENT,
     marathon_id INT NOT NULL,
@@ -130,7 +141,8 @@ const MARATHON_COLUMNS: Array<[string, string]> = [
     "kind",
     "ENUM('leaderboard','daily') NOT NULL DEFAULT 'leaderboard' AFTER status",
   ],
-  ["subject", "VARCHAR(64) NOT NULL DEFAULT 'math' AFTER title"],
+  ["description", "TEXT NULL AFTER title"],
+  ["subject", "VARCHAR(64) NOT NULL DEFAULT 'math' AFTER description"],
   ["start_date", "CHAR(10) NULL AFTER subject"],
   ["unlock_hour", "CHAR(5) NOT NULL DEFAULT '09:00' AFTER start_date"],
   ["reminder_hour", "CHAR(5) NOT NULL DEFAULT '19:00' AFTER unlock_hour"],
@@ -324,35 +336,58 @@ export async function migrateDailyMarathon(
       "cabinet_scope",
       "ENUM('full','marathon') NOT NULL DEFAULT 'full' AFTER role",
     );
-    await backfillMarathonCabinet(connection);
+  }
+  await promoteMarathonCabinets(connection);
+  await backfillDailyDescription(connection);
+  await createUserNotificationsTable(connection);
+}
+
+const SQL_SCHEMA_FLAGS = `
+  CREATE TABLE IF NOT EXISTS marathon_schema_flags (
+    name VARCHAR(64) NOT NULL,
+    applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (name)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+`;
+
+/** Existing daily rows stored the subject in description. Clear that once. */
+async function backfillDailyDescription(connection: SqlConnection): Promise<void> {
+  try {
+    await connection.execute(SQL_SCHEMA_FLAGS, []);
+    const rows = await connection.query<{ name: string }>(
+      `SELECT name FROM marathon_schema_flags WHERE name = 'daily_description_split' LIMIT 1`,
+      [],
+    );
+    if (rows.length > 0) return;
+    await connection.execute(
+      `UPDATE marathons
+       SET description = ''
+       WHERE kind = 'daily' AND (description IS NULL OR description = subject)`,
+      [],
+    );
+    try {
+      await connection.execute(
+        `INSERT INTO marathon_schema_flags (name) VALUES ('daily_description_split')`,
+        [],
+      );
+    } catch (error) {
+      const errno = (error as { errno?: number }).errno;
+      if (errno !== 1062) throw error;
+    }
+  } catch (error) {
+    const errno = (error as { errno?: number }).errno;
+    if (errno === 1146 || errno === 1054 || errno === 1062) return;
+    throw error;
   }
 }
 
-/**
- * Accounts created by the marathon form before `cabinet_scope` existed have
- * no other signal than "daily participant, no converted_at, no topic sessions".
- * A platform student who joined and already has sessions stays `full`.
- * An admin can open the cabinet for anyone the heuristic caught.
- */
-async function backfillMarathonCabinet(connection: SqlConnection): Promise<void> {
+/** Marathon registration now opens the full cabinet. Safe to repeat. */
+async function promoteMarathonCabinets(connection: SqlConnection): Promise<void> {
   try {
     await connection.execute(
-      `UPDATE app_users u
-       SET u.cabinet_scope = 'marathon'
-       WHERE u.role = 'student'
-         AND u.cabinet_scope = 'full'
-         AND EXISTS (
-           SELECT 1 FROM marathon_participants p
-           INNER JOIN marathons m ON m.id = p.marathon_id
-           WHERE p.user_id = u.id AND m.kind = 'daily'
-         )
-         AND NOT EXISTS (
-           SELECT 1 FROM marathon_participants p
-           WHERE p.user_id = u.id AND p.converted_at IS NOT NULL
-         )
-         AND NOT EXISTS (
-           SELECT 1 FROM task_sessions s WHERE s.user_id = u.id
-         )`,
+      `UPDATE app_users
+       SET cabinet_scope = 'full'
+       WHERE cabinet_scope = 'marathon'`,
       [],
     );
   } catch (error) {
@@ -361,3 +396,4 @@ async function backfillMarathonCabinet(connection: SqlConnection): Promise<void>
     throw error;
   }
 }
+

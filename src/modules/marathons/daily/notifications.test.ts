@@ -34,8 +34,11 @@ test("day-open is planned inside the window and not as a late-joiner backlog", (
     ...marathon,
     now: new Date("2026-01-10T07:30:00.000Z"),
   });
-  assert.equal(open.filter((item) => item.kind === "day_open").length, 1);
-  assert.ok(open.every((item) => item.channel === "telegram"));
+  assert.equal(open.filter((item) => item.kind === "day_open").length, 2);
+  assert.deepEqual(
+    open.filter((item) => item.kind === "day_open").map((item) => item.channel).sort(),
+    ["email", "telegram"],
+  );
   assert.equal(open.some((item) => item.kind === "reminder"), false);
 
   const late = planNotifications({
@@ -129,8 +132,8 @@ test("a missed day is nudged once, only after the next unlock and inside 10:00â€
     now: new Date("2026-01-11T08:00:00.000Z"),
   });
   assert.deepEqual(
-    due.map((item) => `${item.kind}:${item.dayNumber}:${item.channel}`),
-    ["nudge:1:telegram"],
+    due.map((item) => `${item.kind}:${item.dayNumber}:${item.channel}`).sort(),
+    ["nudge:1:email", "nudge:1:telegram"],
   );
 
   const done = planNudges({
@@ -163,8 +166,8 @@ test("a missed day is nudged once, only after the next unlock and inside 10:00â€
     release: async () => undefined,
     send: async () => true,
   });
-  assert.deepEqual(first, { sent: 1, skipped: 0, failed: 0 });
-  assert.deepEqual(second, { sent: 0, skipped: 1, failed: 0 });
+  assert.deepEqual(first, { sent: 2, skipped: 0, failed: 0 });
+  assert.deepEqual(second, { sent: 0, skipped: 2, failed: 0 });
 });
 
 test("tomorrow announcement is claimed once", async () => {
@@ -224,29 +227,30 @@ test("a day with no content is not announced, reminded or nudged", () => {
   assert.deepEqual(nudges, []);
 });
 
-test("telegram is the only channel when it is chosen and linked", () => {
-  const linked = planNotifications({
+test("email and telegram are both planned when both toggles are on", () => {
+  const both = planNotifications({
     ...marathon,
     now: new Date("2026-01-10T07:30:00.000Z"),
-    people: [{ ...person, channel: "telegram" }],
+    people: [person],
   });
-  assert.ok(linked.length > 0);
-  assert.ok(linked.every((item) => item.channel === "telegram"));
+  assert.ok(both.some((item) => item.channel === "email"));
+  assert.ok(both.some((item) => item.channel === "telegram"));
+
+  const emailOff = planNotifications({
+    ...marathon,
+    now: new Date("2026-01-10T07:30:00.000Z"),
+    people: [{ ...person, notifyEmail: false }],
+  });
+  assert.ok(emailOff.length > 0);
+  assert.ok(emailOff.every((item) => item.channel === "telegram"));
 
   const unlinked = planNotifications({
     ...marathon,
     now: new Date("2026-01-10T07:30:00.000Z"),
-    people: [{ ...person, channel: "telegram", telegramChatId: null }],
+    people: [{ ...person, telegramChatId: null, notifyBot: true }],
   });
   assert.ok(unlinked.length > 0);
   assert.ok(unlinked.every((item) => item.channel === "email"));
-
-  const site = planNotifications({
-    ...marathon,
-    now: new Date("2026-01-10T07:30:00.000Z"),
-    people: [{ ...person, channel: "site" }],
-  });
-  assert.ok(site.every((item) => item.channel === "email"));
 });
 
 test("email is only the fallback after a definitive telegram failure", async () => {

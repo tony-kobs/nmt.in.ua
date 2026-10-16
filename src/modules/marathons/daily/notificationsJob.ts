@@ -7,7 +7,7 @@ import { rememberDeferred } from "@/modules/telegram/outbox";
 import { sendThrottled, sharedTelegramPace } from "@/modules/telegram/throttle";
 import { sendTelegramMessage } from "@/modules/telegram/transport";
 import { optionalTelegramBot } from "./botLink";
-import { personNotifyChannel } from "./channel";
+import { personNotifyChannels } from "./channel";
 import { dayUnlockAt, formatKyivWhen } from "./calendar";
 import { shouldFinishDailyMarathon } from "./lifecycle";
 import { renderResolved, resolveCopy, type CopyKey } from "./copy";
@@ -16,11 +16,11 @@ import { expandSources, materialSources } from "./telegramContent";
 import { marathonDayUrl, wrapMarathonMail } from "./mailCopy";
 import {
   deliverNotifications,
-  fallbackEmailAfterTelegram,
   isDefinitiveTelegramFailure,
   planFollowUps,
   planNotifications,
   planNudges,
+  planSiteDayOpens,
   unsubscribeToken,
   type NotifyIntent,
   type NotifyKind,
@@ -258,6 +258,11 @@ export async function runMarathonNotifications(deps: {
     }
   }
   const audience = await (deps.load ?? loadNotifyAudience)();
+  try {
+    await deliverSiteDayNotifications(audience, now);
+  } catch (error) {
+    console.error("marathon site day", error);
+  }
   const secret = deps.secret === undefined ? unsubscribeSecret() : deps.secret;
   const telegramEnabled = deps.telegramEnabled ?? Boolean(optionalTelegramBot());
   const deliveries = (await buildDeliveries(
@@ -324,26 +329,40 @@ export async function runMarathonNotifications(deps: {
           const sent = await sendTelegram(item.chatId, item.text);
           attempt = sent === true || sent === "sent" ? "sent" : sent === "definitive" ? "definitive" : "retry";
         }
-        return fallbackEmailAfterTelegram({
-          intent,
-          email: item.email,
-          attempt,
-          claim,
-          release,
-          confirm,
-          sendEmail: async () => {
-            if (!item.email) return false;
-            return sendEmail({
-              to: item.email,
-              subject: item.subject,
-              html: item.html,
-              text: item.text,
-            });
-          },
-        });
+        return attempt === "sent" || attempt === "definitive";
       },
     },
   );
+}
+
+async function deliverSiteDayNotifications(
+  audience: NotifyAudienceMarathon[],
+  now: Date,
+): Promise<void> {
+  const { notifyUser } = await import("@/modules/notifications/store");
+  for (const marathon of audience) {
+    if (shouldFinishDailyMarathon(now, marathon)) continue;
+    const opens = planSiteDayOpens({
+      now,
+      startDate: marathon.startDate,
+      unlockHour: marathon.unlockHour,
+      daysCount: marathon.daysCount,
+      dayNumbers: marathon.contentDayNumbers,
+      people: marathon.people,
+    });
+    for (const open of opens) {
+      const topic = marathon.topics[open.dayNumber];
+      const topicLine = topic ? `: ${topic}` : "";
+      await notifyUser({
+        userId: open.userId,
+        kind: "marathon.day_open",
+        title: `Відкрито день ${open.dayNumber}`,
+        body: `У марафоні «${marathon.title}» відкрився день ${open.dayNumber}${topicLine}.`,
+        link: `/marathon/${marathon.slug}/day/${open.dayNumber}`,
+        once: true,
+      });
+    }
+  }
 }
 
 function intentKey(intent: NotifyIntent): string {
@@ -445,24 +464,7 @@ export async function sendCompletedDayFollowUp(input: {
         const attempt = item.chatId
           ? await classifyTelegramSend(item.chatId, item.text)
           : "definitive";
-        return fallbackEmailAfterTelegram({
-          intent,
-          email: item.email,
-          attempt,
-          claim: claimNotification,
-          release: releaseNotification,
-          confirm: confirmNotification,
-          sendEmail: async () => {
-            if (!item.email) return false;
-            const result = await sendMail({
-              to: item.email,
-              subject: item.subject,
-              html: item.html,
-              text: item.text,
-            });
-            return result.ok;
-          },
-        });
+        return attempt === "sent" || attempt === "definitive";
       },
     },
   );
@@ -496,9 +498,8 @@ export async function sendRankNotice(input: {
       )
     : null;
   const mail = wrapMarathonMail({ rendered, unsubscribeUrl: unsub });
-  const channel = personNotifyChannel(input.person);
-  const sendLetter = async () => {
-    if (!input.person.email) return;
+  const channels = personNotifyChannels(input.person);
+  if (channels.includes("email") && input.person.email) {
     try {
       await sendMail({
         to: input.person.email,
@@ -509,12 +510,10 @@ export async function sendRankNotice(input: {
     } catch (error) {
       console.error("marathon rank mail", error);
     }
-  };
-  if (channel === "email") await sendLetter();
-  if (channel === "telegram" && !input.skipTelegram && input.person.telegramChatId) {
+  }
+  if (channels.includes("telegram") && !input.skipTelegram && input.person.telegramChatId) {
     try {
-      const attempt = await classifyTelegramSend(input.person.telegramChatId, rendered);
-      if (attempt === "definitive") await sendLetter();
+      await classifyTelegramSend(input.person.telegramChatId, rendered);
     } catch (error) {
       console.error("marathon rank telegram", error);
     }

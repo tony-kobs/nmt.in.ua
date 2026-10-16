@@ -19,6 +19,14 @@
     },
     "siteName": "NMT Preparation"
   },
+  "Notifications": {
+    "bell": "Notifications",
+    "bellUnread": "Notifications, unread: {count}",
+    "empty": "No notifications",
+    "markAll": "Mark all as read",
+    "accept": "Accept",
+    "decline": "Decline"
+  },
   "LanguageSwitcher": {
     "aria": "Site language",
     "triggerAria": "Site language, currently {name}",
@@ -817,6 +825,13 @@
     "introTitle": "Marathon rules",
     "introContinue": "Continue",
     "introAgain": "Rules",
+    "homeTitle": "Active marathons",
+    "homeJoin": "Join",
+    "homeContinue": "Continue",
+    "inviteTitle": "Marathon invitation",
+    "inviteBody": "“{title}” is active. You can join or decline.",
+    "inviteAccept": "Accept",
+    "inviteDecline": "Decline",
     "channelTitle": "How to take it",
     "emailFallback": "The bot is not linked yet — until it is, reminders go by email.",
     "finalTitle": "Marathon summary",
@@ -880,6 +895,7 @@
       "slug": "Address",
       "title": "Title",
       "subject": "Subject",
+      "description": "Description",
       "startDate": "Start date",
       "unlockHour": "Hour (Kyiv)",
       "reminderHour": "Reminder (Kyiv)",
@@ -913,6 +929,7 @@
     },
     "hints": {
       "slug": "Lowercase Latin letters, digits, and hyphens. For example, math-5.",
+      "description": "Card text on the home page. Separate from the subject. Can stay empty.",
       "startDate": "Defaults to today in Kyiv.",
       "unlockHour": "HH:MM, for example 09:00.",
       "reminderHour": "Evening reminder, HH:MM. Default 19:00.",
