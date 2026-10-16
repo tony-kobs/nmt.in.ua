@@ -28,6 +28,14 @@ test("release pack list includes the migrate entrypoint and SQL", () => {
   const failed = source.indexOf("Migration failed; leaving the live site on the previous release.");
   const swap = source.indexOf('echo "==> Stop nmt Node, then swap www..."');
   assert.ok(failed > 0 && swap > failed);
+
+  const executable = source
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("#"))
+    .join("\n");
+  assert.match(executable, /tar -tzf "\$ARCHIVE" > "\$ARCHIVE_LIST"/);
+  assert.doesNotMatch(executable, /tar -tzf[^\n]*\|/);
+  assert.match(executable, /grep -qxF -- "\$1" "\$ARCHIVE_LIST"/);
 });
 
 test("migrate --check resolves modules and does not require a database", () => {
