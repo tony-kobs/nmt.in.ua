@@ -6,6 +6,7 @@ import { getTelegramTaskSessions, getTelegramTodayTaskSessions } from "./tasks";
 import { completeTelegramTask } from "./completeTask";
 import { handleTaskCallback, parseTaskCallback, type TelegramReply } from "./taskInteraction";
 import { isMarathonCallbackData } from "@/modules/marathons/daily/botPlay";
+import { TELEGRAM_TAKEN_MESSAGE } from "@/modules/marathons/daily/botLink";
 import { getTelegramTaskDetails } from "./taskDetails";
 import { getTelegramAccountProfile } from "./account";
 import { loadTelegramConnection } from "./schema";
@@ -65,7 +66,7 @@ export async function handleTelegramUpdate(
     consumeMarathon?: (
       token: string,
       identity: { userId: string; chatId: string; username?: string },
-    ) => Promise<boolean>;
+    ) => Promise<boolean | { ok: boolean; code?: string }>;
     getProfile?: typeof getTelegramAccountProfile;
     menu?: Omit<MenuDeps, "getProfile" | "getTasks" | "getTodayTasks" | "referenceSecret" | "logError">;
   } = { consume: consumeTelegramLink },
@@ -168,18 +169,22 @@ export async function handleTelegramUpdate(
         chatId: start.chatId,
         username: start.username,
       });
-      if (linked && deps.marathonWelcome) {
+      const accepted = linked === true || (typeof linked === "object" && linked?.ok === true);
+      const taken = typeof linked === "object" && linked?.ok === false && linked.code === "telegram_taken";
+      if (accepted && deps.marathonWelcome) {
         const welcome = await deps.marathonWelcome(start.chatId);
         if (welcome) return welcome;
       }
-      const linkedText = linked && deps.marathonLinkText
+      const linkedText = accepted && deps.marathonLinkText
         ? await deps.marathonLinkText(start.chatId)
         : null;
       return {
         chatId: start.chatId,
-        text: linked
-          ? linkedText || "Бот марафону підключено. Нагадування про дні приходитимуть сюди."
-          : "Код марафону недійсний або його термін минув. Створіть новий у кабінеті марафону.",
+        text: taken
+          ? TELEGRAM_TAKEN_MESSAGE
+          : accepted
+            ? linkedText || "Бот марафону підключено. Нагадування про дні приходитимуть сюди."
+            : "Код марафону недійсний або його термін минув. Створіть новий у кабінеті марафону.",
       };
     } catch (error) {
       (deps.logError ?? ((value) => console.error("marathon telegram link failed", value)))(error);

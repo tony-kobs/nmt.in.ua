@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ensureSchemaOnce, resetSchemaGuardForTests } from "@/lib/db/schemaGuard";
 
 export const SQL_CREATE_TEACHER_PAYMENTS = `
   CREATE TABLE IF NOT EXISTS teacher_payments (
@@ -29,8 +30,6 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   const { getConnection } = await import("@/lib/db/mysql");
   return getConnection();
 }
-
-let schemaReady: Promise<void> | undefined;
 
 async function columnNames(
   connection: SqlConnection,
@@ -84,31 +83,21 @@ export async function migrateTeacherPaymentsProviderColumns(
   }
 }
 
-async function runTeacherPaymentsMigration(
-  getConnection: () => Promise<SqlConnection>,
-): Promise<void> {
-  const connection = await getConnection();
-  try {
-    await connection.execute(SQL_CREATE_TEACHER_PAYMENTS, []);
-    await migrateTeacherPaymentsProviderColumns(connection);
-  } finally {
-    connection.release();
-  }
-}
-
-/** Creates `teacher_payments` once per process if the table is missing. */
+/** Creates `teacher_payments` once per process if the migration is not recorded. */
 export async function ensureTeacherPaymentsSchema(
   getConnection: () => Promise<SqlConnection> = loadDefaultConnection,
 ): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = runTeacherPaymentsMigration(getConnection).catch((error) => {
-      schemaReady = undefined;
-      throw error;
-    });
-  }
-  await schemaReady;
+  await ensureSchemaOnce(
+    "teacher_payments",
+    ["014_teacher_payments.sql"],
+    getConnection,
+    async (connection) => {
+      await connection.execute(SQL_CREATE_TEACHER_PAYMENTS, []);
+      await migrateTeacherPaymentsProviderColumns(connection);
+    },
+  );
 }
 
 export function resetTeacherPaymentsSchemaCache(): void {
-  schemaReady = undefined;
+  resetSchemaGuardForTests("teacher_payments");
 }

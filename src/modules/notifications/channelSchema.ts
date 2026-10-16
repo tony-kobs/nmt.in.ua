@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ensureSchemaOnce, resetSchemaGuardForTests } from "@/lib/db/schemaGuard";
 import { ensureAuthSchema } from "@/modules/auth/users";
 import { mysqlErrno } from "@/modules/teacher-students/mysqlErrno";
 
@@ -28,8 +29,6 @@ const SQL_BACKFILL = `
   GROUP BY p.user_id
 `;
 
-let schemaReady: Promise<void> | undefined;
-
 async function loadConnection(): Promise<SqlConnection> {
   const { getConnection } = await import("@/lib/db/mysql");
   return getConnection();
@@ -49,23 +48,17 @@ export async function applyChannelPreferencesSchema(connection: SqlConnection): 
 export async function ensureChannelPreferencesSchema(
   getConnection: () => Promise<SqlConnection> = loadConnection,
 ): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = (async () => {
+  await ensureSchemaOnce(
+    "channel_preferences",
+    ["044_notification_channels_and_invites.sql"],
+    getConnection,
+    async (connection) => {
       await ensureAuthSchema({ getConnection });
-      const connection = await getConnection();
-      try {
-        await applyChannelPreferencesSchema(connection);
-      } finally {
-        connection.release();
-      }
-    })().catch((error) => {
-      schemaReady = undefined;
-      throw error;
-    });
-  }
-  await schemaReady;
+      await applyChannelPreferencesSchema(connection);
+    },
+  );
 }
 
 export function resetChannelPreferencesSchemaForTests(): void {
-  schemaReady = undefined;
+  resetSchemaGuardForTests("channel_preferences");
 }

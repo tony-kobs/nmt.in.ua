@@ -83,9 +83,56 @@ export async function getCurrentUserId(): Promise<number | null> {
   return user?.id ?? null;
 }
 
-/** Redirects to /login when unauthenticated. */
+/**
+ * Role and ban from `app_users`, once per request.
+ * The signed cookie still identifies the session; it is not the authority.
+ */
+export const readLiveAccount = cache(async (userId: number): Promise<AuthUser | null> => {
+  return findUserById(userId);
+});
+
+export function liveUserFromAccount(
+  cookieUser: AuthUser,
+  account: AuthUser | null,
+): { ok: true; user: AuthUser } | { ok: false; reason: "banned" | "missing" } {
+  if (!account) return { ok: false, reason: "missing" };
+  if (account.isBanned) return { ok: false, reason: "banned" };
+  return {
+    ok: true,
+    user: {
+      ...cookieUser,
+      role: account.role,
+      displayName: account.displayName,
+      login: account.login,
+      cabinetScope: account.cabinetScope,
+      avatarRev: account.avatarRev ?? cookieUser.avatarRev,
+      email: account.email,
+      emailVerified: account.emailVerified,
+      emailVerifyRequired: account.emailVerifyRequired,
+      isBanned: false,
+    },
+  };
+}
+
+/**
+ * Cookie user whose role and ban were re-read from the database.
+ * Missing and banned accounts go to the route that drops the cookie.
+ * Returns null when there is no session.
+ */
+export async function optionalLiveUser(): Promise<AuthUser | null> {
+  const cookieUser = await getCurrentUser();
+  if (!cookieUser) return null;
+  const account = await readLiveAccount(cookieUser.id);
+  const decision = liveUserFromAccount(cookieUser, account);
+  if (!decision.ok) {
+    redirect("/api/auth/clear-session");
+  }
+  return decision.user;
+}
+
+/** Redirects to /login when unauthenticated. Rejects a banned account. */
 export async function requireUser(): Promise<AuthUser> {
-  const user = await getCurrentUser();
+  const user = await optionalLiveUser();
   if (!user) {
     redirect("/login");
   }
@@ -108,6 +155,10 @@ export async function requireSessionUserId(): Promise<number> {
   const payload = await getSessionPayload();
   if (!payload) {
     redirect("/login");
+  }
+  const account = await readLiveAccount(payload.userId);
+  if (!account || account.isBanned) {
+    redirect("/api/auth/clear-session");
   }
   return payload.userId;
 }

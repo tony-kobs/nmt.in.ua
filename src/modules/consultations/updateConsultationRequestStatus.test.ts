@@ -36,7 +36,10 @@ function makeConnection(options: {
   let findCount = 0;
   const connection: SqlConnection = {
     beginTransaction: async () => {},
-    query: async <T,>() => {
+    query: async <T,>(sql: string) => {
+      if (sql.includes("schema_migrations")) {
+        return [{ version: "019_consultation_requests.sql" }] as T[];
+      }
       findCount += 1;
       const payload = findCount === 1 ? options.current : options.next;
       return (payload ? [payload] : []) as T[];

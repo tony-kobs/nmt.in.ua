@@ -2,8 +2,9 @@
 # Build Next on a modern glibc machine, rewrite CI absolute paths, upload over
 # SSH pipe, prepare a new release beside the live site, then swap directories.
 #
-# The live site stays up during upload + npm install. Node is fully stopped
-# before any mv (otherwise the process follows the directory inode).
+# The live site stays up during upload + npm install + npm run migrate.
+# Node is fully stopped before any mv (otherwise the process follows the directory inode).
+# A failed migrate aborts before the swap, so the previous www keeps serving.
 #
 # Usage (from repo root, Git Bash / Linux / macOS):
 #   bash scripts/deploy-hosting.sh
@@ -270,6 +271,19 @@ if [ ! -d "${STAGE}/node_modules/next" ]; then
   rm -rf "$STAGE"
   exit 1
 fi
+
+echo "==> npm run migrate in staging, before the swap..."
+# .env.production is already in STAGE. migrate.mjs loads it. Failure exits
+# before stop_site_node, so the live release is untouched.
+(
+  cd "$STAGE"
+  export TMPDIR="${APP_ROOT}/tmp"
+  npm run migrate
+) || {
+  echo "Migration failed; leaving the live site on the previous release." >&2
+  rm -rf "$STAGE"
+  exit 1
+}
 
 echo "==> Stop nmt Node, then swap www..."
 stop_site_node

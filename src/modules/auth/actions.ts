@@ -241,7 +241,7 @@ export async function upgradeSessionCookieAction(): Promise<{ ok: boolean }> {
   if (payload.displayName && payload.login) return { ok: true };
 
   const user = await findUserById(payload.userId);
-  if (!user) return { ok: false };
+  if (!user || user.isBanned) return { ok: false };
   const ok = await renewSessionCookie(user);
   return { ok };
 }

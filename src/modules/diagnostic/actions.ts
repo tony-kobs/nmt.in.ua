@@ -1,6 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+
+function rethrowNavigation(error: unknown): void {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    typeof (error as { digest: unknown }).digest === "string" &&
+    (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+  ) {
+    throw error;
+  }
+}
 import type {
   CheckAnswerActionInput,
   CheckAnswerActionState,
@@ -67,6 +79,7 @@ export async function startDiagnosticAction(
       isGuest: owner.userId === null,
     };
   } catch (error) {
+    rethrowNavigation(error);
     if (error instanceof StartDiagnosticTestError) {
       switch (error.code) {
         case "insufficient_tasks":
@@ -97,6 +110,7 @@ export async function advanceDiagnosticAction(input: {
     });
     return { status: "success", next: result.next };
   } catch (error) {
+    rethrowNavigation(error);
     if (error instanceof AdvanceDiagnosticSessionError) {
       switch (error.code) {
         case "invalid_input":
@@ -131,6 +145,7 @@ export async function checkDiagnosticAnswerAction(
     });
     return { status: "success", correct: result.correct, firstAttempt: true };
   } catch (error) {
+    rethrowNavigation(error);
     if (error instanceof CheckDiagnosticAnswerError) {
       switch (error.code) {
         case "invalid_input":
@@ -182,6 +197,7 @@ export async function finishDiagnosticSessionAction(
       },
     };
   } catch (error) {
+    rethrowNavigation(error);
     if (error instanceof FinishDiagnosticSessionError) {
       switch (error.code) {
         case "invalid_input":
@@ -209,6 +225,7 @@ export async function getDiagnosticThemeBreakdownAction(
     const stats = await getDiagnosticThemeBreakdown(sessionId, owner);
     return toDiagnosticTopicInsight(stats);
   } catch (error) {
+    rethrowNavigation(error);
     console.error("getDiagnosticThemeBreakdownAction: unexpected error", error);
     return { strongest: [], priority: [] };
   }
@@ -222,6 +239,7 @@ export async function getDiagnosticAnswerReviewAction(
     if (!owner) return [];
     return await getDiagnosticAnswerReview(sessionId, owner);
   } catch (error) {
+    rethrowNavigation(error);
     console.error("getDiagnosticAnswerReviewAction: unexpected error", error);
     return [];
   }
@@ -240,6 +258,7 @@ export async function markDiagnosticSessionStartedAction(
     });
     return { status: "success", startTime: result.startTime };
   } catch (error) {
+    rethrowNavigation(error);
     if (error instanceof MarkDiagnosticSessionStartedError) {
       switch (error.code) {
         case "invalid_input":

@@ -1,5 +1,6 @@
 import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
+import { ensureSchemaOnce } from "@/lib/db/schemaGuard";
 
 const SQL_CREATE_FEEDBACK = `
   CREATE TABLE IF NOT EXISTS site_feedback (
@@ -22,30 +23,18 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-let schemaReady: Promise<void> | undefined;
-
-async function runFeedbackSchemaMigration(
-  getConnection: () => Promise<SqlConnection>,
-): Promise<void> {
-  const connection = await getConnection();
-  try {
-    await connection.execute(SQL_CREATE_FEEDBACK, []);
-  } finally {
-    connection.release();
-  }
-}
-
-/** Creates `site_feedback` once per process if the table is missing. */
+/** Creates `site_feedback` once per process if the migration is not recorded. */
 export async function ensureFeedbackSchema(
   getConnection: () => Promise<SqlConnection> = loadDefaultConnection,
 ): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = runFeedbackSchemaMigration(getConnection).catch((error) => {
-      schemaReady = undefined;
-      throw error;
-    });
-  }
-  await schemaReady;
+  await ensureSchemaOnce(
+    "feedback",
+    ["003_site_feedback.sql"],
+    getConnection,
+    async (connection) => {
+      await connection.execute(SQL_CREATE_FEEDBACK, []);
+    },
+  );
 }
 
 export async function loadFeedbackConnection(): Promise<SqlConnection> {

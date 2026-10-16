@@ -1,6 +1,6 @@
 "use server";
 
-import { getCurrentUser } from "@/modules/auth/getCurrentUser";
+import { getCurrentUser, readLiveAccount } from "@/modules/auth/getCurrentUser";
 import { buildImportInputFromFormData } from "./buildImportInputFromFormData";
 import { isContentImportConfigured } from "./auth";
 import { ContentImportError, runContentImport, type ImportSummary } from "./index";
@@ -25,6 +25,7 @@ const GENERIC_ERROR_MESSAGE = "Не вдалося виконати імпорт
 type ContentImportActionDeps = {
   runContentImport: typeof runContentImport;
   getCurrentUser: typeof getCurrentUser;
+  readAccount: typeof readLiveAccount;
   isContentImportConfigured: typeof isContentImportConfigured;
 };
 
@@ -38,6 +39,7 @@ export async function contentImportAction(
   deps: ContentImportActionDeps = {
     runContentImport,
     getCurrentUser,
+    readAccount: readLiveAccount,
     isContentImportConfigured,
   },
 ): Promise<ContentImportActionState> {
@@ -45,8 +47,9 @@ export async function contentImportAction(
     return { status: "unauthorized", errors: [UNAUTHORIZED_MESSAGE] };
   }
 
-  const user = await deps.getCurrentUser();
-  if (!user || user.role !== "admin") {
+  const cookieUser = await deps.getCurrentUser();
+  const account = cookieUser ? await deps.readAccount(cookieUser.id) : null;
+  if (!account || account.isBanned || account.role !== "admin") {
     return { status: "unauthorized", errors: [UNAUTHORIZED_MESSAGE] };
   }
 
