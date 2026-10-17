@@ -110,7 +110,7 @@ test("recommendation follow-up runs once after commit and release; its failure c
 test("list replies supply an opaque completion reference without raw ids", async () => {
   const reply = await handleTelegramUpdate(update("/tasks"), {
     consume: async () => false, referenceSecret: secret,
-    getTasks: async () => ({ status: "success", sessions: [{ sessionId: 42, sessionType: 1, themeId: 1, themeName: "Алгебра", status: 2, taskCount: 2, completedTaskCount: 2, expiresAt: now + 100 }] }),
+    getTasks: async () => ({ status: "success", sessions: [{ sessionId: 42, sessionType: 3, themeId: 1, themeName: "Алгебра", status: 2, taskCount: 2, completedTaskCount: 2, expiresAt: now + 100 }] }),
   });
   const ref = /\/done ([A-Za-z0-9_-]+)/.exec(reply!.text)![1];
   assert.equal(resolveTaskReference(ref, "123", secret), 42);

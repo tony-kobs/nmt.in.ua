@@ -133,17 +133,27 @@ test("details read scopes ownership and bans in SQL and returns only safe fields
 });
 
 test("tasks and today keyboards use opaque identity-bound references", async () => {
-  for (const command of ["tasks", "today"]) {
-    const getTasks = async () => ({ status: "success" as const, sessions: [{ sessionId: 42, sessionType: 1, themeId: 9, themeName: "Алгебра", status: 2, taskCount: 2, completedTaskCount: 1, expiresAt: 200 }] });
-    const reply = await handleTelegramUpdate({ message: { chat: { id: 123, type: "private" }, from: { id: 123 }, text: `/${command}` } }, {
-      consume: async () => false, referenceSecret: secret, getTasks, getTodayTasks: getTasks,
-    });
-    const buttons = reply!.replyMarkup!.inline_keyboard.flat();
-    assert.ok(buttons.some((button) => button.callback_data?.startsWith("m:")), "list keeps menu navigation");
-    for (const button of buttons.filter((item) => !item.callback_data?.startsWith("m:"))) {
-      assert.ok(Buffer.byteLength(button.callback_data!) <= 64);
-      assert.equal(resolveTaskReference(button.callback_data!.slice(2), "123", secret), 42);
-      assert.doesNotMatch(button.callback_data!, /^[da]:42$/);
-    }
+  const getTasks = async () => ({ status: "success" as const, sessions: [{ sessionId: 42, sessionType: 3, themeId: 9, themeName: "Алгебра", status: 2, taskCount: 2, completedTaskCount: 1, expiresAt: 200 }] });
+  const reply = await handleTelegramUpdate({ message: { chat: { id: 123, type: "private" }, from: { id: 123 }, text: "/tasks" } }, {
+    consume: async () => false, referenceSecret: secret, getTasks,
+  });
+  const buttons = reply!.replyMarkup!.inline_keyboard.flat();
+  assert.ok(buttons.some((button) => button.callback_data?.startsWith("m:")), "list keeps menu navigation");
+  const taskButtons = buttons.filter((item) => item.callback_data?.startsWith("d:") || item.callback_data?.startsWith("a:"));
+  assert.ok(taskButtons.length > 0);
+  for (const button of taskButtons) {
+    assert.ok(Buffer.byteLength(button.callback_data!) <= 64);
+    assert.equal(resolveTaskReference(button.callback_data!.slice(2), "123", secret), 42);
+    assert.doesNotMatch(button.callback_data!, /^[da]:42$/);
   }
+  const today = await handleTelegramUpdate({ message: { chat: { id: 123, type: "private" }, from: { id: 123 }, text: "/today" } }, {
+    consume: async () => false,
+    getProfile: async () => ({ status: "success", profile: { accountId: 1, userId: 7, role: "student", displayName: "Іра", linkedAt: null } }),
+    menu: { loadToday: async () => ({
+      assignments: [], assignmentsMore: 0, marathon: null, join: null, linkedToTeacher: true, advice: null,
+      diagnostic: { kind: "offer" },
+    }) },
+  });
+  assert.match(today!.text, /Сьогодні/);
+  assert.doesNotMatch(today!.text, /sessionId|\/done 42/);
 });
