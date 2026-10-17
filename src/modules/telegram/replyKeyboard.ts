@@ -68,6 +68,63 @@ export function accountReplyKeyboard(_role: AccountMenuRole): ReplyKeyboardMarku
   return collapsedMenuKeyboard();
 }
 
+/** One persistent way back to the cabinet menu. */
+export function homeReplyKeyboard(): ReplyKeyboardMarkup {
+  return toReplyKeyboard([[{ text: MAIN_MENU_LABEL }]]);
+}
+
+const ANSWER_DATA = /^mh:(?:q[ar]:|a:|z:)/;
+const STANDARD_NAV = new Set(["m:home", "mh:menu", "mh:today", "mh:top", "mh:stop", "mh:list", "mh:map", "mh:quiz"]);
+const LIFTED_CHOICE = /^(?:mh:qt:|mh:qn:|mh:qp:|mh:pick:|mh:qc$|mh:qr$)/;
+
+function reflowLabels(labels: string[]): { text: string }[][] {
+  const home = labels.filter((text) => text === MAIN_MENU_LABEL);
+  const rest = labels.filter((text) => text !== MAIN_MENU_LABEL);
+  const wide = rest.some((text) => text.length > 18);
+  const rows: { text: string }[][] = [];
+  if (wide) {
+    for (const text of rest) rows.push([{ text }]);
+  } else {
+    for (let index = 0; index < rest.length; index += 2) {
+      rows.push(rest.slice(index, index + 2).map((text) => ({ text })));
+    }
+  }
+  if (home[0]) rows.push([{ text: home[0] }]);
+  return rows;
+}
+
+/**
+ * Section navigation lives under the input.
+ * Answer buttons stay on the message. A screen that only chooses the next step
+ * becomes the keyboard. Content screens keep the stable section keyboard.
+ */
+export function relocateSectionNavigation(replies: TelegramReply[], stable: ReplyKeyboardMarkup): TelegramReply[] {
+  if (replies.length === 0) return replies;
+  const flat = replies.flatMap((reply) => reply.replyMarkup?.inline_keyboard.flat() ?? []);
+  const isAnswer = (data?: string) => !!data && ANSWER_DATA.test(data);
+  const hasChoice = flat.some((button) => LIFTED_CHOICE.test(button.callback_data ?? ""));
+  if (hasChoice) {
+    const labels = flat.filter((button) => !isAnswer(button.callback_data)).map((button) => button.text);
+    const cleared = replies.map((reply) => {
+      const { replyMarkup: _markup, ...rest } = reply;
+      return rest;
+    });
+    return attachReplyKeyboardList(cleared, toReplyKeyboard(reflowLabels(labels)));
+  }
+  const stripped = replies.map((reply) => {
+    const rows = (reply.replyMarkup?.inline_keyboard ?? [])
+      .map((row) => row.filter((button) => {
+        const data = button.callback_data;
+        if (isAnswer(data) || button.url) return true;
+        return !!data && !STANDARD_NAV.has(data);
+      }))
+      .filter((row) => row.length > 0);
+    const { replyMarkup: _markup, ...rest } = reply;
+    return rows.length > 0 ? { ...rest, replyMarkup: { inline_keyboard: rows } } : rest;
+  });
+  return attachReplyKeyboardList(stripped, stable);
+}
+
 /** Bottom-keyboard presses send the label as a message. Any known label maps to its callback. */
 export function accountCallbackFromText(text: string): string | null {
   const trimmed = text.trim();

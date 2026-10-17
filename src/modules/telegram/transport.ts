@@ -77,30 +77,17 @@ export async function sendTelegramMessage(reply: TelegramReply, botToken: string
       json: { ...messageJson(reply, inline), message_id: reply.editMessageId },
     });
   }
-  // One message accepts a single reply_markup. Send the bottom menu first, then put
-  // the inline buttons on that same message. Later inline-only messages do not clear it.
+  // One message accepts a single reply_markup, and a message sent with the bottom
+  // keyboard cannot be edited. Doing both used to send the text, fail the edit,
+  // then send the same text again with the inline buttons. The inline actions
+  // are the message. The bottom keyboard is persistent and is set on its own.
   if (keyboard && inline) {
-    const sent = await sendTelegramPayload({
-      method: "sendMessage",
-      token: botToken,
-      request,
-      json: messageJson(reply, keyboard),
-    });
-    if (sent.status !== "sent" || sent.messageId <= 0) return sent;
-    const edited = await sendTelegramPayload({
-      method: "editMessageText",
-      token: botToken,
-      request,
-      json: { ...messageJson(reply, inline), message_id: sent.messageId },
-    });
-    if (edited.status === "sent" || (edited.status === "rejected" && edited.context.notModified)) return sent;
-    await sendTelegramPayload({
+    return sendTelegramPayload({
       method: "sendMessage",
       token: botToken,
       request,
       json: messageJson(reply, inline),
     });
-    return sent;
   }
   return sendTelegramPayload({
     method: "sendMessage",

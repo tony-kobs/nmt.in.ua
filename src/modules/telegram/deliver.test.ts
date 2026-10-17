@@ -125,7 +125,7 @@ test("a photo Telegram refuses is resent as a text link instead of being dropped
   assert.match(bodies[1]!, /triangle\.png/);
 });
 
-test("a message with both keyboards sets the bottom menu and then keeps answer buttons inline", async () => {
+test("a message with both keyboards is sent once, with the inline buttons", async () => {
   const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
   const sent = await deliverTelegramReplies([{
     chatId: "7",
@@ -149,30 +149,17 @@ test("a message with both keyboards sets the bottom menu and then keeps answer b
     },
   });
   assert.equal(sent.sent, 1);
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 1);
   assert.match(calls[0]!.url, /sendMessage$/);
-  const first = calls[0]!.body.reply_markup as {
-    keyboard?: { text: string }[][];
-    resize_keyboard?: boolean;
-    is_persistent?: boolean;
-    inline_keyboard?: unknown;
-    remove_keyboard?: unknown;
-  };
-  assert.equal(first.resize_keyboard, true);
-  assert.equal(first.is_persistent, true);
-  assert.equal(first.inline_keyboard, undefined);
-  assert.equal(first.remove_keyboard, undefined);
-  assert.equal(first.keyboard?.[1]?.[0]?.text, "🏠 Головне меню");
-  assert.match(calls[1]!.url, /editMessageText$/);
-  const edited = calls[1]!.body.reply_markup as {
-    inline_keyboard?: Array<Array<{ text?: string; callback_data?: string }>>;
+  const markup = calls[0]!.body.reply_markup as {
     keyboard?: unknown;
+    inline_keyboard?: Array<Array<{ text?: string; callback_data?: string }>>;
     remove_keyboard?: unknown;
   };
-  assert.deepEqual(edited.inline_keyboard?.map((row) => row[0]?.text), ["А", "Б", "В", "Г"]);
-  assert.equal(edited.inline_keyboard?.[0]?.[0]?.callback_data, "mh:qa:1:2:1");
-  assert.equal(edited.keyboard, undefined);
-  assert.equal(edited.remove_keyboard, undefined);
+  assert.equal(markup.keyboard, undefined);
+  assert.equal(markup.remove_keyboard, undefined);
+  assert.deepEqual(markup.inline_keyboard?.map((row) => row[0]?.text), ["А", "Б", "В", "Г"]);
+  assert.equal(markup.inline_keyboard?.[0]?.[0]?.callback_data, "mh:qa:1:2:1");
 });
 
 test("an inline-only task message does not replace or remove the bottom menu", async () => {

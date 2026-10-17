@@ -17,8 +17,9 @@ import {
   SESSION_TYPE_USER,
 } from "@/modules/sessions/types";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
+import { toReplyKeyboard } from "@/modules/telegram/replyKeyboard";
 import { composeTelegramTask } from "@/modules/telegram/taskRender";
-import { mainMenuDataButton } from "@/modules/telegram/ui";
+import { MAIN_MENU_LABEL, mainMenuDataButton } from "@/modules/telegram/ui";
 import type { BotCallback, Outgoing } from "./botPlay";
 
 const PAGE_SIZE = 6;
@@ -60,6 +61,45 @@ const QUIZ_REVIEW = { text: "Розбір останнього тесту", data
 
 function quizNav(): NonNullable<Outgoing["buttons"]> {
   return [QUIZ_REVIEW, QUIZ_SITE, mainMenuDataButton()];
+}
+
+/** Topic-test controls under the input while a question or a result is on screen. */
+export function quizSectionKeyboard() {
+  return toReplyKeyboard([
+    [{ text: "До тем" }, { text: QUIZ_REVIEW.text }],
+    [{ text: QUIZ_SITE.text }],
+    [{ text: MAIN_MENU_LABEL }],
+  ]);
+}
+
+/** Reply-keyboard label of a topic-test step → callback, or "site" for the topic page. */
+export async function quizDataFromText(text: string): Promise<string | null> {
+  const trimmed = text.trim();
+  if (trimmed === QUIZ_SITE.text) return "site";
+  if (trimmed === "Продовжити") return "mh:qc";
+  if (trimmed === "Нова тема" || trimmed === "До тем" || trimmed === "Ще тест" || trimmed === "Новий тест") return "mh:qp:0";
+  if (trimmed === QUIZ_REVIEW.text || trimmed === "Розбір помилок") return "mh:qr";
+  const back = /^← стор\. (\d{1,2})$/.exec(trimmed);
+  if (back?.[1]) {
+    const page = Number(back[1]) - 1;
+    return page >= 0 ? `mh:qp:${page}` : null;
+  }
+  const forward = /^стор\. (\d{1,2}) →$/.exec(trimmed);
+  if (forward?.[1]) {
+    const page = Number(forward[1]) - 1;
+    return page >= 0 ? `mh:qp:${page}` : null;
+  }
+  if (!/ · /.test(trimmed)) return null;
+  const themes = await getAvailableTopicThemes();
+  const countMatch = /^(\d{1,3}) · (.+)$/.exec(trimmed);
+  if (countMatch?.[1] && countMatch[2]) {
+    const count = Number(countMatch[1]);
+    const theme = themes.find((item) => `${count} · ${item.name}`.slice(0, 64) === trimmed);
+    if (!theme || !quizCountChoices(theme.taskCount).includes(count)) return null;
+    return `mh:qn:${theme.id}:${count}`;
+  }
+  const theme = themes.find((item) => `${item.name} · ${item.taskCount}`.slice(0, 64) === trimmed);
+  return theme ? `mh:qt:${theme.id}` : null;
 }
 
 function plainTask(value: string): string {
@@ -111,8 +151,8 @@ async function themeList(page: number): Promise<Outgoing[]> {
     text: `${theme.name} · ${theme.taskCount}`.slice(0, 64),
     data: `mh:qt:${theme.id}`,
   }));
-  if (safePage > 0) buttons.push({ text: "Назад", data: `mh:qp:${safePage - 1}` });
-  if (safePage + 1 < pages) buttons.push({ text: "Далі", data: `mh:qp:${safePage + 1}` });
+  if (safePage > 0) buttons.push({ text: `← стор. ${safePage}`, data: `mh:qp:${safePage - 1}` });
+  if (safePage + 1 < pages) buttons.push({ text: `стор. ${safePage + 2} →`, data: `mh:qp:${safePage + 1}` });
   buttons.push(...quizNav());
   return [{
     text: pages > 1 ? `Оберіть тему (${safePage + 1}/${pages})` : "Оберіть тему",
@@ -129,7 +169,7 @@ async function countPicker(themeId: number): Promise<Outgoing[]> {
     text: `${theme.name}\nУ банку ${theme.taskCount}. Скільки завдань взяти?`,
     buttons: [
       ...choices.map((count) => ({
-        text: String(count),
+        text: `${count} · ${theme.name}`.slice(0, 64),
         data: `mh:qn:${theme.id}:${count}`,
       })),
       { text: "До тем", data: "mh:qp:0" },
