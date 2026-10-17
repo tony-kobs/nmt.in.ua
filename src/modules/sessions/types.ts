@@ -9,6 +9,8 @@ export const SESSION_STATUS_PLANNED = 3;
 export const SESSION_TYPE_USER = 1;
 export const SESSION_TYPE_AUTO = 2;
 export const SESSION_TYPE_MENTOR = 3;
+/** Official NMT simulator. `theme_id` is null; the label comes from `nmt_variants`. */
+export const SESSION_TYPE_NMT = 4;
 
 export type SessionDisplayStatus = "completed" | "planned" | "expired";
 

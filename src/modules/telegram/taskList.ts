@@ -1,5 +1,6 @@
 import "server-only";
-import { getTelegramTaskSessions, getTelegramTodayTaskSessions } from "./tasks";
+import { SESSION_TYPE_AUTO, SESSION_TYPE_MENTOR } from "@/modules/sessions/types";
+import { getTelegramTaskSessions, getTelegramTodayTaskSessions, type TelegramTaskSession } from "./tasks";
 import { formatTelegramTasks } from "./taskCommands";
 import { createTaskReference } from "./taskReference";
 import type { InlineKeyboard, TelegramReply } from "./taskInteraction";
@@ -30,13 +31,14 @@ export async function buildTaskListReply(
         : NOT_LINKED_TEXT, ...edit };
     }
     const secret = deps.referenceSecret ?? process.env.TELEGRAM_WEBHOOK_SECRET;
+    const sessions = today ? result.sessions : result.sessions.filter(isAssignedTask);
     const references = new Map<number, string>();
-    const text = formatTelegramTasks(result.sessions, today, secret ? (id) => {
+    const text = formatTelegramTasks(sessions, today, secret ? (id) => {
       const reference = createTaskReference(id, userId, secret);
       references.set(id, reference);
       return reference;
     } : undefined);
-    const rows: InlineKeyboard["inline_keyboard"] = result.sessions.filter((session) => {
+    const rows: InlineKeyboard["inline_keyboard"] = sessions.filter((session) => {
       const reference = references.get(session.sessionId);
       return reference && text.includes(`/done ${reference}`);
     }).map((session, index) => [
@@ -52,4 +54,8 @@ export async function buildTaskListReply(
     else console.error("telegram tasks: command failed", error);
     return { chatId, text: "Не вдалося отримати завдання. Спробуйте пізніше.", ...edit };
   }
+}
+
+function isAssignedTask(session: TelegramTaskSession): boolean {
+  return session.sessionType === SESSION_TYPE_MENTOR || session.sessionType === SESSION_TYPE_AUTO;
 }

@@ -12,7 +12,7 @@ import type { FindErrorReveal, FindErrorTaskPresentation } from "@/modules/stage
 import { Stage2Hints } from "../Stage2Hints";
 import css from "./FindErrorTaskCard.module.css";
 
-export function FindErrorTaskCard({ taskId, roundId, diagnostic = false, onAnswered }: { taskId: number; roundId?: number; diagnostic?: boolean; onAnswered?: () => void }) {
+export function FindErrorTaskCard({ taskId, roundId, diagnostic = false, quiet = false, submitLabel, onAnswered }: { taskId: number; roundId?: number; diagnostic?: boolean; quiet?: boolean; submitLabel?: string; onAnswered?: () => void }) {
   const t = useTranslations("Stage2");
   const [task, setTask] = useState<FindErrorTaskPresentation | null>(null);
   const [selectedLine, setSelectedLine] = useState<number | null>(null);
@@ -102,6 +102,7 @@ export function FindErrorTaskCard({ taskId, roundId, diagnostic = false, onAnswe
         })}
       </div>
 
+      <p className={css.optionsLabel}>{t("findErrorOptionsLabel")}</p>
       <div className={css.options} role="radiogroup" aria-label={t("findErrorOptionsLabel")}>
         {task.correctionOptions.map((option) => {
           const isSelected = selectedOption === option.number;
@@ -122,7 +123,7 @@ export function FindErrorTaskCard({ taskId, roundId, diagnostic = false, onAnswe
         })}
       </div>
 
-      {result ? (
+      {result && !quiet ? (
         <p role="status">
           {diagnostic ? t("answerSaved") : result.correct
             ? t("correct")
@@ -131,8 +132,8 @@ export function FindErrorTaskCard({ taskId, roundId, diagnostic = false, onAnswe
               : t("incorrectLocked")}
         </p>
       ) : null}
-      {revealed?.explanation ? <MathText text={revealed.explanation} /> : null}
-      {result?.retryAvailable && !diagnostic ? <Stage2Hints format="find_error" taskId={taskId} roundId={roundId} /> : null}
+      {revealed?.explanation && !quiet ? <MathText text={revealed.explanation} /> : null}
+      {result?.retryAvailable && !diagnostic && !quiet ? <Stage2Hints format="find_error" taskId={taskId} roundId={roundId} /> : null}
       {error ? <p role="alert">{error}</p> : null}
 
       {!isLocked ? (
@@ -142,7 +143,7 @@ export function FindErrorTaskCard({ taskId, roundId, diagnostic = false, onAnswe
           onClick={handleCheck}
           disabled={checking || selectedLine == null || selectedOption == null}
         >
-          {checking ? t("checking") : t("check")}
+          {checking ? t("checking") : submitLabel ?? t("check")}
         </button>
       ) : null}
     </div>

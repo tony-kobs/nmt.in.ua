@@ -27,6 +27,23 @@ export function getTelegramTaskDayInterval(nowSec: number): { startSec: number; 
   return { startSec: midnightUnixSec(midnight), endSec: midnightUnixSec(midnight + 86400000) };
 }
 
+const weekday = new Intl.DateTimeFormat("en-US", {
+  timeZone: TELEGRAM_TASK_TIME_ZONE,
+  weekday: "short",
+});
+
+const WEEKDAY_INDEX: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+
+/** Monday 00:00 through next Monday 00:00 in Europe/Kyiv. */
+export function getKyivWeekInterval(nowSec: number): { startSec: number; endSec: number } {
+  const parts = calendar.formatToParts(nowSec * 1000);
+  const value = (type: string) => Number(parts.find((part) => part.type === type)!.value);
+  const today = Date.UTC(value("year"), value("month") - 1, value("day"));
+  const index = WEEKDAY_INDEX[weekday.format(nowSec * 1000)] ?? 0;
+  const monday = today - index * 86400000;
+  return { startSec: midnightUnixSec(monday), endSec: midnightUnixSec(monday + 7 * 86400000) };
+}
+
 const clock = new Intl.DateTimeFormat("en-US", {
   timeZone: TELEGRAM_TASK_TIME_ZONE,
   year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23",

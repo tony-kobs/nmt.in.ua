@@ -2,11 +2,17 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { getLearningSessions } from "./getLearningSessions";
-import { SESSION_STATUS_COMPLETED, SESSION_STATUS_CREATED } from "./types";
+import {
+  SESSION_STATUS_COMPLETED,
+  SESSION_STATUS_CREATED,
+  SESSION_STATUS_PLANNED,
+  SESSION_TYPE_MENTOR,
+  SESSION_TYPE_NMT,
+} from "./types";
 
 type Row = {
   id: number;
-  theme_id: number;
+  theme_id: number | null;
   theme_name: string;
   tasks_number: number;
   right_number: number;
@@ -15,6 +21,8 @@ type Row = {
   session_type: number;
   start_time: number;
   expire_time: number;
+  assignment_id?: number | null;
+  member_session_id?: number | null;
 };
 
 function makeConnection(rows: Row[]) {
@@ -48,6 +56,9 @@ test("getLearningSessions filters by the requesting user's id", async () => {
 
   assert.equal(calls.length, 1);
   assert.match(calls[0]!.sql, /WHERE ts\.user_id = \?/);
+  assert.match(calls[0]!.sql, /ts\.session_type = 3/);
+  assert.match(calls[0]!.sql, /ts\.session_type IN \(1, 4\)/);
+  assert.match(calls[0]!.sql, /LEFT JOIN nmt_variants nv/);
   assert.match(calls[0]!.sql, /LIMIT 50\b/);
   assert.deepEqual(calls[0]!.params, [42]);
 });
@@ -68,8 +79,8 @@ test("getLearningSessions resolves the theme name via the themes join on task_se
     ensureSchema: async () => {},
   });
 
-  assert.match(calls[0]!.sql, /INNER JOIN themes t ON t\.id = ts\.theme_id/);
-  assert.match(calls[0]!.sql, /t\.name AS theme_name/);
+  assert.match(calls[0]!.sql, /LEFT JOIN themes t ON t\.id = ts\.theme_id/);
+  assert.match(calls[0]!.sql, /COALESCE/);
 });
 
 test("getLearningSessions releases the connection", async () => {
@@ -111,7 +122,7 @@ test("a completed topic test is visible with its stored percent and elapsed time
   assert.equal(row?.timeSec, 120);
 });
 
-test("an unfinished topic test is listed as planned with a start/continue link target", async () => {
+test("an unfinished topic test stays out of the student list", async () => {
   const { connection } = makeConnection([
     {
       id: 8,
@@ -127,18 +138,16 @@ test("an unfinished topic test is listed as planned with a start/continue link t
     },
   ]);
 
-  const [row] = await getLearningSessions(1, {
+  const rows = await getLearningSessions(1, {
     getConnection: async () => connection,
     nowSec: () => 1_700_000_000,
     ensureSchema: async () => {},
   });
 
-  assert.equal(row?.status, "planned");
-  assert.equal(row?.statusLabel, "Заплановано");
-  assert.equal(row?.id, 8);
+  assert.deepEqual(rows, []);
 });
 
-test("an unfinished topic test past its 24h deadline is listed as expired, not planned", async () => {
+test("an unfinished topic test past its 24h deadline stays out of the student list", async () => {
   const now = 1_700_000_000;
   const { connection } = makeConnection([
     {
@@ -155,11 +164,70 @@ test("an unfinished topic test past its 24h deadline is listed as expired, not p
     },
   ]);
 
-  const [row] = await getLearningSessions(1, {
+  const rows = await getLearningSessions(1, {
     getConnection: async () => connection,
     nowSec: () => now,
     ensureSchema: async () => {},
   });
 
-  assert.equal(row?.status, "expired");
+  assert.deepEqual(rows, []);
+});
+
+test("a teacher assignment and a finished NMT attempt stay in the student list", async () => {
+  const { connection } = makeConnection([
+    {
+      id: 11,
+      theme_id: 2,
+      theme_name: "Скасовано",
+      tasks_number: 10,
+      right_number: 0,
+      time: 0,
+      session_status: SESSION_STATUS_PLANNED,
+      session_type: SESSION_TYPE_MENTOR,
+      start_time: 0,
+      expire_time: 9_999_999_999,
+      assignment_id: null,
+      member_session_id: 11,
+    },
+    {
+      id: 4,
+      theme_id: null,
+      theme_name: "2025 · Основна сесія",
+      tasks_number: 22,
+      right_number: 15,
+      time: 3600,
+      session_status: SESSION_STATUS_COMPLETED,
+      session_type: SESSION_TYPE_NMT,
+      start_time: 1_700_000_000,
+      expire_time: 1,
+    },
+    {
+      id: 3,
+      theme_id: 2,
+      theme_name: "Рівняння",
+      tasks_number: 10,
+      right_number: 0,
+      time: 0,
+      session_status: SESSION_STATUS_PLANNED,
+      session_type: SESSION_TYPE_MENTOR,
+      start_time: 0,
+      expire_time: 9_999_999_999,
+      assignment_id: 9,
+      member_session_id: 3,
+    },
+  ]);
+
+  const rows = await getLearningSessions(1, {
+    getConnection: async () => connection,
+    nowSec: () => 1_700_000_000,
+    ensureSchema: async () => {},
+  });
+
+  assert.deepEqual(
+    rows.map((row) => row.themeName),
+    ["2025 · Основна сесія", "Рівняння"],
+  );
+  assert.equal(rows[0]?.status, "completed");
+  assert.equal(rows[1]?.status, "planned");
+  assert.equal(rows[1]?.createdBy, "mentor");
 });

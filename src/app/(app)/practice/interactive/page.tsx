@@ -6,8 +6,8 @@ type LegacyInteractivePageProps = {
 };
 
 /**
- * Legacy URL: interactive formats now live as the second tab of the
- * "Тест за обраною темою" home. Keep old links working and forward their query.
+ * Legacy URL: interactive formats live on the topic-test tab.
+ * Keep old links working and forward their query.
  */
 export default async function InteractiveFormatsRedirect({
   searchParams,
@@ -21,5 +21,5 @@ export default async function InteractiveFormatsRedirect({
     }
   }
   params.set("tab", "interactive");
-  redirect(`/?${params.toString()}`);
+  redirect(`/topic?${params.toString()}`);
 }

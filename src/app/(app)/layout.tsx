@@ -10,7 +10,7 @@ import {
 import { touchLoginSession } from "@/modules/auth/userSessions";
 import type { MarathonInvite } from "@/modules/marathons/daily/invite";
 import { ensureStudentMarathonInvites } from "@/modules/marathons/daily/invites";
-import { getStudentMarathonHref } from "@/modules/marathons/daily/store";
+import { ensureTopicTestReminders } from "@/modules/notifications/topicReminders";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { headers } from "next/headers";
@@ -30,7 +30,6 @@ export default async function AppLayout({
   const user = await optionalLiveUser();
 
   let cabinetScope = user?.cabinetScope ?? "full";
-  let marathonHref: string | null = null;
   let invites: MarathonInvite[] = [];
   if (user) {
     const payload = await getSessionPayload();
@@ -42,13 +41,17 @@ export default async function AppLayout({
       }
     }
     cabinetScope = user.cabinetScope ?? "full";
-    if (user.role === "student") {
-      marathonHref = await getStudentMarathonHref(user.id);
-    }
     try {
       invites = (await ensureStudentMarathonInvites(user.id)).invites;
     } catch (error) {
       console.error("marathon invites", error);
+    }
+    if (user.role === "student") {
+      try {
+        await ensureTopicTestReminders(user.id);
+      } catch (error) {
+        console.error("topic test reminders", error);
+      }
     }
   }
 
@@ -63,7 +66,6 @@ export default async function AppLayout({
         <DashboardShell
           user={user}
           cabinetScope={cabinetScope}
-          marathonHref={marathonHref}
         >
           <MarathonInviteBanner invites={invites} />
           {children}

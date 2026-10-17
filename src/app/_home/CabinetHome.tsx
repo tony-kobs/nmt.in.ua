@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { AdminContentEditor } from "@/components/admin/AdminContentEditor";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { PageFrame } from "@/components/dashboard/PageFrame";
-import { TopicTestStart } from "@/components/dashboard/TopicTestStart";
+import { StudentToday } from "@/components/dashboard/StudentToday";
 import { MarathonHomeCards } from "@/components/marathon/MarathonHomeCards";
 import { MarathonInviteBanner } from "@/components/marathon/MarathonInviteBanner";
 import { UpgradeSessionCookie } from "@/components/auth/UpgradeSessionCookie";
@@ -18,15 +18,14 @@ import { findUserById } from "@/modules/auth/users";
 import { canImportContent, type AuthUser } from "@/modules/auth/types";
 import { SavedToast } from "@/components/marathon/SavedToast";
 import { ensureStudentMarathonInvites } from "@/modules/marathons/daily/invites";
-import { getStudentMarathonHref } from "@/modules/marathons/daily/store";
-import { getAvailableTopicThemes } from "@/modules/testing/getAvailableTopicThemes";
-import { countStage2CatalogTasks } from "@/modules/stage2/rounds";
+import { loadStudentToday } from "@/modules/today/loadStudentToday";
 
 type CabinetHomeProps = {
   locale: string;
   user: AuthUser;
   displayName: string;
   initialThemeId?: number;
+  initialTab?: string;
   initialPage?: number;
   needsCookieUpgrade: boolean;
   saved?: boolean;
@@ -38,14 +37,13 @@ export async function CabinetHome({
   user,
   displayName,
   initialThemeId,
+  initialTab,
   initialPage = 1,
   needsCookieUpgrade,
   saved = false,
 }: CabinetHomeProps) {
   const account = user.role === "student" ? await findUserById(user.id) : null;
   const cabinetScope = account?.cabinetScope ?? "full";
-  const marathonHref =
-    user.role === "student" ? await getStudentMarathonHref(user.id) : null;
   const home =
     user.role === "student"
       ? await ensureStudentMarathonInvites(user.id).catch((error: unknown) => {
@@ -102,13 +100,18 @@ export async function CabinetHome({
     );
   }
 
-  const [rawMessages, themes, stage2Count] = await Promise.all([
+  if (initialThemeId || initialTab === "interactive") {
+    const query = new URLSearchParams();
+    if (initialThemeId) query.set("theme", String(initialThemeId));
+    if (initialTab === "interactive") query.set("tab", "interactive");
+    redirect(`/topic?${query.toString()}`);
+  }
+
+  const [rawMessages, today] = await Promise.all([
     getMessages(),
-    getAvailableTopicThemes(),
-    countStage2CatalogTasks(),
+    loadStudentToday(user.id),
   ]);
   const messages = pickClientMessages(rawMessages, "/home");
-  const interactiveAvailable = stage2Count > 0;
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
@@ -116,17 +119,11 @@ export async function CabinetHome({
       <DashboardShell
         user={user}
         cabinetScope={cabinetScope}
-        marathonHref={marathonHref}
       >
         <SavedToast active={saved} text={savedText} />
         <MarathonInviteBanner invites={home.invites} />
         <MarathonHomeCards cards={home.cards} signedIn />
-        <TopicTestStart
-          themes={themes}
-          initialThemeId={initialThemeId}
-          displayName={displayName}
-          interactiveAvailable={interactiveAvailable}
-        />
+        <StudentToday displayName={displayName} model={today} />
       </DashboardShell>
     </NextIntlClientProvider>
   );

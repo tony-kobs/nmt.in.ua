@@ -23,7 +23,7 @@ function nextIndex(current: number, delta: number, length: number): number {
   return (current + delta + length) % length;
 }
 
-export function MatchingTaskCard({ taskId, roundId, diagnostic = false, onAnswered }: { taskId: number; roundId?: number; diagnostic?: boolean; onAnswered?: () => void }) {
+export function MatchingTaskCard({ taskId, roundId, diagnostic = false, quiet = false, submitLabel, onAnswered }: { taskId: number; roundId?: number; diagnostic?: boolean; quiet?: boolean; submitLabel?: string; onAnswered?: () => void }) {
   const t = useTranslations("Stage2");
   const [task, setTask] = useState<MatchingTaskPresentation | null>(null);
   const [rightOrder, setRightOrder] = useState<{ id: number; text: string }[]>([]);
@@ -260,7 +260,7 @@ export function MatchingTaskCard({ taskId, roundId, diagnostic = false, onAnswer
         </div>
       </div>
 
-      {result ? (
+      {result && !quiet ? (
         <p role="status">
           {diagnostic ? t("answerSaved") : result.correct
             ? t("correct")
@@ -269,13 +269,13 @@ export function MatchingTaskCard({ taskId, roundId, diagnostic = false, onAnswer
               : t("incorrectLocked")}
         </p>
       ) : null}
-      {revealed?.explanation ? <MathText text={revealed.explanation} /> : null}
-      {result?.retryAvailable && !diagnostic ? <Stage2Hints format="matching" taskId={taskId} roundId={roundId} /> : null}
+      {revealed?.explanation && !quiet ? <MathText text={revealed.explanation} /> : null}
+      {result?.retryAvailable && !diagnostic && !quiet ? <Stage2Hints format="matching" taskId={taskId} roundId={roundId} /> : null}
       {error ? <p role="alert">{error}</p> : null}
 
       {!isLocked ? (
         <button type="button" className={css.checkButton} onClick={handleCheck} disabled={checking || !complete}>
-          {checking ? t("checking") : t("check")}
+          {checking ? t("checking") : submitLabel ?? t("check")}
         </button>
       ) : null}
     </div>

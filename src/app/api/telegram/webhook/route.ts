@@ -4,7 +4,6 @@ import {
   marathonLinkText,
   marathonWelcome,
 } from "@/modules/marathons/daily/botGateway";
-import { findParticipantByChat } from "@/modules/marathons/daily/store";
 import { readTelegramConfig } from "@/modules/telegram/config";
 import { consumeTelegramLink } from "@/modules/telegram/link";
 import { deliverTelegramReplies } from "@/modules/telegram/deliver";
@@ -51,7 +50,6 @@ export async function POST(request: Request): Promise<Response> {
       marathonBareStart,
       marathonLinkText,
       marathonWelcome,
-      menu: { hasMarathon: async (chatId) => Boolean(await findParticipantByChat(chatId)) },
       acknowledgeCallback: async (queryId) => {
         const response = await fetch(`https://api.telegram.org/bot${config.botToken}/answerCallbackQuery`, {
           method: "POST", headers: { "content-type": "application/json" },

@@ -25,7 +25,7 @@ function shuffleForDisplay<T>(items: readonly T[]): T[] {
   return copy;
 }
 
-export function OrderTaskCard({ taskId, roundId, diagnostic = false, onAnswered }: { taskId: number; roundId?: number; diagnostic?: boolean; onAnswered?: () => void }) {
+export function OrderTaskCard({ taskId, roundId, diagnostic = false, quiet = false, submitLabel, onAnswered }: { taskId: number; roundId?: number; diagnostic?: boolean; quiet?: boolean; submitLabel?: string; onAnswered?: () => void }) {
   const t = useTranslations("Stage2");
   const [task, setTask] = useState<OrderTaskPresentation | null>(null);
   const [displaySteps, setDisplaySteps] = useState<OrderStep[]>([]);
@@ -126,13 +126,15 @@ export function OrderTaskCard({ taskId, roundId, diagnostic = false, onAnswered 
               <span className={css.num} aria-hidden="true">
                 {picked ? position + 1 : "·"}
               </span>
-              <MathText text={step.text} />
+              <span className={css.stepText}>
+                <MathText text={step.text} />
+              </span>
             </button>
           );
         })}
       </div>
 
-      {result ? (
+      {result && !quiet ? (
         <p className={css.statusText} role="status">
           {diagnostic ? t("answerSaved") : result.correct
             ? t("correct")
@@ -142,7 +144,7 @@ export function OrderTaskCard({ taskId, roundId, diagnostic = false, onAnswered 
         </p>
       ) : null}
 
-      {result?.retryAvailable ? (
+      {result?.retryAvailable && !quiet ? (
         <div className={css.hintPanel}>
           {hints.rungs.map((rung) => (
             <p key={rung.level} className={css.hintText}>
@@ -162,7 +164,7 @@ export function OrderTaskCard({ taskId, roundId, diagnostic = false, onAnswered 
         </div>
       ) : null}
 
-      {revealed?.explanation ? <MathText text={revealed.explanation} /> : null}
+      {revealed?.explanation && !quiet ? <MathText text={revealed.explanation} /> : null}
 
       {error ? <p role="alert">{error}</p> : null}
 
@@ -173,11 +175,11 @@ export function OrderTaskCard({ taskId, roundId, diagnostic = false, onAnswered 
           onClick={handleCheck}
           disabled={checking || order.length !== task.steps.length}
         >
-          {checking ? t("checking") : t("check")}
+          {checking ? t("checking") : submitLabel ?? t("check")}
         </button>
       ) : null}
 
-      {result?.retryAvailable ? (
+      {result?.retryAvailable && !quiet ? (
         <button type="button" className={css.resetButton} onClick={handleRetry}>
           {t("resetOrder")}
         </button>

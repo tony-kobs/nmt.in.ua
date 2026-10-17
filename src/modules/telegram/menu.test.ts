@@ -53,15 +53,22 @@ test("bare /start and /menu open the role-based main menu for linked accounts on
     marathonBareStart: async () => { marathonCalls.push("bare"); return { chatId: "123", text: "marathon start" }; },
   };
   for (const text of ["/start", "/menu", "/menu@nmt_bot"]) {
-    const reply = await handleTelegramUpdate(message(text), { ...base, getProfile: async () => student, menu: { hasMarathon: async () => false } });
+    const reply = await handleTelegramUpdate(message(text), { ...base, getProfile: async () => student });
     assert.match(reply!.text, /Вітаємо, Іра &lt;b&gt;!/);
-    const labels = reply!.replyMarkup!.inline_keyboard.flat().map((button) => button.text);
-    assert.deepEqual(labels, ["📚 Мої завдання", "📅 Сьогодні", "📊 Моя статистика", "🔔 Сповіщення", "👤 Мій акаунт", "❓ Допомога"]);
+    assert.match(reply!.text, /☰ Меню/);
+    assert.equal(reply!.replyMarkup, undefined);
+    assert.deepEqual(
+      reply!.replyKeyboard!.keyboard.flat().map((button) => button.text),
+      ["☰ Меню"],
+    );
     assert.equal(reply!.parseMode, "HTML");
   }
-  const teacherMenu = await handleTelegramUpdate(message("/menu"), { ...base, getProfile: async () => teacher, menu: { hasMarathon: async () => false } });
-  const teacherButtons = teacherMenu!.replyMarkup!.inline_keyboard.flat();
-  assert.deepEqual(teacherButtons.map((button) => button.callback_data), ["m:stud", "m:notif", "m:acct", "m:help"]);
+  const teacherMenu = await handleTelegramUpdate(message("/menu"), { ...base, getProfile: async () => teacher });
+  assert.equal(teacherMenu!.replyMarkup, undefined);
+  assert.deepEqual(
+    teacherMenu!.replyKeyboard!.keyboard.flat().map((button) => button.text),
+    ["☰ Меню"],
+  );
   assert.deepEqual(marathonCalls, []);
   // Not linked (or lookup failed): the marathon bot keeps /menu and bare /start exactly as before.
   for (const profile of [notLinked, { status: "error", code: "databaseFailure" } as TelegramAccountResult]) {
@@ -71,50 +78,25 @@ test("bare /start and /menu open the role-based main menu for linked accounts on
   assert.deepEqual(marathonCalls, ["marathon", "bare", "marathon", "bare"]);
 });
 
-for (const profile of [student, teacher]) {
-  if (profile.status !== "success") continue;
-  for (const marathon of [false, true]) {
-    test(`${profile.profile.role} home menu shows leaderboard only for marathon participants (${marathon})`, async () => {
-      const calls: string[] = [];
-      const reply = await handleMenuRequest({ chatId: "123", userId: "123", action: { kind: "screen", screen: "home" } }, {
-        getProfile: async () => profile,
-        hasMarathon: async (chatId) => { calls.push(chatId); return marathon; },
-      });
-      const rows = reply.replyMarkup!.inline_keyboard;
-      const buttons = rows.flat();
-      assert.deepEqual(calls, ["123"]);
-      assert.deepEqual(buttons.filter((button) => button.text === "🏆 Рейтинг"), marathon ? [{ text: "🏆 Рейтинг", callback_data: "mh:top" }] : []);
-      assert.deepEqual(buttons.filter((button) => button.callback_data === "mh:top"), marathon ? [{ text: "🏆 Рейтинг", callback_data: "mh:top" }] : []);
-      assert.deepEqual(buttons.filter((button) => button.callback_data === "mh:menu"), marathon ? [{ text: "🏁 Марафон", callback_data: "mh:menu" }] : []);
-      assert.ok(rows.every((row) => row.length > 0));
-    });
-  }
-}
+test("the home screen is the bottom menu and does not repeat those buttons in the chat", async () => {
+  const reply = await handleMenuRequest({ chatId: "123", userId: "123", action: { kind: "screen", screen: "home" } }, {
+    getProfile: async () => student,
+  });
+  assert.equal(reply.replyMarkup, undefined);
+  assert.deepEqual(reply.replyKeyboard!.keyboard.flat().map((button) => button.text), ["☰ Меню"]);
+});
 
-test("daily marathon participants retain entry priority over linked account menus", async () => {
+test("a linked account opens the cabinet menu even if the chat is in a marathon", async () => {
   for (const text of ["/menu", "/menu@nmt_bot", "/start", "/start@nmt_bot"]) {
     const reply = await handleTelegramUpdate(message(text), {
       consume: async () => { assert.fail("entry commands do not consume links"); },
-      getProfile: async () => { assert.fail("marathon participants do not enter the account menu"); },
-      menu: { hasMarathon: async (chatId) => { assert.equal(chatId, "123"); return true; } },
-      marathon: async () => [{ chatId: "123", text: "original marathon menu" }],
-      marathonBareStart: async () => ({ chatId: "123", text: "original marathon start" }),
+      getProfile: async () => student,
+      marathon: async () => { assert.fail("the cabinet menu owns /menu and bare /start"); },
+      marathonBareStart: async () => { assert.fail("the cabinet menu owns /menu and bare /start"); },
     });
-    assert.equal(reply?.text, text.startsWith("/start") ? "original marathon start" : "original marathon menu");
+    assert.match(reply!.text, /Вітаємо/);
+    assert.equal(reply!.replyMarkup, undefined);
   }
-});
-
-test("marathon membership errors preserve marathon navigation", async () => {
-  const errors: unknown[] = [];
-  const reply = await handleTelegramUpdate(message("/menu"), {
-    consume: async () => false,
-    menu: { hasMarathon: async () => { throw new Error("lookup failed"); } },
-    getProfile: async () => { assert.fail("do not assume non-membership on failure"); },
-    marathon: async () => [{ chatId: "123", text: "marathon menu" }],
-    logError: (error) => { errors.push(error); },
-  });
-  assert.equal(reply?.text, "marathon menu");
-  assert.equal(errors.length, 1);
 });
 
 test("deep links, marathon codes, leaderboard aliases and callbacks keep their existing handlers", async () => {
@@ -127,7 +109,8 @@ test("deep links, marathon codes, leaderboard aliases and callbacks keep their e
   };
   const linked = await handleTelegramUpdate(message("/start abc"), deps);
   assert.match(linked!.text, /успішно/);
-  assert.equal(linked!.replyMarkup!.inline_keyboard[0][0].callback_data, "m:home");
+  assert.equal(linked!.replyMarkup, undefined);
+  assert.equal(linked!.replyKeyboard!.keyboard[0]![0]!.text, "☰ Меню");
   await handleTelegramUpdate(message("/start mth_code"), deps);
   for (const command of ["/top", "/leaderboard", "/leaderboard@nmt_bot"]) await handleTelegramUpdate(message(command), deps);
   await handleTelegramUpdate(press("mh:top"), deps);
@@ -142,13 +125,14 @@ test("menu callbacks are acknowledged, identity-checked and edit the menu messag
   const acks: string[] = [];
   const getTasks = async (identity: unknown) => {
     assert.equal(identity, "123");
-    return { status: "success" as const, sessions: [{ sessionId: 42, sessionType: 1, themeId: 1, themeName: "Алгебра", status: 2, taskCount: 4, completedTaskCount: 1, expiresAt: 1_900_000_000 }] };
+    return { status: "success" as const, sessions: [{ sessionId: 42, sessionType: 3, themeId: 1, themeName: "Алгебра", status: 2, taskCount: 4, completedTaskCount: 1, expiresAt: 1_900_000_000 }] };
   };
   const deps = { consume: async () => false, referenceSecret: secret, getTasks, getProfile: async () => student, acknowledgeCallback: async (id: string) => { acks.push(id); } };
   const list = await handleTelegramUpdate(press("m:tasks"), deps);
   assert.deepEqual(acks, ["q1"]);
   assert.equal(list!.editMessageId, 77);
-  assert.match(list!.text, /Ваші завдання/);
+  assert.match(list!.text, /Мої завдання/);
+  assert.match(list!.text, /Від викладача/);
   const rows = list!.replyMarkup!.inline_keyboard;
   assert.equal(resolveTaskReference(rows[0][0].callback_data!.slice(2), "123", secret), 42);
   assert.deepEqual(rows.at(-1)!.map((button) => button.callback_data), ["m:today", "m:home"]);
@@ -181,14 +165,14 @@ test("/stats shows only the verified account's statistics without internal ident
     getProfile: async () => student,
     menu: { getStats: async (userId) => {
       owners.push(userId);
-      return { completedSessions: 3, averagePercent: 61.5, recent: [{ topic: "Алгебра", score: 80 }], topics: [{ name: "Алгебра", percent: 80, lastPercent: 90 }, { name: "Геометрія", percent: 43, lastPercent: null }], weakest: [{ name: "Геометрія", percent: 43 }] };
+      return { weekTopics: [{ name: "Алгебра", percent: 80 }, { name: "Геометрія", percent: 43 }], weekMarathons: [{ title: "Весна" }] };
     } },
   });
   assert.deepEqual(owners, [7]);
-  assert.match(reply!.text, /Завершено сесій: <b>3<\/b>/);
-  assert.match(reply!.text, /Середній результат: <b>62%<\/b>/);
-  assert.match(reply!.text, /🟢 Алгебра — 80% \(остання спроба 90%\)/);
-  assert.match(reply!.text, /Варто підтягнути[\s\S]*Геометрія — 43%/);
+  assert.match(reply!.text, /Алгебра — 80%/);
+  assert.match(reply!.text, /Геометрія — 43%/);
+  assert.match(reply!.text, /Весна/);
+  assert.doesNotMatch(reply!.text, /Варто підтягнути|Завершено сесій/);
   assert.doesNotMatch(reply!.text, /\b7\b|userId|sessionId/);
 });
 

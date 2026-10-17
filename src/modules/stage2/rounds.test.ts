@@ -165,12 +165,12 @@ test("round completion between authorization and submission prevents a late writ
       () => true, () => "secret"), /completed/);
   }, mock.deps);
 });
-test("new round orders available catalog across formats and keeps all twenty tasks", async () => {
+test("new round keeps the whole catalog, grouped by format", async () => {
   const mock = fixture();
   const originalQuery = mock.connection.query;
   mock.connection.query = async <T>(sql: string, params: unknown[] = []) => {
     if (sql.includes("AND source_round_id IS NULL")) return [];
-    if (sql.includes("FROM order_tasks WHERE")) {
+    if (sql.includes("task_id FROM order_tasks")) {
       return ["order", "find_error", "graph", "matching", "blank"].flatMap((format) => [1, 2, 3, 4].map((task_id) => ({ format, task_id }))) as T[];
     }
     if (sql.includes("WHERE id = ? AND user_id = ?") && params[0] === 11) {
@@ -182,7 +182,41 @@ test("new round orders available catalog across formats and keeps all twenty tas
   const insertedTasks = mock.calls.filter((call) => call.sql.startsWith("INSERT INTO practice_interactive_round_tasks"));
   assert.equal(insertedTasks.length, 20);
   assert.deepEqual(insertedTasks[0].params, [11, 1, "order", 1]);
-  assert.deepEqual(insertedTasks[5].params, [11, 6, "order", 2]);
+  assert.deepEqual(insertedTasks[4].params, [11, 5, "find_error", 1]);
+  assert.deepEqual(insertedTasks[19].params, [11, 20, "blank", 4]);
+});
+
+test("a chosen count samples that many distinct catalog tasks", async () => {
+  const mock = fixture();
+  const catalog = ["order", "find_error", "graph", "matching", "blank"].flatMap((format) =>
+    [1, 2, 3, 4].map((task_id) => ({ format, task_id })),
+  );
+  let openRound = false;
+  const originalQuery = mock.connection.query;
+  mock.connection.query = async <T>(sql: string, params: unknown[] = []) => {
+    if (sql.includes("AND source_round_id IS NULL")) return (openRound ? [{ id: 11 }] : []) as T[];
+    if (sql.includes("task_id FROM order_tasks")) return catalog as T[];
+    if (sql.includes("WHERE id = ? AND user_id = ?") && params[0] === 11) {
+      return [{ id: 11, mode: "diagnostic", source_round_id: null, completed_at: null }] as T[];
+    }
+    return originalQuery<T>(sql, params);
+  };
+  await startRound(1, "diagnostic", mock.deps, 3);
+  openRound = true;
+  await startRound(1, "diagnostic", mock.deps, 3);
+  const insertedTasks = mock.calls.filter((call) => call.sql.startsWith("INSERT INTO practice_interactive_round_tasks"));
+  assert.equal(insertedTasks.length, 6);
+  assert.equal(
+    mock.calls.filter((call) => call.sql.startsWith("UPDATE practice_interactive_rounds SET completed_at")).length,
+    1,
+  );
+  for (const sitting of [insertedTasks.slice(0, 3), insertedTasks.slice(3)]) {
+    const keys = sitting.map((call) => `${call.params[2]}:${call.params[3]}`);
+    assert.equal(new Set(keys).size, 3);
+  }
+  for (const call of insertedTasks) {
+    assert.ok(catalog.some((task) => task.format === call.params[2] && task.task_id === call.params[3]));
+  }
 });
 
 test("stage 2 catalog count returns the bank size and zero without caching an injected read", async () => {

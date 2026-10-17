@@ -40,14 +40,23 @@ type TopicTestStartProps = {
   displayName: string;
   /** False when Stage 2 tables/seed (028–031) are missing — hide interactive tab. */
   interactiveAvailable?: boolean;
+  /** Size of the interactive bank, shown beside the start button. */
+  interactiveBankSize?: number;
+  /** False on the student home, where «Сьогодні» already owns the page title. */
+  showIntro?: boolean;
+  /** Where theme and tab changes are written. The test lives on `/topic`. */
+  basePath?: string;
 };
 
-/** “Тест за обраною темою” — тема + кількість завдань з банку. */
+/** “Тест за темою” — тема + кількість завдань з банку. */
 export function TopicTestStart({
   themes,
   initialThemeId,
   displayName,
   interactiveAvailable = true,
+  interactiveBankSize = 0,
+  showIntro = true,
+  basePath = "/topic",
 }: TopicTestStartProps) {
   const t = useTranslations("TopicTestStart");
   const router = useRouter();
@@ -73,9 +82,9 @@ export function TopicTestStart({
       const params = new URLSearchParams(searchParams.toString());
       params.delete("tab");
       const query = params.toString();
-      router.replace(query ? `/?${query}` : "/", { scroll: false });
+      router.replace(query ? `${basePath}?${query}` : basePath, { scroll: false });
     }
-  }, [wantsInteractive, interactiveAvailable, router, searchParams]);
+  }, [wantsInteractive, interactiveAvailable, router, searchParams, basePath]);
 
   function selectTab(tab: "topics" | "interactive") {
     if (tab === "interactive" && !interactiveAvailable) return;
@@ -83,7 +92,7 @@ export function TopicTestStart({
     if (tab === "interactive") params.set("tab", INTERACTIVE_TAB_PARAM);
     else params.delete("tab");
     const query = params.toString();
-    router.replace(query ? `/?${query}` : "/", { scroll: false });
+    router.replace(query ? `${basePath}?${query}` : basePath, { scroll: false });
   }
 
   const isRedirecting = state.status === "success";
@@ -115,16 +124,8 @@ export function TopicTestStart({
     parsedCount >= 1 &&
     parsedCount <= bankSize;
 
-  return (
-    <PageFrame
-      className={css.frame}
-      title={
-        <>
-          {t("helloStart")} <span className={css.accent}>{displayName}</span>
-        </>
-      }
-      lead={t("lead")}
-    >
+  const body = (
+    <>
       <div className={css.tabs} role="tablist" aria-label={t("tabsAria")}>
         <button
           type="button"
@@ -161,7 +162,7 @@ export function TopicTestStart({
           id="topic-panel-interactive"
           aria-labelledby="topic-tab-interactive"
         >
-          <InteractiveFormatsShowcase embedded />
+          <InteractiveFormatsShowcase embedded bankSize={interactiveBankSize} />
         </div>
       ) : (
         <div
@@ -194,7 +195,9 @@ export function TopicTestStart({
                     setOverrideThemeId(nextId);
                     const params = new URLSearchParams(searchParams.toString());
                     params.set("theme", String(nextId));
-                    router.replace(`/?${params.toString()}`, { scroll: false });
+                    router.replace(`${basePath}?${params.toString()}`, {
+                      scroll: false,
+                    });
                   }}
                 />
               </label>
@@ -266,6 +269,24 @@ export function TopicTestStart({
       </PagePanel>
         </div>
       )}
+    </>
+  );
+
+  if (!showIntro) {
+    return <div className={clsx(css.frame, css.follow)}>{body}</div>;
+  }
+
+  return (
+    <PageFrame
+      className={css.frame}
+      title={
+        <>
+          {t("helloStart")} <span className={css.accent}>{displayName}</span>
+        </>
+      }
+      lead={t("lead")}
+    >
+      {body}
     </PageFrame>
   );
 }

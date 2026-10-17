@@ -1,20 +1,8 @@
-/** Where to send a participant after they save the delivery channel. */
-export function channelSavedPath(input: {
-  slug: string;
-  dayNumber: number | null;
-  dayReady: boolean;
-}): string {
+/** Stay on the marathon page after the delivery toggles are saved. */
+export function channelSavedPath(input: { slug: string }): string {
   const slug = input.slug.trim();
-  if (
-    slug &&
-    input.dayReady &&
-    input.dayNumber != null &&
-    Number.isInteger(input.dayNumber) &&
-    input.dayNumber >= 1
-  ) {
-    return `/marathon/${slug}/day/${input.dayNumber}?saved=1`;
-  }
-  return "/?saved=1";
+  if (!slug) return "/?saved=1";
+  return `/marathon/${slug}/map?saved=1`;
 }
 
 export function withSavedFlag(path: string, saved: boolean): string {

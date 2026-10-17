@@ -17,20 +17,13 @@ function statsConnection(owner: number) {
     release: () => { released++; },
     query: async <T>(sql: string, params: unknown[] = []) => {
       calls.push({ sql, params });
-      assert.doesNotMatch(sql, /right_answer|quiz_tasks|password/i);
-      if (sql.includes("COUNT(*) AS completed")) { assert.deepEqual(params, [owner, 1]); return [{ completed: 4 }] as T[]; }
-      if (sql.includes("FROM themes")) return [{ id: 1, name: "Алгебра", ord: 1 }, { id: 2, name: "Геометрія", ord: 2 }, { id: 3, name: "Функції", ord: 3 }] as T[];
-      if (sql.includes("ROW_NUMBER()")) {
+      if (sql.includes("FROM task_sessions")) {
         assert.equal(params[0], owner);
-        return [
-          { id: 9, theme_id: 2, tasks_number: 10, right_number: 3, time: 100 },
-          { id: 8, theme_id: 1, tasks_number: 10, right_number: 9, time: 100 },
-          { id: 7, theme_id: 1, tasks_number: 10, right_number: 7, time: 100 },
-        ] as T[];
+        return [{ theme_name: "Алгебра", tasks_number: 10, right_number: 8 }, { theme_name: "Алгебра", tasks_number: 10, right_number: 4 }] as T[];
       }
-      if (sql.includes("COALESCE(t.name")) {
+      if (sql.includes("marathon_participants")) {
         assert.equal(params[0], owner);
-        return [{ id: 9, theme_name: "Геометрія", tasks_number: 10, right_number: 3 }, { id: 8, theme_name: "Алгебра", tasks_number: 10, right_number: 9 }] as T[];
+        return [{ title: "Весна" }] as T[];
       }
       assert.fail(sql);
     },
@@ -38,30 +31,33 @@ function statsConnection(owner: number) {
   return { calls, get acquired() { return acquired; }, get released() { return released; }, getConnection: async () => { acquired++; return connection; } };
 }
 
-test("student statistics reuse results services, use one connection and stay owner-scoped", async () => {
+test("student statistics list this week's topic tests and finished marathons", async () => {
   const db = statsConnection(7);
-  const stats = await getTelegramStudentStats(7, db);
+  const stats = await getTelegramStudentStats(7, { ...db, nowSec: () => 1_700_000_000 });
   assert.equal(db.acquired, 1);
   assert.equal(db.released, 1);
+  assert.equal(db.calls.length, 2);
+  assert.equal(db.calls[0]!.params[0], 7);
+  assert.match(db.calls[0]!.sql, /session_type/);
+  assert.match(db.calls[1]!.sql, /marathon_participants/);
   assert.deepEqual(stats, {
-    completedSessions: 4,
-    averagePercent: (80 + 30) / 2,
-    recent: [{ topic: "Геометрія", score: 30 }, { topic: "Алгебра", score: 90 }],
-    topics: [{ name: "Алгебра", percent: 80, lastPercent: 90 }, { name: "Геометрія", percent: 30, lastPercent: 30 }],
-    weakest: [{ name: "Геометрія", percent: 30 }],
+    weekTopics: [{ name: "Алгебра", percent: 80 }],
+    weekMarathons: [{ title: "Весна" }],
   });
   const text = formatTelegramStudentStats(stats);
-  assert.match(text, /🔴 Геометрія — 30%/);
-  assert.doesNotMatch(text, /Функції/, "themes without attempts are not listed as progress");
+  assert.match(text, /Алгебра — 80%/);
+  assert.match(text, /Весна/);
+  assert.doesNotMatch(text, /Функції/);
   await assert.rejects(getTelegramStudentStats(0, db), /Invalid stats owner/);
   await assert.rejects(getTelegramStudentStats(Number.NaN, db));
 });
 
 test("missing statistics produce a friendly empty state", () => {
-  const text = formatTelegramStudentStats({ completedSessions: 0, averagePercent: null, recent: [], topics: [], weakest: [] });
-  assert.match(text, /Поки що немає завершених сесій/);
-  const partial = formatTelegramStudentStats({ completedSessions: 2, averagePercent: null, recent: [], topics: [], weakest: [] });
-  assert.match(partial, /Середній результат: <b>—<\/b>/);
+  const text = formatTelegramStudentStats({ weekTopics: [], weekMarathons: [] });
+  assert.match(text, /немає пройдених тем і завершених марафонів/);
+  const partial = formatTelegramStudentStats({ weekTopics: [{ name: "Алгебра", percent: 80 }], weekMarathons: [] });
+  assert.match(partial, /Алгебра — 80%/);
+  assert.match(partial, /Завершені марафони[\s\S]*Ще немає/);
 });
 
 test("menu edits use editMessageText and fall back to a new message when the original cannot be edited", async () => {

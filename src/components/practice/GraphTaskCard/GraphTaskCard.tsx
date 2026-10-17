@@ -9,21 +9,24 @@ import type { GraphTaskPresentation, GraphTaskReveal } from "@/modules/stage2/gr
 import { Stage2Hints } from "../Stage2Hints";
 import css from "./GraphTaskCard.module.css";
 
-const SIZE = 220;
+const SIZE = 100;
+const PAD = 12;
 
-function toSvg(value: number, min: number, max: number): number {
-  return ((value - min) / (max - min)) * SIZE;
+function toPlot(value: number, min: number, max: number): number {
+  if (max === min) return SIZE / 2;
+  return PAD + ((value - min) / (max - min)) * (SIZE - PAD * 2);
 }
 
-/**
- * The SVG plot is decorative context only — every point is ALSO a real
- * `<button>` below it, so selection never depends on clicking inside the
- * (small, imprecise) SVG hit area and always works with keyboard/screen
- * readers. Never color-only: each button's own visible text ("Обрано" /
- * "Правильно" / "Неправильно" via `aria-pressed` + a text badge) carries the
- * state, color is a reinforcing cue only.
- */
-export function GraphTaskCard({ taskId, roundId, diagnostic = false, onAnswered }: { taskId: number; roundId?: number; diagnostic?: boolean; onAnswered?: () => void }) {
+function axisTicks(min: number, max: number): number[] {
+  const ticks: number[] = [];
+  const span = max - min;
+  const step = span > 16 ? 2 : 1;
+  for (let n = Math.ceil(min / step) * step; n <= max; n += step) ticks.push(n);
+  return ticks;
+}
+
+/** Points on the plot are the buttons. The grid is decorative. The label and aria-pressed carry the state; color only reinforces it. */
+export function GraphTaskCard({ taskId, roundId, diagnostic = false, quiet = false, submitLabel, onAnswered }: { taskId: number; roundId?: number; diagnostic?: boolean; quiet?: boolean; submitLabel?: string; onAnswered?: () => void }) {
   const t = useTranslations("Stage2");
   const [task, setTask] = useState<GraphTaskPresentation | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -94,69 +97,82 @@ export function GraphTaskCard({ taskId, roundId, diagnostic = false, onAnswered 
     }
   }
 
+  const min = Number(task.axisMin);
+  const max = Number(task.axisMax);
+  const numberLine = task.points.length > 0 && task.points.every((point) => Number(point.y) === Number(task.points[0]?.y));
+  const zeroInside = min <= 0 && max >= 0;
+
   return (
     <div className={css.wrap}>
       <h3>{task.name}</h3>
       <MathText text={task.taskText} />
 
-      <div className={css.svgWrap} aria-hidden="true">
-        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className={css.svg}>
-          <line x1={0} y1={SIZE / 2} x2={SIZE} y2={SIZE / 2} className={css.axis} />
-          <line x1={SIZE / 2} y1={0} x2={SIZE / 2} y2={SIZE} className={css.axis} />
+      <p className={css.graphHelp}>{t("graphClick")}</p>
+      <div className={css.plotScroll}>
+      <div className={numberLine ? css.plotLine : css.plot}>
+        <svg viewBox={`0 0 ${SIZE} ${numberLine ? 42 : SIZE}`} className={css.svg} preserveAspectRatio="none" aria-hidden="true">
+          {numberLine ? (
+            <line x1={PAD} y1={21} x2={SIZE - PAD} y2={21} className={css.axis} />
+          ) : (
+            axisTicks(min, max).map((tick) => {
+              const x = toPlot(tick, min, max);
+              const y = SIZE - toPlot(tick, min, max);
+              return (
+                <g key={tick}>
+                  <line x1={x} y1={PAD} x2={x} y2={SIZE - PAD} className={css.grid} />
+                  <line x1={PAD} y1={y} x2={SIZE - PAD} y2={y} className={css.grid} />
+                </g>
+              );
+            })
+          )}
+          {!numberLine && zeroInside ? (
+            <>
+              <line x1={PAD} y1={SIZE - toPlot(0, min, max)} x2={SIZE - PAD} y2={SIZE - toPlot(0, min, max)} className={css.axis} />
+              <line x1={toPlot(0, min, max)} y1={PAD} x2={toPlot(0, min, max)} y2={SIZE - PAD} className={css.axis} />
+            </>
+          ) : null}
+          {numberLine
+            ? axisTicks(min, max).map((tick) => (
+                <line key={tick} x1={toPlot(tick, min, max)} y1={18} x2={toPlot(tick, min, max)} y2={24} className={css.axis} />
+              ))
+            : null}
+        </svg>
+        <div className={css.hits} role="group" aria-label={t("graphPointsLabel")}>
           {task.points.map((p) => {
-            const cx = toSvg(p.x, task.axisMin, task.axisMax);
-            const cy = SIZE - toSvg(p.y, task.axisMin, task.axisMax);
+            const x = Number(p.x);
+            const y = Number(p.y);
             const isSelected = selected.has(p.id);
             const isCorrect = revealed && correctSet.has(p.id);
             const isWrong = revealed && isSelected && !correctSet.has(p.id);
+            const top = numberLine ? 50 : SIZE - toPlot(y, min, max);
+            const labelBelow = !numberLine && top < 18;
             return (
-              <g key={p.id}>
-                <circle
-                  cx={cx}
-                  cy={cy}
-                  r={7}
-                  className={clsx(
-                    css.dot,
-                    isSelected && css.dotSelected,
-                    isCorrect && css.dotCorrect,
-                    isWrong && css.dotWrong,
-                  )}
-                />
-                <text x={cx + 9} y={cy - 6} className={css.pointLabel}>
-                  {p.label}
-                </text>
-              </g>
+              <button
+                key={p.id}
+                type="button"
+                disabled={isLocked || checking}
+                className={clsx(
+                  css.hit,
+                  isSelected && css.hitSelected,
+                  isCorrect && css.hitCorrect,
+                  isWrong && css.hitWrong,
+                )}
+                style={{ left: `${toPlot(x, min, max)}%`, top: `${top}%` }}
+                onClick={() => toggle(p.id)}
+                aria-pressed={isSelected}
+                aria-label={`${p.label} (${x}; ${y})`}
+              >
+                <span className={css.hitDot} aria-hidden="true" />
+                <span className={labelBelow ? css.hitLabelBelow : css.hitLabel}>{p.label}</span>
+                {isSelected ? <span className={css.srOnly}>{t("selectedBadge")}</span> : null}
+              </button>
             );
           })}
-        </svg>
+        </div>
+      </div>
       </div>
 
-      <div className={css.points} role="group" aria-label={t("graphPointsLabel")}>
-        {task.points.map((p) => {
-          const isSelected = selected.has(p.id);
-          const isCorrect = revealed && correctSet.has(p.id);
-          const isWrong = revealed && isSelected && !correctSet.has(p.id);
-          return (
-            <button
-              key={p.id}
-              type="button"
-              disabled={isLocked || checking}
-              className={clsx(
-                css.point,
-                isSelected && css.pointSelected,
-                isCorrect && css.pointCorrect,
-                isWrong && css.pointWrong,
-              )}
-              onClick={() => toggle(p.id)}
-              aria-pressed={isSelected}
-            >
-              {p.label} ({p.x}; {p.y}){isSelected ? ` — ${t("selectedBadge")}` : ""}
-            </button>
-          );
-        })}
-      </div>
-
-      {result ? (
+      {result && !quiet ? (
         <p role="status">
           {diagnostic ? t("answerSaved") : result.correct
             ? t("correct")
@@ -165,13 +181,13 @@ export function GraphTaskCard({ taskId, roundId, diagnostic = false, onAnswered 
               : t("incorrectLocked")}
         </p>
       ) : null}
-      {revealed?.explanation ? <MathText text={revealed.explanation} /> : null}
-      {result?.retryAvailable && !diagnostic ? <Stage2Hints format="graph" taskId={taskId} roundId={roundId} /> : null}
+      {revealed?.explanation && !quiet ? <MathText text={revealed.explanation} /> : null}
+      {result?.retryAvailable && !diagnostic && !quiet ? <Stage2Hints format="graph" taskId={taskId} roundId={roundId} /> : null}
       {error ? <p role="alert">{error}</p> : null}
 
       {!isLocked ? (
         <button type="button" className={css.checkButton} onClick={handleCheck} disabled={checking}>
-          {checking ? t("checking") : t("check")}
+          {checking ? t("checking") : submitLabel ?? t("check")}
         </button>
       ) : null}
     </div>

@@ -9,8 +9,8 @@ async function act(work: (userId: number) => Promise<RoundSnapshot>): Promise<Ro
   try { return { status: "success", round: await work(await requireSessionUserId()) }; }
   catch (error) { return { status: "error", code: error instanceof RoundError ? error.code : "generic" }; }
 }
-export async function startRoundAction(mode: RoundMode): Promise<RoundActionResult> {
-  return act((userId) => startRound(userId, mode));
+export async function startRoundAction(mode: RoundMode, taskCount?: number): Promise<RoundActionResult> {
+  return act((userId) => startRound(userId, mode, undefined, taskCount));
 }
 export async function getRoundAction(roundId: number): Promise<RoundActionResult> {
   return act((userId) => getRound(userId, roundId));

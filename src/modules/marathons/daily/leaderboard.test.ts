@@ -67,7 +67,7 @@ test("rank messages use the tone template and the new place, not the email", () 
     day: 3,
   });
   assert.match(up, /Молодець, Марія К\./);
-  assert.match(up, /Піднявся на 2 місце/);
+  assert.match(up, /Нове місце — 2/);
   assert.match(up, /було 5/);
   assert.match(up, /7 балів/);
   assert.equal(up.includes("@"), false);
@@ -79,7 +79,7 @@ test("rank messages use the tone template and the new place, not the email", () 
     points: 3,
     day: 1,
   }));
-  assert.match(down, /опустився на 4 місце/);
+  assert.match(down, /місце тепер 4/);
   assert.match(down, /було 2/);
 
   const first = rankNoticeText(null, {
@@ -89,7 +89,7 @@ test("rank messages use the tone template and the new place, not the email", () 
     points: 2,
     day: 1,
   });
-  assert.match(first, /першому місці/);
+  assert.match(first, /Перше місце/);
 
   const same = rankNoticeText(null, {
     name: "Іра",
@@ -108,8 +108,7 @@ test("rank messages use the tone template and the new place, not the email", () 
     day: 2,
     link: "https://nmt.in.ua/marathon/math-5/day/2",
   }));
-  assert.match(nudge, /Може покращимо своє місце/);
-  assert.match(nudge, /6 місці/);
+  assert.match(nudge, /Зараз місце 6/);
   assert.match(nudge, /https:\/\/nmt\.in\.ua\/marathon\/math-5\/day\/2/);
 });
 

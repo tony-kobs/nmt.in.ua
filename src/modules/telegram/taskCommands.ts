@@ -1,4 +1,4 @@
-import { SESSION_STATUS_CREATED } from "@/modules/sessions/types";
+import { SESSION_STATUS_CREATED, SESSION_TYPE_AUTO, SESSION_TYPE_MENTOR } from "@/modules/sessions/types";
 import type { TelegramTaskSession } from "./tasks";
 import { cleanTitle, effectiveDeadline, formatKyivDateTime, html } from "./ui";
 
@@ -7,13 +7,19 @@ export function formatTelegramTasks(sessions: TelegramTaskSession[], today: bool
   if (!sessions.length) {
     return today
       ? "📅 На сьогодні завдань немає."
-      : "📚 Зараз у вас немає актуальних завдань.";
+      : "📚 Завдань від викладача чи платформи зараз немає.";
   }
-  let text = today ? "<b>📅 Завдання на сьогодні</b>" : "<b>📚 Ваші завдання</b>";
+  let text = today ? "<b>📅 Завдання на сьогодні</b>" : "<b>📚 Мої завдання</b>";
   for (const [index, session] of sessions.entries()) {
     const status = session.status === SESSION_STATUS_CREATED ? "Створено" : "Заплановано";
+    const source = session.sessionType === SESSION_TYPE_MENTOR
+      ? "Від викладача"
+      : session.sessionType === SESSION_TYPE_AUTO
+        ? "Пропозиція платформи"
+        : "";
     const deadline = effectiveDeadline(session);
     const entry = `\n\n<b>${index + 1}. ${html(cleanTitle(session.themeName))}</b>` +
+      (source ? `\n${source}` : "") +
       `\nВиконано: ${session.completedTaskCount}/${session.taskCount} · ${status}` +
       (deadline ? `\n⏰ Термін: ${formatKyivDateTime(deadline)}` : "") +
       (reference ? `\nЗавершити: /done ${reference(session.sessionId)}` : "");
