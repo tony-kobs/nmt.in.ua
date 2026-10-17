@@ -1,28 +1,27 @@
 import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
-import { getRecentResults } from "@/modules/results/getRecentResults";
-import { compareByWorstScore } from "@/modules/results/teacherStudentResults";
-import { getScoreLevel } from "@/modules/results/types";
-import { getStudentTopicStats } from "@/modules/recommendations/getStudentTopicStats";
-import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
+import { nowUnixSec } from "@/modules/testing/sessionElapsed";
+import {
+  SESSION_STATUS_COMPLETED,
+  SESSION_TYPE_USER,
+  sessionPercent,
+} from "@/modules/sessions/types";
 import { loadTelegramConnection } from "./schema";
+import { getKyivWeekInterval } from "./taskDay";
 import { cleanTitle, html } from "./ui";
 
-export const STATS_RECENT_LIMIT = 5;
-export const STATS_TOPIC_LIMIT = 10;
-export const STATS_WEAK_LIMIT = 3;
-/** Below the "high" score level of /results — worth another round. */
-const WEAK_BELOW_PERCENT = 70;
+export type TelegramWeekTopic = { name: string; percent: number };
+export type TelegramWeekMarathon = { title: string };
 
 export type TelegramStudentStats = {
-  completedSessions: number;
-  averagePercent: number | null;
-  recent: { topic: string; score: number }[];
-  topics: { name: string; percent: number; lastPercent: number | null }[];
-  weakest: { name: string; percent: number }[];
+  weekTopics: TelegramWeekTopic[];
+  weekMarathons: TelegramWeekMarathon[];
 };
 
-type Deps = { getConnection: () => Promise<SqlConnection> };
+type Deps = {
+  getConnection: () => Promise<SqlConnection>;
+  nowSec?: () => number;
+};
 
 /**
  * Read-only progress for one already-verified app user. The caller resolves the user from the
@@ -34,68 +33,57 @@ export async function getTelegramStudentStats(
 ): Promise<TelegramStudentStats> {
   if (!Number.isSafeInteger(userId) || userId <= 0) throw new Error("Invalid stats owner.");
   const connection = await deps.getConnection();
-  const borrowed: SqlConnection = { ...connection, release: () => {} };
-  const shared = { getConnection: async () => borrowed };
+  const week = getKyivWeekInterval((deps.nowSec ?? nowUnixSec)());
   try {
-    const counts = await connection.query<{ completed: number | string }>(
-      "SELECT COUNT(*) AS completed FROM task_sessions WHERE user_id = ? AND session_status = ?",
-      [userId, SESSION_STATUS_COMPLETED],
+    const topics = await connection.query<{ theme_name: string | null; tasks_number: number; right_number: number }>(
+      `SELECT t.name AS theme_name, ts.tasks_number, ts.right_number
+       FROM task_sessions ts
+       LEFT JOIN themes t ON t.id = ts.theme_id
+       WHERE ts.user_id = ? AND ts.session_type = ? AND ts.session_status = ?
+         AND ts.start_time >= ? AND ts.start_time < ?
+       ORDER BY ts.id DESC
+       LIMIT 20`,
+      [userId, SESSION_TYPE_USER, SESSION_STATUS_COMPLETED, week.startSec, week.endSec],
     );
-    const topicStats = await getStudentTopicStats(userId, shared);
-    const recent = await getRecentResults(userId, STATS_RECENT_LIMIT, shared);
-    const scored = topicStats.topicScores
-      .filter((row) => row.overallPercent !== null)
-      .map((row) => ({ name: cleanTitle(row.themeName, "Тема"), percent: row.overallPercent as number, lastPercent: row.lastPercent }));
-    const averagePercent = scored.length
-      ? scored.reduce((sum, row) => sum + row.percent, 0) / scored.length
-      : null;
-    const weakest = scored
-      .filter((row) => row.percent < WEAK_BELOW_PERCENT)
-      .sort((a, b) => compareByWorstScore(a.percent, b.percent))
-      .slice(0, STATS_WEAK_LIMIT)
-      .map(({ name, percent }) => ({ name, percent }));
+    const marathons = await connection.query<{ title: string | null }>(
+      `SELECT m.title
+       FROM marathon_participants p
+       INNER JOIN marathons m ON m.id = p.marathon_id
+       WHERE p.user_id = ? AND p.finished_at IS NOT NULL
+         AND p.finished_at >= FROM_UNIXTIME(?) AND p.finished_at < FROM_UNIXTIME(?)
+       ORDER BY p.finished_at DESC
+       LIMIT 10`,
+      [userId, week.startSec, week.endSec],
+    );
+    const seen = new Set<string>();
+    const weekTopics: TelegramWeekTopic[] = [];
+    for (const row of topics) {
+      const name = cleanTitle(row.theme_name, "Тема");
+      if (seen.has(name)) continue;
+      seen.add(name);
+      const score = sessionPercent(Number(row.tasks_number), Number(row.right_number));
+      weekTopics.push({ name, percent: score === null ? 0 : Math.round(score) });
+    }
     return {
-      completedSessions: Number(counts[0]?.completed) || 0,
-      averagePercent,
-      recent: recent.map((item) => ({ topic: cleanTitle(item.topic, "Тема"), score: item.score })),
-      topics: scored.slice(0, STATS_TOPIC_LIMIT),
-      weakest,
+      weekTopics,
+      weekMarathons: marathons.map((row) => ({ title: cleanTitle(row.title, "Марафон") })),
     };
   } finally {
     connection.release();
   }
 }
 
-const levelIcon = { high: "🟢", medium: "🟡", low: "🔴", none: "⚪️" } as const;
-
-function percent(value: number): string {
-  return `${Math.round(value)}%`;
-}
-
 export function formatTelegramStudentStats(stats: TelegramStudentStats): string {
-  if (stats.completedSessions === 0 && stats.recent.length === 0 && stats.topics.length === 0) {
-    return "<b>📊 Моя статистика</b>\n\nПоки що немає завершених сесій. Пройдіть першу тему на nmt.in.ua — і тут з’явиться ваш прогрес.";
+  const lines = ["<b>📊 Моя статистика</b>", "", "Цей тиждень, понеділок–неділя за Києвом."];
+  if (stats.weekTopics.length === 0 && stats.weekMarathons.length === 0) {
+    lines.push("", "Цього тижня ще немає пройдених тем і завершених марафонів.");
+    return lines.join("\n");
   }
-  const lines = [
-    "<b>📊 Моя статистика</b>",
-    "",
-    `✅ Завершено сесій: <b>${stats.completedSessions}</b>`,
-    `📈 Середній результат: <b>${stats.averagePercent === null ? "—" : percent(stats.averagePercent)}</b>`,
-  ];
-  if (stats.recent.length) {
-    lines.push("", "<b>Останні результати</b>");
-    for (const item of stats.recent) lines.push(`• ${html(item.topic)} — ${item.score}%`);
-  }
-  if (stats.topics.length) {
-    lines.push("", "<b>Прогрес за темами</b>");
-    for (const topic of stats.topics) {
-      const last = topic.lastPercent === null ? "" : ` (остання спроба ${percent(topic.lastPercent)})`;
-      lines.push(`${levelIcon[getScoreLevel(topic.percent)]} ${html(topic.name)} — ${percent(topic.percent)}${last}`);
-    }
-  }
-  if (stats.weakest.length) {
-    lines.push("", "<b>🎯 Варто підтягнути</b>");
-    for (const topic of stats.weakest) lines.push(`• ${html(topic.name)} — ${percent(topic.percent)}`);
-  }
+  lines.push("", "<b>Пройдені теми</b>");
+  if (stats.weekTopics.length === 0) lines.push("Ще немає.");
+  for (const topic of stats.weekTopics) lines.push(`• ${html(topic.name)} — ${topic.percent}%`);
+  lines.push("", "<b>Завершені марафони</b>");
+  if (stats.weekMarathons.length === 0) lines.push("Ще немає.");
+  for (const marathon of stats.weekMarathons) lines.push(`• ${html(marathon.title)}`);
   return lines.join("\n");
 }

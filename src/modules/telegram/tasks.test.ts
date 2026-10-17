@@ -76,25 +76,49 @@ function update(text: string, id = 123) {
 }
 
 test("task commands use the real service with owned tasks and safe empty states", async () => {
-  const db = database([session(1), session(2, { user_id: 8, theme_name: "Private geometry" })]);
-  const deps = { consume: async () => false, getTasks: (id: unknown) => getTelegramTaskSessions(id, db.deps), getTodayTasks: (id: unknown) => getTelegramTodayTaskSessions(id, db.deps) };
-  for (const command of ["/tasks", "/today", "/tasks@example_bot", "/today@example_bot"]) {
+  const db = database([session(1, { session_type: 3 }), session(2, { user_id: 8, theme_name: "Private geometry" })]);
+  const deps = {
+    consume: async () => false,
+    getProfile: async () => ({ status: "success" as const, profile: { accountId: 1, userId: 7, role: "student" as const, displayName: "Іра", linkedAt: null } }),
+    getTasks: (id: unknown) => getTelegramTaskSessions(id, db.deps),
+    menu: {
+      loadToday: async () => ({
+        assignments: [],
+        assignmentsMore: 0,
+        marathon: null,
+        join: null,
+        linkedToTeacher: true,
+        advice: null,
+        diagnostic: { kind: "offer" as const },
+      }),
+    },
+  };
+  for (const command of ["/tasks", "/tasks@example_bot"]) {
     const reply = await handleTelegramUpdate(update(command), deps);
     assert.equal(reply?.chatId, "123");
     assert.match(reply!.text, /Algebra/);
+    assert.match(reply!.text, /Від викладача/);
     assert.doesNotMatch(reply!.text, /Private geometry|sessionId|themeId/);
   }
+  for (const command of ["/today", "/today@example_bot"]) {
+    const reply = await handleTelegramUpdate(update(command), deps);
+    assert.match(reply!.text, /Тест за темою/);
+    assert.equal(reply!.replyMarkup!.inline_keyboard[0]![0]!.callback_data, "mh:quiz");
+  }
   const empty = database();
-  const emptyDeps = { ...deps, getTasks: (id: unknown) => getTelegramTaskSessions(id, empty.deps), getTodayTasks: (id: unknown) => getTelegramTodayTaskSessions(id, empty.deps) };
-  assert.match((await handleTelegramUpdate(update("/tasks"), emptyDeps))!.text, /немає актуальних/);
-  assert.match((await handleTelegramUpdate(update("/today"), emptyDeps))!.text, /На сьогодні завдань немає/);
-  const tomorrow = database([session(3, { expire_time: now + 86400 })]);
-  assert.match((await handleTelegramUpdate(update("/today"), { ...deps, getTodayTasks: (id: unknown) => getTelegramTodayTaskSessions(id, tomorrow.deps) }))!.text, /На сьогодні завдань немає/);
+  const emptyDeps = { ...deps, getTasks: (id: unknown) => getTelegramTaskSessions(id, empty.deps) };
+  assert.match((await handleTelegramUpdate(update("/tasks"), emptyDeps))!.text, /від викладача чи платформи/);
 });
 
 test("both task commands reject unlinked identities and safely report logged storage failures", async () => {
-  const db = database([session(1)]);
-  const deps = { consume: async () => false, getTasks: (id: unknown) => getTelegramTaskSessions(id, db.deps), getTodayTasks: (id: unknown) => getTelegramTodayTaskSessions(id, db.deps) };
+  const db = database([session(1, { session_type: 3 })]);
+  const student = { status: "success" as const, profile: { accountId: 1, userId: 7, role: "student" as const, displayName: "Іра", linkedAt: null } };
+  const deps = {
+    consume: async () => false,
+    getProfile: async () => ({ status: "error" as const, code: "notLinked" as const }),
+    getTasks: (id: unknown) => getTelegramTaskSessions(id, db.deps),
+    menu: { loadToday: async () => { throw new Error("unused"); } },
+  };
   for (const command of ["/tasks", "/today"]) {
     const reply = await handleTelegramUpdate(update(command, 789), deps);
     assert.match(reply!.text, /Спочатку підключіть Telegram/);
@@ -102,11 +126,16 @@ test("both task commands reject unlinked identities and safely report logged sto
   }
   const error = new Error("private SQL credentials");
   db.fail(error);
-  for (const command of ["/tasks", "/today"]) {
-    const reply = await handleTelegramUpdate(update(command), deps);
-    assert.equal(reply!.text, "Не вдалося отримати завдання. Спробуйте пізніше.");
-  }
-  assert.deepEqual(db.logs, [error, error]);
+  const failing = {
+    ...deps,
+    getProfile: async () => student,
+    menu: { loadToday: async () => { throw error; } },
+  };
+  const tasksReply = await handleTelegramUpdate(update("/tasks"), failing);
+  assert.equal(tasksReply!.text, "Не вдалося отримати завдання. Спробуйте пізніше.");
+  const todayReply = await handleTelegramUpdate(update("/today"), failing);
+  assert.equal(todayReply!.text, "Не вдалося виконати дію. Спробуйте пізніше.");
+  assert.deepEqual(db.logs, [error]);
 });
 
 test("invalid task updates and unsupported commands never retrieve tasks", async () => {

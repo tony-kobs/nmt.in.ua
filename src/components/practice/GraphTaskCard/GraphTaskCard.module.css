@@ -4,97 +4,151 @@
   gap: 14px;
 }
 
-.svgWrap {
-  max-width: 360px;
+.graphHelp {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-small);
+}
+
+.plotScroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.plot,
+.plotLine {
+  position: relative;
+  width: 36rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.plot {
+  aspect-ratio: 1;
+}
+
+.plotLine {
+  aspect-ratio: 2.4 / 1;
 }
 
 .svg {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
+  height: 100%;
+  pointer-events: none;
+}
+
+.grid {
+  stroke: var(--line-soft);
+  stroke-width: 0.4;
 }
 
 .axis {
   stroke: var(--muted);
-  stroke-width: 1;
+  stroke-width: 0.7;
 }
 
-.dot {
-  fill: var(--surface);
-  stroke: var(--border);
-  stroke-width: 2;
+.hits {
+  position: absolute;
+  inset: 0;
 }
 
-.dotSelected {
-  stroke: var(--blue);
-  fill: var(--blue-soft);
-}
-
-.dotCorrect {
-  stroke: var(--green);
-  fill: var(--green-bg);
-}
-
-.dotWrong {
-  stroke: crimson;
-  fill: color-mix(in srgb, crimson 12%, var(--surface));
-}
-
-.pointLabel {
-  fill: var(--ink, currentColor);
-  font-size: 9px;
-}
-
-.points {
+.hit {
+  position: absolute;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.point {
-  min-height: 44px;
-  min-width: 44px;
-  padding: 8px 14px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-muted);
-  font-weight: 700;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  transform: translate(-50%, -50%);
   cursor: pointer;
 }
 
-.point:disabled {
-  cursor: not-allowed;
+.hit:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
 }
 
-.point:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--green) 45%, transparent);
-  outline-offset: 2px;
+.hit:disabled {
+  cursor: default;
 }
 
-.pointSelected {
-  border-color: var(--blue);
-  background: var(--blue-soft);
+.hitDot {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--green-dark);
+  border-radius: 50%;
+  background: var(--surface);
 }
 
-.pointCorrect {
+.hitLabel,
+.hitLabelBelow {
+  position: absolute;
+  left: 50%;
+  color: var(--ink);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  line-height: 1;
+  transform: translateX(-50%);
+}
+
+.hitLabel {
+  bottom: 32px;
+}
+
+.hitLabelBelow {
+  top: 32px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.hitSelected .hitDot {
   border-color: var(--green);
-  background: var(--green-bg);
+  background: var(--green);
 }
 
-.pointWrong {
-  border-color: color-mix(in srgb, crimson 55%, var(--border));
-  background: color-mix(in srgb, crimson 10%, var(--surface));
+.hitCorrect .hitDot {
+  border-color: var(--green-dark);
+  background: var(--green-bg);
+  box-shadow: 0 0 0 3px var(--green-soft);
+}
+
+.hitWrong .hitDot {
+  border-color: #9a4a3a;
+  background: #f3d2c8;
 }
 
 .checkButton {
   align-self: flex-start;
   min-height: 44px;
-  padding: 10px 20px;
-  border: 2px solid var(--green);
-  border-radius: 10px;
-  background: var(--green-bg);
-  color: var(--green-dark);
+  padding: 10px 22px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--grad-brand);
+  color: var(--surface);
   font-weight: 700;
   cursor: pointer;
+}
+
+.checkButton:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
 }
 
 .checkButton:disabled {

@@ -48,7 +48,12 @@ export async function generateMetadata() {
 }
 
 type HomePageProps = {
-  searchParams: Promise<{ theme?: string | string[]; page?: string | string[]; saved?: string | string[] }>;
+  searchParams: Promise<{
+    theme?: string | string[];
+    tab?: string | string[];
+    page?: string | string[];
+    saved?: string | string[];
+  }>;
 };
 
 function readThemeParam(
@@ -83,6 +88,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   }
 
   const initialThemeId = parseThemeQueryParam(readThemeParam(params.theme));
+  const initialTab = readThemeParam(params.tab);
   const initialPage = readPageParam(params.page);
   const saved = readThemeParam(params.saved) === "1";
   const [{ CabinetHome }, needsCookieUpgrade] = await Promise.all([
@@ -101,6 +107,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         displayName={user.displayName}
         user={user}
         initialThemeId={initialThemeId}
+        initialTab={initialTab}
         initialPage={initialPage}
         needsCookieUpgrade={needsCookieUpgrade}
         saved={saved}

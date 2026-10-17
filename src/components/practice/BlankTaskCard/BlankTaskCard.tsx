@@ -4,21 +4,33 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { useTranslations } from "next-intl";
 import { MathText } from "@/components/ui/MathText";
+import { parseMathText } from "@/components/ui/MathText/parseMathText";
 import { getBlankTaskAction, submitBlankTaskAction } from "@/modules/stage2/actions";
 import type { BlankReveal, BlankTaskPresentation } from "@/modules/stage2/blankTask";
 import { Stage2Hints } from "../Stage2Hints";
 import css from "./BlankTaskCard.module.css";
 
-/**
- * Simplification (documented, not silently assumed): the task text's
- * `{{N}}` placeholders are shown as literal text via `MathText` — inline
- * math (KaTeX) rendering does not support embedding a live `<input>` inside
- * a formula, so each blank instead gets its own clearly-labeled input below
- * the full problem text ("Пропуск 1", "Пропуск 2", ...) rather than being
- * spliced into the exact glyph position. Every blank still checks
- * independently.
- */
-export function BlankTaskCard({ taskId, roundId, diagnostic = false, onAnswered }: { taskId: number; roundId?: number; diagnostic?: boolean; onAnswered?: () => void }) {
+type BlankBit = { kind: "text"; value: string } | { kind: "blank"; ord: number };
+
+function normalizePlaceholders(text: string): string {
+  return text.replace(/\\{\\{(\d+)\\}\\}/g, "{{$1}}");
+}
+
+function splitPlaceholders(text: string): BlankBit[] {
+  const bits: BlankBit[] = [];
+  const pattern = /\{\{(\d+)\}\}/g;
+  let last = 0;
+  for (const match of text.matchAll(pattern)) {
+    const index = match.index ?? 0;
+    if (index > last) bits.push({ kind: "text", value: text.slice(last, index) });
+    bits.push({ kind: "blank", ord: Number(match[1]) });
+    last = index + match[0].length;
+  }
+  if (last < text.length) bits.push({ kind: "text", value: text.slice(last) });
+  return bits;
+}
+
+export function BlankTaskCard({ taskId, roundId, diagnostic = false, quiet = false, submitLabel, onAnswered }: { taskId: number; roundId?: number; diagnostic?: boolean; quiet?: boolean; submitLabel?: string; onAnswered?: () => void }) {
   const t = useTranslations("Stage2");
   const [task, setTask] = useState<BlankTaskPresentation | null>(null);
   const [values, setValues] = useState<Record<number, string>>({});
@@ -74,11 +86,38 @@ export function BlankTaskCard({ taskId, roundId, diagnostic = false, onAnswered 
     }
   }
 
+  const lines = normalizePlaceholders(task.taskText)
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  function blankField(ord: number, key: string) {
+    const isOk = result?.perBlank[ord] === true;
+    const isBad = result != null && result.perBlank[ord] === false;
+    const showMark = result != null && !quiet;
+    return (
+      <label key={key} className={css.field}>
+        <input
+          className={clsx(css.input, showMark && isOk && css.inputOk, showMark && isBad && css.inputBad)}
+          value={values[ord] ?? ""}
+          disabled={isLocked}
+          onChange={(event) => setValues((prev) => ({ ...prev, [ord]: event.target.value }))}
+          autoComplete="off"
+          inputMode="text"
+          aria-label={t("blankLabel", { ord })}
+        />
+        {showMark ? (
+          <span className={css.blankStatus}>
+            {isOk ? t("correct") : result?.revealed?.correctByOrd[ord]}
+          </span>
+        ) : null}
+      </label>
+    );
+  }
+
   return (
     <div className={css.wrap}>
       <h3>{task.name}</h3>
-      <MathText text={task.taskText} />
-
       <form
         className={css.form}
         onSubmit={(event) => {
@@ -86,36 +125,40 @@ export function BlankTaskCard({ taskId, roundId, diagnostic = false, onAnswered 
           void handleCheck();
         }}
       >
-        <div className={css.blanksRow}>
-          {task.blankOrds.map((ord) => {
-            const isOk = result?.perBlank[ord] === true;
-            const isBad = result != null && result.perBlank[ord] === false;
+        <div className={css.sentence}>
+          {lines.map((line, lineIndex) => {
+            const parts = parseMathText(line);
             return (
-              <label key={ord} className={css.field}>
-                <span className={css.label}>{t("blankLabel", { ord })}</span>
-                <input
-                  className={clsx(css.input, isOk && css.inputOk, isBad && css.inputBad)}
-                  value={values[ord] ?? ""}
-                  disabled={isLocked}
-                  onChange={(event) =>
-                    setValues((prev) => ({ ...prev, [ord]: event.target.value }))
+              <div key={lineIndex} className={css.equation}>
+                {parts.map((part, index) => {
+                  const bits = splitPlaceholders(part.content);
+                  const hasBlank = bits.some((bit) => bit.kind === "blank");
+                  if (part.type === "formula" && !hasBlank) {
+                    const wrapped = part.displayMode ? `$$${part.content}$$` : `$${part.content}$`;
+                    return <MathText key={index} text={wrapped} />;
                   }
-                  autoComplete="off"
-                  inputMode="text"
-                  aria-label={t("blankLabel", { ord })}
-                />
-                {result ? (
-                  <span className={css.blankStatus}>
-                    {isOk ? t("correct") : t("incorrect")}
-                    {result.revealed ? ` — ${result.revealed.correctByOrd[ord]}` : ""}
-                  </span>
-                ) : null}
-              </label>
+                  return (
+                    <span key={index} className={css.chunk}>
+                      {bits.map((bit, bitIndex) => {
+                        if (bit.kind === "blank") return blankField(bit.ord, `${lineIndex}-${index}-${bitIndex}`);
+                        const value = bit.value.trim();
+                        if (!value) return null;
+                        return (
+                          <MathText
+                            key={`${index}-${bitIndex}`}
+                            text={part.type === "formula" ? `$${bit.value}$` : bit.value}
+                          />
+                        );
+                      })}
+                    </span>
+                  );
+                })}
+              </div>
             );
           })}
         </div>
 
-        {result ? (
+        {result && !quiet ? (
           <p role="status">
             {diagnostic ? t("answerSaved") : result.correct
               ? t("correct")
@@ -124,13 +167,13 @@ export function BlankTaskCard({ taskId, roundId, diagnostic = false, onAnswered 
                 : t("incorrectLocked")}
           </p>
         ) : null}
-        {result?.revealed?.explanation ? <MathText text={result.revealed.explanation} /> : null}
-        {result?.retryAvailable && !diagnostic ? <Stage2Hints format="blank" taskId={taskId} roundId={roundId} /> : null}
-      {error ? <p role="alert">{error}</p> : null}
+        {result?.revealed?.explanation && !quiet ? <MathText text={result.revealed.explanation} /> : null}
+        {result?.retryAvailable && !diagnostic && !quiet ? <Stage2Hints format="blank" taskId={taskId} roundId={roundId} /> : null}
+        {error ? <p role="alert">{error}</p> : null}
 
         {!isLocked ? (
           <button type="submit" className={css.checkButton} disabled={checking || !ready}>
-            {checking ? t("checking") : t("check")}
+            {checking ? t("checking") : submitLabel ?? t("check")}
           </button>
         ) : null}
       </form>

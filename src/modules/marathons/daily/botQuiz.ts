@@ -12,6 +12,10 @@ import {
   TASK_STATUS_INCORRECT,
   TASK_STATUS_UNANSWERED,
 } from "@/modules/testing/types";
+import {
+  SESSION_STATUS_COMPLETED,
+  SESSION_TYPE_USER,
+} from "@/modules/sessions/types";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
 import { composeTelegramTask } from "@/modules/telegram/taskRender";
 import { mainMenuDataButton } from "@/modules/telegram/ui";
@@ -23,7 +27,7 @@ const LETTERS = ["А", "Б", "В", "Г"] as const;
 
 type QuizCallback = Extract<
   BotCallback,
-  { kind: "quiz" | "quizPage" | "quizTheme" | "quizStart" | "quizResume" | "quizAnswer" }
+  { kind: "quiz" | "quizPage" | "quizTheme" | "quizStart" | "quizResume" | "quizReview" | "quizAnswer" }
 >;
 
 export function isQuizCallback(callback: BotCallback): callback is QuizCallback {
@@ -32,7 +36,8 @@ export function isQuizCallback(callback: BotCallback): callback is QuizCallback 
     || callback.kind === "quizPage"
     || callback.kind === "quizTheme"
     || callback.kind === "quizStart"
-    || callback.kind === "quizResume"
+    ||     callback.kind === "quizResume"
+    || callback.kind === "quizReview"
     || callback.kind === "quizAnswer"
   );
 }
@@ -48,6 +53,17 @@ export function quizCountChoices(bankSize: number): number[] {
 
 function note(text: string, buttons?: Outgoing["buttons"]): Outgoing[] {
   return [{ text, ...(buttons ? { buttons } : {}) }];
+}
+
+const QUIZ_SITE = { text: "На сайт", url: absoluteSiteUrl("/topic") };
+const QUIZ_REVIEW = { text: "Розбір останнього тесту", data: "mh:qr" };
+
+function quizNav(): NonNullable<Outgoing["buttons"]> {
+  return [QUIZ_REVIEW, QUIZ_SITE, mainMenuDataButton()];
+}
+
+function plainTask(value: string): string {
+  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
 async function connection(): Promise<SqlConnection> {
@@ -86,7 +102,7 @@ async function openSession(userId: number): Promise<OpenSession | null> {
 async function themeList(page: number): Promise<Outgoing[]> {
   const themes = await getAvailableTopicThemes();
   if (themes.length === 0) {
-    return note("У банку ще немає тем із завданнями.", [mainMenuDataButton()]);
+    return note("У банку ще немає тем із завданнями.", quizNav());
   }
   const pages = Math.ceil(themes.length / PAGE_SIZE);
   const safePage = Math.min(Math.max(page, 0), pages - 1);
@@ -97,7 +113,7 @@ async function themeList(page: number): Promise<Outgoing[]> {
   }));
   if (safePage > 0) buttons.push({ text: "Назад", data: `mh:qp:${safePage - 1}` });
   if (safePage + 1 < pages) buttons.push({ text: "Далі", data: `mh:qp:${safePage + 1}` });
-  buttons.push(mainMenuDataButton());
+  buttons.push(...quizNav());
   return [{
     text: pages > 1 ? `Оберіть тему (${safePage + 1}/${pages})` : "Оберіть тему",
     buttons,
@@ -117,7 +133,7 @@ async function countPicker(themeId: number): Promise<Outgoing[]> {
         data: `mh:qn:${theme.id}:${count}`,
       })),
       { text: "До тем", data: "mh:qp:0" },
-      mainMenuDataButton(),
+      ...quizNav(),
     ],
   }];
 }
@@ -225,13 +241,78 @@ async function showSession(userId: number, sessionId: number, preface?: string):
     const lead = preface?.trim() ? `${preface.trim()}\n\n` : "";
     return note(
       `${lead}${rows[0]?.theme_name?.trim() || "Тест"} завершено.\nЗ першої спроби: ${summary.rightNumber} з ${summary.tasksNumber} (${summary.percent}%).`,
-      [{ text: "Ще тест", data: "mh:qp:0" }, mainMenuDataButton()],
+      [{ text: "Розбір помилок", data: "mh:qr" }, { text: "Ще тест", data: "mh:qp:0" }, QUIZ_SITE, mainMenuDataButton()],
     );
   } catch (error) {
     if (error instanceof FinishTrainerSessionError && error.code === "session_expired") {
       return note("Час цієї сесії минув. Почніть нову.", [{ text: "Новий тест", data: "mh:qp:0" }, mainMenuDataButton()]);
     }
     return note("Не вдалося зберегти підсумок. Спробуйте ще раз.", [mainMenuDataButton()]);
+  }
+}
+
+async function reviewLast(userId: number): Promise<Outgoing[]> {
+  const back = [{ text: "До тем", data: "mh:qp:0" }, QUIZ_SITE, mainMenuDataButton()];
+  const db = await connection();
+  try {
+    const sessions = await db.query<{
+      id: number;
+      theme_name: string | null;
+      tasks_number: number;
+      right_number: number;
+    }>(
+      `SELECT ts.id, t.name AS theme_name, ts.tasks_number, ts.right_number
+       FROM task_sessions ts
+       LEFT JOIN themes t ON t.id = ts.theme_id
+       WHERE ts.user_id = ? AND ts.session_type = ? AND ts.session_status = ?
+       ORDER BY ts.id DESC
+       LIMIT 1`,
+      [userId, SESSION_TYPE_USER, SESSION_STATUS_COMPLETED],
+    );
+    const session = sessions[0];
+    if (!session) return note("Ще немає завершеного тесту за темою.", back);
+    const mistakes = await db.query<{
+      task_text: string | null;
+      answer_1: string | null;
+      answer_2: string | null;
+      answer_3: string | null;
+      answer_4: string | null;
+      right_answer_n: number | null;
+      comments: string | null;
+    }>(
+      `SELECT qt.task_text, qt.answer_1, qt.answer_2, qt.answer_3, qt.answer_4,
+              qt.right_answer_n, qt.comments
+       FROM tasks2session t2s
+       INNER JOIN quiz_tasks qt ON qt.id = t2s.task_id AND t2s.task_type = 1
+       WHERE t2s.session_id = ? AND t2s.user_id = ?
+         AND COALESCE(t2s.first_attempt_status, t2s.status) = ?
+       ORDER BY t2s.id
+       LIMIT 3`,
+      [session.id, userId, TASK_STATUS_INCORRECT],
+    );
+    const theme = session.theme_name?.trim() || "Тест";
+    const score = `${session.right_number} з ${session.tasks_number}`;
+    if (mistakes.length === 0) {
+      return note(`${theme}\nОстанній тест без помилок (${score}).`, back);
+    }
+    const lines = [`${theme}`, `Помилки останнього тесту (${score}).`, ""];
+    mistakes.forEach((row, index) => {
+      const prompt = plainTask(row.task_text ?? "").slice(0, 280) || "Завдання";
+      const answers = [row.answer_1, row.answer_2, row.answer_3, row.answer_4];
+      const keyIndex = Number(row.right_answer_n);
+      const letter = keyIndex >= 1 && keyIndex <= 4 ? LETTERS[keyIndex - 1] : "";
+      const keyText = letter ? plainTask(answers[keyIndex - 1] ?? "").slice(0, 120) : "";
+      const comment = plainTask(row.comments ?? "").slice(0, 200);
+      lines.push(`${index + 1}. ${prompt}`);
+      if (letter) lines.push(`Ключ: ${letter}${keyText ? `. ${keyText}` : ""}`);
+      if (comment) lines.push(comment);
+      lines.push("");
+    });
+    return note(lines.join("\n").trim(), back);
+  } catch {
+    return note("Не вдалося відкрити розбір. Спробуйте пізніше.", back);
+  } finally {
+    db.release();
   }
 }
 
@@ -242,11 +323,14 @@ export async function presentBotQuiz(userId: number, callback: QuizCallback): Pr
     return note(`Є незавершений тест: ${open.themeName}.`, [
       { text: "Продовжити", data: "mh:qc" },
       { text: "Нова тема", data: "mh:qp:0" },
+      QUIZ_REVIEW,
+      QUIZ_SITE,
       mainMenuDataButton(),
     ]);
   }
   if (callback.kind === "quizPage") return themeList(callback.page);
   if (callback.kind === "quizTheme") return countPicker(callback.themeId);
+  if (callback.kind === "quizReview") return reviewLast(userId);
   if (callback.kind === "quizResume") {
     const open = await openSession(userId);
     if (!open) return themeList(0);

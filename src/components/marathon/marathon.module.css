@@ -16,6 +16,41 @@
   margin-inline: auto;
 }
 
+.shelf {
+  display: flex;
+  gap: var(--space-md);
+  margin: 0;
+  padding: 0 0 var(--space-xs);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  list-style: none;
+}
+
+.shelf > li {
+  flex: 0 0 min(100%, 20rem);
+  scroll-snap-align: start;
+}
+
+.shelfCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  height: 100%;
+  min-width: 0;
+  padding: var(--space-lg);
+  background: var(--grad-glass);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.shelfTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+}
+
 .card {
   display: grid;
   gap: var(--space-sm);

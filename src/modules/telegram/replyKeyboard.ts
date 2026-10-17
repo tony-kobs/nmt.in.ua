@@ -1,41 +1,42 @@
-import type { InlineKeyboard, ReplyKeyboardMarkup, TelegramReply } from "./taskInteraction";
+import type { ReplyKeyboardMarkup, TelegramReply } from "./taskInteraction";
 import { MAIN_MENU_LABEL, MENU } from "./ui";
 
 type MenuButton = { text: string; callbackData: string };
 
-/** Cabinet main menu. The same labels are used by the inline menu and the bottom keyboard. */
+/**
+ * Cabinet menu under the input. It is not repeated as inline buttons in the chat.
+ * Marathon and topic tests open their own screens.
+ */
 export const ACCOUNT_MENU = {
-  tasks: { text: "📚 Мої завдання", callbackData: MENU.tasks },
+  marathon: { text: "🏁 Марафон", callbackData: "mh:menu" },
+  quiz: { text: "📝 Тести за темою", callbackData: "mh:quiz" },
   today: { text: "📅 Сьогодні", callbackData: MENU.today },
+  tasks: { text: "📚 Мої завдання", callbackData: MENU.tasks },
   stats: { text: "📊 Моя статистика", callbackData: MENU.stats },
   notifications: { text: "🔔 Сповіщення", callbackData: MENU.notifications },
   account: { text: "👤 Мій акаунт", callbackData: MENU.account },
   help: { text: "❓ Допомога", callbackData: MENU.help },
   students: { text: "👥 Мої учні", callbackData: MENU.students },
-  leaderboard: { text: "🏆 Рейтинг", callbackData: MENU.leaderboard },
-  marathon: { text: "🏁 Марафон", callbackData: "mh:menu" },
   home: { text: MAIN_MENU_LABEL, callbackData: MENU.home },
 } as const satisfies Record<string, MenuButton>;
 
 export type AccountMenuRole = "student" | "teacher";
 
-export function accountMenuRows(role: AccountMenuRole, marathon: boolean, includeHome: boolean): MenuButton[][] {
+export function accountMenuRows(role: AccountMenuRole): MenuButton[][] {
   const button = ACCOUNT_MENU;
-  const rows: MenuButton[][] = role === "teacher"
-    ? [
-        [button.students, ...(marathon ? [button.leaderboard] : [])],
-        [button.notifications, button.account],
-        [button.help],
-      ]
-    : [
-        [button.tasks, button.today],
-        [button.stats, button.notifications],
-        [button.account, button.help],
-        ...(marathon ? [[button.leaderboard]] : []),
-      ];
-  if (marathon) rows.push([button.marathon]);
-  if (includeHome) rows.push([button.home]);
-  return rows;
+  if (role === "teacher") {
+    return [
+      [button.students],
+      [button.notifications, button.account],
+      [button.help],
+    ];
+  }
+  return [
+    [button.marathon, button.quiz],
+    [button.today, button.tasks],
+    [button.stats, button.notifications],
+    [button.account, button.help],
+  ];
 }
 
 export function toReplyKeyboard(rows: { text: string }[][]): ReplyKeyboardMarkup {
@@ -46,15 +47,25 @@ export function toReplyKeyboard(rows: { text: string }[][]): ReplyKeyboardMarkup
   };
 }
 
-export function accountReplyKeyboard(role: AccountMenuRole, marathon: boolean): ReplyKeyboardMarkup {
-  return toReplyKeyboard(accountMenuRows(role, marathon, true));
+export const MENU_OPEN_LABEL = "☰ Меню";
+export const MENU_CLOSE_LABEL = "✕ Закрити";
+
+/** One row under the input. It stays put and only toggles the section list. */
+export function collapsedMenuKeyboard(): ReplyKeyboardMarkup {
+  return {
+    keyboard: [[{ text: MENU_OPEN_LABEL }]],
+    resize_keyboard: true,
+    is_persistent: true,
+  };
 }
 
-export function accountInlineKeyboard(role: AccountMenuRole, marathon: boolean): InlineKeyboard["inline_keyboard"] {
-  return accountMenuRows(role, marathon, false).map((row) => row.map((button) => ({
-    text: button.text,
-    callback_data: button.callbackData,
-  })));
+/** Section list for this role, plus the same button used to fold it away. */
+export function expandedMenuKeyboard(role: AccountMenuRole): ReplyKeyboardMarkup {
+  return toReplyKeyboard([...accountMenuRows(role), [{ text: MENU_CLOSE_LABEL }]]);
+}
+
+export function accountReplyKeyboard(_role: AccountMenuRole): ReplyKeyboardMarkup {
+  return collapsedMenuKeyboard();
 }
 
 /** Bottom-keyboard presses send the label as a message. Any known label maps to its callback. */

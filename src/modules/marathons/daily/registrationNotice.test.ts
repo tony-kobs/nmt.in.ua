@@ -177,19 +177,12 @@ test("an unlinked participant and a site channel do not send", async () => {
   assert.equal(deps.sent.length, 0);
 });
 
-test("after save the current day opens, otherwise home", () => {
+test("after save the marathon page stays open", () => {
   assert.equal(
-    channelSavedPath({ slug: "math-5", dayNumber: 2, dayReady: true }),
-    "/marathon/math-5/day/2?saved=1",
+    channelSavedPath({ slug: "math-5" }),
+    "/marathon/math-5/map?saved=1",
   );
-  assert.equal(
-    channelSavedPath({ slug: "math-5", dayNumber: 2, dayReady: false }),
-    "/?saved=1",
-  );
-  assert.equal(
-    channelSavedPath({ slug: " ", dayNumber: 1, dayReady: true }),
-    "/?saved=1",
-  );
+  assert.equal(channelSavedPath({ slug: " " }), "/?saved=1");
   assert.equal(withSavedFlag("/marathon/math-5/map", true), "/marathon/math-5/map?saved=1");
   assert.equal(withSavedFlag("/account", false), "/account");
 });

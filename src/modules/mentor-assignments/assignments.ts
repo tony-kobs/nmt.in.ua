@@ -6,6 +6,10 @@ import {
 } from "@/modules/sessions/types";
 import { TOPIC_TEST_TASK_COUNT } from "@/modules/testing/startTopicTest";
 import { nowUnixSec } from "@/modules/testing/sessionElapsed";
+import {
+  notifyAssignedSessions,
+  type AssignedSessionNotice,
+} from "@/modules/notifications/topicReminders";
 import { resolveAssignmentSchedule } from "./dueAt";
 import { ensureTeacherStudentsSchema } from "@/modules/teacher-students/schema";
 import {
@@ -333,6 +337,8 @@ export async function createMentorAssignment(
   const connection = await deps.getConnection();
   const nowSec = deps.nowSec ?? nowUnixSec;
   let assignmentId = 0;
+  const pendingNotes: AssignedSessionNotice[] = [];
+  let committed = false;
 
   try {
     await connection.beginTransaction();
@@ -400,9 +406,19 @@ export async function createMentorAssignment(
         studentId,
         sessionId,
       ]);
+      pendingNotes.push({
+        userId: studentId,
+        themeName: themes[0].name,
+        tasksNumber,
+        sessionId,
+        availableAt: schedule.availableAt,
+        dueAt: schedule.dueAt,
+        nowSec: createdAt,
+      });
     }
 
     await connection.commit();
+    committed = true;
   } catch (error) {
     await connection.rollback().catch(() => undefined);
     if (error instanceof MentorAssignmentsError) throw error;
@@ -411,6 +427,8 @@ export async function createMentorAssignment(
   } finally {
     connection.release();
   }
+
+  if (committed) await notifyAssignedSessions(pendingNotes);
 
   return getMentorAssignmentDetail(assignmentId, input.teacherUserId, deps);
 }
@@ -581,6 +599,8 @@ export async function updateMentorAssignmentMembers(
   await ensureTeacherStudentsSchema(deps.getConnection);
   const connection = await deps.getConnection();
   const nowSec = deps.nowSec ?? nowUnixSec;
+  const pendingNotes: AssignedSessionNotice[] = [];
+  let committed = false;
 
   try {
     await connection.beginTransaction();
@@ -660,9 +680,19 @@ export async function updateMentorAssignmentMembers(
         studentId,
         sessionId,
       ]);
+      pendingNotes.push({
+        userId: studentId,
+        themeName: row.theme_name,
+        tasksNumber: row.tasks_number,
+        sessionId,
+        availableAt: row.available_at,
+        dueAt: row.due_at,
+        nowSec: nowSec(),
+      });
     }
 
     await connection.commit();
+    committed = true;
   } catch (error) {
     await connection.rollback().catch(() => undefined);
     if (error instanceof MentorAssignmentsError) throw error;
@@ -671,6 +701,8 @@ export async function updateMentorAssignmentMembers(
   } finally {
     connection.release();
   }
+
+  if (committed) await notifyAssignedSessions(pendingNotes);
 
   return getMentorAssignmentDetail(
     input.assignmentId,

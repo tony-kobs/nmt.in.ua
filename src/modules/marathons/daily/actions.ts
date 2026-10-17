@@ -9,7 +9,7 @@ import { createUser, CreateUserError } from "@/modules/auth/users";
 import { sendRegistrationVerificationMail } from "@/modules/auth/emailMessages";
 import { validateRegistrationInput } from "@/modules/auth/validateRegistration";
 import { safeInternalPath } from "@/lib/safeInternalPath";
-import { currentDayNumber, dayUnlockAt } from "./calendar";
+import { dayUnlockAt } from "./calendar";
 import { channelSavedPath } from "./channelPath";
 import { createMarathonBotLink } from "./botLink";
 import { notifyMarathonRegistration } from "./registrationDelivery";
@@ -382,6 +382,7 @@ export async function joinMarathonAction(formData: FormData): Promise<void> {
     console.error("marathon invite read", error);
   }
   revalidatePath(`/marathon/${slug}/map`);
+  revalidatePath("/marathon");
   revalidatePath("/");
   redirect(`/marathon/${slug}/map`);
 }
@@ -654,23 +655,8 @@ export async function setChannelAction(formData: FormData): Promise<void> {
     });
   }
   revalidatePath(`/marathon/${slug}/map`);
-  let dayNumber: number | null = null;
-  let dayReady = false;
-  try {
-    dayNumber = currentDayNumber({
-      now: new Date(),
-      startDate: marathon.startDate,
-      unlockHour: marathon.unlockHour,
-      daysCount: marathon.daysCount,
-    });
-    if (dayNumber != null) {
-      const days = await listDays(marathon.id);
-      dayReady = days.some((day) => day.dayNumber === dayNumber);
-    }
-  } catch (error) {
-    console.error("marathon channel redirect", error);
-  }
-  redirect(channelSavedPath({ slug: marathon.slug, dayNumber, dayReady }));
+  revalidatePath("/marathon");
+  redirect(channelSavedPath({ slug: marathon.slug }));
 }
 
 export async function notifyPrefsAction(formData: FormData): Promise<void> {

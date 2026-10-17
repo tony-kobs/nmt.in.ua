@@ -16,8 +16,10 @@ export type TelegramReply = {
   text: string;
   parseMode?: "HTML";
   replyMarkup?: InlineKeyboard;
-  /** Persistent bottom menu. Inline answer buttons stay on `replyMarkup`. */
+  /** Bottom menu. Inline answer buttons stay on `replyMarkup`. */
   replyKeyboard?: ReplyKeyboardMarkup;
+  /** Apply the reply keyboard, then delete the bubble so the chat stays clear. */
+  dropAfterSend?: boolean;
   /** YouTube or Loom, shown as a large link preview above the text. */
   linkPreviewUrl?: string;
   photoUrl?: string;

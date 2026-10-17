@@ -1,4 +1,3 @@
-import { cachedCatalogQuery } from "@/lib/cache/catalogCache";
 import type { SqlConnection } from "@/lib/db/mysql";
 import type { Stage2Format } from "./stage2Attempt";
 
@@ -30,6 +29,37 @@ export class RoundError extends Error {
 type RoundRow = { id: number; mode: RoundMode; source_round_id: number | null; completed_at: number | null };
 type TaskRow = { position: number; format: Stage2Format; task_id: number; skipped: number; first_attempt_status: number | null };
 const FORMATS: readonly Stage2Format[] = ["order", "find_error", "graph", "matching", "blank"];
+
+/** Full bank, grouped by format then id. A sitting is a sample of that bank. */
+function catalogEntries(entries: { format: Stage2Format; task_id: number }[]): { format: Stage2Format; task_id: number }[] {
+  return [...entries].sort(
+    (a, b) => FORMATS.indexOf(a.format) - FORMATS.indexOf(b.format) || a.task_id - b.task_id,
+  );
+}
+
+function shuffleTasks<T>(entries: T[]): T[] {
+  const copy = [...entries];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const swap = copy[i];
+    copy[i] = copy[j];
+    copy[j] = swap;
+  }
+  return copy;
+}
+
+/** Whole bank, in catalog order, when no count is given. A chosen count is a fresh random sample. */
+function pickRoundTasks(
+  entries: { format: Stage2Format; task_id: number }[],
+  taskCount?: number,
+): { format: Stage2Format; task_id: number }[] {
+  const sorted = catalogEntries(entries);
+  if (taskCount === undefined) return sorted;
+  if (!Number.isSafeInteger(taskCount) || taskCount < 1 || taskCount > sorted.length) {
+    throw new RoundError("Invalid task count.", "invalid_input");
+  }
+  return shuffleTasks(sorted).slice(0, taskCount);
+}
 const SQL_ROUND = "SELECT id, mode, source_round_id, completed_at FROM practice_interactive_rounds WHERE id = ? AND user_id = ?";
 const SQL_TASKS = `
   SELECT rt.position, rt.format, rt.task_id, rt.skipped, a.first_attempt_status
@@ -39,11 +69,11 @@ const SQL_TASKS = `
   WHERE rt.round_id = ? ORDER BY rt.position
 `;
 const SQL_CATALOG = `
-  SELECT 'order' AS format, id AS task_id FROM order_tasks WHERE id BETWEEN 1 AND 4
-  UNION ALL SELECT 'find_error', id FROM find_error_tasks WHERE id BETWEEN 1 AND 4
-  UNION ALL SELECT 'graph', id FROM graph_tasks WHERE id BETWEEN 1 AND 4
-  UNION ALL SELECT 'matching', id FROM matching_tasks WHERE id BETWEEN 1 AND 4
-  UNION ALL SELECT 'blank', id FROM blank_tasks WHERE id BETWEEN 1 AND 4
+  SELECT 'order' AS format, id AS task_id FROM order_tasks
+  UNION ALL SELECT 'find_error', id FROM find_error_tasks
+  UNION ALL SELECT 'graph', id FROM graph_tasks
+  UNION ALL SELECT 'matching', id FROM matching_tasks
+  UNION ALL SELECT 'blank', id FROM blank_tasks
 `;
 
 const SQL_CATALOG_COUNT = `
@@ -64,13 +94,6 @@ function validate(userId: number, roundId?: number): void {
   }
 }
 
-class Stage2CatalogEmpty extends Error {
-  constructor() {
-    super("Stage 2 catalog is empty");
-    this.name = "Stage2CatalogEmpty";
-  }
-}
-
 async function queryStage2CatalogCount(deps: RoundDeps): Promise<number> {
   const connection = await deps.getConnection();
   try {
@@ -84,28 +107,12 @@ async function queryStage2CatalogCount(deps: RoundDeps): Promise<number> {
   }
 }
 
-async function loadCachedStage2CatalogCount(): Promise<number> {
-  const total = await queryStage2CatalogCount(DEFAULT_DEPS);
-  if (total <= 0) {
-    throw new Stage2CatalogEmpty();
-  }
-  return total;
-}
-
-/** How many Stage 2 seed tasks exist (0 if tables are missing or the bank is empty).
- *  Only a positive count is cached. Zero is read again on the next request.
- */
+/** How many interactive tasks exist (0 if tables are missing or the bank is empty). Read live, not from the catalog cache. */
 export async function countStage2CatalogTasks(
   deps: RoundDeps = DEFAULT_DEPS,
 ): Promise<number> {
   try {
-    if (deps !== DEFAULT_DEPS) {
-      return await queryStage2CatalogCount(deps);
-    }
-    return await cachedCatalogQuery(
-      "stage2-catalog-count",
-      loadCachedStage2CatalogCount,
-    );
+    return await queryStage2CatalogCount(deps);
   } catch {
     return 0;
   }
@@ -162,15 +169,30 @@ async function insertRound(connection: SqlConnection, userId: number, mode: Roun
   }
   return inserted.insertId;
 }
-export async function startRound(userId: number, mode: RoundMode, deps: RoundDeps = DEFAULT_DEPS): Promise<RoundSnapshot> {
+export async function startRound(
+  userId: number,
+  mode: RoundMode,
+  deps: RoundDeps = DEFAULT_DEPS,
+  taskCount?: number,
+): Promise<RoundSnapshot> {
   validate(userId);
   if (mode !== "practice" && mode !== "diagnostic") throw new RoundError("Invalid mode.", "invalid_input");
+  if (taskCount !== undefined && (!Number.isSafeInteger(taskCount) || taskCount < 1)) {
+    throw new RoundError("Invalid task count.", "invalid_input");
+  }
   const roundId = await mutate(userId, deps, async (connection) => {
-    const [active] = await connection.query<{ id: number }>("SELECT id FROM practice_interactive_rounds WHERE user_id = ? AND mode = ? AND source_round_id IS NULL AND completed_at IS NULL ORDER BY id DESC LIMIT 1", [userId, mode]);
-    if (active) return active.id;
+    const now = (deps.nowSec ?? (() => Math.floor(Date.now() / 1000)))();
     const entries = await connection.query<{ format: Stage2Format; task_id: number }>(SQL_CATALOG);
-    entries.sort((a, b) => a.task_id - b.task_id || FORMATS.indexOf(a.format) - FORMATS.indexOf(b.format));
-    return insertRound(connection, userId, mode, null, entries, (deps.nowSec ?? (() => Math.floor(Date.now() / 1000)))());
+    const picked = pickRoundTasks(entries, taskCount);
+    const [active] = await connection.query<{ id: number }>("SELECT id FROM practice_interactive_rounds WHERE user_id = ? AND mode = ? AND source_round_id IS NULL AND completed_at IS NULL ORDER BY id DESC LIMIT 1", [userId, mode]);
+    if (active) {
+      if (taskCount === undefined) {
+        const tasks = await readTasks(connection, userId, active.id);
+        if (picked.length === 0 || tasks.length === picked.length) return active.id;
+      }
+      await connection.execute("UPDATE practice_interactive_rounds SET completed_at = ? WHERE id = ? AND user_id = ?", [now, active.id, userId]);
+    }
+    return insertRound(connection, userId, mode, null, picked, now);
   });
   return getRound(userId, roundId, deps);
 }

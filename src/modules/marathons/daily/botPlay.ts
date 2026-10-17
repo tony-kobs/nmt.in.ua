@@ -65,6 +65,7 @@ export type BotCallback =
   | { kind: "quizTheme"; themeId: number }
   | { kind: "quizStart"; themeId: number; count: number }
   | { kind: "quizResume" }
+  | { kind: "quizReview" }
   | { kind: "quizAnswer"; sessionId: number; mappingId: number; option: number; attempt: 1 | 2 };
 
 export type Outgoing = {
@@ -121,6 +122,7 @@ export function parseBotCallback(data: string): BotCallback | null {
   if (!data.startsWith("mh:") || data.length > 64) return null;
   if (data === "mh:menu") return { kind: "menu" };
   if (data === "mh:quiz") return { kind: "quiz" };
+  if (data === "mh:qr") return { kind: "quizReview" };
   if (data === "mh:qc") return { kind: "quizResume" };
   const quizPage = /^mh:qp:(\d{1,2})$/.exec(data);
   if (quizPage?.[1]) return { kind: "quizPage", page: Number(quizPage[1]) };
@@ -289,7 +291,7 @@ function withMainMenu(buttons?: Outgoing["buttons"]): NonNullable<Outgoing["butt
   return list;
 }
 
-/** Bottom menu for a marathon chat. The map stays inline: a reply button cannot open a URL. */
+/** Recognizes the old marathon bottom labels. The cabinet keyboard is not replaced by these. */
 export function marathonReplyKeyboard(copy: Partial<Record<CopyKey, string>> | undefined): {
   keyboard: { text: string }[][];
   resize_keyboard: true;

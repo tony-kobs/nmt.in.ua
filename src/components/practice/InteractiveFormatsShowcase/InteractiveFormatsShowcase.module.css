@@ -1,140 +1,200 @@
-.frame {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  width: 100%;
-  max-width: var(--content-narrow, 720px);
-  margin-inline: auto;
-}
-
+.frame,
 .embeddedFrame {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-md);
   width: 100%;
+}
+
+.frame {
+  max-width: var(--content-narrow);
+  margin-inline: auto;
 }
 
 .title {
   margin: 0;
-  font-size: var(--title, 1.6rem);
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
+  font-weight: 700;
 }
 
-.lead {
+.lead,
+.progress,
+.reviewTitle {
   margin: 0;
+}
+
+.lead,
+.progress {
   color: var(--muted);
 }
 
-.tabs {
+.intro,
+.play,
+.review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.startBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2xs);
+}
+
+.startRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 8px;
+  align-items: flex-end;
+  gap: var(--space-md);
 }
 
-.tab {
-  min-height: 44px;
-  padding: 8px 16px;
-  border: 1.5px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface);
+.countField {
+  display: grid;
+  gap: var(--space-2xs);
+}
+
+.countLabel {
+  color: var(--subtle);
+  font-size: var(--fs-kicker);
   font-weight: 700;
-  cursor: pointer;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.tab:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--green) 45%, transparent);
-  outline-offset: 2px;
-}
-
-/* Fixed size shared with the "Тести за темами" / "Інтерактивні формати" tabs. */
-.modeTab {
+.countWrap {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+}
+
+.countInput {
+  width: 4.25rem;
+  min-height: 48px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
   box-sizing: border-box;
-  flex: 0 0 12.5rem;
-  width: 12.5rem;
-  max-width: 100%;
-  height: 44px;
+  color: var(--green-dark);
+  caret-color: var(--green);
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
   text-align: center;
 }
 
-.tabActive {
+.countInput::-webkit-outer-spin-button,
+.countInput::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.countInput[type="number"] {
+  appearance: textfield;
+}
+
+.countInput:hover:not(:disabled) {
+  border-color: rgb(31 143 69 / 45%);
+}
+
+.countInput:focus-visible {
+  outline: none;
   border-color: var(--green);
-  background: var(--green-bg);
-  color: var(--green-dark);
+  box-shadow: var(--ring);
 }
 
-.taskPicker {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.countInput:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
 }
 
-.taskPickerItem {
-  min-height: 40px;
-  min-width: 40px;
-  padding: 6px 12px;
-  border: 1.5px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface);
+.countBank {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.countSlash {
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.countTotal {
+  font-size: var(--fs-body);
+  font-weight: 700;
+}
+
+.hint {
+  margin: 0;
+  color: var(--subtle);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.startRow .primary {
+  align-self: flex-end;
+}
+
+.primary {
+  align-self: flex-start;
+  min-height: 48px;
+  padding: 12px 22px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--grad-brand);
+  box-shadow: 0 12px 26px rgb(17 83 42 / 28%);
+  color: var(--surface);
+  font-size: var(--fs-body);
   font-weight: 700;
   cursor: pointer;
 }
 
-.taskPickerItem:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--green) 45%, transparent);
-  outline-offset: 2px;
+.primary:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
 }
 
-.taskPickerItemActive {
-  border-color: var(--blue);
-  background: var(--green-bg);
-  color: var(--blue);
+.primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+  box-shadow: none;
 }
 
 .card {
-  padding: 18px;
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-md);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  background: var(--surface);
-  box-shadow: 5px 6px 0 rgb(22 22 22 / 6%);
+  background: var(--grad-glass);
+  box-shadow: var(--shadow-sm);
 }
-
-.card { min-width: 0; }
 
 .cardLegend {
   margin-inline-start: 4px;
   padding: 4px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--green-bg);
   color: var(--green-dark);
-  font-size: 1.05rem;
   font-weight: 800;
-  letter-spacing: 0.01em;
 }
 
-.roundHistory {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
+.reviewTitle {
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
 }
 
-.roundHistoryLabel {
-  font-weight: 700;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.roundHistorySelect {
-  flex: 1 1 220px;
-  min-width: 0;
-  max-width: 100%;
+@media (prefers-reduced-motion: reduce) {
+  .primary:hover {
+    transform: none;
+  }
 }

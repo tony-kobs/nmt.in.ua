@@ -20,13 +20,19 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
   min-height: 48px;
   padding: 12px 14px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-muted);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
   text-align: left;
   cursor: pointer;
+}
+
+.stepText {
+  min-width: 0;
+  flex: 1;
 }
 
 .step:disabled {
@@ -83,13 +89,18 @@
 .checkButton {
   align-self: flex-start;
   min-height: 44px;
-  padding: 10px 20px;
-  border: 2px solid var(--green);
-  border-radius: 10px;
-  background: var(--green-bg);
-  color: var(--green-dark);
+  padding: 10px 22px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--grad-brand);
+  color: var(--surface);
   font-weight: 700;
   cursor: pointer;
+}
+
+.checkButton:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
 }
 
 .checkButton:disabled {

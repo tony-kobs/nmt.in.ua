@@ -21,21 +21,22 @@ test("a legacy marathon scope still sees the full student cabinet", () => {
   assert.ok(hrefs.includes("/"));
   assert.ok(hrefs.includes("/results"));
   assert.ok(hrefs.includes("/simulator"));
-  assert.ok(hrefs.includes(MAP));
-  assert.equal(links.find((item) => item.href === MAP)?.labelKey, "marathon");
+  assert.ok(hrefs.includes("/marathon"));
+  assert.equal(links.find((item) => item.href === "/marathon")?.labelKey, "marathon");
 });
 
-test("a legacy marathon scope without a joined marathon still has cabinet sections", () => {
+test("a student without a joined marathon still sees the marathon shelf", () => {
   const hrefs = visibleSidebar({
     role: "student",
-    cabinetScope: "marathon",
+    cabinetScope: "full",
     marathonHref: null,
   }).map((item) => item.href);
   assert.ok(hrefs.includes("/results"));
-  assert.ok(!hrefs.some((href) => href.startsWith("/marathon/")));
+  assert.ok(hrefs.includes("/marathon"));
+  assert.equal(hrefs.filter((href) => href === "/marathon").length, 1);
 });
 
-test("a platform student sees the marathon item beside the usual sections", () => {
+test("a platform student sees the marathon shelf beside the usual sections", () => {
   const links = visibleSidebar({
     role: "student",
     cabinetScope: "full",
@@ -45,20 +46,10 @@ test("a platform student sees the marathon item beside the usual sections", () =
   assert.ok(hrefs.includes("/"));
   assert.ok(hrefs.includes("/results"));
   assert.ok(hrefs.includes("/simulator"));
-  assert.ok(hrefs.includes(MAP));
-  assert.equal(hrefs.filter((href) => href === MAP).length, 1);
+  assert.ok(hrefs.includes("/marathon"));
+  assert.equal(hrefs.filter((href) => href === "/marathon").length, 1);
   assert.ok(!hrefs.includes("/admin/marathons"));
   assert.ok(!hrefs.includes("/assign"));
-});
-
-test("a platform student without a joined marathon does not see the item", () => {
-  const hrefs = visibleSidebar({
-    role: "student",
-    cabinetScope: "full",
-    marathonHref: null,
-  }).map((item) => item.href);
-  assert.ok(!hrefs.some((href) => href.startsWith("/marathon/")));
-  assert.ok(hrefs.includes("/results"));
 });
 
 test("teachers and admins keep their menus when a marathon href is present", () => {
@@ -70,6 +61,7 @@ test("teachers and admins keep their menus when a marathon href is present", () 
   assert.ok(teacher.includes("/assign"));
   assert.ok(teacher.includes("/students"));
   assert.ok(!teacher.includes("/"));
+  assert.ok(!teacher.includes("/marathon"));
   assert.ok(!teacher.includes(MAP));
 
   const admin = visibleSidebar({

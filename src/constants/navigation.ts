@@ -11,7 +11,13 @@ export type NavItem = {
 export const DASHBOARD_NAV: NavItem[] = [
   {
     href: "/",
-    label: "Тест за обраною темою",
+    label: "Сьогодні",
+    description: "Короткий план: тест, симулятор, марафон, викладач або підручник.",
+    status: "ready",
+  },
+  {
+    href: "/topic",
+    label: "Тест за темою",
     description: "Оберіть тему та кількість завдань — і одразу тренуйтеся.",
     status: "ready",
   },

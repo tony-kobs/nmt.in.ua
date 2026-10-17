@@ -105,8 +105,6 @@ export default async function MarathonDayPage({ params, searchParams }: PageProp
       progress={progress}
       reviewIntro={reviewIntro}
       rankNote={rankNote}
-      board={board}
-      selfId={user.id}
       lockedUntil={open ? null : access.unlockAt}
       locale={locale}
       error={Array.isArray(query.error) ? query.error[0] : query.error}

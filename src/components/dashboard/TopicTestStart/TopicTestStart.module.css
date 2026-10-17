@@ -4,6 +4,10 @@
   margin-inline: auto;
 }
 
+.follow {
+  margin-top: var(--space-xl);
+}
+
 .accent {
   background: var(--grad-brand);
   background-clip: text;

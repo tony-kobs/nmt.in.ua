@@ -20,7 +20,8 @@ export type SidebarLink = {
 const ADMIN_NAV_SET = new Set<string>(ADMIN_NAV_HREFS);
 
 const NAV_ICONS: Record<string, string> = {
-  "/": "∑",
+  "/": "✦",
+  "/topic": "∑",
   "/results": "%",
   "/sessions": "⏱",
   "/assign": "✎",
@@ -38,6 +39,7 @@ const NAV_ICONS: Record<string, string> = {
 
 const NAV_KEYS: Record<string, string> = {
   "/": "home",
+  "/topic": "topic",
   "/results": "results",
   "/sessions": "sessions",
   "/assign": "assign",
@@ -86,7 +88,7 @@ export function sidebarLinkActive(
   pathname: string,
   role: UserRole,
 ): boolean {
-  if (href.startsWith("/marathon/")) {
+  if (href === "/marathon" || href.startsWith("/marathon/")) {
     return pathname === "/marathon" || pathname.startsWith("/marathon/");
   }
   if (href === "/") {
@@ -106,7 +108,7 @@ function marathonLink(href: string): SidebarLink {
 
 /**
  * Sidebar for the signed-in role.
- * Students see the usual sections, plus «Марафон» when they have joined one.
+ * Students always get «Марафон» (`/marathon`): the shelf of current courses.
  * A legacy marathon scope no longer hides the rest of the cabinet.
  * Teachers and admins keep their existing menus.
  */
@@ -115,12 +117,13 @@ export function visibleSidebar(input: {
   cabinetScope?: CabinetScope;
   marathonHref?: string | null;
 }): SidebarLink[] {
-  const marathonHref = input.marathonHref ?? null;
+  void input.marathonHref;
   void input.cabinetScope;
 
   const items: SidebarLink[] = DASHBOARD_NAV.filter((item) => {
     if (input.role === "admin") return ADMIN_NAV_SET.has(item.href);
     if (input.role === "teacher" && item.href === "/") return false;
+    if (item.href === "/topic") return input.role === "student";
     if (item.href === "/assign") return canAssignMentorSessions(input.role);
     if (item.href === "/settings") return canImportContent(input.role);
     if (item.href === "/feedback") return canImportContent(input.role);
@@ -137,8 +140,8 @@ export function visibleSidebar(input: {
     icon: NAV_ICONS[item.href] ?? "•",
   }));
 
-  if (input.role === "student" && marathonHref) {
-    const link = marathonLink(marathonHref);
+  if (input.role === "student") {
+    const link = marathonLink("/marathon");
     const at = items.findIndex((item) => item.href === "/consultations");
     if (at >= 0) items.splice(at + 1, 0, link);
     else items.push(link);

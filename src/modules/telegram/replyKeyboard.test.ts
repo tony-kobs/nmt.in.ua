@@ -4,10 +4,13 @@ import { marathonCallbackFromText, marathonReplyKeyboard } from "@/modules/marat
 import { handleMenuRequest } from "./menu";
 import {
   accountCallbackFromText,
-  accountInlineKeyboard,
   accountMenuRows,
   accountReplyKeyboard,
   attachReplyKeyboard,
+  collapsedMenuKeyboard,
+  expandedMenuKeyboard,
+  MENU_CLOSE_LABEL,
+  MENU_OPEN_LABEL,
   parsePrivateMenuText,
 } from "./replyKeyboard";
 import type { TelegramAccountResult } from "./account";
@@ -32,29 +35,29 @@ function labels(rows: { text: string }[][]): string[] {
   return rows.flat().map((button) => button.text);
 }
 
-test("reply keyboard repeats the cabinet menu and stays persistent", () => {
-  const studentRows = accountMenuRows("student", false, true);
-  assert.deepEqual(labels(studentRows), [
-    "📚 Мої завдання", "📅 Сьогодні", "📊 Моя статистика", "🔔 Сповіщення", "👤 Мій акаунт", "❓ Допомога", "🏠 Головне меню",
+test("the input keeps one menu button that unfolds the sections", () => {
+  assert.deepEqual(labels(accountMenuRows("student")), [
+    "🏁 Марафон", "📝 Тести за темою",
+    "📅 Сьогодні", "📚 Мої завдання",
+    "📊 Моя статистика", "🔔 Сповіщення",
+    "👤 Мій акаунт", "❓ Допомога",
   ]);
-  assert.deepEqual(labels(accountMenuRows("teacher", false, true)), [
-    "👥 Мої учні", "🔔 Сповіщення", "👤 Мій акаунт", "❓ Допомога", "🏠 Головне меню",
+  assert.deepEqual(labels(accountMenuRows("teacher")), [
+    "👥 Мої учні", "🔔 Сповіщення", "👤 Мій акаунт", "❓ Допомога",
   ]);
-  const withMarathon = labels(accountMenuRows("student", true, true));
-  assert.equal(withMarathon.includes("🏆 Рейтинг"), true);
-  assert.equal(withMarathon.includes("🏁 Марафон"), true);
-  assert.equal(withMarathon.includes("Пройти тестування"), false);
-  const keyboard = accountReplyKeyboard("student", false);
+  const keyboard = accountReplyKeyboard("student");
   assert.equal(keyboard.resize_keyboard, true);
   assert.equal(keyboard.is_persistent, true);
-  assert.deepEqual(
-    accountInlineKeyboard("teacher", true).flat().map((button) => button.callback_data),
-    ["m:stud", "mh:top", "m:notif", "m:acct", "m:help", "mh:menu"],
-  );
+  assert.deepEqual(keyboard.keyboard, collapsedMenuKeyboard().keyboard);
+  assert.deepEqual(labels(expandedMenuKeyboard("student").keyboard), [...labels(accountMenuRows("student")), MENU_CLOSE_LABEL]);
+  assert.deepEqual(labels(expandedMenuKeyboard("teacher").keyboard), [...labels(accountMenuRows("teacher")), MENU_CLOSE_LABEL]);
   assert.equal(accountCallbackFromText("📚 Мої завдання"), "m:tasks");
-  assert.equal(accountCallbackFromText("  🏠 Головне меню  "), "m:home");
+  assert.equal(accountCallbackFromText("📝 Тести за темою"), "mh:quiz");
   assert.equal(accountCallbackFromText("🏁 Марафон"), "mh:menu");
+  assert.equal(accountCallbackFromText("  🏠 Головне меню  "), "m:home");
+  assert.equal(accountCallbackFromText(MENU_OPEN_LABEL), null);
   assert.equal(accountCallbackFromText("Сьогодні"), null);
+  assert.equal(accountCallbackFromText("🏆 Рейтинг"), null);
   assert.deepEqual(mainMenuDataButton(), { text: "🏠 Головне меню", data: "m:home" });
   assert.deepEqual(navRow().map((button) => button.callback_data), ["m:home"]);
 });
@@ -83,7 +86,7 @@ test("the bottom menu is attached without dropping an inline keyboard on another
       text: "Меню",
       replyMarkup: { inline_keyboard: [[{ text: "Карта на сайті", url: "https://nmt.in.ua/map" }]] },
     }],
-  }, accountReplyKeyboard("student", false));
+  }, accountReplyKeyboard("student"));
   assert.equal(packed.replyKeyboard?.is_persistent, true);
   assert.equal(packed.replyMarkup, undefined);
   assert.equal(packed.continuation?.[0]?.replyMarkup?.inline_keyboard[0]?.[0]?.url, "https://nmt.in.ua/map");
@@ -95,32 +98,33 @@ test("a bottom button and the main-menu callback open the same screen", async ()
     consume: async () => false,
     getProfile: async () => student,
     getTasks: async () => ({ status: "success" as const, sessions: [] }),
-    menu: { hasMarathon: async () => false },
+    menu: {},
     acknowledgeCallback: async () => {},
   };
   const fromText = await handleTelegramUpdate(message("📚 Мої завдання"), deps);
   const fromCallback = await handleTelegramUpdate(press("m:tasks"), deps);
-  assert.equal(fromText?.text, "📚 Зараз у вас немає актуальних завдань.");
+  assert.equal(fromText?.text, "📚 Завдань від викладача чи платформи зараз немає.");
   assert.equal(fromText?.text, fromCallback?.text);
   const homeText = await handleTelegramUpdate(message("🏠 Головне меню"), deps);
   const homeCallback = await handleMenuRequest(
     { chatId: "123", userId: "123", action: { kind: "screen", screen: "home" } },
-    { getProfile: async () => student, hasMarathon: async () => false },
+    { getProfile: async () => student },
   );
   assert.equal(homeText?.text, homeCallback.text);
   assert.match(homeCallback.text, /Вітаємо, Іра/);
   assert.equal(homeCallback.replyKeyboard?.resize_keyboard, true);
   assert.equal(homeCallback.replyKeyboard?.is_persistent, true);
+  assert.equal(homeCallback.replyMarkup, undefined);
   const bottom = homeCallback.replyKeyboard!.keyboard.flat().map((button) => button.text);
-  const inline = homeCallback.replyMarkup!.inline_keyboard.flat().map((button) => button.text);
-  assert.deepEqual(bottom, [...inline, "🏠 Головне меню"]);
+  assert.deepEqual(bottom, [MENU_OPEN_LABEL]);
   const teacherHome = await handleTelegramUpdate(press("m:home"), {
     ...deps,
     getProfile: async () => teacher,
   });
+  assert.equal(teacherHome?.replyMarkup, undefined);
   assert.deepEqual(
     teacherHome?.replyKeyboard?.keyboard.flat().map((button) => button.text),
-    ["👥 Мої учні", "🔔 Сповіщення", "👤 Мій акаунт", "❓ Допомога", "🏠 Головне меню"],
+    [MENU_OPEN_LABEL],
   );
   assert.equal(parsePrivateMenuText(message("/start")), null);
   assert.equal(parsePrivateMenuText({ message: { chat: { id: -1, type: "group" }, from: { id: 123 }, text: "📚 Мої завдання" } }), null);
@@ -149,13 +153,35 @@ test("linking an account shows the bottom menu", async () => {
   const reply = await handleTelegramUpdate(message("/start abc"), {
     consume: async () => true,
     getProfile: async () => student,
-    menu: { hasMarathon: async () => true },
+    menu: {},
   });
   assert.match(reply!.text, /успішно/);
-  assert.equal(reply!.replyMarkup!.inline_keyboard[0]![0]!.callback_data, "m:home");
+  assert.equal(reply!.replyMarkup, undefined);
   assert.equal(reply!.replyKeyboard?.is_persistent, true);
   const bottom = reply!.replyKeyboard!.keyboard.flat().map((button) => button.text);
-  assert.equal(bottom.includes("🏁 Марафон"), true);
-  assert.equal(bottom.includes("🏠 Головне меню"), true);
-  assert.equal(bottom.includes("Пройти тестування"), false);
+  assert.equal(bottom.includes(MENU_OPEN_LABEL), true);
+  assert.equal(bottom.includes("🏁 Марафон"), false);
+  const opened = await handleTelegramUpdate(message(MENU_OPEN_LABEL), {
+    consume: async () => false,
+    getProfile: async () => student,
+  });
+  assert.equal(opened?.replyMarkup, undefined);
+  assert.deepEqual(opened?.replyKeyboard?.keyboard.flat().map((button) => button.text), [
+    ...labels(accountMenuRows("student")),
+    MENU_CLOSE_LABEL,
+  ]);
+  const closed = await handleTelegramUpdate(message(MENU_CLOSE_LABEL), {
+    consume: async () => false,
+    getProfile: async () => student,
+  });
+  assert.equal(closed?.dropAfterSend, true);
+  assert.deepEqual(closed?.replyKeyboard?.keyboard, collapsedMenuKeyboard().keyboard);
+  const teacherOpened = await handleTelegramUpdate(message(MENU_OPEN_LABEL), {
+    consume: async () => false,
+    getProfile: async () => teacher,
+  });
+  assert.deepEqual(teacherOpened?.replyKeyboard?.keyboard.flat().map((button) => button.text), [
+    ...labels(accountMenuRows("teacher")),
+    MENU_CLOSE_LABEL,
+  ]);
 });

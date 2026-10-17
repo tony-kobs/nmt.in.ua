@@ -208,6 +208,18 @@ async function sendOneRaw(
       },
     });
   }
+  if (reply.dropAfterSend) {
+    const sent = await sendTelegramMessage(reply, token, request);
+    if (sent.status === "sent" && sent.messageId > 0) {
+      await sendTelegramPayload({
+        method: "deleteMessage",
+        token,
+        request,
+        json: { chat_id: reply.chatId, message_id: sent.messageId },
+      });
+    }
+    return sent;
+  }
   if (reply.editMessageId !== undefined) {
     const edited = await sendTelegramMessage(reply, token, request);
     // Same content is already on screen; anything else (deleted, too old, media) gets a fresh message.

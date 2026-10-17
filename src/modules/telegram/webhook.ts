@@ -12,8 +12,7 @@ import { getTelegramAccountProfile } from "./account";
 import { loadTelegramConnection } from "./schema";
 import { buildTaskListReply } from "./taskList";
 import { handleMenuRequest, parseMenuCallback, parseMenuCommand, parseMenuData, type MenuDeps } from "./menu";
-import { accountCallbackFromText, accountReplyKeyboard, parsePrivateMenuText } from "./replyKeyboard";
-import { MENU } from "./ui";
+import { accountCallbackFromText, attachReplyKeyboard, collapsedMenuKeyboard, expandedMenuKeyboard, MENU_CLOSE_LABEL, MENU_OPEN_LABEL, parsePrivateMenuText } from "./replyKeyboard";
 
 type TelegramMessage = {
   chat?: { id?: number; type?: string };
@@ -81,16 +80,14 @@ export async function handleTelegramUpdate(
     logError: deps.logError,
   };
   const log = deps.logError ?? ((value: unknown) => console.error("telegram update failed", value));
-  async function accountKeyboard(chatId: string, userId: string) {
+  async function accountKeyboard(userId: string) {
     try {
       const profile = await (deps.getProfile ?? getTelegramAccountProfile)(userId, {
         getConnection: menuDeps.getConnection ?? loadTelegramConnection,
         logError: deps.logError,
       });
       if (profile.status !== "success") return undefined;
-      let marathon = false;
-      try { marathon = await menuDeps.hasMarathon?.(chatId) ?? false; } catch (error) { log(error); }
-      return accountReplyKeyboard(profile.profile.role, marathon);
+      return collapsedMenuKeyboard();
     } catch (error) {
       log(error);
       return undefined;
@@ -110,10 +107,30 @@ export async function handleTelegramUpdate(
     const menuText = parsePrivateMenuText(source);
     if (!menuText) return null;
     const data = accountCallbackFromText(menuText.text);
+    if (menuText.text === MENU_OPEN_LABEL || menuText.text === MENU_CLOSE_LABEL) {
+      if (menuText.text === MENU_CLOSE_LABEL) {
+        return { chatId: menuText.chatId, text: "·", replyKeyboard: collapsedMenuKeyboard(), dropAfterSend: true };
+      }
+      try {
+        const profile = await (deps.getProfile ?? getTelegramAccountProfile)(menuText.userId, {
+          getConnection: menuDeps.getConnection ?? loadTelegramConnection,
+          logError: deps.logError,
+        });
+        const role = profile.status === "success" && profile.profile.role === "teacher" ? "teacher" : "student";
+        return {
+          chatId: menuText.chatId,
+          text: "Оберіть розділ.",
+          replyKeyboard: expandedMenuKeyboard(role),
+        };
+      } catch (error) {
+        log(error);
+        return { chatId: menuText.chatId, text: "Не вдалося відкрити меню. Спробуйте пізніше.", replyKeyboard: collapsedMenuKeyboard() };
+      }
+    }
     if (data) {
       if (data.startsWith("mh:")) {
         const id = Number(menuText.chatId);
-        return runMarathon({
+        const reply = await runMarathon({
           callback_query: {
             id: "reply-keyboard",
             data,
@@ -121,6 +138,7 @@ export async function handleTelegramUpdate(
             message: { message_id: 1, chat: { id, type: "private" } },
           },
         });
+        return reply ? attachReplyKeyboard(reply, collapsedMenuKeyboard()) : reply;
       }
       try {
         return await handleMenuRequest({
@@ -140,14 +158,11 @@ export async function handleTelegramUpdate(
   const entry = parseMenuCommand(update);
   if (entry && entry.action.kind === "screen" && entry.action.screen === "home" && !isMarathonCallbackData(callbackData)) {
     try {
-      const marathon = await menuDeps.hasMarathon?.(entry.chatId) ?? false;
-      if (!marathon) {
-        const profile = await (deps.getProfile ?? getTelegramAccountProfile)(entry.userId, {
-          getConnection: menuDeps.getConnection ?? loadTelegramConnection, logError: deps.logError,
-        });
-        if (profile.status === "success") {
-          return handleMenuRequest(entry, { ...menuDeps, getProfile: async () => profile });
-        }
+      const profile = await (deps.getProfile ?? getTelegramAccountProfile)(entry.userId, {
+        getConnection: menuDeps.getConnection ?? loadTelegramConnection, logError: deps.logError,
+      });
+      if (profile.status === "success") {
+        return handleMenuRequest(entry, { ...menuDeps, getProfile: async () => profile });
       }
     } catch (error) {
       (deps.logError ?? ((value) => console.error("telegram menu entry failed", value)))(error);
@@ -203,8 +218,20 @@ export async function handleTelegramUpdate(
     }
   }
   const command = parseTelegramTaskCommand(update);
+  if (command?.today) {
+    try {
+      return await handleMenuRequest({
+        chatId: command.chatId,
+        userId: command.userId,
+        action: { kind: "screen", screen: "today" },
+      }, menuDeps);
+    } catch (error) {
+      log(error);
+      return { chatId: command.chatId, text: "Не вдалося відкрити сьогодні. Спробуйте пізніше." };
+    }
+  }
   if (command) {
-    return buildTaskListReply({ chatId: command.chatId, userId: command.userId, today: command.today }, deps);
+    return buildTaskListReply({ chatId: command.chatId, userId: command.userId, today: false }, deps);
   }
   const menuCommand = parseMenuCommand(update);
   if (menuCommand && !(menuCommand.action.kind === "screen" && menuCommand.action.screen === "home")) {
@@ -230,12 +257,15 @@ export async function handleTelegramUpdate(
       const taken = typeof linked === "object" && linked?.ok === false && linked.code === "telegram_taken";
       if (accepted && deps.marathonWelcome) {
         const welcome = await deps.marathonWelcome(start.chatId);
-        if (welcome) return welcome;
+        if (welcome) {
+          const keyboard = await accountKeyboard(start.userId);
+          return keyboard ? attachReplyKeyboard(welcome, keyboard) : welcome;
+        }
       }
       const linkedText = accepted && deps.marathonLinkText
         ? await deps.marathonLinkText(start.chatId)
         : null;
-      const keyboard = accepted ? await accountKeyboard(start.chatId, start.userId) : undefined;
+      const keyboard = accepted ? await accountKeyboard(start.userId) : undefined;
       return {
         chatId: start.chatId,
         text: taken
@@ -269,11 +299,10 @@ export async function handleTelegramUpdate(
   if (!linked) {
     return { chatId: start.chatId, text: "Посилання недійсне або термін його дії минув. Створіть нове у своєму кабінеті." };
   }
-  const keyboard = await accountKeyboard(start.chatId, start.userId);
+  const keyboard = await accountKeyboard(start.userId);
   return {
     chatId: start.chatId,
     text: "✅ Telegram успішно підключено до вашого облікового запису.",
-    replyMarkup: { inline_keyboard: [[{ text: "🏠 Відкрити меню", callback_data: MENU.home }]] },
     ...(keyboard ? { replyKeyboard: keyboard } : {}),
   };
 }

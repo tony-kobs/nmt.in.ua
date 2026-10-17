@@ -7,11 +7,14 @@ import {
   quietPresetIndex, setQuietHours, toggleNotificationPreference, togglesForRole, type PreferenceToggle,
 } from "./preferences";
 import { ensureTelegramSchema, loadTelegramConnection } from "./schema";
+import { loadStudentToday } from "@/modules/today/loadStudentToday";
+import { buildTodayPlans, type StudentTodayModel } from "@/modules/today/pickStudentToday";
 import { formatTelegramStudentStats, getTelegramStudentStats, type TelegramStudentStats } from "./stats";
 import { buildTaskListReply, type TaskListDeps } from "./taskList";
+import { formatTodayCard } from "./todayCard";
 import { formatTeacherSummary, getTeacherAssignmentSummary, teacherSummaryKeyboard } from "./teacher";
 import type { InlineKeyboard, TelegramReply } from "./taskInteraction";
-import { accountInlineKeyboard, accountReplyKeyboard } from "./replyKeyboard";
+import { accountReplyKeyboard, collapsedMenuKeyboard } from "./replyKeyboard";
 import { formatKyivDateTime, html, MENU, navRow, NOT_LINKED_TEXT, screen, siteButton, STALE_TEXT } from "./ui";
 
 export type MenuScreen = "home" | "tasks" | "today" | "stats" | "notif" | "acct" | "help" | "stud";
@@ -26,8 +29,7 @@ export type MenuRequest = { chatId: string; userId: string; queryId?: string; me
 export type MenuDeps = TaskListDeps & {
   getProfile?: typeof getTelegramAccountProfile;
   getStats?: (userId: number) => Promise<TelegramStudentStats>;
-  /** True when this chat also takes part in a daily marathon; adds the marathon entry to the menu. */
-  hasMarathon?: (chatId: string) => Promise<boolean>;
+  loadToday?: (userId: number) => Promise<StudentTodayModel>;
   getConnection?: () => Promise<SqlConnection>;
   nowSec?: () => number;
 };
@@ -79,13 +81,19 @@ export function parseMenuCommand(update: unknown): MenuRequest | null {
 const HELP_TEXT = [
   "<b>❓ Допомога</b>",
   "",
-  "/menu — головне меню",
-  "/tasks — усі актуальні завдання",
-  "/today — завдання з терміном сьогодні",
+  "Кнопка «☰ Меню» під полем вводу відкриває розділи і закриває їх.",
+  "🏁 Марафон — день, таблиця місць і посилання на карту.",
+  "📝 Тести за темою — тема, кількість завдань і розбір останнього тесту.",
+  "📅 Сьогодні — один крок, який варто зробити зараз.",
+  "📚 Мої завдання — те, що запланував викладач або запропонувала платформа.",
+  "",
+  "/menu — показати меню знову",
+  "/today — сьогодні",
+  "/tasks — мої завдання",
   "/done &lt;посилання&gt; — завершити завдання зі списку",
-  "/stats — моя статистика",
-  "/settings — налаштування сповіщень",
-  "/top або /leaderboard — таблиця місць денного марафону (для його учасників)",
+  "/stats — статистика цього тижня",
+  "/settings — сповіщення",
+  "/top — таблиця місць марафону",
   "",
   "Відповіді на завдання зберігайте в кабінеті на nmt.in.ua, а завершити сесію можна тут кнопкою «✅ Завершити».",
 ].join("\n");
@@ -117,6 +125,12 @@ function quietScreen(chatId: string, current: number, messageId?: number): Teleg
 }
 
 export async function handleMenuRequest(request: MenuRequest, deps: MenuDeps = {}): Promise<TelegramReply> {
+  const reply = await renderMenu(request, deps);
+  if (reply.editMessageId !== undefined || reply.replyKeyboard) return reply;
+  return { ...reply, replyKeyboard: collapsedMenuKeyboard() };
+}
+
+async function renderMenu(request: MenuRequest, deps: MenuDeps): Promise<TelegramReply> {
   const { chatId, messageId, action } = request;
   const log = deps.logError ?? ((value: unknown) => console.error("telegram menu failed", value));
   const getConnection = deps.getConnection ?? loadTelegramConnection;
@@ -151,18 +165,26 @@ export async function handleMenuRequest(request: MenuRequest, deps: MenuDeps = {
     }
     switch (action.screen) {
       case "home": {
-        let marathon = false;
-        try { marathon = deps.hasMarathon ? await deps.hasMarathon(chatId) : false; } catch (error) { log(error); }
         const greeting = profile.displayName ? `, ${html(profile.displayName)}` : "";
         // A new message, not an edit: only a fresh send can attach the bottom keyboard.
+        // The menu itself is that keyboard. The bubble does not repeat the buttons.
         return {
-          ...screen(chatId, `<b>👋 Вітаємо${greeting}!</b>\n\nОберіть розділ:`, accountInlineKeyboard(profile.role, marathon)),
-          replyKeyboard: accountReplyKeyboard(profile.role, marathon),
+          chatId,
+          text: `<b>👋 Вітаємо${greeting}!</b>\n\nКнопка «☰ Меню» під полем вводу відкриває розділи.`,
+          parseMode: "HTML",
+          disablePreview: true,
+          replyKeyboard: accountReplyKeyboard(profile.role),
         };
       }
+      case "today": {
+        const model = await (deps.loadToday ?? loadStudentToday)(profile.userId);
+        const plan = buildTodayPlans(model)[0];
+        if (!plan) return screen(chatId, "📅 На сьогодні ще немає кроку.", [navRow()], messageId);
+        const card = formatTodayCard(plan);
+        return screen(chatId, card.text, card.rows, messageId);
+      }
       case "tasks":
-      case "today":
-        return await buildTaskListReply({ chatId, userId: request.userId, today: action.screen === "today", editMessageId: messageId }, deps);
+        return await buildTaskListReply({ chatId, userId: request.userId, today: false, editMessageId: messageId }, deps);
       case "stats": {
         const stats = await (deps.getStats ?? ((userId: number) => getTelegramStudentStats(userId, { getConnection })))(profile.userId);
         return screen(chatId, formatTelegramStudentStats(stats), [[siteButton("🌐 Детальні результати", "/results")], navRow()], messageId);
