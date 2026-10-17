@@ -5,7 +5,7 @@ import { consumeTelegramLink } from "./link";
 import { getTelegramTaskSessions, getTelegramTodayTaskSessions } from "./tasks";
 import { completeTelegramTask } from "./completeTask";
 import { handleTaskCallback, parseTaskCallback, type TelegramReply } from "./taskInteraction";
-import { isDefaultMarathonMenuLabel, isMarathonCallbackData } from "@/modules/marathons/daily/botPlay";
+import { isDefaultMarathonMenuLabel, isMarathonCallbackData, isQuizKeyboardText } from "@/modules/marathons/daily/botPlay";
 import { TELEGRAM_TAKEN_MESSAGE } from "@/modules/marathons/daily/botLink";
 import { getTelegramTaskDetails } from "./taskDetails";
 import { getTelegramAccountProfile } from "./account";
@@ -109,7 +109,7 @@ export async function handleTelegramUpdate(
     const data = accountCallbackFromText(menuText.text);
     if (menuText.text === MENU_OPEN_LABEL || menuText.text === MENU_CLOSE_LABEL) {
       if (menuText.text === MENU_CLOSE_LABEL) {
-        return { chatId: menuText.chatId, text: "·", replyKeyboard: collapsedMenuKeyboard(), dropAfterSend: true };
+        return { chatId: menuText.chatId, text: "Меню згорнуто.", replyKeyboard: collapsedMenuKeyboard() };
       }
       try {
         const profile = await (deps.getProfile ?? getTelegramAccountProfile)(menuText.userId, {
@@ -130,7 +130,7 @@ export async function handleTelegramUpdate(
     if (data) {
       if (data.startsWith("mh:")) {
         const id = Number(menuText.chatId);
-        const reply = await runMarathon({
+        return runMarathon({
           callback_query: {
             id: "reply-keyboard",
             data,
@@ -138,7 +138,6 @@ export async function handleTelegramUpdate(
             message: { message_id: 1, chat: { id, type: "private" } },
           },
         });
-        return reply ? attachReplyKeyboard(reply, collapsedMenuKeyboard()) : reply;
       }
       try {
         return await handleMenuRequest({
@@ -151,7 +150,7 @@ export async function handleTelegramUpdate(
         return { chatId: menuText.chatId, text: "Не вдалося обробити дію. Спробуйте пізніше." };
       }
     }
-    if (!deps.marathon && !isDefaultMarathonMenuLabel(menuText.text)) return null;
+    if (!deps.marathon && !isDefaultMarathonMenuLabel(menuText.text) && !isQuizKeyboardText(menuText.text)) return null;
     return runMarathon(source);
   }
   const callbackData = callbackDataOf(update);

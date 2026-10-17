@@ -67,11 +67,12 @@ test("marathon bottom buttons use the same labels as the inline menu", () => {
   assert.equal(keyboard.resize_keyboard, true);
   assert.equal(keyboard.is_persistent, true);
   assert.deepEqual(keyboard.keyboard.flat().map((button) => button.text), [
-    "День", "Топ", "Зупинити сповіщення", "🏠 Головне меню",
+    "День", "Топ", "Карта на сайті", "Зупинити сповіщення", "🏠 Головне меню",
   ]);
   assert.equal(keyboard.keyboard.flat().some((button) => button.text === "Пройти тестування"), false);
   assert.equal(marathonCallbackFromText("День", { bot_btn_today: "День" }), "mh:today");
   assert.equal(marathonCallbackFromText("Топ", { bot_btn_top: "Топ" }), "mh:top");
+  assert.equal(marathonCallbackFromText("Карта на сайті", undefined), "mh:map");
   assert.equal(marathonCallbackFromText("Зупинити сповіщення", undefined), "mh:stop");
   assert.equal(marathonCallbackFromText("🏠 Головне меню", undefined), "m:home");
   assert.equal(marathonCallbackFromText("Пройти тестування", undefined), null);
@@ -174,7 +175,8 @@ test("linking an account shows the bottom menu", async () => {
     consume: async () => false,
     getProfile: async () => student,
   });
-  assert.equal(closed?.dropAfterSend, true);
+  assert.equal(closed?.dropAfterSend, undefined);
+  assert.equal(closed?.text, "Меню згорнуто.");
   assert.deepEqual(closed?.replyKeyboard?.keyboard, collapsedMenuKeyboard().keyboard);
   const teacherOpened = await handleTelegramUpdate(message(MENU_OPEN_LABEL), {
     consume: async () => false,

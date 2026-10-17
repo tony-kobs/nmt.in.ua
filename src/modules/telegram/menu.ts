@@ -126,7 +126,9 @@ function quietScreen(chatId: string, current: number, messageId?: number): Teleg
 
 export async function handleMenuRequest(request: MenuRequest, deps: MenuDeps = {}): Promise<TelegramReply> {
   const reply = await renderMenu(request, deps);
-  if (reply.editMessageId !== undefined || reply.replyKeyboard) return reply;
+  // Inline buttons and the bottom keyboard cannot share one message: Telegram
+  // refuses to edit a reply-keyboard message, and the fallback repeated the text.
+  if (reply.editMessageId !== undefined || reply.replyKeyboard || reply.replyMarkup) return reply;
   return { ...reply, replyKeyboard: collapsedMenuKeyboard() };
 }
 

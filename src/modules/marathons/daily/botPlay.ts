@@ -66,7 +66,8 @@ export type BotCallback =
   | { kind: "quizStart"; themeId: number; count: number }
   | { kind: "quizResume" }
   | { kind: "quizReview" }
-  | { kind: "quizAnswer"; sessionId: number; mappingId: number; option: number; attempt: 1 | 2 };
+  | { kind: "quizAnswer"; sessionId: number; mappingId: number; option: number; attempt: 1 | 2 }
+  | { kind: "map" };
 
 export type Outgoing = {
   text: string;
@@ -145,6 +146,7 @@ export function parseBotCallback(data: string): BotCallback | null {
   if (data === "mh:list") return { kind: "list" };
   const pick = /^mh:pick:(\d{1,10})$/.exec(data);
   if (pick?.[1]) return { kind: "pick", marathonId: Number(pick[1]) };
+  if (data === "mh:map") return { kind: "map" };
   if (data === "mh:today") return { kind: "today" };
   if (data === "mh:top") return { kind: "top" };
   if (data === "mh:stop") return { kind: "stop" };
@@ -291,21 +293,24 @@ function withMainMenu(buttons?: Outgoing["buttons"]): NonNullable<Outgoing["butt
   return list;
 }
 
-/** Recognizes the old marathon bottom labels. The cabinet keyboard is not replaced by these. */
-export function marathonReplyKeyboard(copy: Partial<Record<CopyKey, string>> | undefined): {
+export const MARATHON_OTHERS_LABEL = "Інші марафони";
+
+/** Marathon navigation under the input. It replaces the cabinet section list. */
+export function marathonReplyKeyboard(
+  copy: Partial<Record<CopyKey, string>> | undefined,
+  options?: { others?: boolean },
+): {
   keyboard: { text: string }[][];
   resize_keyboard: true;
   is_persistent: true;
 } {
-  return {
-    keyboard: [
-      [{ text: buttonLabel(copy, "bot_btn_today") }, { text: buttonLabel(copy, "bot_btn_top") }],
-      [{ text: buttonLabel(copy, "bot_btn_stop") }],
-      [{ text: MAIN_MENU_LABEL }],
-    ],
-    resize_keyboard: true,
-    is_persistent: true,
-  };
+  const rows: { text: string }[][] = [
+    [{ text: buttonLabel(copy, "bot_btn_today") }, { text: buttonLabel(copy, "bot_btn_top") }],
+    [{ text: buttonLabel(copy, "bot_btn_map") }, { text: buttonLabel(copy, "bot_btn_stop") }],
+  ];
+  if (options?.others) rows.push([{ text: MARATHON_OTHERS_LABEL }]);
+  rows.push([{ text: MAIN_MENU_LABEL }]);
+  return { keyboard: rows, resize_keyboard: true, is_persistent: true };
 }
 
 /** Label of a marathon bottom button → the same callback the inline button uses. */
@@ -318,10 +323,35 @@ export function marathonCallbackFromText(
   const rows = [
     { text: buttonLabel(copy, "bot_btn_today"), data: "mh:today" },
     { text: buttonLabel(copy, "bot_btn_top"), data: "mh:top" },
+    { text: buttonLabel(copy, "bot_btn_map"), data: "mh:map" },
     { text: buttonLabel(copy, "bot_btn_stop"), data: "mh:stop" },
+    { text: MARATHON_OTHERS_LABEL, data: "mh:list" },
+    { text: "⬅️ Назад", data: "mh:menu" },
     { text: MAIN_MENU_LABEL, data: MENU.home },
   ];
   return rows.find((button) => button.text.trim() === trimmed)?.data ?? null;
+}
+
+const QUIZ_KEYBOARD_LABELS = [
+  "Продовжити",
+  "Нова тема",
+  "Ще тест",
+  "Новий тест",
+  "Розбір останнього тесту",
+  "Розбір помилок",
+  "На сайт",
+  "До тем",
+];
+
+/** Reply-keyboard labels of the topic-test section, including theme and count rows. */
+export function isQuizKeyboardText(text: string): boolean {
+  const trimmed = text.trim();
+  if (QUIZ_KEYBOARD_LABELS.includes(trimmed)) return true;
+  if (/^← стор\. \d{1,2}$/.test(trimmed)) return true;
+  if (/^стор\. \d{1,2} →$/.test(trimmed)) return true;
+  if (/^\d{1,3} · \S/.test(trimmed)) return true;
+  if (/\S · \d{1,4}$/.test(trimmed) && !/^\d{1,3} · /.test(trimmed)) return true;
+  return false;
 }
 
 export function isDefaultMarathonMenuLabel(text: string): boolean {
