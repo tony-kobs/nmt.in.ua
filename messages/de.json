@@ -847,6 +847,23 @@
     "kicker": "Marathon",
     "landingLead": "{days} kostenlose Mathe-Tage: ein Thema pro Tag. Die Rätsel auf dieser Seite sperren den Zugang nicht.",
     "riddlesTitle": "Rätsel",
+    "riddleLead": "Wähle eine Antwort. Bei einem Fehler wartest du 10 Sekunden und versuchst es erneut.",
+    "riddleWrong": "Nicht richtig. Versuch es in {seconds} s noch einmal.",
+    "riddleCorrect": "Richtig.",
+    "riddleLocked": "Warte {seconds} s.",
+    "riddleChecking": "Wir prüfen…",
+    "riddleError": "Die Prüfung ist fehlgeschlagen. Versuch es noch einmal.",
+    "riddleExplanation": "Erklärung",
+    "riddleTextOnly": "Antwortmöglichkeiten für dieses Rätsel sind noch nicht fertig.",
+    "riddleBankLead": "Die Sammlung ist gemeinsam. Die Marathonsseite zieht ein paar Rätsel zufällig: nur für diesen Marathon markierte und gemeinsame mit demselben Fach.",
+    "riddleScopeMarathon": "Nur dieser Marathon",
+    "riddleScopeShared": "Gemeinsam für das Fach",
+    "riddleLegacy": "Alte Antwort, nur in der Verwaltung",
+    "riddleNoQuiz": "Noch ohne Auswahl — öffentlich nur der Text, ohne Antwort.",
+    "riddleOptionsLead": "Zwei bis sechs Möglichkeiten, genau eine davon richtig.",
+    "editRiddle": "Bearbeiten",
+    "deleteRiddleConfirm": "Rätsel löschen? Ein gemeinsames verschwindet aus allen Marathons.",
+    "correctChoice": "Richtig",
     "showHint": "Hinweis",
     "showAnswer": "Antwort",
     "join": "Mitmachen",
@@ -992,6 +1009,8 @@
       "finalCtaUrl": "Button-Link",
       "introVideo": "Einführungsvideo",
       "inviteAudience": "Wen benachrichtigen",
+      "landingRiddleCount": "Rätsel auf der Seite",
+      "scope": "Wo anzeigen",
       "order": "Reihenfolge",
       "riddleTitle": "Titel des Rätsels",
       "body": "Text",
@@ -1013,6 +1032,27 @@
       "all": "Alle Nutzer",
       "students": "Nur Schüler"
     },
+    "sections": {
+      "basic": "Allgemein",
+      "dates": "Daten und Zeitplan",
+      "landing": "Landing und Rätsel",
+      "notify": "Benachrichtigungen",
+      "telegram": "Telegram",
+      "texts": "Texte",
+      "errorBadge": "{count, plural, one {# Fehler} other {# Fehler}}",
+      "summaryDays": "{count, plural, one {# Tag} other {# Tage}}",
+      "summaryThreshold": "Schwelle {value}%",
+      "summaryRiddles": "{count} auf der Seite",
+      "summaryBank": "{count} in der Bank",
+      "summaryReminder": "Erinnerung {hour}",
+      "summaryNudge": "Pause {from}–{until}",
+      "riddleLinks": "Rätselbank",
+      "riddleLinksEmpty": "Nach dem Speichern erscheinen die Rätsel im Editor dieses Marathons.",
+      "riddleBank": "Zur Rätselbank",
+      "draftNote": "Ein neuer Marathon wird als Entwurf gespeichert.",
+      "textsCustom": "geändert: {count}",
+      "textsDefault": "Standardtexte"
+    },
     "materialTypes": {
       "text": "Text",
       "youtube": "YouTube",
@@ -1031,6 +1071,10 @@
       "finalCtaUrl": "Pfad mit / oder volle Adresse http:// bzw. https://.",
       "introVideo": "Optional. Ein YouTube- oder Loom-Link. Wird einmal am Anfang gezeigt.",
       "inviteAudience": "Einmal, wenn der Marathon aktiv wird. Ein Entwurf benachrichtigt niemanden. Erneutes Speichern sendet keine zweite Einladung. Die Karte auf der Startseite bleibt für alle sichtbar.",
+      "landingRiddleCount": "Wie viele Rätsel die Seite zufällig zeigt. Ganze Zahl von 1 bis 12. Standard ist 3.",
+      "riddleScope": "Ein gemeinsames Rätsel erscheint bei Marathons dieses Fachs. «Nur dieser Marathon» bleibt hier.",
+      "riddleSubject": "Für ein gemeinsames Rätsel. Leer zeigen es bei Marathons jedes Fachs.",
+      "riddleHint": "Optional. Besucher sehen den Text erst nach der richtigen Antwort.",
       "materialVideo": "Für YouTube oder Loom den Videolink einfügen.",
       "taskEither": "Entweder eine Bank-ID oder eine eigene Formulierung mit Optionen."
     },
@@ -1098,6 +1142,12 @@
       "inviteAudience": {
         "format": "Wähle, wen du benachrichtigen willst: niemanden, alle Nutzer oder nur Schüler."
       },
+      "landingRiddleCount": {
+        "range": "Die Anzahl der Rätsel auf der Seite ist eine ganze Zahl von 1 bis 12."
+      },
+      "scope": {
+        "format": "Wähle, wo das Rätsel erscheint: nur dieser Marathon oder gemeinsam für das Fach."
+      },
       "copyKey": {
         "unknown": "Unbekannter Text. Lade die Seite neu."
       },
@@ -1124,10 +1174,12 @@
         "required": "Gib eine Formulierung oder eine Aufgaben-ID aus der Bank an."
       },
       "options": {
-        "required": "Mindestens zwei Antwortoptionen sind nötig."
+        "required": "Mindestens zwei Antwortoptionen sind nötig.",
+        "duplicate": "Die Optionen dürfen sich nicht wiederholen."
       },
       "correct": {
-        "range": "Die Nummer der richtigen Antwort muss auf eine ausgefüllte Option zeigen (1–4)."
+        "range": "Die Nummer der richtigen Antwort muss auf eine ausgefüllte Option zeigen (1–4).",
+        "choice": "Markiere die richtige Option unter den ausgefüllten."
       }
     },
     "copy": {

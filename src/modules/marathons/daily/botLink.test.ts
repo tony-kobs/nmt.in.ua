@@ -13,6 +13,7 @@ const recordedVersions = [
   "042_telegram_notification_preferences.sql",
   "044_notification_channels_and_invites.sql",
   "045_cabinet_scope_full.sql",
+  "046_riddle_bank.sql",
 ].map((version) => ({ version }));
 
 function harness(linked: Array<{ user_id: number; telegram_user_id: string }>) {

@@ -175,6 +175,7 @@ const MARATHON_COLUMNS: Array<[string, string]> = [
   ["final_cta_url", "VARCHAR(500) NULL AFTER final_cta_text"],
   ["intro_video_url", "VARCHAR(500) NULL AFTER final_cta_url"],
   ["invite_audience", "ENUM('none','students','all') NOT NULL DEFAULT 'none' AFTER intro_video_url"],
+  ["landing_riddle_count", "TINYINT UNSIGNED NOT NULL DEFAULT 3 AFTER invite_audience"],
 ];
 
 const PARTICIPANT_COLUMNS: Array<[string, string]> = [
@@ -364,6 +365,7 @@ export async function migrateDailyMarathon(
   await createUserNotificationsTable(connection);
   await backfillTelegramLinks(connection);
   await applyChannelPreferencesSchema(connection);
+  await ensureRiddleBank(connection);
 }
 
 const SQL_SCHEMA_FLAGS = `
@@ -406,6 +408,90 @@ async function backfillDailyDescription(connection: SqlConnection): Promise<void
 }
 
 /** Marathon registration now opens the full cabinet. Safe to repeat. */
+const SQL_RIDDLE_BANK = `
+  CREATE TABLE IF NOT EXISTS riddle_bank (
+    id INT NOT NULL AUTO_INCREMENT,
+    legacy_riddle_id INT NULL,
+    subject VARCHAR(64) NULL,
+    visibility ENUM('shared', 'tagged') NOT NULL DEFAULT 'tagged',
+    title VARCHAR(255) NOT NULL,
+    body TEXT NOT NULL,
+    hint TEXT NULL,
+    legacy_answer VARCHAR(512) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_riddle_bank_legacy (legacy_riddle_id),
+    KEY idx_riddle_bank_subject (subject, visibility)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+`;
+
+const SQL_RIDDLE_OPTIONS = `
+  CREATE TABLE IF NOT EXISTS riddle_options (
+    id INT NOT NULL AUTO_INCREMENT,
+    riddle_id INT NOT NULL,
+    sort_order TINYINT UNSIGNED NOT NULL,
+    label VARCHAR(512) NOT NULL,
+    is_correct TINYINT(1) NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_riddle_option_order (riddle_id, sort_order),
+    KEY idx_riddle_option_riddle (riddle_id),
+    CONSTRAINT fk_riddle_option_riddle FOREIGN KEY (riddle_id)
+      REFERENCES riddle_bank (id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+`;
+
+const SQL_RIDDLE_TAGS = `
+  CREATE TABLE IF NOT EXISTS riddle_marathon_tags (
+    riddle_id INT NOT NULL,
+    marathon_id INT NOT NULL,
+    PRIMARY KEY (riddle_id, marathon_id),
+    KEY idx_riddle_tag_marathon (marathon_id),
+    CONSTRAINT fk_riddle_tag_riddle FOREIGN KEY (riddle_id)
+      REFERENCES riddle_bank (id) ON DELETE CASCADE,
+    CONSTRAINT fk_riddle_tag_marathon FOREIGN KEY (marathon_id)
+      REFERENCES marathons (id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+`;
+
+const SQL_COPY_RIDDLES = `
+  INSERT INTO riddle_bank (
+    legacy_riddle_id, subject, visibility, title, body, hint, legacy_answer
+  )
+  SELECT r.id, NULLIF(m.subject, ''), 'tagged', r.title, r.body, r.hint, r.answer
+  FROM marathon_riddles r
+  INNER JOIN marathons m ON m.id = r.marathon_id
+  WHERE NOT EXISTS (
+    SELECT 1 FROM riddle_bank b WHERE b.legacy_riddle_id = r.id
+  )
+`;
+
+const SQL_COPY_RIDDLE_TAGS = `
+  INSERT IGNORE INTO riddle_marathon_tags (riddle_id, marathon_id)
+  SELECT b.id, r.marathon_id
+  FROM riddle_bank b
+  INNER JOIN marathon_riddles r ON r.id = b.legacy_riddle_id
+`;
+
+/** Same tables as scripts/sql/046_riddle_bank.sql, for a process that has not migrated yet. */
+async function ensureRiddleBank(connection: SqlConnection): Promise<void> {
+  for (const sql of [SQL_RIDDLE_BANK, SQL_RIDDLE_OPTIONS, SQL_RIDDLE_TAGS]) {
+    try {
+      await connection.execute(sql, []);
+    } catch (error) {
+      if (isDuplicate(error)) continue;
+      throw error;
+    }
+  }
+  try {
+    await connection.execute(SQL_COPY_RIDDLES, []);
+    await connection.execute(SQL_COPY_RIDDLE_TAGS, []);
+  } catch (error) {
+    const errno = (error as { errno?: number }).errno;
+    if (errno === 1146 || errno === 1062) return;
+    throw error;
+  }
+}
+
 async function promoteMarathonCabinets(connection: SqlConnection): Promise<void> {
   try {
     await connection.execute(

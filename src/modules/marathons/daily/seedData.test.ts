@@ -16,6 +16,12 @@ test("the cipher riddle spells ЧИСЛО from the 33-letter alphabet", () => {
 
 test("the example marathon has three riddles and five day topics", () => {
   assert.equal(MATH_MARATHON_SEED.riddles.length, 3);
+  for (const riddle of MATH_MARATHON_SEED.riddles) {
+    assert.ok(riddle.options.length >= 2 && riddle.options.length <= 6);
+    assert.equal(new Set(riddle.options).size, riddle.options.length);
+    assert.equal(riddle.options.filter((_, index) => index + 1 === riddle.correct).length, 1);
+  }
+  assert.equal(MATH_MARATHON_SEED.riddles[1]!.options[1], "На останній клітині 2^63, усього 2^64 − 1.");
   assert.deepEqual(
     MATH_MARATHON_SEED.days.map((day) => day.topic),
     [

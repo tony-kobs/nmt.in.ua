@@ -27,6 +27,7 @@ import {
   isDuplicateKey,
   parseCopyInput,
   parseDay,
+  isSlug,
   parseDayUpdate,
   parseMarathonInput,
   parseMaterial,
@@ -49,6 +50,7 @@ import {
   deleteRiddle,
   deleteTask,
   getDailyById,
+  getRiddleById,
   getDailyBySlug,
   getParticipant,
   insertDailyMarathon,
@@ -74,7 +76,10 @@ import {
   updateDailyMarathon,
   updateDay,
   updateMaterial,
+  updateRiddle,
 } from "./store";
+import { answerRiddle, type AttemptResult } from "./riddleQuiz";
+import { openRiddleSession, writeRiddleSession } from "./riddleSession";
 import { loginCandidatesFromEmail, normalizeCtaUrl } from "./utm";
 
 const RETURN_COOKIE = "marathon_return";
@@ -200,23 +205,52 @@ export async function seedMarathonAction(): Promise<void> {
   redirect(result === "exists" ? `${adminPath()}?error=seed_exists` : savedPath());
 }
 
+function revalidateMarathonSurfaces(id: number, slug: string): void {
+  revalidatePath(adminPath(id));
+  if (isSlug(slug)) revalidatePath(`/marathon/${slug}`);
+}
+
 export async function addRiddleAction(
   _prev: AdminFormState,
   formData: FormData,
 ): Promise<AdminFormState> {
   await requireManager();
   const id = readInt(formData.get("marathonId"));
+  const slug = readText(formData.get("slug"), 64);
   const parsed = parseRiddle(formData);
   if (!id) return adminFormError([FORM_INVALID]);
   if (!parsed.ok) return adminFormError(parsed.issues);
   try {
     await insertRiddle(id, parsed.value);
   } catch (error) {
-    if (isDuplicateKey(error)) return adminFormError([DUPLICATE_ORDER]);
     console.error("addRiddleAction", error);
     return adminFormError([FORM_SERVER]);
   }
-  revalidatePath(adminPath(id));
+  revalidateMarathonSurfaces(id, slug);
+  redirect(savedPath(id));
+}
+
+export async function updateRiddleAction(
+  _prev: AdminFormState,
+  formData: FormData,
+): Promise<AdminFormState> {
+  await requireManager();
+  const id = readInt(formData.get("marathonId"));
+  const riddleId = readInt(formData.get("riddleId"));
+  const slug = readText(formData.get("slug"), 64);
+  const parsed = parseRiddle(formData);
+  if (!id || !riddleId) return adminFormError([FORM_INVALID]);
+  if (!parsed.ok) return adminFormError(parsed.issues);
+  const marathon = await getDailyById(id);
+  if (!marathon) return adminFormError([FORM_INVALID]);
+  try {
+    const saved = await updateRiddle(id, marathon.subject, riddleId, parsed.value);
+    if (!saved) return adminFormError([FORM_INVALID]);
+  } catch (error) {
+    console.error("updateRiddleAction", error);
+    return adminFormError([FORM_SERVER]);
+  }
+  revalidateMarathonSurfaces(id, slug);
   redirect(savedPath(id));
 }
 
@@ -224,10 +258,35 @@ export async function deleteRiddleAction(formData: FormData): Promise<void> {
   await requireManager();
   const id = readInt(formData.get("marathonId"));
   const riddleId = readInt(formData.get("riddleId"));
+  const slug = readText(formData.get("slug"), 64);
   if (!id || !riddleId) redirect(`${adminPath(id ?? undefined)}?error=invalid`);
-  await deleteRiddle(id, riddleId);
-  revalidatePath(adminPath(id));
+  const marathon = await getDailyById(id);
+  if (!marathon) redirect(`${adminPath(id)}?error=invalid`);
+  await deleteRiddle(id, marathon.subject, riddleId);
+  revalidateMarathonSurfaces(id, slug);
   redirect(adminPath(id));
+}
+
+/** Public landing check. The client sends an option id; the key stays here. */
+export async function checkRiddleAction(
+  riddleId: number,
+  optionId: number,
+): Promise<AttemptResult> {
+  if (!Number.isInteger(riddleId) || !Number.isInteger(optionId) || riddleId < 1 || optionId < 1) {
+    return { status: "invalid" };
+  }
+  const nowMs = Date.now();
+  const session = await openRiddleSession(nowMs);
+  const graded = answerRiddle({
+    riddle: await getRiddleById(riddleId),
+    optionId,
+    session,
+    nowMs,
+  });
+  if (graded.result.status === "wrong" || graded.result.status === "correct") {
+    await writeRiddleSession(graded.session);
+  }
+  return graded.result;
 }
 
 export async function addDayAction(

@@ -847,6 +847,23 @@
     "kicker": "Marathon",
     "landingLead": "{days} free days of math: one topic a day. The riddles on this page do not gate access.",
     "riddlesTitle": "Riddles",
+    "riddleLead": "Pick an answer. A wrong choice waits 10 seconds, then you can try again.",
+    "riddleWrong": "Not quite. Try again in {seconds} s.",
+    "riddleCorrect": "Correct.",
+    "riddleLocked": "Wait {seconds} s.",
+    "riddleChecking": "Checking…",
+    "riddleError": "Could not check that. Try again.",
+    "riddleExplanation": "Explanation",
+    "riddleTextOnly": "Answer choices for this riddle are not ready yet.",
+    "riddleBankLead": "The bank is shared. The marathon page draws a few riddles at random: ones limited to this marathon, and shared ones with the same subject.",
+    "riddleScopeMarathon": "This marathon only",
+    "riddleScopeShared": "Shared for this subject",
+    "riddleLegacy": "Previous answer, admin only",
+    "riddleNoQuiz": "No choices yet — the public page shows the text only, without the answer.",
+    "riddleOptionsLead": "Two to six choices, exactly one of them correct.",
+    "editRiddle": "Edit",
+    "deleteRiddleConfirm": "Delete this riddle? A shared riddle disappears from every marathon.",
+    "correctChoice": "Correct",
     "showHint": "Hint",
     "showAnswer": "Answer",
     "join": "Join",
@@ -992,6 +1009,8 @@
       "finalCtaUrl": "Button link",
       "introVideo": "Intro video",
       "inviteAudience": "Who to notify",
+      "landingRiddleCount": "Riddles on the page",
+      "scope": "Where to show",
       "order": "Order",
       "riddleTitle": "Riddle title",
       "body": "Text",
@@ -1013,6 +1032,27 @@
       "all": "All users",
       "students": "Students only"
     },
+    "sections": {
+      "basic": "Basics",
+      "dates": "Dates and schedule",
+      "landing": "Landing and riddles",
+      "notify": "Notifications",
+      "telegram": "Telegram",
+      "texts": "Texts",
+      "errorBadge": "{count, plural, one {# error} other {# errors}}",
+      "summaryDays": "{count, plural, one {# day} other {# days}}",
+      "summaryThreshold": "threshold {value}%",
+      "summaryRiddles": "{count} on the page",
+      "summaryBank": "{count} in the bank",
+      "summaryReminder": "reminder {hour}",
+      "summaryNudge": "skip {from}–{until}",
+      "riddleLinks": "Riddle bank",
+      "riddleLinksEmpty": "After you save, riddles show up in this marathon’s editor.",
+      "riddleBank": "To the riddle bank",
+      "draftNote": "A new marathon is saved as a draft.",
+      "textsCustom": "edited: {count}",
+      "textsDefault": "default texts"
+    },
     "materialTypes": {
       "text": "Text",
       "youtube": "YouTube",
@@ -1031,6 +1071,10 @@
       "finalCtaUrl": "A path starting with / or a full http:// or https:// URL.",
       "introVideo": "Optional. A YouTube or Loom link. Shown once at the start.",
       "inviteAudience": "Sent once, when the marathon becomes active. A draft notifies nobody. Saving again does not send another invitation. The home card stays visible to everyone.",
+      "landingRiddleCount": "How many riddles to draw at random on the landing page. An integer from 1 to 12. Default is 3.",
+      "riddleScope": "A shared riddle appears on marathons with this subject. “This marathon only” stays here.",
+      "riddleSubject": "Used for a shared riddle. Leave it empty to show the riddle on marathons of any subject.",
+      "riddleHint": "Optional. Visitors see this text only after a correct answer.",
       "materialVideo": "For YouTube or Loom, paste the video link.",
       "taskEither": "Either a bank ID, or your own prompt with options."
     },
@@ -1098,6 +1142,12 @@
       "inviteAudience": {
         "format": "Choose who to notify: nobody, all users, or students only."
       },
+      "landingRiddleCount": {
+        "range": "The number of riddles on the page must be an integer from 1 to 12."
+      },
+      "scope": {
+        "format": "Choose where to show the riddle: this marathon only, or shared for the subject."
+      },
       "copyKey": {
         "unknown": "Unknown text. Reload the page."
       },
@@ -1124,10 +1174,12 @@
         "required": "Enter a prompt or a question ID from the bank."
       },
       "options": {
-        "required": "At least two answer options are required."
+        "required": "At least two answer options are required.",
+        "duplicate": "The options must not repeat."
       },
       "correct": {
-        "range": "The correct option number must point at a filled option (1–4)."
+        "range": "The correct option number must point at a filled option (1–4).",
+        "choice": "Mark the correct choice among the filled options."
       }
     },
     "copy": {
