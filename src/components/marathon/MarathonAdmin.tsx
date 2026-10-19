@@ -29,6 +29,7 @@ import {
   AddDayForm,
   AddMaterialForm,
   AddRiddleForm,
+  EditRiddleForm,
   AddTaskForm,
   CreateMarathonForm,
   MarathonSettingsForm,
@@ -175,21 +176,71 @@ export async function MarathonAdminEditor({
         <CopyEditor marathonId={marathon.id} overrides={copy} />
         <MarathonBoard rows={board} selfId={null} limit={null} titleId="admin-board" />
 
-        <section className={css.card} aria-labelledby="riddles">
+        <section className={css.stack} aria-labelledby="riddles">
           <h2 id="riddles">{t("riddlesTitle")}</h2>
-          {riddles.map((riddle) => (
-            <form key={riddle.id} action={deleteRiddleAction} className={css.actions}>
-              <input type="hidden" name="marathonId" value={marathon.id} />
-              <input type="hidden" name="riddleId" value={riddle.id} />
-              <span>
-                {riddle.order}. {riddle.title}
-              </span>
-              <SubmitButton className={css.buttonQuiet} pendingLabel={t("deleting")}>
-                {t("delete")}
-              </SubmitButton>
-            </form>
-          ))}
-          <AddRiddleForm marathonId={marathon.id} />
+          <p className={css.lead}>{t("riddleBankLead")}</p>
+          {riddles.map((riddle) => {
+            const correctField = riddle.options.findIndex((option) => option.correct) + 1;
+            return (
+              <article key={riddle.id} className={css.listItem}>
+                <h3>{riddle.title}</h3>
+                <p className={css.meta}>
+                  {riddle.shared ? t("riddleScopeShared") : t("riddleScopeMarathon")}
+                  {riddle.subject ? ` · ${riddle.subject}` : ""}
+                </p>
+                {riddle.options.length > 0 ? (
+                  <ul className={css.options}>
+                    {riddle.options.map((option) => (
+                      <li
+                        key={option.id}
+                        className={option.correct ? css.optionRight : css.optionStatic}
+                      >
+                        {option.label}
+                        {option.correct ? <span>{t("correctChoice")}</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <>
+                    <p className={css.meta}>{t("riddleNoQuiz")}</p>
+                    {riddle.legacyAnswer ? (
+                      <p>
+                        {t("riddleLegacy")}: {riddle.legacyAnswer}
+                      </p>
+                    ) : null}
+                  </>
+                )}
+                <details className={css.riddleEdit}>
+                  <summary>{t("editRiddle")}</summary>
+                  <EditRiddleForm
+                    marathonId={marathon.id}
+                    slug={marathon.slug}
+                    riddleId={riddle.id}
+                    subject={riddle.subject ?? marathon.subject}
+                    scope={riddle.shared ? "shared" : "marathon"}
+                    title={riddle.title}
+                    body={riddle.body}
+                    hint={riddle.hint ?? ""}
+                    options={riddle.options.map((option) => option.label)}
+                    correctField={correctField > 0 ? correctField : null}
+                  />
+                </details>
+                <form action={deleteRiddleAction}>
+                  <input type="hidden" name="marathonId" value={marathon.id} />
+                  <input type="hidden" name="riddleId" value={riddle.id} />
+                  <input type="hidden" name="slug" value={marathon.slug} />
+                  <ConfirmSubmit
+                    message={t("deleteRiddleConfirm")}
+                    pendingLabel={t("deleting")}
+                    className={css.buttonQuiet}
+                  >
+                    {t("delete")}
+                  </ConfirmSubmit>
+                </form>
+              </article>
+            );
+          })}
+          <AddRiddleForm marathonId={marathon.id} slug={marathon.slug} subject={marathon.subject} />
         </section>
 
         <section className={css.stack} aria-labelledby="days-admin">

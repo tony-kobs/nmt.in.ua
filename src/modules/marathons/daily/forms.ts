@@ -109,6 +109,8 @@ export type MarathonInput = {
   introVideoUrl: string;
   /** Who receives the one invitation when the marathon first becomes active. */
   inviteAudience: InviteAudience;
+  /** How many riddles the landing draws from the bank on each visit. */
+  landingRiddleCount: number;
 };
 
 export function parseMarathonInput(formData: FormData): ParseResult<MarathonInput> {
@@ -132,6 +134,8 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
   const introVideoUrl = introVideoRaw;
   const audienceRaw = readText(formData.get("inviteAudience"), 16);
   const inviteAudience: InviteAudience = isInviteAudience(audienceRaw) ? audienceRaw : "none";
+  const riddleCountRaw = readText(formData.get("landingRiddleCount"), 2);
+  const landingRiddleCount = riddleCountRaw ? readInt(riddleCountRaw) : 3;
   if (!slug) issue(issues, "slug", "required");
   else if (!isSlug(slug)) issue(issues, "slug", "format");
   if (title.length < 2) issue(issues, "title", "required");
@@ -158,7 +162,16 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
   if (audienceRaw && !isInviteAudience(audienceRaw)) {
     issue(issues, "inviteAudience", "format");
   }
-  if (issues.length > 0 || !finalCtaUrl || nudgeFrom == null || nudgeUntil == null) {
+  if (landingRiddleCount == null || landingRiddleCount < 1 || landingRiddleCount > 12) {
+    issue(issues, "landingRiddleCount", "range");
+  }
+  if (
+    issues.length > 0 ||
+    !finalCtaUrl ||
+    nudgeFrom == null ||
+    nudgeUntil == null ||
+    landingRiddleCount == null
+  ) {
     return { ok: false, issues };
   }
   return {
@@ -179,6 +192,7 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
       finalCtaUrl,
       introVideoUrl,
       inviteAudience,
+      landingRiddleCount,
     },
   };
 }
@@ -215,26 +229,60 @@ export function parseMaterial(formData: FormData): ParseResult<MaterialInput> {
   return { ok: true, value: { order, type: type as MaterialType, urlOrBody } };
 }
 
+export type RiddleScope = "shared" | "marathon";
+
 export type RiddleInput = {
-  order: number;
   title: string;
   body: string;
-  answer: string;
   hint: string | null;
+  subject: string | null;
+  scope: RiddleScope;
+  options: string[];
+  /** 1-based index into `options`. */
+  correct: number;
 };
+
+const RIDDLE_OPTION_FIELDS = [1, 2, 3, 4, 5, 6] as const;
 
 export function parseRiddle(formData: FormData): ParseResult<RiddleInput> {
   const issues: FieldIssue[] = [];
-  const order = readOrder(formData.get("order"), issues);
   const title = readText(formData.get("title"), 255);
   const body = readText(formData.get("body"), 8000);
-  const answer = readText(formData.get("answer"), 512);
   const hint = readText(formData.get("hint"), 2000);
+  const subject = readText(formData.get("subject"), 64);
+  const scopeRaw = readText(formData.get("scope"), 16);
   if (title.length < 2) issue(issues, "title", "required");
   if (!body) issue(issues, "body", "required");
-  if (!answer) issue(issues, "answer", "required");
-  if (issues.length > 0 || order == null) return { ok: false, issues };
-  return { ok: true, value: { order, title, body, answer, hint: hint || null } };
+  if (scopeRaw !== "shared" && scopeRaw !== "marathon") issue(issues, "scope", "format");
+
+  const filled: Array<{ field: number; label: string }> = [];
+  for (const field of RIDDLE_OPTION_FIELDS) {
+    const label = readText(formData.get(`option${field}`), 512);
+    if (label) filled.push({ field, label });
+  }
+  if (filled.length < 2) issue(issues, "options", "required");
+  const labels = filled.map((item) => item.label);
+  if (new Set(labels).size !== labels.length) issue(issues, "options", "duplicate");
+
+  const correctField = readInt(formData.get("correct"));
+  const correctIndex = filled.findIndex((item) => item.field === correctField);
+  if (correctField == null || correctIndex < 0) issue(issues, "correct", "choice");
+
+  if (issues.length > 0 || correctIndex < 0 || (scopeRaw !== "shared" && scopeRaw !== "marathon")) {
+    return { ok: false, issues };
+  }
+  return {
+    ok: true,
+    value: {
+      title,
+      body,
+      hint: hint || null,
+      subject: subject || null,
+      scope: scopeRaw,
+      options: labels,
+      correct: correctIndex + 1,
+    },
+  };
 }
 
 export type DayInput = { dayNumber: number; topic: string; introText: string | null };

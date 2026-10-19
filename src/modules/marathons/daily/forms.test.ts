@@ -161,16 +161,56 @@ test("a blank invite audience stays nobody, and an unknown value is named", () =
 });
 
 test("riddle, day and material parsers point at the empty or bad field", () => {
-  const riddle = parseRiddle(data({ order: "", title: "А", body: "", answer: "" }));
+  const riddle = parseRiddle(data({
+    title: "А",
+    body: "",
+    scope: "class",
+    option1: "один",
+    correct: "2",
+  }));
   assert.equal(riddle.ok, false);
   if (!riddle.ok) {
     assert.deepEqual(codes(riddle.issues), [
-      "order.required",
       "title.required",
       "body.required",
-      "answer.required",
+      "scope.format",
+      "options.required",
+      "correct.choice",
     ]);
     assertCopy(riddle.issues);
+  }
+
+  const ready = parseRiddle(data({
+    title: "Скриня",
+    body: "Як передати скриню?",
+    scope: "shared",
+    subject: "math",
+    hint: "Два замки",
+    option1: "Окремим листом",
+    option2: "Кожен знімає лише свій замок",
+    option3: "Окремим листом",
+    correct: "2",
+  }));
+  assert.equal(ready.ok, false);
+  if (!ready.ok) {
+    assert.deepEqual(codes(ready.issues), ["options.duplicate"]);
+    assertCopy(ready.issues);
+  }
+
+  const saved = parseRiddle(data({
+    title: "Скриня",
+    body: "Як передати скриню?",
+    scope: "marathon",
+    subject: "math",
+    option1: "Окремим листом",
+    option3: "Кожен знімає лише свій замок",
+    correct: "3",
+  }));
+  assert.equal(saved.ok, true);
+  if (saved.ok) {
+    assert.deepEqual(saved.value.options, ["Окремим листом", "Кожен знімає лише свій замок"]);
+    assert.equal(saved.value.correct, 2);
+    assert.equal(saved.value.scope, "marathon");
   }
 
   const day = parseDay(data({ dayNumber: "15", topic: "А" }));
