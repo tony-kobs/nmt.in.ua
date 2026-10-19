@@ -22,6 +22,7 @@ const marathon: DailyMarathon = {
   finalCtaUrl: "",
   introVideoUrl: "",
   inviteAudience: "none",
+  landingRiddleCount: 3,
   status: "active",
 };
 
@@ -37,6 +38,7 @@ const versions = [
   { version: "040_daily_marathon.sql" },
   { version: "044_notification_channels_and_invites.sql" },
   { version: "045_cabinet_scope_full.sql" },
+  { version: "046_riddle_bank.sql" },
 ];
 
 function harness(options?: { failInsert?: boolean }) {

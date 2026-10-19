@@ -10,6 +10,7 @@ import {
   updateDayAction,
   updateMarathonAction,
   updateMaterialAction,
+  updateRiddleAction,
 } from "@/modules/marathons/daily/actions";
 import {
   parseDay,
@@ -133,6 +134,19 @@ function MarathonFields({ values }: { values: MarathonInput }) {
           <option value="students">{t("audiences.students")}</option>
         </AdminSelect>
       </AdminField>
+      <AdminField
+        name="landingRiddleCount"
+        label={t("fields.landingRiddleCount")}
+        hint={t("hints.landingRiddleCount")}
+      >
+        <AdminInput
+          name="landingRiddleCount"
+          type="number"
+          min={1}
+          max={12}
+          defaultValue={values.landingRiddleCount}
+        />
+      </AdminField>
     </div>
   );
 }
@@ -164,6 +178,7 @@ export function CreateMarathonForm({ today }: { today: string }) {
           finalCtaUrl: "/",
           introVideoUrl: "",
           inviteAudience: "none",
+          landingRiddleCount: 3,
         }}
       />
     </ValidatedForm>
@@ -189,7 +204,97 @@ export function MarathonSettingsForm({
   );
 }
 
-export function AddRiddleForm({ marathonId }: { marathonId: number }) {
+function RiddleOptionFields({
+  options,
+  correctField,
+}: {
+  options: string[];
+  correctField: number | null;
+}) {
+  const t = useTranslations("Marathon");
+  return (
+    <fieldset className={css.optionGrid}>
+      <legend className={css.fieldLabel}>{t("fields.options")}</legend>
+      <p className={css.hint}>{t("riddleOptionsLead")}</p>
+      {[1, 2, 3, 4, 5, 6].map((index) => (
+        <div key={index} className={css.riddleOptionRow}>
+          <AdminInput
+            name={`option${index}`}
+            defaultValue={options[index - 1] ?? ""}
+            aria-label={`${t("option")} ${index}`}
+            placeholder={`${t("option")} ${index}`}
+          />
+          <label className={css.option}>
+            <input
+              type="radio"
+              name="correct"
+              value={index}
+              defaultChecked={correctField === index}
+            />
+            {t("correctChoice")}
+          </label>
+        </div>
+      ))}
+      <FieldError name="options" />
+      <FieldError name="correct" />
+    </fieldset>
+  );
+}
+
+function RiddleFields({
+  subject,
+  scope,
+  title,
+  body,
+  hint,
+  options,
+  correctField,
+}: {
+  subject: string;
+  scope: "shared" | "marathon";
+  title: string;
+  body: string;
+  hint: string;
+  options: string[];
+  correctField: number | null;
+}) {
+  const t = useTranslations("Marathon");
+  return (
+    <>
+      <AdminField name="title" label={t("fields.riddleTitle")}>
+        <AdminInput name="title" defaultValue={title} placeholder={t("riddleTitle")} />
+      </AdminField>
+      <AdminField name="body" label={t("fields.body")}>
+        <AdminTextarea name="body" defaultValue={body} placeholder={t("body")} />
+      </AdminField>
+      <div className={css.row2}>
+        <AdminField name="subject" label={t("fields.subject")} hint={t("hints.riddleSubject")}>
+          <AdminInput name="subject" defaultValue={subject} />
+        </AdminField>
+        <AdminField name="scope" label={t("fields.scope")} hint={t("hints.riddleScope")}>
+          <AdminSelect name="scope" defaultValue={scope}>
+            <option value="marathon">{t("riddleScopeMarathon")}</option>
+            <option value="shared">{t("riddleScopeShared")}</option>
+          </AdminSelect>
+        </AdminField>
+      </div>
+      <RiddleOptionFields options={options} correctField={correctField} />
+      <AdminField name="hint" label={t("fields.hint")} hint={t("hints.riddleHint")}>
+        <AdminTextarea name="hint" defaultValue={hint} placeholder={t("hint")} />
+      </AdminField>
+    </>
+  );
+}
+
+export function AddRiddleForm({
+  marathonId,
+  slug,
+  subject,
+}: {
+  marathonId: number;
+  slug: string;
+  subject: string;
+}) {
   const t = useTranslations("Marathon");
   return (
     <ValidatedForm
@@ -199,23 +304,64 @@ export function AddRiddleForm({ marathonId }: { marathonId: number }) {
       submitLabel={t("addRiddle")}
     >
       <input type="hidden" name="marathonId" value={marathonId} />
-      <div className={css.row2}>
-        <AdminField name="order" label={t("fields.order")}>
-          <AdminInput name="order" type="number" min={1} max={50} />
-        </AdminField>
-        <AdminField name="title" label={t("fields.riddleTitle")}>
-          <AdminInput name="title" placeholder={t("riddleTitle")} />
-        </AdminField>
-      </div>
-      <AdminField name="body" label={t("fields.body")}>
-        <AdminTextarea name="body" placeholder={t("body")} />
-      </AdminField>
-      <AdminField name="answer" label={t("fields.answer")}>
-        <AdminTextarea name="answer" placeholder={t("answer")} />
-      </AdminField>
-      <AdminField name="hint" label={t("fields.hint")}>
-        <AdminTextarea name="hint" placeholder={t("hint")} />
-      </AdminField>
+      <input type="hidden" name="slug" value={slug} />
+      <RiddleFields
+        subject={subject}
+        scope="marathon"
+        title=""
+        body=""
+        hint=""
+        options={[]}
+        correctField={null}
+      />
+    </ValidatedForm>
+  );
+}
+
+export function EditRiddleForm({
+  marathonId,
+  slug,
+  riddleId,
+  subject,
+  scope,
+  title,
+  body,
+  hint,
+  options,
+  correctField,
+}: {
+  marathonId: number;
+  slug: string;
+  riddleId: number;
+  subject: string;
+  scope: "shared" | "marathon";
+  title: string;
+  body: string;
+  hint: string;
+  options: string[];
+  correctField: number | null;
+}) {
+  const t = useTranslations("Marathon");
+  return (
+    <ValidatedForm
+      action={updateRiddleAction}
+      validate={parseRiddle}
+      className={css.form}
+      quiet
+      submitLabel={t("save")}
+    >
+      <input type="hidden" name="marathonId" value={marathonId} />
+      <input type="hidden" name="riddleId" value={riddleId} />
+      <input type="hidden" name="slug" value={slug} />
+      <RiddleFields
+        subject={subject}
+        scope={scope}
+        title={title}
+        body={body}
+        hint={hint}
+        options={options}
+        correctField={correctField}
+      />
     </ValidatedForm>
   );
 }

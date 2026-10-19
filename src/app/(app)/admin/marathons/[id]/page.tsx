@@ -52,7 +52,7 @@ export default async function AdminMarathonEditorPage({ params, searchParams }: 
   const query = await searchParams;
   const q = first(query.q);
   const [riddles, days, reports, questions] = await Promise.all([
-    listRiddles(marathon.id),
+    listRiddles(marathon.id, marathon.subject),
     listDays(marathon.id),
     listParticipantReports(marathon.id),
     searchQuizTasks(q ?? ""),

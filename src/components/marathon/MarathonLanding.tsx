@@ -2,16 +2,18 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { joinMarathonAction } from "@/modules/marathons/daily/actions";
 import type { BoardLine } from "@/modules/marathons/daily/leaderboard";
-import type { DailyMarathon, Riddle } from "@/modules/marathons/daily/store";
+import type { DailyMarathon } from "@/modules/marathons/daily/store";
+import type { PublicRiddle } from "@/modules/marathons/daily/riddleQuiz";
 import type { UtmParams } from "@/modules/marathons/daily/utm";
 import { MarathonBoard } from "./MarathonBoard";
+import { RiddleQuiz } from "./RiddleQuiz";
 import { UtmFields } from "./UtmFields";
 import { marathonErrorText } from "./errors";
 import css from "./marathon.module.css";
 
 type MarathonLandingProps = {
   marathon: DailyMarathon;
-  riddles: Riddle[];
+  riddles: PublicRiddle[];
   loggedIn: boolean;
   utm: UtmParams;
   error?: string;
@@ -43,25 +45,7 @@ export async function MarathonLanding({
       {marathonErrorText(t, error) ? (
         <p className={css.alert} role="alert">{marathonErrorText(t, error)}</p>
       ) : null}
-      <section className={css.stack} aria-labelledby="marathon-riddles">
-        <h2 id="marathon-riddles">{t("riddlesTitle")}</h2>
-        {riddles.map((riddle) => (
-          <article key={riddle.id} className={css.card}>
-            <h3>{riddle.title}</h3>
-            <p>{riddle.body}</p>
-            {riddle.hint ? (
-              <details>
-                <summary>{t("showHint")}</summary>
-                <p>{riddle.hint}</p>
-              </details>
-            ) : null}
-            <details>
-              <summary>{t("showAnswer")}</summary>
-              <p>{riddle.answer}</p>
-            </details>
-          </article>
-        ))}
-      </section>
+      <RiddleQuiz riddles={riddles} />
       {marathon.status === "active" ? (
         loggedIn ? (
           <form action={joinMarathonAction} className={css.actions}>

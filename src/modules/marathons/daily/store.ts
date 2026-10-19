@@ -33,8 +33,19 @@ import {
   type BoardLine,
   type RankInput,
 } from "./leaderboard";
+import { clampLandingRiddleCount } from "./riddleQuiz";
+import { deleteOrphanTaggedRiddles } from "./riddleStore";
 import { submitOpenedDay, type SubmitSuccess } from "./submit";
 import type { ProgressMark } from "./streak";
+
+export {
+  deleteRiddle,
+  getRiddleById,
+  insertRiddle,
+  listRiddles,
+  loadLandingRiddles,
+  updateRiddle,
+} from "./riddleStore";
 
 export type DailyStatus = "draft" | "active" | "finished";
 export type MaterialType = "loom" | "youtube" | "text";
@@ -57,17 +68,12 @@ export type DailyMarathon = {
   introVideoUrl: string;
   /** Who is invited once, when the course first becomes active. Drafts default to nobody. */
   inviteAudience: InviteAudience;
+  /** How many bank riddles the public landing draws on each visit. */
+  landingRiddleCount: number;
   status: DailyStatus;
 };
 
-export type Riddle = {
-  id: number;
-  order: number;
-  title: string;
-  body: string;
-  answer: string;
-  hint: string | null;
-};
+export type { StoredRiddle as Riddle } from "./riddleQuiz";
 
 export type MarathonDay = {
   id: number;
@@ -184,6 +190,7 @@ function mapMarathon(row: {
   final_cta_url: string | null;
   intro_video_url?: string | null;
   invite_audience?: string | null;
+  landing_riddle_count?: number | null;
   status: string;
 }): DailyMarathon | null {
   if (row.status !== "draft" && row.status !== "active" && row.status !== "finished") {
@@ -208,13 +215,14 @@ function mapMarathon(row: {
     finalCtaUrl: row.final_cta_url ?? "",
     introVideoUrl: row.intro_video_url ?? "",
     inviteAudience: normalizeInviteAudience(row.invite_audience),
+    landingRiddleCount: clampLandingRiddleCount(row.landing_riddle_count),
     status: row.status,
   };
 }
 
 const MARATHON_SELECT = `id, slug, title, description, subject, start_date, unlock_hour, reminder_hour,
   nudge_from, nudge_until, days_count, pass_threshold, final_cta_text, final_cta_url,
-  intro_video_url, invite_audience, status`;
+  intro_video_url, invite_audience, landing_riddle_count, status`;
 
 export async function listDailyMarathons(getConnection?: Conn): Promise<DailyMarathon[]> {
   return withConn(async (connection) => {
@@ -268,8 +276,8 @@ export async function insertDailyMarathon(
         (slug, title, description, status, starts_at, ends_at, min_tasks_per_session,
          kind, subject, start_date, unlock_hour, reminder_hour, nudge_from, nudge_until,
          days_count, pass_threshold, final_cta_text, final_cta_url, intro_video_url,
-         invite_audience)
-       VALUES (?, ?, ?, 'draft', ?, ?, 5, 'daily', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         invite_audience, landing_riddle_count)
+       VALUES (?, ?, ?, 'draft', ?, ?, 5, 'daily', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         input.slug,
         input.title,
@@ -288,6 +296,7 @@ export async function insertDailyMarathon(
         input.finalCtaUrl,
         input.introVideoUrl || null,
         normalizeInviteAudience(input.inviteAudience),
+        input.landingRiddleCount,
       ],
     );
     return result.insertId;
@@ -305,7 +314,7 @@ export async function updateDailyMarathon(
        SET slug = ?, title = ?, description = ?, subject = ?, start_date = ?, unlock_hour = ?,
            reminder_hour = ?, nudge_from = ?, nudge_until = ?,
            days_count = ?, pass_threshold = ?, final_cta_text = ?, final_cta_url = ?,
-           intro_video_url = ?, invite_audience = ?, starts_at = ?, ends_at = ?
+           intro_video_url = ?, invite_audience = ?, landing_riddle_count = ?, starts_at = ?, ends_at = ?
        WHERE id = ? AND kind = 'daily'`,
       [
         input.slug,
@@ -323,6 +332,7 @@ export async function updateDailyMarathon(
         input.finalCtaUrl,
         input.introVideoUrl || null,
         normalizeInviteAudience(input.inviteAudience),
+        input.landingRiddleCount,
         input.startsAt,
         input.endsAt,
         id,
@@ -366,64 +376,14 @@ export async function deleteDailyMarathon(id: number, getConnection?: Conn): Pro
     );
     await connection.execute(`DELETE FROM marathon_days WHERE marathon_id = ?`, [id]);
     await connection.execute(`DELETE FROM marathon_riddles WHERE marathon_id = ?`, [id]);
+    await connection.execute(`DELETE FROM riddle_marathon_tags WHERE marathon_id = ?`, [id]);
     await connection.execute(`DELETE FROM marathon_notifications WHERE marathon_id = ?`, [id]);
     await connection.execute(`DELETE FROM marathon_bot_links WHERE marathon_id = ?`, [id]);
     await connection.execute(`DELETE FROM marathon_participants WHERE marathon_id = ?`, [id]);
     await connection.execute(`DELETE FROM marathon_invite_recipients WHERE marathon_id = ?`, [id]);
     await connection.execute(`DELETE FROM marathon_invite_dispatches WHERE marathon_id = ?`, [id]);
     await connection.execute(`DELETE FROM marathons WHERE id = ? AND kind = 'daily'`, [id]);
-  }, getConnection);
-}
-
-export async function listRiddles(marathonId: number, getConnection?: Conn): Promise<Riddle[]> {
-  return withConn(async (connection) => {
-    const rows = await connection.query<{
-      id: number;
-      sort_order: number;
-      title: string;
-      body: string;
-      answer: string;
-      hint: string | null;
-    }>(
-      `SELECT id, sort_order, title, body, answer, hint
-       FROM marathon_riddles WHERE marathon_id = ? ORDER BY sort_order`,
-      [marathonId],
-    );
-    return rows.map((row) => ({
-      id: row.id,
-      order: row.sort_order,
-      title: row.title,
-      body: row.body,
-      answer: row.answer,
-      hint: row.hint,
-    }));
-  }, getConnection);
-}
-
-export async function insertRiddle(
-  marathonId: number,
-  input: Omit<Riddle, "id">,
-  getConnection?: Conn,
-): Promise<void> {
-  await withConn(async (connection) => {
-    await connection.execute(
-      `INSERT INTO marathon_riddles (marathon_id, sort_order, title, body, answer, hint)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [marathonId, input.order, input.title, input.body, input.answer, input.hint],
-    );
-  }, getConnection);
-}
-
-export async function deleteRiddle(
-  marathonId: number,
-  riddleId: number,
-  getConnection?: Conn,
-): Promise<void> {
-  await withConn(async (connection) => {
-    await connection.execute(
-      `DELETE FROM marathon_riddles WHERE id = ? AND marathon_id = ?`,
-      [riddleId, marathonId],
-    );
+    await deleteOrphanTaggedRiddles(connection);
   }, getConnection);
 }
 

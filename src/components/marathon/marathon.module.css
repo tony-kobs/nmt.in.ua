@@ -305,6 +305,46 @@
   accent-color: var(--green);
 }
 
+.riddleChoice {
+  width: 100%;
+  margin: 0;
+  text-align: start;
+  font: inherit;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.riddleChoice:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.riddleStatus {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--muted);
+}
+
+.riddleStatus[data-tone="ok"] {
+  color: var(--green-dark);
+}
+
+.riddleStatus[data-tone="wrong"] {
+  color: color-mix(in srgb, crimson 70%, var(--ink));
+}
+
+.riddleOptionRow {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.riddleEdit summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
+}
+
 .optionStatic,
 .optionRight,
 .optionWrong,
@@ -421,6 +461,10 @@
 .optionGrid {
   display: grid;
   gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
 }
 
 .listItem {
@@ -639,6 +683,11 @@
 
   .row2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .riddleOptionRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
   }
 }
 

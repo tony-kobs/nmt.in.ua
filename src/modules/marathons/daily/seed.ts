@@ -44,11 +44,20 @@ export async function seedMathMarathon(): Promise<"created" | "exists"> {
     finalCtaUrl: MATH_MARATHON_SEED.finalCtaUrl,
     introVideoUrl: "",
     inviteAudience: "none",
+    landingRiddleCount: 3,
     startsAt,
     endsAt,
   });
   for (const riddle of MATH_MARATHON_SEED.riddles) {
-    await insertRiddle(marathonId, riddle);
+    await insertRiddle(marathonId, {
+      title: riddle.title,
+      body: riddle.body,
+      hint: riddle.hint,
+      subject: MATH_MARATHON_SEED.subject,
+      scope: "marathon",
+      options: riddle.options,
+      correct: riddle.correct,
+    });
   }
   for (const day of MATH_MARATHON_SEED.days) {
     const dayId = await insertDay(marathonId, {
