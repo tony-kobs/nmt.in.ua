@@ -1032,6 +1032,27 @@
       "all": "All users",
       "students": "Students only"
     },
+    "sections": {
+      "basic": "Basics",
+      "dates": "Dates and schedule",
+      "landing": "Landing and riddles",
+      "notify": "Notifications",
+      "telegram": "Telegram",
+      "texts": "Texts",
+      "errorBadge": "{count, plural, one {# error} other {# errors}}",
+      "summaryDays": "{count, plural, one {# day} other {# days}}",
+      "summaryThreshold": "threshold {value}%",
+      "summaryRiddles": "{count} on the page",
+      "summaryBank": "{count} in the bank",
+      "summaryReminder": "reminder {hour}",
+      "summaryNudge": "skip {from}–{until}",
+      "riddleLinks": "Riddle bank",
+      "riddleLinksEmpty": "After you save, riddles show up in this marathon’s editor.",
+      "riddleBank": "To the riddle bank",
+      "draftNote": "A new marathon is saved as a draft.",
+      "textsCustom": "edited: {count}",
+      "textsDefault": "default texts"
+    },
     "materialTypes": {
       "text": "Text",
       "youtube": "YouTube",

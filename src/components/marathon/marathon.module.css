@@ -124,7 +124,9 @@
 .textarea:focus-visible,
 .select:focus-visible,
 .option input:focus-visible,
-.publicHref:focus-visible {
+.publicHref:focus-visible,
+.sectionToggle:focus-visible,
+.riddleLink:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
@@ -205,6 +207,130 @@
 .alertError ul {
   margin-top: var(--space-2xs);
   padding-inline-start: 1.2rem;
+}
+
+.associateForm {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.section {
+  display: grid;
+  min-width: 0;
+  scroll-margin-top: 5.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.sectionInvalid {
+  border-color: color-mix(in srgb, crimson 45%, var(--line));
+}
+
+.sectionHeading {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.sectionToggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-sm);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-sm) var(--space-md);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: var(--fs-h4);
+}
+
+.sectionSummary {
+  flex: 1 1 8rem;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: var(--fs-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sectionBadge {
+  flex: none;
+  min-width: 1.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, crimson 12%, var(--surface));
+  color: color-mix(in srgb, crimson 72%, var(--ink));
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.sectionChevron,
+.sectionChevronOpen {
+  flex: none;
+  margin-inline-start: auto;
+  transition: transform var(--t) var(--ease);
+}
+
+.sectionChevronOpen {
+  transform: rotate(180deg);
+}
+
+.sectionPanel {
+  display: grid;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: 0 var(--space-md) var(--space-md);
+}
+
+.sectionPanel[hidden] {
+  display: none;
+}
+
+.anchor {
+  scroll-margin-top: 5.5rem;
+}
+
+.riddleLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.riddleLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
 }
 
 .input[aria-invalid="true"],
@@ -674,6 +800,13 @@
 .rankNote {
   margin: 0;
   white-space: pre-wrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sectionChevron,
+  .sectionChevronOpen {
+    transition: none;
+  }
 }
 
 @media (min-width: 768px) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import {
   addDayAction,
@@ -21,133 +22,298 @@ import {
   parseTask,
   type MarathonInput,
 } from "@/modules/marathons/daily/forms";
+import type { DailyStatus } from "@/modules/marathons/daily/store";
 import {
   AdminField,
   AdminInput,
   AdminSelect,
   AdminTextarea,
   FieldError,
+  SnapshotProvider,
   useFieldDescribedBy,
   ValidatedForm,
 } from "./ValidatedForm";
+import { AccordionGroup, AccordionSection } from "./SettingsAccordion";
+import {
+  formatIsoDate,
+  joinSummary,
+  marathonSectionStorageKey,
+  sectionFields,
+} from "./settingsSections";
 import css from "../marathon.module.css";
 
-function MarathonFields({ values }: { values: MarathonInput }) {
+type RiddleLink = { id: number; title: string };
+
+function snapshotFrom(values: MarathonInput): Record<string, string> {
+  return {
+    slug: values.slug,
+    title: values.title,
+    subject: values.subject,
+    description: values.description,
+    startDate: values.startDate,
+    unlockHour: values.unlockHour,
+    reminderHour: values.reminderHour,
+    nudgeFrom: String(values.nudgeFrom),
+    nudgeUntil: String(values.nudgeUntil),
+    daysCount: String(values.daysCount),
+    passThreshold: String(values.passThreshold),
+    finalCtaText: values.finalCtaText,
+    finalCtaUrl: values.finalCtaUrl,
+    introVideoUrl: values.introVideoUrl,
+    inviteAudience: values.inviteAudience,
+    landingRiddleCount: String(values.landingRiddleCount),
+  };
+}
+
+function MarathonSettingsFields({
+  values,
+  storageScope,
+  headingLevel,
+  status,
+  statusSlot,
+  riddles,
+}: {
+  values: MarathonInput;
+  storageScope: string;
+  headingLevel: "h2" | "h3";
+  status?: DailyStatus;
+  statusSlot?: ReactNode;
+  riddles?: RiddleLink[] | null;
+}) {
   const t = useTranslations("Marathon");
+  const storageKey = marathonSectionStorageKey(storageScope);
+  const [snapshot, setSnapshot] = useState(() => snapshotFrom(values));
+
+  function publish(name: string, value: string) {
+    setSnapshot((prev) => (prev[name] === value ? prev : { ...prev, [name]: value }));
+  }
+
+  const audience = snapshot.inviteAudience;
+  const audienceLabel =
+    audience === "all" || audience === "students" || audience === "none"
+      ? t(`audiences.${audience}`)
+      : audience;
+  const basicSummary = joinSummary([
+    snapshot.title,
+    snapshot.slug,
+    snapshot.subject,
+    t(`status.${status ?? "draft"}`),
+  ]);
+  const datesSummary = joinSummary([
+    formatIsoDate(snapshot.startDate),
+    snapshot.unlockHour,
+    snapshot.daysCount ? t("sections.summaryDays", { count: Number(snapshot.daysCount) || 0 }) : "",
+    snapshot.passThreshold ? t("sections.summaryThreshold", { value: snapshot.passThreshold }) : "",
+  ]);
+  const landingSummary = joinSummary([
+    snapshot.landingRiddleCount
+      ? t("sections.summaryRiddles", { count: snapshot.landingRiddleCount })
+      : "",
+    riddles ? t("sections.summaryBank", { count: riddles.length }) : "",
+  ]);
+  const telegramSummary = joinSummary([
+    snapshot.reminderHour ? t("sections.summaryReminder", { hour: snapshot.reminderHour }) : "",
+    snapshot.nudgeFrom && snapshot.nudgeUntil
+      ? t("sections.summaryNudge", { from: snapshot.nudgeFrom, until: snapshot.nudgeUntil })
+      : "",
+  ]);
+
   return (
-    <div className={css.row2}>
-      <AdminField name="slug" label={t("fields.slug")} hint={t("hints.slug")}>
-        <AdminInput
-          name="slug"
-          defaultValue={values.slug}
-          placeholder={t("placeholders.slug")}
-          autoComplete="off"
-          autoCapitalize="none"
-          spellCheck={false}
-        />
-      </AdminField>
-      <AdminField name="title" label={t("fields.title")}>
-        <AdminInput name="title" defaultValue={values.title} />
-      </AdminField>
-      <AdminField name="subject" label={t("fields.subject")}>
-        <AdminInput name="subject" defaultValue={values.subject} />
-      </AdminField>
-      <div className={css.span2}>
-        <AdminField name="description" label={t("fields.description")} hint={t("hints.description")}>
-          <AdminTextarea name="description" defaultValue={values.description} rows={4} />
-        </AdminField>
-      </div>
-      <AdminField name="startDate" label={t("fields.startDate")} hint={t("hints.startDate")}>
-        <AdminInput name="startDate" type="date" defaultValue={values.startDate} />
-      </AdminField>
-      <AdminField name="unlockHour" label={t("fields.unlockHour")} hint={t("hints.unlockHour")}>
-        <AdminInput
-          name="unlockHour"
-          defaultValue={values.unlockHour}
-          placeholder={t("placeholders.unlockHour")}
-          spellCheck={false}
-        />
-      </AdminField>
-      <AdminField name="reminderHour" label={t("fields.reminderHour")} hint={t("hints.reminderHour")}>
-        <AdminInput
-          name="reminderHour"
-          defaultValue={values.reminderHour}
-          placeholder={t("placeholders.reminderHour")}
-          spellCheck={false}
-        />
-      </AdminField>
-      <AdminField name="nudgeFrom" label={t("fields.nudgeFrom")} hint={t("hints.nudgeFrom")}>
-        <AdminInput name="nudgeFrom" type="number" min={0} max={23} defaultValue={values.nudgeFrom} />
-      </AdminField>
-      <AdminField name="nudgeUntil" label={t("fields.nudgeUntil")} hint={t("hints.nudgeUntil")}>
-        <AdminInput name="nudgeUntil" type="number" min={0} max={23} defaultValue={values.nudgeUntil} />
-      </AdminField>
-      <AdminField name="daysCount" label={t("fields.daysCount")} hint={t("hints.daysCount")}>
-        <AdminInput
-          name="daysCount"
-          type="number"
-          min={1}
-          max={14}
-          defaultValue={values.daysCount}
-        />
-      </AdminField>
-      <AdminField
-        name="passThreshold"
-        label={t("fields.passThreshold")}
-        hint={t("hints.passThreshold")}
-      >
-        <AdminInput
-          name="passThreshold"
-          type="number"
-          min={0}
-          max={100}
-          defaultValue={values.passThreshold}
-        />
-      </AdminField>
-      <AdminField name="finalCtaText" label={t("fields.finalCtaText")}>
-        <AdminInput name="finalCtaText" defaultValue={values.finalCtaText} />
-      </AdminField>
-      <AdminField name="finalCtaUrl" label={t("fields.finalCtaUrl")} hint={t("hints.finalCtaUrl")}>
-        <AdminInput
-          name="finalCtaUrl"
-          defaultValue={values.finalCtaUrl}
-          placeholder={t("placeholders.finalCtaUrl")}
-          spellCheck={false}
-        />
-      </AdminField>
-      <AdminField name="introVideo" label={t("fields.introVideo")} hint={t("hints.introVideo")}>
-        <AdminInput
-          name="introVideoUrl"
-          defaultValue={values.introVideoUrl}
-          placeholder="https://"
-          spellCheck={false}
-        />
-      </AdminField>
-      <AdminField
-        name="inviteAudience"
-        label={t("fields.inviteAudience")}
-        hint={t("hints.inviteAudience")}
-      >
-        <AdminSelect name="inviteAudience" defaultValue={values.inviteAudience}>
-          <option value="none">{t("audiences.none")}</option>
-          <option value="all">{t("audiences.all")}</option>
-          <option value="students">{t("audiences.students")}</option>
-        </AdminSelect>
-      </AdminField>
-      <AdminField
-        name="landingRiddleCount"
-        label={t("fields.landingRiddleCount")}
-        hint={t("hints.landingRiddleCount")}
-      >
-        <AdminInput
-          name="landingRiddleCount"
-          type="number"
-          min={1}
-          max={12}
-          defaultValue={values.landingRiddleCount}
-        />
-      </AdminField>
-    </div>
+    <SnapshotProvider onChange={publish}>
+      <AccordionGroup>
+        <AccordionSection
+          id="basic"
+          title={t("sections.basic")}
+          summary={basicSummary}
+          fields={sectionFields("basic")}
+          storageKey={storageKey}
+          defaultOpen
+          headingLevel={headingLevel}
+        >
+          {statusSlot ?? <p className={css.hint}>{t("sections.draftNote")}</p>}
+          <div className={css.row2}>
+            <AdminField name="title" label={t("fields.title")}>
+              <AdminInput name="title" defaultValue={values.title} />
+            </AdminField>
+            <AdminField name="slug" label={t("fields.slug")} hint={t("hints.slug")}>
+              <AdminInput
+                name="slug"
+                defaultValue={values.slug}
+                placeholder={t("placeholders.slug")}
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
+              />
+            </AdminField>
+            <AdminField name="subject" label={t("fields.subject")}>
+              <AdminInput name="subject" defaultValue={values.subject} />
+            </AdminField>
+          </div>
+        </AccordionSection>
+
+        <AccordionSection
+          id="dates"
+          title={t("sections.dates")}
+          summary={datesSummary}
+          fields={sectionFields("dates")}
+          storageKey={storageKey}
+          headingLevel={headingLevel}
+        >
+          <div className={css.row2}>
+            <AdminField name="startDate" label={t("fields.startDate")} hint={t("hints.startDate")}>
+              <AdminInput name="startDate" type="date" defaultValue={values.startDate} />
+            </AdminField>
+            <AdminField name="unlockHour" label={t("fields.unlockHour")} hint={t("hints.unlockHour")}>
+              <AdminInput
+                name="unlockHour"
+                defaultValue={values.unlockHour}
+                placeholder={t("placeholders.unlockHour")}
+                spellCheck={false}
+              />
+            </AdminField>
+            <AdminField name="daysCount" label={t("fields.daysCount")} hint={t("hints.daysCount")}>
+              <AdminInput
+                name="daysCount"
+                type="number"
+                min={1}
+                max={14}
+                defaultValue={values.daysCount}
+              />
+            </AdminField>
+            <AdminField
+              name="passThreshold"
+              label={t("fields.passThreshold")}
+              hint={t("hints.passThreshold")}
+            >
+              <AdminInput
+                name="passThreshold"
+                type="number"
+                min={0}
+                max={100}
+                defaultValue={values.passThreshold}
+              />
+            </AdminField>
+          </div>
+        </AccordionSection>
+
+        <AccordionSection
+          id="landing"
+          title={t("sections.landing")}
+          summary={landingSummary}
+          fields={sectionFields("landing")}
+          storageKey={storageKey}
+          headingLevel={headingLevel}
+        >
+          <AdminField name="description" label={t("fields.description")} hint={t("hints.description")}>
+            <AdminTextarea name="description" defaultValue={values.description} rows={4} />
+          </AdminField>
+          <div className={css.row2}>
+            <AdminField name="introVideo" label={t("fields.introVideo")} hint={t("hints.introVideo")}>
+              <AdminInput
+                name="introVideoUrl"
+                defaultValue={values.introVideoUrl}
+                placeholder="https://"
+                spellCheck={false}
+              />
+            </AdminField>
+            <AdminField
+              name="landingRiddleCount"
+              label={t("fields.landingRiddleCount")}
+              hint={t("hints.landingRiddleCount")}
+            >
+              <AdminInput
+                name="landingRiddleCount"
+                type="number"
+                min={1}
+                max={12}
+                defaultValue={values.landingRiddleCount}
+              />
+            </AdminField>
+            <AdminField name="finalCtaText" label={t("fields.finalCtaText")}>
+              <AdminInput name="finalCtaText" defaultValue={values.finalCtaText} />
+            </AdminField>
+            <AdminField name="finalCtaUrl" label={t("fields.finalCtaUrl")} hint={t("hints.finalCtaUrl")}>
+              <AdminInput
+                name="finalCtaUrl"
+                defaultValue={values.finalCtaUrl}
+                placeholder={t("placeholders.finalCtaUrl")}
+                spellCheck={false}
+              />
+            </AdminField>
+          </div>
+          <div className={css.stack}>
+            <p className={css.fieldLabel}>{t("sections.riddleLinks")}</p>
+            {riddles == null ? (
+              <p className={css.hint}>{t("sections.riddleLinksEmpty")}</p>
+            ) : riddles.length === 0 ? (
+              <p className={css.hint}>{t("riddleBankLead")}</p>
+            ) : (
+              <ul className={css.riddleLinks}>
+                {riddles.map((riddle) => (
+                  <li key={riddle.id}>
+                    <a className={css.riddleLink} href={`#riddle-${riddle.id}`}>
+                      {riddle.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {riddles != null ? (
+              <a className={css.buttonQuiet} href="#riddles">
+                {t("sections.riddleBank")}
+              </a>
+            ) : null}
+          </div>
+        </AccordionSection>
+
+        <AccordionSection
+          id="notify"
+          title={t("sections.notify")}
+          summary={audienceLabel}
+          fields={sectionFields("notify")}
+          storageKey={storageKey}
+          headingLevel={headingLevel}
+        >
+          <AdminField
+            name="inviteAudience"
+            label={t("fields.inviteAudience")}
+            hint={t("hints.inviteAudience")}
+          >
+            <AdminSelect name="inviteAudience" defaultValue={values.inviteAudience}>
+              <option value="none">{t("audiences.none")}</option>
+              <option value="all">{t("audiences.all")}</option>
+              <option value="students">{t("audiences.students")}</option>
+            </AdminSelect>
+          </AdminField>
+        </AccordionSection>
+
+        <AccordionSection
+          id="telegram"
+          title={t("sections.telegram")}
+          summary={telegramSummary}
+          fields={sectionFields("telegram")}
+          storageKey={storageKey}
+          headingLevel={headingLevel}
+        >
+          <div className={css.row2}>
+            <AdminField name="reminderHour" label={t("fields.reminderHour")} hint={t("hints.reminderHour")}>
+              <AdminInput
+                name="reminderHour"
+                defaultValue={values.reminderHour}
+                placeholder={t("placeholders.reminderHour")}
+                spellCheck={false}
+              />
+            </AdminField>
+            <AdminField name="nudgeFrom" label={t("fields.nudgeFrom")} hint={t("hints.nudgeFrom")}>
+              <AdminInput name="nudgeFrom" type="number" min={0} max={23} defaultValue={values.nudgeFrom} />
+            </AdminField>
+            <AdminField name="nudgeUntil" label={t("fields.nudgeUntil")} hint={t("hints.nudgeUntil")}>
+              <AdminInput name="nudgeUntil" type="number" min={0} max={23} defaultValue={values.nudgeUntil} />
+            </AdminField>
+          </div>
+        </AccordionSection>
+      </AccordionGroup>
+    </SnapshotProvider>
   );
 }
 
@@ -159,9 +325,13 @@ export function CreateMarathonForm({ today }: { today: string }) {
       validate={parseMarathonInput}
       className={css.card}
       submitLabel={t("save")}
+      invalidFocus="section"
+      associate
     >
       <h2>{t("create")}</h2>
-      <MarathonFields
+      <MarathonSettingsFields
+        storageScope="new"
+        headingLevel="h3"
         values={{
           slug: "",
           title: "",
@@ -187,8 +357,12 @@ export function CreateMarathonForm({ today }: { today: string }) {
 
 export function MarathonSettingsForm({
   marathon,
+  statusSlot,
+  riddles,
 }: {
-  marathon: MarathonInput & { id: number };
+  marathon: MarathonInput & { id: number; status: DailyStatus };
+  statusSlot?: ReactNode;
+  riddles?: RiddleLink[];
 }) {
   const t = useTranslations("Marathon");
   return (
@@ -197,9 +371,18 @@ export function MarathonSettingsForm({
       validate={parseMarathonInput}
       className={css.card}
       submitLabel={t("save")}
+      invalidFocus="section"
+      associate
+      persist={<input type="hidden" name="id" value={marathon.id} />}
     >
-      <input type="hidden" name="id" value={marathon.id} />
-      <MarathonFields values={marathon} />
+      <MarathonSettingsFields
+        values={marathon}
+        storageScope={String(marathon.id)}
+        headingLevel="h2"
+        status={marathon.status}
+        statusSlot={statusSlot}
+        riddles={riddles ?? []}
+      />
     </ValidatedForm>
   );
 }
