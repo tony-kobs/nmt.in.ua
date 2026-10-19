@@ -1032,6 +1032,27 @@
       "all": "Alle Nutzer",
       "students": "Nur Schüler"
     },
+    "sections": {
+      "basic": "Allgemein",
+      "dates": "Daten und Zeitplan",
+      "landing": "Landing und Rätsel",
+      "notify": "Benachrichtigungen",
+      "telegram": "Telegram",
+      "texts": "Texte",
+      "errorBadge": "{count, plural, one {# Fehler} other {# Fehler}}",
+      "summaryDays": "{count, plural, one {# Tag} other {# Tage}}",
+      "summaryThreshold": "Schwelle {value}%",
+      "summaryRiddles": "{count} auf der Seite",
+      "summaryBank": "{count} in der Bank",
+      "summaryReminder": "Erinnerung {hour}",
+      "summaryNudge": "Pause {from}–{until}",
+      "riddleLinks": "Rätselbank",
+      "riddleLinksEmpty": "Nach dem Speichern erscheinen die Rätsel im Editor dieses Marathons.",
+      "riddleBank": "Zur Rätselbank",
+      "draftNote": "Ein neuer Marathon wird als Entwurf gespeichert.",
+      "textsCustom": "geändert: {count}",
+      "textsDefault": "Standardtexte"
+    },
     "materialTypes": {
       "text": "Text",
       "youtube": "YouTube",

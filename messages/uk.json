@@ -1032,6 +1032,27 @@
       "all": "Всіх користувачів",
       "students": "Тільки учнів"
     },
+    "sections": {
+      "basic": "Основне",
+      "dates": "Дати та розклад",
+      "landing": "Лендинг і загадки",
+      "notify": "Сповіщення",
+      "telegram": "Telegram",
+      "texts": "Тексти",
+      "errorBadge": "{count, plural, one {# помилка} few {# помилки} many {# помилок} other {# помилки}}",
+      "summaryDays": "{count, plural, one {# день} few {# дні} many {# днів} other {# днів}}",
+      "summaryThreshold": "поріг {value}%",
+      "summaryRiddles": "{count} на сторінці",
+      "summaryBank": "{count} у банку",
+      "summaryReminder": "нагадування {hour}",
+      "summaryNudge": "пропуск {from}–{until}",
+      "riddleLinks": "Банк загадок",
+      "riddleLinksEmpty": "Після збереження загадки з’являться в редакторі цього марафону.",
+      "riddleBank": "До банку загадок",
+      "draftNote": "Новий марафон зберігається як чернетка.",
+      "textsCustom": "змінено: {count}",
+      "textsDefault": "типові тексти"
+    },
     "materialTypes": {
       "text": "Текст",
       "youtube": "YouTube",

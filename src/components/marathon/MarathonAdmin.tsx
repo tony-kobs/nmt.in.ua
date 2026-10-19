@@ -148,41 +148,46 @@ export async function MarathonAdminEditor({
             ) : null}
           </div>
         ) : null}
-        <div className={css.actions}>
-          {(["draft", "active", "finished"] as const).map((status) => (
-            <form key={status} action={setMarathonStatusAction}>
-              <input type="hidden" name="id" value={marathon.id} />
-              <input type="hidden" name="status" value={status} />
-              <SubmitButton
-                className={status === marathon.status ? css.button : css.buttonQuiet}
-                pendingLabel={t("saving")}
-              >
-                {t(`status.${status}`)}
-              </SubmitButton>
-            </form>
-          ))}
-          <form action={deleteMarathonAction}>
-            <input type="hidden" name="id" value={marathon.id} />
-            <ConfirmSubmit
-              message={t("deleteConfirm")}
-              pendingLabel={t("deleting")}
-              className={css.buttonQuiet}
-            >
-              {t("delete")}
-            </ConfirmSubmit>
-          </form>
-        </div>
-        <MarathonSettingsForm marathon={marathon} />
+        <MarathonSettingsForm
+          marathon={marathon}
+          riddles={riddles.map((riddle) => ({ id: riddle.id, title: riddle.title }))}
+          statusSlot={
+            <div className={css.actions}>
+              {(["draft", "active", "finished"] as const).map((status) => (
+                <form key={status} action={setMarathonStatusAction}>
+                  <input type="hidden" name="id" value={marathon.id} />
+                  <input type="hidden" name="status" value={status} />
+                  <SubmitButton
+                    className={status === marathon.status ? css.button : css.buttonQuiet}
+                    pendingLabel={t("saving")}
+                  >
+                    {t(`status.${status}`)}
+                  </SubmitButton>
+                </form>
+              ))}
+              <form action={deleteMarathonAction}>
+                <input type="hidden" name="id" value={marathon.id} />
+                <ConfirmSubmit
+                  message={t("deleteConfirm")}
+                  pendingLabel={t("deleting")}
+                  className={css.buttonQuiet}
+                >
+                  {t("delete")}
+                </ConfirmSubmit>
+              </form>
+            </div>
+          }
+        />
         <CopyEditor marathonId={marathon.id} overrides={copy} />
         <MarathonBoard rows={board} selfId={null} limit={null} titleId="admin-board" />
 
         <section className={css.stack} aria-labelledby="riddles">
-          <h2 id="riddles">{t("riddlesTitle")}</h2>
+          <h2 id="riddles" className={css.anchor}>{t("riddlesTitle")}</h2>
           <p className={css.lead}>{t("riddleBankLead")}</p>
           {riddles.map((riddle) => {
             const correctField = riddle.options.findIndex((option) => option.correct) + 1;
             return (
-              <article key={riddle.id} className={css.listItem}>
+              <article key={riddle.id} id={`riddle-${riddle.id}`} className={`${css.listItem} ${css.anchor}`}>
                 <h3>{riddle.title}</h3>
                 <p className={css.meta}>
                   {riddle.shared ? t("riddleScopeShared") : t("riddleScopeMarathon")}

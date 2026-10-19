@@ -13,6 +13,8 @@ import {
   type CopyKey,
 } from "@/modules/marathons/daily/copy";
 import { parseCopyInput } from "@/modules/marathons/daily/forms";
+import { AccordionSection } from "./SettingsAccordion";
+import { marathonSectionStorageKey } from "./settingsSections";
 import { AdminField, AdminTextarea, ValidatedForm } from "./ValidatedForm";
 import css from "../marathon.module.css";
 
@@ -79,9 +81,14 @@ export function CopyEditor({
   overrides: Partial<Record<CopyKey, string>>;
 }) {
   const t = useTranslations("Marathon");
+  const customCount = Object.keys(overrides).length;
   return (
-    <section className={css.stack} aria-labelledby="marathon-copy">
-      <h2 id="marathon-copy">{t("copy.title")}</h2>
+    <AccordionSection
+      id="texts"
+      title={t("sections.texts")}
+      summary={customCount > 0 ? t("sections.textsCustom", { count: customCount }) : t("sections.textsDefault")}
+      storageKey={marathonSectionStorageKey(String(marathonId))}
+    >
       <p className={css.lead}>{t("copy.lead")}</p>
       {COPY_GROUPS.map((group) => (
         <div key={group.id} className={css.stack}>
@@ -97,6 +104,6 @@ export function CopyEditor({
           ))}
         </div>
       ))}
-    </section>
+    </AccordionSection>
   );
 }
