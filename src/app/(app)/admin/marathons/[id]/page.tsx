@@ -14,6 +14,7 @@ import {
   listRiddles,
   searchQuizTasks,
 } from "@/modules/marathons/daily/store";
+import { listBankThemes } from "@/modules/marathons/daily/taskBank";
 import { parseUtmSource } from "@/modules/marathons/daily/utm";
 
 export const dynamic = "force-dynamic";
@@ -51,11 +52,12 @@ export default async function AdminMarathonEditorPage({ params, searchParams }: 
   if (!marathon) notFound();
   const query = await searchParams;
   const q = first(query.q);
-  const [riddles, days, reports, questions] = await Promise.all([
+  const [riddles, days, reports, questions, themes] = await Promise.all([
     listRiddles(marathon.id, marathon.subject),
     listDays(marathon.id),
     listParticipantReports(marathon.id),
     searchQuizTasks(q ?? ""),
+    listBankThemes(marathon.subject),
   ]);
   const detailed = await Promise.all(
     days.map(async (day) => ({
@@ -89,6 +91,7 @@ export default async function AdminMarathonEditorPage({ params, searchParams }: 
       days={detailed}
       reports={reports}
       funnel={funnel}
+      themes={themes}
       questions={questions}
       error={first(query.error)}
       savedToken={first(query.saved)}

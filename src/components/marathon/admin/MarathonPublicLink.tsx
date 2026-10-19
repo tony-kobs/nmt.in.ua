@@ -51,7 +51,7 @@ export function MarathonPublicLink({
           onClick={() => void copy()}
           aria-live="polite"
         >
-          {copied === "ok" ? t("copied") : t("copy")}
+          {copied === "ok" ? t("copied") : t("copyLink")}
         </button>
       </div>
       {copied === "fail" ? (

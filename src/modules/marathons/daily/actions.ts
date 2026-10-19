@@ -79,6 +79,15 @@ import {
   updateRiddle,
 } from "./store";
 import { answerRiddle, type AttemptResult } from "./riddleQuiz";
+import {
+  dayBelongsToMarathon,
+  insertSampledTasks,
+  quizBankMatchesSubject,
+  replaceBankTask,
+  reshuffleDayTaskOrder,
+  sampleThemePreviews,
+  type BankPreview,
+} from "./taskBank";
 import { openRiddleSession, writeRiddleSession } from "./riddleSession";
 import { loginCandidatesFromEmail, normalizeCtaUrl } from "./utm";
 
@@ -416,6 +425,105 @@ export async function deleteTaskAction(formData: FormData): Promise<void> {
   await deleteTask(dayId, taskId);
   revalidatePath(adminPath(id));
   redirect(adminPath(id));
+}
+
+function positiveId(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
+}
+
+async function dayOnMarathon(marathonId: number, dayId: number): Promise<boolean> {
+  const marathon = await getDailyById(marathonId);
+  if (!marathon) return false;
+  return dayBelongsToMarathon(marathonId, dayId);
+}
+
+export async function previewTopicSampleAction(input: {
+  marathonId: number;
+  dayId: number;
+  themeId: number;
+  count: number;
+  excludeIds: number[];
+}): Promise<{ ok: true; questions: BankPreview[] } | { ok: false; error: "invalid" | "empty" | "subject" }> {
+  await requireManager();
+  const marathonId = positiveId(input?.marathonId);
+  const dayId = positiveId(input?.dayId);
+  const themeId = positiveId(input?.themeId);
+  const count = typeof input?.count === "number" ? input.count : 0;
+  if (!marathonId || !dayId || !themeId) return { ok: false, error: "invalid" };
+  const marathon = await getDailyById(marathonId);
+  if (!marathon) return { ok: false, error: "invalid" };
+  if (!quizBankMatchesSubject(marathon.subject)) return { ok: false, error: "subject" };
+  if (!(await dayBelongsToMarathon(marathonId, dayId))) return { ok: false, error: "invalid" };
+  const excludeIds = Array.isArray(input?.excludeIds)
+    ? input.excludeIds.filter((id): id is number => positiveId(id) != null)
+    : [];
+  try {
+    const questions = await sampleThemePreviews({
+      subject: marathon.subject,
+      themeId,
+      count,
+      excludeIds,
+    });
+    if (questions.length === 0) return { ok: false, error: "empty" };
+    return { ok: true, questions };
+  } catch (error) {
+    console.error("previewTopicSampleAction", error);
+    return { ok: false, error: "invalid" };
+  }
+}
+
+export async function addSampledTasksAction(formData: FormData): Promise<void> {
+  await requireManager();
+  const id = readInt(formData.get("marathonId"));
+  const dayId = readInt(formData.get("dayId"));
+  const themeId = readInt(formData.get("themeId"));
+  const questionIds = formData
+    .getAll("questionId")
+    .map((value) => readInt(value))
+    .filter((value): value is number => value != null && value > 0);
+  if (!id || !dayId || !themeId || questionIds.length === 0) {
+    redirect(`${adminPath(id ?? undefined)}?error=invalid`);
+  }
+  const marathon = await getDailyById(id);
+  if (!marathon || !quizBankMatchesSubject(marathon.subject)) {
+    redirect(`${adminPath(id)}?error=invalid`);
+  }
+  if (!(await dayBelongsToMarathon(id, dayId))) redirect(`${adminPath(id)}?error=invalid`);
+  try {
+    const inserted = await insertSampledTasks({ dayId, themeId, questionIds });
+    if (inserted === 0) redirect(`${adminPath(id)}?error=question`);
+  } catch (error) {
+    if (isDuplicateKey(error)) redirect(`${adminPath(id)}?error=duplicate`);
+    console.error("addSampledTasksAction", error);
+    redirect(`${adminPath(id)}?error=server`);
+  }
+  revalidatePath(adminPath(id));
+  redirect(savedPath(id));
+}
+
+export async function replaceTaskAction(formData: FormData): Promise<void> {
+  await requireManager();
+  const id = readInt(formData.get("marathonId"));
+  const dayId = readInt(formData.get("dayId"));
+  const taskId = readInt(formData.get("taskId"));
+  if (!id || !dayId || !taskId) redirect(`${adminPath(id ?? undefined)}?error=invalid`);
+  if (!(await dayOnMarathon(id, dayId))) redirect(`${adminPath(id)}?error=invalid`);
+  const result = await replaceBankTask(dayId, taskId);
+  if (result === "none") redirect(`${adminPath(id)}?error=no_alternate`);
+  if (result === "missing") redirect(`${adminPath(id)}?error=question`);
+  revalidatePath(adminPath(id));
+  redirect(savedPath(id));
+}
+
+export async function reshuffleTasksAction(formData: FormData): Promise<void> {
+  await requireManager();
+  const id = readInt(formData.get("marathonId"));
+  const dayId = readInt(formData.get("dayId"));
+  if (!id || !dayId) redirect(`${adminPath(id ?? undefined)}?error=invalid`);
+  if (!(await dayOnMarathon(id, dayId))) redirect(`${adminPath(id)}?error=invalid`);
+  await reshuffleDayTaskOrder(dayId);
+  revalidatePath(adminPath(id));
+  redirect(savedPath(id));
 }
 
 async function openMarathon(slug: string) {

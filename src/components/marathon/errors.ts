@@ -8,6 +8,7 @@ const KNOWN = [
   "server",
   "seed_exists",
   "question",
+  "no_alternate",
   "locked",
   "missing",
   "materials_required",
