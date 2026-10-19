@@ -11,6 +11,8 @@ import {
   deleteMaterialAction,
   deleteRiddleAction,
   deleteTaskAction,
+  replaceTaskAction,
+  reshuffleTasksAction,
   seedMarathonAction,
   setMarathonStatusAction,
 } from "@/modules/marathons/daily/actions";
@@ -22,6 +24,8 @@ import type {
   Riddle,
 } from "@/modules/marathons/daily/store";
 import type { FunnelReport } from "@/modules/marathons/daily/funnel";
+import type { BankTheme } from "@/modules/marathons/daily/taskBank";
+import { MathText } from "@/components/ui/MathText";
 import { MarathonBoard } from "./MarathonBoard";
 import { AdminNotices } from "./admin/AdminNotices";
 import { TelegramDayPreview } from "./admin/TelegramDayPreview";
@@ -37,6 +41,8 @@ import {
   UpdateMaterialForm,
 } from "./admin/MarathonAdminForms";
 import { CopyEditor } from "./admin/CopyEditor";
+import { DayTaskBank } from "./admin/DayTaskBank";
+import { MarathonFunnelStrip } from "./admin/MarathonFunnelStrip";
 import { MarathonPublicLink } from "./admin/MarathonPublicLink";
 import { marathonErrorText } from "./errors";
 import { ConfirmSubmit, SubmitButton } from "./ConfirmSubmit";
@@ -100,6 +106,7 @@ export async function MarathonAdminEditor({
   days,
   reports,
   funnel,
+  themes,
   questions,
   error,
   savedToken,
@@ -109,6 +116,7 @@ export async function MarathonAdminEditor({
   days: EditorDay[];
   reports: ParticipantReport[];
   funnel: FunnelReport;
+  themes: BankTheme[];
   questions: Array<{ id: number; label: string }>;
   error?: string;
   savedToken?: string;
@@ -132,11 +140,13 @@ export async function MarathonAdminEditor({
         savedText={t("saved")}
         error={message}
       >
-        <MarathonPublicLink
-          href={publicHref(marathon.slug)}
-          draft={marathon.status === "draft"}
-          prominent
-        />
+        <div className={css.editorTop}>
+          <MarathonPublicLink
+            href={publicHref(marathon.slug)}
+            draft={marathon.status === "draft"}
+          />
+          <MarathonFunnelStrip funnel={funnel} />
+        </div>
         {notReady ? (
           <div className={css.alert} role="alert">
             <p>{t("notReady")}</p>
@@ -250,12 +260,6 @@ export async function MarathonAdminEditor({
 
         <section className={css.stack} aria-labelledby="days-admin">
           <h2 id="days-admin">{t("daysTitle")}</h2>
-          <form className={css.actions} method="get">
-            <input className={css.input} name="q" placeholder={t("questionSearch")} />
-            <button type="submit" className={css.buttonQuiet}>
-              {t("search")}
-            </button>
-          </form>
           <AddDayForm marathonId={marathon.id} />
           {days.map((day) => (
             <article key={day.id} className={css.card}>
@@ -304,55 +308,82 @@ export async function MarathonAdminEditor({
                 dayId={day.id}
                 nextOrder={day.materials.length + 1}
               />
-              <ul>
+              <h3 className={css.dayTasksTitle}>{t("dayTasksTitle")}</h3>
+              {day.tasks.length > 1 ? (
+                <form action={reshuffleTasksAction}>
+                  <input type="hidden" name="marathonId" value={marathon.id} />
+                  <input type="hidden" name="dayId" value={day.id} />
+                  <SubmitButton className={css.buttonQuiet} pendingLabel={t("working")}>
+                    {t("reshuffleOrder")}
+                  </SubmitButton>
+                </form>
+              ) : null}
+              <ul className={css.taskList}>
                 {day.tasks.map((task) => (
-                  <li key={task.id}>
-                    {task.questionId ? `#${task.questionId}` : task.prompt.slice(0, 80)}
-                    <form action={deleteTaskAction}>
-                      <input type="hidden" name="marathonId" value={marathon.id} />
-                      <input type="hidden" name="dayId" value={day.id} />
-                      <input type="hidden" name="taskId" value={task.id} />
-                      <SubmitButton className={css.buttonQuiet} pendingLabel={t("deleting")}>
-                        {t("delete")}
-                      </SubmitButton>
-                    </form>
+                  <li key={task.id} className={css.taskRow}>
+                    <p className={css.meta}>
+                      {t("fields.order")} {task.order}
+                      {task.questionId ? ` · ${t("taskBankTag")} #${task.questionId}` : ""}
+                    </p>
+                    <MathText text={task.prompt} as="div" />
+                    {task.options.length > 0 ? (
+                      <ol className={css.taskOptions}>
+                        {task.options.map((option, index) => (
+                          <li key={`${task.id}-${index}`}>
+                            <MathText text={option} as="span" />
+                          </li>
+                        ))}
+                      </ol>
+                    ) : null}
+                    <div className={css.actions}>
+                      {task.questionId ? (
+                        <form action={replaceTaskAction}>
+                          <input type="hidden" name="marathonId" value={marathon.id} />
+                          <input type="hidden" name="dayId" value={day.id} />
+                          <input type="hidden" name="taskId" value={task.id} />
+                          <SubmitButton className={css.buttonQuiet} pendingLabel={t("working")}>
+                            {t("replaceQuestion")}
+                          </SubmitButton>
+                        </form>
+                      ) : null}
+                      <form action={deleteTaskAction}>
+                        <input type="hidden" name="marathonId" value={marathon.id} />
+                        <input type="hidden" name="dayId" value={day.id} />
+                        <input type="hidden" name="taskId" value={task.id} />
+                        <SubmitButton className={css.buttonQuiet} pendingLabel={t("deleting")}>
+                          {t("delete")}
+                        </SubmitButton>
+                      </form>
+                    </div>
                   </li>
                 ))}
               </ul>
-              <AddTaskForm
+              <DayTaskBank
                 marathonId={marathon.id}
                 dayId={day.id}
-                nextOrder={day.tasks.length + 1}
-                questions={questions}
+                themes={themes}
+                savedQuestionIds={day.tasks.flatMap((task) =>
+                  task.questionId ? [task.questionId] : [],
+                )}
               />
+              <details className={css.manualTask} {...(questions.length > 0 ? { open: true } : {})}>
+                <summary className={css.manualSummary}>{t("manualTask")}</summary>
+                <form className={css.actions} method="get">
+                  <input className={css.input} name="q" placeholder={t("questionSearch")} />
+                  <button type="submit" className={css.buttonQuiet}>
+                    {t("search")}
+                  </button>
+                </form>
+                <AddTaskForm
+                  marathonId={marathon.id}
+                  dayId={day.id}
+                  nextOrder={day.tasks.length + 1}
+                  questions={questions}
+                />
+              </details>
               <TelegramDayPreview day={day} />
             </article>
           ))}
-        </section>
-
-        <section className={css.card} aria-labelledby="funnel">
-          <h2 id="funnel">{t("funnelTitle")}</h2>
-          <p>
-            {t("funnelLine", {
-              registered: funnel.totals.registered,
-              verified: funnel.totals.emailVerified,
-              final: funnel.totals.final,
-              converted: funnel.totals.converted,
-            })}
-          </p>
-          <p>
-            {funnel.totals.days
-              .map((count, index) => `${t("dayLabel", { n: index + 1 })}: ${count}`)
-              .join(" · ")}
-          </p>
-          <ul>
-            {funnel.bySource.map((row) => (
-              <li key={row.source}>
-                {row.source}: {row.counts.registered} / {row.counts.emailVerified} /{" "}
-                {row.counts.converted}
-              </li>
-            ))}
-          </ul>
         </section>
 
         <section className={css.card} aria-labelledby="people">
