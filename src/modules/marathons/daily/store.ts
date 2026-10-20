@@ -2103,6 +2103,22 @@ export async function loadMarathonHomeState(
   }, getConnection);
 }
 
+/** Quiet hours: return the row to the queue and undo the claim's attempt increment. */
+export async function postponeMarathonTelegram(
+  id: number,
+  notBefore: Date,
+  getConnection?: Conn,
+): Promise<void> {
+  await withConn(async (connection) => {
+    await connection.execute(
+      `UPDATE marathon_telegram_outbox
+       SET status = 'pending', not_before = ?, attempts = GREATEST(attempts - 1, 0)
+       WHERE id = ?`,
+      [notBefore, id],
+    );
+  }, getConnection);
+}
+
 export async function finishMarathonTelegram(
   id: number,
   status: "sent" | "failed" | "pending",

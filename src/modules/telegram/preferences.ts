@@ -3,7 +3,11 @@ import type { SqlConnection } from "@/lib/db/mysql";
 import { mysqlErrno } from "@/modules/teacher-students/mysqlErrno";
 import type { TelegramAccountRole } from "./account";
 
-/** Every setting here is read by `processTelegramTaskNotifications`; nothing is stored that is not enforced. */
+/**
+ * Task toggles are enforced by `processTelegramTaskNotifications`.
+ * Quiet hours also hold other proactive Telegram (marathon day, reminders, rank, system outbox).
+ * A reply to an incoming webhook update is not a notification and is never held.
+ */
 export type NotificationPreferences = {
   newTasks: boolean;
   deadlineReminders: boolean;
@@ -75,6 +79,22 @@ export function isQuietHour(prefs: Pick<NotificationPreferences, "quietStart" | 
   return start < end ? kyivHour >= start && kyivHour < end : kyivHour >= start || kyivHour < end;
 }
 
+/** `user` — the person just sent an update. `system` — cron, rank push, or a queued broadcast. */
+export type TelegramSendTrigger = "user" | "system";
+
+/**
+ * Quiet hours hold proactive sends only.
+ * `trigger: "user"` is a reply to a webhook update (menu, callback, command, requested materials) and always goes out.
+ */
+export function shouldHoldForQuietHours(
+  prefs: Pick<NotificationPreferences, "quietStart" | "quietEnd"> | null | undefined,
+  kyivHour: number,
+  trigger: TelegramSendTrigger,
+): boolean {
+  if (trigger !== "system" || !prefs) return false;
+  return isQuietHour(prefs, kyivHour);
+}
+
 export function isMissingTableError(error: unknown): boolean {
   return mysqlErrno(error) === 1146
     || (typeof error === "object" && error !== null && (error as { code?: unknown }).code === "ER_NO_SUCH_TABLE");
@@ -136,6 +156,39 @@ export async function loadNotificationPreferences(
     return result;
   } catch (error) {
     if (isMissingTableError(error)) return null;
+    throw error;
+  }
+}
+
+/** Quiet-hour window per private chat. A missing row means the window is off. */
+export async function loadQuietHoursByChat(
+  connection: SqlConnection,
+  chatIds: string[],
+): Promise<Map<string, Pick<NotificationPreferences, "quietStart" | "quietEnd">>> {
+  const ids = [...new Set(chatIds.map((id) => id.trim()).filter((id) => /^-?\d{1,20}$/.test(id)))];
+  const result = new Map<string, Pick<NotificationPreferences, "quietStart" | "quietEnd">>();
+  if (!ids.length) return result;
+  try {
+    const rows = await connection.query<{
+      telegram_chat_id: string | number;
+      quiet_start: number | null;
+      quiet_end: number | null;
+    }>(
+      `SELECT a.telegram_chat_id, p.quiet_start, p.quiet_end
+       FROM user_telegram_accounts a
+       LEFT JOIN telegram_notification_preferences p ON p.account_id = a.id
+       WHERE a.telegram_chat_id IN (${ids.map(() => "?").join(", ")})`,
+      ids,
+    );
+    for (const row of rows) {
+      const chatId = String(row.telegram_chat_id);
+      const prefs = { quietStart: hour(row.quiet_start), quietEnd: hour(row.quiet_end) };
+      const existing = result.get(chatId);
+      if (!existing || (existing.quietStart === null && prefs.quietStart !== null)) result.set(chatId, prefs);
+    }
+    return result;
+  } catch (error) {
+    if (isMissingTableError(error)) return result;
     throw error;
   }
 }

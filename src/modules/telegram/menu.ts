@@ -121,7 +121,7 @@ function quietScreen(chatId: string, current: number, messageId?: number): Teleg
     callback_data: `p:q:${index}`,
   }]);
   rows.push(navRow({ data: MENU.notifications }));
-  return screen(chatId, "<b>🌙 Тихі години</b>\n\nУ цей час бот не надсилатиме сповіщень; нові завдання прийдуть після завершення тихих годин.", rows, messageId);
+  return screen(chatId, "<b>🌙 Тихі години</b>\n\nУ цей час бот не надсилатиме сповіщень; нові завдання прийдуть після завершення тихих годин. Кнопки, команди і відповіді на ваші дії приходять одразу.", rows, messageId);
 }
 
 export async function handleMenuRequest(request: MenuRequest, deps: MenuDeps = {}): Promise<TelegramReply> {

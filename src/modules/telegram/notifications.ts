@@ -10,8 +10,8 @@ import {
   TELEGRAM_DEADLINE_NOTIFICATION, TELEGRAM_NEW_TASK_NOTIFICATION, type NotificationKey,
 } from "./notificationDelivery";
 import {
-  claimDigest, DEFAULT_NOTIFICATION_PREFERENCES, ensureNotificationPreferences, isQuietHour,
-  loadNotificationPreferences, releaseDigest, type NotificationPreferences,
+  claimDigest, DEFAULT_NOTIFICATION_PREFERENCES, ensureNotificationPreferences,
+  loadNotificationPreferences, releaseDigest, shouldHoldForQuietHours, type NotificationPreferences,
 } from "./preferences";
 import {
   baselineTeacherResults, formatTeacherResult, formatTeacherSummary, getTeacherAssignmentSummary,
@@ -232,8 +232,8 @@ export async function processTelegramTaskNotifications(
           continue;
         }
         const prefs: NotificationPreferences = preferences?.get(Number(account.id)) ?? DEFAULT_NOTIFICATION_PREFERENCES;
-        if (preferences && isQuietHour(prefs, clock.hour)) {
-          // Nothing is claimed: new-task rows stay unclaimed and go out after the quiet hours.
+        if (preferences && shouldHoldForQuietHours(prefs, clock.hour, "system")) {
+          // Proactive only. Nothing is claimed: rows stay unclaimed and go out after the quiet hours.
           counts.skipped++;
           finishAccount();
           continue;

@@ -4,6 +4,9 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { absoluteUrl, sendMail } from "@/modules/mail/sendMail";
 import { piecesToReplies } from "@/modules/telegram/deliver";
 import { rememberDeferred } from "@/modules/telegram/outbox";
+import { loadQuietHoursByChat, shouldHoldForQuietHours } from "@/modules/telegram/preferences";
+import { loadTelegramConnection } from "@/modules/telegram/schema";
+import { getKyivClock } from "@/modules/telegram/taskDay";
 import { sendThrottled, sharedTelegramPace } from "@/modules/telegram/throttle";
 import { sendTelegramMessage } from "@/modules/telegram/transport";
 import { optionalTelegramBot } from "./botLink";
@@ -55,6 +58,22 @@ export function isMarathonCronAuthorized(header: string | null): boolean {
   if (!provided) return false;
   const digest = (value: string) => createHash("sha256").update(value, "utf8").digest();
   return timingSafeEqual(digest(provided), digest(secret));
+}
+
+/** Proactive Telegram only. A lookup failure does not hold the send. */
+async function quietHoldForChat(chatId: string, now = new Date()): Promise<boolean> {
+  let connection: Awaited<ReturnType<typeof loadTelegramConnection>> | undefined;
+  try {
+    connection = await loadTelegramConnection();
+    const map = await loadQuietHoursByChat(connection, [chatId]);
+    const hour = getKyivClock(Math.floor(now.getTime() / 1000)).hour;
+    return shouldHoldForQuietHours(map.get(chatId), hour, "system");
+  } catch (error) {
+    console.error("telegram quiet hours", error);
+    return false;
+  } finally {
+    connection?.release();
+  }
 }
 
 function kindKey(kind: NotifyKind): CopyKey {
@@ -200,10 +219,10 @@ async function queueOpenedDay(
   if (!bot) return false;
   const days = await listDays(marathon.marathonId);
   const day = days.find((item) => item.dayNumber === dayNumber);
-  const announce = { chatId, text: announcement };
+  const announce = { chatId, text: announcement, trigger: "system" as const };
   if (!day) {
     if (!includeAnnouncement) return true;
-    await rememberDeferred([announce]);
+    await rememberDeferred([announce], "system");
     return true;
   }
   const materials = await listMaterials(day.id);
@@ -220,7 +239,7 @@ async function queueOpenedDay(
   }
   const queued = includeAnnouncement ? [announce, ...replies] : replies;
   if (queued.length === 0) return true;
-  await rememberDeferred(queued);
+  await rememberDeferred(queued, "system");
   return true;
 }
 
@@ -256,9 +275,13 @@ export async function runMarathonNotifications(deps: {
   confirm?: typeof confirmNotification;
   sendEmail?: (input: { to: string; subject: string; html: string; text: string }) => Promise<boolean>;
   sendTelegram?: (chatId: string, text: string) => Promise<boolean | "definitive">;
+  /** When set, replaces the quiet-hours lookup. True means do not send this chat yet. */
+  holdTelegram?: (chatId: string) => Promise<boolean>;
   telegramEnabled?: boolean;
   secret?: string | null;
   loadBoard?: (marathonId: number) => Promise<BoardLine[]>;
+  /** Unit tests skip the in-site bell, which needs the database. */
+  skipSiteDay?: boolean;
 } = {}): Promise<{ sent: number; skipped: number; failed: number }> {
   const now = deps.now?.() ?? new Date();
   if (!deps.load) {
@@ -269,10 +292,12 @@ export async function runMarathonNotifications(deps: {
     }
   }
   const audience = await (deps.load ?? loadNotifyAudience)();
-  try {
-    await deliverSiteDayNotifications(audience, now);
-  } catch (error) {
-    console.error("marathon site day", error);
+  if (!deps.skipSiteDay) {
+    try {
+      await deliverSiteDayNotifications(audience, now);
+    } catch (error) {
+      console.error("marathon site day", error);
+    }
   }
   const secret = deps.secret === undefined ? unsubscribeSecret() : deps.secret;
   const telegramEnabled = deps.telegramEnabled ?? Boolean(optionalTelegramBot());
@@ -290,6 +315,7 @@ export async function runMarathonNotifications(deps: {
     return result.ok;
   });
   const sendTelegram = deps.sendTelegram ?? (async (chatId, text) => classifyTelegramSend(chatId, text));
+  const holdTelegram = deps.holdTelegram ?? ((chatId: string) => quietHoldForChat(chatId, now));
   const claim = deps.claim ?? claimNotification;
   const release = deps.release ?? releaseNotification;
   const confirm = deps.confirm ?? (deps.claim ? undefined : confirmNotification);
@@ -312,6 +338,7 @@ export async function runMarathonNotifications(deps: {
             text: item.text,
           });
         }
+        if (item.chatId && await holdTelegram(item.chatId)) return "defer";
         let attempt: TelegramAttempt;
         if (!item.chatId) {
           attempt = "definitive";
@@ -397,6 +424,8 @@ export async function sendCompletedDayFollowUp(input: {
   person: NotifyAudienceMarathon["people"][number];
   /** The bot reply already contains the text, so do not push it again. */
   skipTelegram?: boolean;
+  /** Test hook. Production reads the account's quiet hours. */
+  holdTelegram?: (chatId: string) => Promise<boolean>;
 }): Promise<{ sent: number; skipped: number; failed: number }> {
   void input.title;
   const secret = unsubscribeSecret();
@@ -454,6 +483,7 @@ export async function sendCompletedDayFollowUp(input: {
     });
   }
   const telegramEnabled = Boolean(optionalTelegramBot());
+  const holdTelegram = input.holdTelegram ?? quietHoldForChat;
   const ready = deliveries.filter((item) => item.intent.channel === "email" || telegramEnabled);
   const byKey = new Map(ready.map((item) => [intentKey(item.intent), item]));
   return deliverNotifications(
@@ -475,6 +505,7 @@ export async function sendCompletedDayFollowUp(input: {
           });
           return result.ok;
         }
+        if (item.chatId && await holdTelegram(item.chatId)) return "defer";
         const attempt = item.chatId
           ? await classifyTelegramSend(item.chatId, item.text)
           : "definitive";
@@ -495,6 +526,9 @@ export async function sendRankNotice(input: {
   prevPlace: number | null;
   points: number;
   skipTelegram?: boolean;
+  /** Test hook. Production reads the account's quiet hours. */
+  holdTelegram?: (chatId: string) => Promise<boolean>;
+  enqueueTelegram?: typeof rememberDeferred;
 }): Promise<string> {
   const link = marathonDayUrl(input.slug, input.dayNumber);
   const rendered = rankNoticeText(input.copy, {
@@ -526,8 +560,17 @@ export async function sendRankNotice(input: {
     }
   }
   if (channels.includes("telegram") && !input.skipTelegram && input.person.telegramChatId) {
+    const chatId = input.person.telegramChatId;
     try {
-      await classifyTelegramSend(input.person.telegramChatId, rendered);
+      const hold = input.holdTelegram ?? quietHoldForChat;
+      if (await hold(chatId)) {
+        await (input.enqueueTelegram ?? rememberDeferred)(
+          [{ chatId, text: rendered, trigger: "system" }],
+          "system",
+        );
+      } else {
+        await classifyTelegramSend(chatId, rendered);
+      }
     } catch (error) {
       console.error("marathon rank telegram", error);
     }
