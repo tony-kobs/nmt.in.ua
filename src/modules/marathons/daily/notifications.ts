@@ -277,7 +277,7 @@ export async function deliverNotifications(
   deps: {
     claim: (intent: NotifyIntent) => Promise<"claimed" | "duplicate">;
     release: (intent: NotifyIntent) => Promise<void>;
-    send: (intent: NotifyIntent) => Promise<boolean>;
+    send: (intent: NotifyIntent) => Promise<boolean | "defer">;
     /** Marks the claim delivered. Without it a claim is final as soon as it is taken. */
     confirm?: (intent: NotifyIntent) => Promise<void>;
   },
@@ -292,6 +292,11 @@ export async function deliverNotifications(
       continue;
     }
     const ok = await deps.send(intent);
+    if (ok === "defer") {
+      await deps.release(intent);
+      skipped += 1;
+      continue;
+    }
     if (!ok) {
       await deps.release(intent);
       failed += 1;

@@ -38,6 +38,12 @@ export type TelegramReply = {
   continuation?: TelegramReply[];
   /** Recorded after this message is delivered. Not sent to Telegram. */
   materialsViewed?: { marathonId: number; userId: number; dayId: number };
+  /**
+   * Who caused this message. Not sent to Telegram.
+   * `user` — reply to an incoming webhook update. `system` — a scheduled or broadcast send.
+   * Missing means `user`, so an old outbox row is not held by quiet hours.
+   */
+  trigger?: "user" | "system";
 };
 export type TaskCallback = { queryId: string; chatId: string; userId: string; action: "d" | "a" | "y" | "n" | null; reference: string };
 

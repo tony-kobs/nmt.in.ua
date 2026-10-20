@@ -114,6 +114,33 @@ test("delivery is idempotent: a claimed send is not repeated, a failure can retr
   assert.equal(attempts, 2);
 });
 
+test("a deferred send releases the claim and is not a failure", async () => {
+  const seen = new Set<string>();
+  const intent: NotifyIntent = {
+    marathonId: 1, userId: 7, dayNumber: 1, kind: "reminder", channel: "telegram",
+  };
+  let released = 0;
+  let confirmed = 0;
+  const first = await deliverNotifications([intent], {
+    claim: async () => {
+      seen.add("1");
+      return "claimed";
+    },
+    release: async () => { released += 1; seen.delete("1"); },
+    confirm: async () => { confirmed += 1; },
+    send: async () => "defer",
+  });
+  assert.deepEqual(first, { sent: 0, skipped: 1, failed: 0 });
+  assert.equal(released, 1);
+  assert.equal(confirmed, 0);
+  const second = await deliverNotifications([intent], {
+    claim: async () => (seen.has("1") ? "duplicate" : "claimed"),
+    release: async () => {},
+    send: async () => true,
+  });
+  assert.deepEqual(second, { sent: 1, skipped: 0, failed: 0 });
+});
+
 test("a missed day is nudged once, only after the next unlock and inside 10:00–21:00 Kyiv", async () => {
   const quiet = planNudges({
     ...marathon,

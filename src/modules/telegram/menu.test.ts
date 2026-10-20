@@ -3,7 +3,7 @@ import { test } from "node:test";
 import type { SqlConnection } from "@/lib/db/mysql";
 import type { TelegramAccountResult } from "./account";
 import { handleMenuRequest, parseMenuCallback, parseMenuCommand, parseMenuData } from "./menu";
-import { formatQuietHours, isQuietHour, quietPresetIndex, togglesForRole } from "./preferences";
+import { formatQuietHours, isQuietHour, quietPresetIndex, shouldHoldForQuietHours, togglesForRole } from "./preferences";
 import { resolveTaskReference } from "./taskReference";
 import { handleTelegramUpdate } from "./webhook";
 
@@ -217,6 +217,10 @@ test("quiet hours handle windows across midnight and same-day windows", () => {
   const day = { quietStart: 9, quietEnd: 12 };
   assert.deepEqual([8, 9, 11, 12].map((hour) => isQuietHour(day, hour)), [false, true, true, false]);
   assert.equal(isQuietHour({ quietStart: null, quietEnd: null }, 3), false);
+  assert.equal(shouldHoldForQuietHours(overnight, 23, "system"), true);
+  assert.equal(shouldHoldForQuietHours(overnight, 23, "user"), false);
+  assert.equal(shouldHoldForQuietHours(overnight, 8, "system"), false);
+  assert.equal(shouldHoldForQuietHours(undefined, 23, "system"), false);
   assert.equal(quietPresetIndex({ quietStart: 23, quietEnd: 7 }), 2);
   assert.equal(quietPresetIndex({ quietStart: 5, quietEnd: 6 }), 0);
   assert.equal(formatQuietHours({ quietStart: 21, quietEnd: 9 }), "21:00–09:00");
