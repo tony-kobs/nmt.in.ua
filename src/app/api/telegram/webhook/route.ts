@@ -58,10 +58,11 @@ export async function POST(request: Request): Promise<Response> {
         if (!response.ok) throw new Error("Telegram callback acknowledgement failed");
       },
     });
-    const replies = flattenReplies(reply);
+    // An incoming update is always a user trigger. Quiet hours do not apply.
+    const replies = flattenReplies(reply).map((item) => ({ ...item, trigger: "user" as const }));
     const delivered = await deliverTelegramReplies(replies, config.botToken, { budgetMs: 6_000 });
     if (delivered.deferred.length > 0) {
-      await rememberDeferred(delivered.deferred);
+      await rememberDeferred(delivered.deferred, "user");
       try {
         const { after } = await import("next/server");
         after(() => {
