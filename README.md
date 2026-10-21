@@ -1,10 +1,138 @@
-# nmt.in.ua
+<p align="center">
+  <a href="https://nmt.in.ua">
+    <img src="public/favicon.svg" alt="Знак nmt.in.ua" width="80" height="80">
+  </a>
+</p>
 
-Сайт [nmt.in.ua](https://nmt.in.ua) на Next.js 16 (App Router, TypeScript). Стилі — CSS Modules.
+<h1 align="center">nmt.in.ua</h1>
 
-## Як почати
+<p align="center">
+  <strong>Підготовка до НМТ з математики — системно і з результатом.</strong><br>
+  Онлайн-кабінет, у якому видно слабкі теми, є тренування у форматі іспиту<br>
+  і зрозумілий план наступних кроків.
+</p>
 
-Потрібні Node.js 20+ і npm.
+<p align="center">
+  <a href="https://nmt.in.ua"><img alt="Живий сайт nmt.in.ua" src="https://img.shields.io/badge/сайт-nmt.in.ua-1f8f45?style=for-the-badge"></a>
+  <img alt="НМТ 2027, математика" src="https://img.shields.io/badge/НМТ_2027-математика-11532a?style=for-the-badge">
+  <img alt="Кабінет учня безкоштовний" src="https://img.shields.io/badge/учень-безкоштовно-1f8f45?style=for-the-badge">
+  <img alt="Мови інтерфейсу: українська, англійська, німецька" src="https://img.shields.io/badge/мови-UA_%7C_EN_%7C_DE-5c4c28?style=for-the-badge">
+  <img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-111111?style=for-the-badge&logo=nextdotjs&logoColor=white">
+</p>
+
+<p align="center">
+  <a href="https://nmt.in.ua"><strong>Відкрити сайт</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://nmt.in.ua/diagnostic"><strong>Перевірити рівень</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://nmt.in.ua/register"><strong>Створити акаунт</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://nmt.in.ua/login"><strong>Увійти</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://nmt.in.ua/register?role=teacher"><strong>Кабінет викладача</strong></a>
+  &nbsp;·&nbsp;
+  <a href="#для-розробників"><strong>Для розробників</strong></a>
+</p>
+
+<p align="center">
+  <img src="docs/readme/welcome.png" alt="Вітальна сторінка: заголовок, чотири кроки підготовки і кнопка вступного тесту" width="920">
+</p>
+
+## Що це
+
+**nmt.in.ua** — тренажер підготовки до НМТ з математики. Учень проходить діагностику, тренується за темами і на офіційних варіантах, бачить прогрес і отримує наступний крок. Викладач веде своїх учнів, призначає тести і читає результати. Адмін тримає банк завдань, профілі й денні марафони.
+
+Кабінет учня безкоштовний: реєстрація за хвилину, без картки. Інтерфейс українською, англійською і німецькою, зручний з телефона.
+
+| | |
+| --- | --- |
+| **20+** | тем сертифікаційної роботи |
+| **13** | офіційних варіантів НМТ у симуляторі |
+| **1** | підручник зі змістом за темами |
+
+## Учню
+
+- **Вступний тест без реєстрації.** До десяти завдань з різних тем. Складність росте після правильної відповіді і знижується після помилки. Наприкінці — сильні та слабкі теми.
+- **Тест за темою.** Учень обирає тему і кількість завдань (видно розмір банку). Після кожної відповіді — пояснення.
+- **Симулятор НМТ.** Офіційні варіанти у форматі УЦОЯО, таймер і бали. Після фінішу — розбір помилок і посилання в підручник.
+- **Підручник.** Теорія і формули за темами сертифікаційної роботи, один розділ за раз.
+- **Задачник.** Тест по темі, який можна роздрукувати.
+- **Результати.** Спроби, середній відсоток, швидкість і динаміка по кожній темі.
+- **Рекомендації.** Після тесту система підказує, що повторити і з чого почати далі.
+- **Навчальні сесії.** Історія спроб і тренування, які призначив викладач.
+- **Консультація.** Заявка викладачу з кабінету.
+- **Денний марафон.** Загадки на лендінгу, карта днів, завдання, таблиця місць. Проходити можна на сайті або в Telegram.
+- **Лідерборд.** Місця за марафоном або зведена таблиця всіх денних курсів.
+- **Сповіщення.** Дзвіночок у шапці, лист і Telegram. Категорії вмикаються в кабінеті.
+
+<p align="center">
+  <img src="docs/readme/features.jpg" alt="Секція можливостей: тести за темами, симулятор, підручник, результати, рекомендації і навчальні сесії" width="920">
+</p>
+
+<p align="center">
+  <img src="docs/readme/diagnostic.jpg" alt="Сторінка вступного тесту: кнопка старту і короткий опис, що покаже діагностика" width="720">
+</p>
+
+## Викладачу
+
+Окремий кабінет після реєстрації з роллю «викладач». Публічна сторінка викладача живе за адресою `/t/slug`.
+
+- **Публічна візитка.** Досвід, предмети, місто, опис і контакт. Учень бачить картку на вітальній і може оцінити викладача.
+- **Учні.** Створити обліковий запис (логін, пошта, пароль показується один раз) або додати наявного учня за логіном.
+- **Групи й коди.** Одна група на учня, особистий код і код групи. Учень приймає запрошення на `/join`.
+- **Призначення тестів.** Тема, кілька учнів, «на зараз» або дата і час. У списку видно, хто вже пройшов.
+- **Результати класу.** Усі учні або один. Теми від гіршого середнього, клік по темі відкриває учнів.
+- **Сесії учнів.** Ті самі «усі / один», фільтри і сортування, статуси спроб.
+- **Заявки на консультацію.** Черга запитів, позначки «побачено» і «закрито», кнопка «Приєднати» до себе або в групу.
+
+<p align="center">
+  <img src="docs/readme/teachers.jpg" alt="Пропозиція для викладачів: візитка, учні і групи, призначення тестів, результати, сесії і заявки на консультацію" width="920">
+</p>
+
+## Адмінка
+
+Адмін входить тим самим логіном. На головній замість тренажера — редактор банку.
+
+- **Банк завдань.** Список за темою, нове завдання, правка умови, варіантів, ключа, пояснення і складності.
+- **Імпорт.** CSV або JSON на `/settings`: теми, зв’язки тем, тести і за бажанням задачник. Одна транзакція на весь файл.
+- **Профілі.** Усі облікові записи, фільтр за роллю, бан і розбан, видалення. Біля імені — онлайн або коли людина була востаннє, нижче таблиця точок входу.
+- **Відгуки.** Оцінки 1–10 і пропозиції користувачів. Учні чужі відгуки не бачать.
+- **Марафони.** Створення курсу, публічне посилання, воронка учасників. Дні набираються з банку математики: пошук теми, кількість, заміна і перемішування. Окремо — загадки лендінгу, тексти для учасників, Telegram і вибір, кого сповістити. Таблиця місць показує всіх учасників.
+- **Інструменти викладача.** Учні, групи, призначення, результати і сесії доступні й адміну.
+
+Свій акаунт з адмінки забанити або видалити не можна.
+
+<p align="center">
+  <img src="docs/readme/login.jpg" alt="Сторінка входу: один кабінет для учня, викладача і адміна" width="720">
+</p>
+
+## Куди йти
+
+| Сторінка | Адреса | Хто |
+| --- | --- | --- |
+| Вітальна | [/welcome](https://nmt.in.ua/welcome) | усі |
+| Діагностика | [/diagnostic](https://nmt.in.ua/diagnostic) | усі, без акаунта |
+| Реєстрація | [/register](https://nmt.in.ua/register) | гість, учень або викладач |
+| Вхід | [/login](https://nmt.in.ua/login) | гість |
+| Тест за темою | `/topic` | учень |
+| Симулятор | `/simulator` | учень |
+| Підручник | `/materials/textbook` | учень |
+| Задачник | `/problems` | учень |
+| Результати і сесії | `/results`, `/sessions` | учень; викладач бачить клас |
+| Мої учні | `/students` | викладач, адмін |
+| Призначити тест | `/assign` | викладач, адмін |
+| Консультації | `/consultations` | учень пише, викладач читає чергу |
+| Візитка | `/t/{slug}` | усі, якщо опублікована |
+| Профілі | `/profiles` | адмін |
+| Імпорт | `/settings` | адмін |
+| Відгуки | `/feedback` | адмін |
+| Марафони | `/admin/marathons` | адмін |
+
+## Для розробників
+
+Новому учаснику команди варто почати з [гіда онбордингу](docs/nmt-in-ua-onboarding-dev.md). Беклог — [docs/Goldener-Rechner-beklog-PM.md](docs/Goldener-Rechner-beklog-PM.md). Пам’ятка релізу — [`.cursor/rules/deploy-hosting.mdc`](.cursor/rules/deploy-hosting.mdc).
+
+Потрібні Node.js 20+ і npm. Працюйте з гілки `dev`: у `main` напряму не пушимо, merge в `main` одразу деплоїть хостинг.
 
 ```bash
 git clone https://github.com/tony-kobs/nmt.in.ua.git
@@ -12,267 +140,41 @@ cd nmt.in.ua
 git checkout dev
 npm install
 cp .env.example .env.local
-# заповни DB_* та секрети (див. розділ «Змінні середовища»)
 npm run dev
 ```
 
 Локально сайт відкриється на [http://localhost:3000](http://localhost:3000).
 
-Код сторінок лежить у `src/app/`. Після змін сторінка оновлюється сама.
-
-## Онбординг розробника
-
-Новим учасникам команди варто почати з [docs/nmt-in-ua-onboarding-dev.md](docs/nmt-in-ua-onboarding-dev.md). Беклог — [docs/Goldener-Rechner-beklog-PM.md](docs/Goldener-Rechner-beklog-PM.md).
-
-## Команди
-
 | Команда | Що робить |
 | --- | --- |
 | `npm run dev` | локальна розробка |
-| `npm run build` | продакшен-збірка (Webpack) |
-| `npm start` | запуск зібраного сайту через `server.js` |
-| `npm test` | unit-тести (192 кейси) |
-| `npm run lint` | перевірка ESLint |
+| `npm run build` | продакшен-збірка |
+| `npm start` | зібраний сайт через `server.js` |
+| `npm test` | unit-тести |
+| `npm run lint` | ESLint |
+| `npm run migrate` | SQL-міграції |
 
-## Що вже працює end-to-end
+Демо-логінів немає. Тестовий акаунт — через `/register`. Адміна підвищують у базі: `node scripts/promote-admin.mjs <login>`.
 
-| Область | Статус |
-| --- | --- |
-| Дашборд | Header, Sidebar, SEO, `RecentResults` у sidebar |
-| Імпорт контенту | `POST /api/import` + форма на `/settings` |
-| Тест за темою | `/` → `/session/[id]` — тема + кількість завдань (видно банк) |
-| Симулятор НМТ | `/simulator` — офіційні варіанти, таймер, розбір |
-| Підручник | `/materials/textbook` — теорія за темами |
-| Результати | `/results` — таблиця прогресу + рекомендації |
-| Сесії | `/sessions` — історія, auto-сесії, mentor-сесії (Старт/×) |
-| Рекомендації | після finish, на `/results`, при reopen завершеної сесії |
-| Граф тем | `theme_connections` → наступна тема в рекомендаціях |
-| Mentor API | `POST /api/admin/sessions` — planned-сесія від ментора |
-| Auth | `/` вітальна (гость), `/login`, `/register`, ролі, демо-акаунти |
-| Консультації | `/consultations` — учень надсилає запит; викладачі бачать чергу |
+<details>
+<summary>Змінні середовища, імпорт і гілки</summary>
 
-Консультації в сайдбарі без «скоро»: учень надсилає запит, викладачі бачать спільну чергу.
-
-## Змінні середовища
-
-Скопіюй `.env.example` → `.env.local` (локально) або `.env.production` (хостинг). Секрети не комітити.
+Секрети живуть у `.env.local` (локально) або `.env.production` (хостинг). У git їх немає.
 
 | Змінна | Призначення |
 | --- | --- |
 | `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | MySQL |
-| `DB_CONNECTION_LIMIT`, `DB_CONNECT_TIMEOUT_MS`, `DB_MAX_IDLE`, `DB_IDLE_TIMEOUT_MS` | тюнінг пулу; `DB_IDLE_TIMEOUT_MS` тримати нижче `wait_timeout` сервера |
-| `NEXT_PUBLIC_SITE_URL` | canonical URL для SEO, `returnUrl` / `serviceUrl` WayForPay |
-| `SITE_URL` | origin у листах verify / reset (runtime, Next не інлайнить). На проді без змінної або з localhost — `https://nmt.in.ua` |
-| `MAIL_SITE_URL` | запасний origin для листів; дефолт як `SITE_URL` |
-| `CONTENT_IMPORT_API_KEY` | Bearer для `POST /api/import` і Server Action імпорту (admin) |
+| `SESSION_SECRET` | cookie `nmt_session`; без неї логін на проді падає |
+| `NEXT_PUBLIC_SITE_URL` | canonical URL |
+| `SITE_URL` | origin у листах підтвердження і скидання пароля |
+| `BREVO_API_KEY` | листи; без ключа локально текст іде в консоль |
+| `CONTENT_IMPORT_API_KEY` | Bearer для `POST /api/import` |
 | `ADMIN_API_KEY` | Bearer для `POST /api/admin/sessions` |
-| `SESSION_SECRET` | HMAC-секрет для cookie `nmt_session` (обовʼязково в production) |
-| `WAYFORPAY_MERCHANT_ACCOUNT` | merchantAccount WayForPay для `/register/teacher` (порожній = scaffold без живих платежів) |
-| `WAYFORPAY_MERCHANT_SECRET_KEY` | SecretKey для HMAC_MD5 підпису Purchase / serviceUrl |
-| `WAYFORPAY_MERCHANT_DOMAIN` | опційно; дефолт — hostname з `NEXT_PUBLIC_SITE_URL` |
-| `WAYFORPAY_PAY_URL` | опційно, дефолт `https://secure.wayforpay.com/pay` |
-| `MAX_BODY_BYTES` | ліміт тіла HTTP на `server.js` (дефолт 8388608) |
+| `MAX_BODY_BYTES` | ліміт тіла HTTP на `server.js` (дефолт 8 МіБ) |
 
-Якщо `CONTENT_IMPORT_API_KEY` або `ADMIN_API_KEY` не задані — відповідні ендпоінти відхиляють **усі** запити (`401`, fail-closed).
+Порожній ключ імпорту або адмін-API відхиляє всі такі запити (`401`).
 
-### Облікові записи
-
-Після першого входу таблиця `app_users` створюється автоматично (legacy `users` на хостингу не чіпаємо). Демо-логінів немає — зареєструй тестовий акаунт на `/register` або попроси lead підвищити роль у БД (`node scripts/promote-admin.mjs <login>`).
-
-Публічна реєстрація — `/register` з вибором **учень / викладач** (`?role=`), обовʼязковий email і підтвердження листа перед першим входом. Платний `/register/teacher` (WayForPay, 500 грн) **приховано в UI** — редірект на `/register?role=teacher`; код еквайрингу лишається для майбутньої оплати доп. функцій. Адмін цим потоком не створюється.
-
-### Оплата кабінету викладача (WayForPay) — код є, UI на паузі
-
-Публічно зараз безкоштовна реєстрація викладача на `/register?role=teacher`. Нижче — як увімкнути старий checkout, коли знову знадобиться.
-
-1. Скопіюй `WAYFORPAY_MERCHANT_ACCOUNT` і `WAYFORPAY_MERCHANT_SECRET_KEY` у `.env.local` / `.env.production` (кабінет WayForPay). Для пісочниці з документації WayForPay `merchantAccount` = `test_merch_n1`; SecretKey лише локально, не в git.
-2. За бажанням `WAYFORPAY_MERCHANT_DOMAIN` (дефолт — hostname `NEXT_PUBLIC_SITE_URL`, на проді `nmt.in.ua`). Домен має збігатися з кабінетом WayForPay.
-3. SQL: `scripts/sql/014_teacher_payments.sql` — або нічого не запускай: таблиця створюється при першому сабміті. Якщо вже була Mono-версія з `mono_invoice_id`, колонки мігрують самі.
-4. `NEXT_PUBLIC_SITE_URL=https://nmt.in.ua` (HTTPS) для `returnUrl` і `serviceUrl`. Локально webhook не дійде на `localhost` — потрібен публічний тунель (ngrok тощо) і той самий URL у env.
-5. Webhook: `POST https://<домен>/api/payments/wayforpay/webhook` (підпис HMAC_MD5 `merchantSignature`). Після оплати браузер іде на `/api/payments/wayforpay/return` → `/register/teacher/success?ref=…`.
-6. Сума **500 грн**. WayForPay приймає major units з двома знаками (`amount=500.00`, `currency=UAH`); у БД лишаємо `50000` копійок. Без ключів застосунок **не** підписує checkout. CSP `form-action` дозволяє `https://secure.wayforpay.com`. Ключі лише в `.env.local` / хостинг `.env.production`, не в git.
-7. Локально / пісочниця `test_merch_n1`: після «Сплатити» сторінка **не** стрибає одразу на WayForPay. Є кнопка **«Оплата пройшла»** — той самий шлях, що Approved webhook (активує викладача + сесія на `/`). На живому мерчанті в `NODE_ENV=production` кнопки немає. Вимкнути локально: `TEACHER_PAYMENT_TEST_BYPASS=0`.
-
-## Auth (модуль 5)
-
-| Що | Де |
-| --- | --- |
-| Вхід / вихід | `/login`, cookie `nmt_session`; логін блокується до verify email |
-| Реєстрація | `/register?role=student\|teacher` — email обовʼязковий → `/register/check-email` → `/verify-email` (успіх, прострочено, недійсне, повтор). Учня, якого створив викладач, лист не блокує вхід |
-| Скидання пароля | `/forgot-password`, `/reset-password` (Brevo або log без `BREVO_API_KEY`) |
-| Реєстрація викладача (оплата) | UI на паузі; `/register/teacher` → `/register?role=teacher`. WayForPay код + `/success`/`/fail` лишаються |
-| Webhook оплати | `POST /api/payments/wayforpay/webhook` (публічний, перевірка HMAC_MD5) |
-| Ролі | `student`, `teacher`, `admin` |
-| Облікові записи | таблиця `app_users` (+ `email` / `email_verified_at`); токени — `auth_tokens` |
-| Middleware | редірект на `/login`; публічні `/`, `/welcome`, `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password`, `/diagnostic`, `/t/{slug}` і статика; `/settings`/`/profiles`/`/feedback` — admin; `/students` — teacher/admin |
-| Mentor UI | `/sessions` — панель призначення для teacher/admin |
-| Мої учні | `/students` — створити обліковий запис, логін, групи, інвайти; `/join/[code]` приймає учень; статистика `/students/[id]` |
-| Публічна візитка | `/account` (лише teacher) редагує картку; `/t/{slug}` якщо `is_public` |
-
-`userId` у Server Actions береться з сесії (`requireUserId()`), не з FormData.
-
----
-
-Нові компоненти стилізуйте через CSS Modules:
-
-```tsx
-import styles from "./page.module.css";
-
-<div className={styles.page}>...</div>
-```
-
-Глобальний reset і дизайн-токени — у `src/app/globals.css`. Tailwind не використовуємо.
-
-Спільні UI-примітиви: `PageFrame`, `ModeTabs`, `Reveal` у `src/components/dashboard/` та `src/components/ui/`.
-
-## Дизайн-система
-
-Правила верстки — `.cursor/rules/design-system.mdc` (читати перед будь-якою версткою; оновлювати після кожної секції).
-
-- **Mobile-first**, брейкпоінти `375 / 768 / 1240 / 1440 / 1920`, тільки `min-width`-медіа.
-- Між брейкпоінтами все гумове через `clamp()`: типографіка (`--fs-*`), ритм (`--space-*`,
-  `--section-y`, `--container-pad`), контейнер (`--container-max`).
-- Кольори, радіуси, тіні, градієнти (`--grad-brand`, `--grad-aurora`, `--grad-glass`, `--grad-ink`, `--grad-ultimate`)
-  беруться з `:root`; локальних дублікатів не заводимо.
-- Палітра — теплий «старий зошит»: фон `--page #efe8d7`, поверхні `--surface #fdfbf4`.
-  Чистий `#fff` не використовуємо.
-- Публічний лендінг: `src/components/welcome/*` — секції `LandingHeader`, `Hero`, `Features`,
-  `Features`, `Teachers`, `Faq`, `CtaBanner`, `LandingFooter`; спільні стилі — `welcome/landing.module.css`.
-  Чотири кроки старту — у `Hero` під лідом (`#steps`).
-- Кабінет після входу: `src/components/dashboard/*` — той самий візуал (`DashboardShell`,
-  `AppHeader`, `AppSidebar`, `PageFrame`, домашня `TopicTestStart`).
-- Сторінки `/login` і `/register` — спільний каркас `components/auth/AuthShell` + `auth.module.css`.
-- Scroll-reveal — `components/ui/Reveal` на IntersectionObserver, без зовнішніх бібліотек;
-  вимикається через `prefers-reduced-motion`.
-
-## Гілки
-
-Працюйте тільки з `dev`. У `main` напряму пушити не можна.
-
-```bash
-git checkout dev
-git pull origin dev
-git checkout -b feature/коротка-назва
-```
-
-Після роботи — commit, push, PR `feature/...` → `dev`. Реліз: `dev` → `main`. Merge в `main` одразу деплоїть хостинг.
-
-## Деплой
-
-Памʼятка релізу: [`.cursor/rules/deploy-hosting.mdc`](.cursor/rules/deploy-hosting.mdc).
-
-| Середовище | Як оновлюється |
-| --- | --- |
-| **nmt.in.ua (ukraine.com.ua)** | merge в `main` → GitHub Actions збирає → хостинг лише міняє `www` |
-| **Vercel** | теж з `main`, окремо; домен дивиться на хостинг, не сюди |
-
-На хості Next **не збираємо** (glibc 2.28). Старий кореневий `deploy.sh` прибрано.
-
-Що робить CI (`.github/workflows/deploy-hosting.yml`):
-
-1. `npm ci` / test / lint / `npm run build` на Ubuntu, Node 24.
-2. `scripts/rewrite-next-build-paths.sh` — інакше RSC-маніфест тримає `/home/runner/work/...` і сайт дає 500.
-3. Tar (весь `src/`, `scripts/migrate.mjs`, `scripts/migrate-sql.mjs`, `scripts/sql/`, без `.next/trace`) → SSH-pipe → `releases/<sha>` поруч із живим `www`.
-4. Копія `node_modules` з живого сайту + `npm install` (поки старий процес ще відповідає).
-5. `npm run migrate` у каталозі релізу. Помилка — попередній `www` лишається.
-6. Стоп лише nmt Node (`127.1.10.37`), swap директорій, старт як панель: `npm run start -- --port=3000 --host=127.1.10.37`.
-7. Healthcheck з HTTP-кодом; 5xx → `releases/previous`.
-
-Локально той самий скрипт: `bash scripts/deploy-hosting.sh`. Відкат: `bash scripts/rollback-hosting.sh --yes`.
-
-Секрет репо: `HOSTING_SSH_KEY` (PEM для `levelhst@levelhst.ftp.tools`).
-
-Env на хостингу (не в git): `/home/levelhst/nmt.in.ua/www/.env.production` і постійна копія `/home/levelhst/nmt.in.ua/.env.production`.
-
-Обовʼязкові на prod: `DB_*`, `SESSION_SECRET`, `CONTENT_IMPORT_API_KEY`, `ADMIN_API_KEY`, `MAX_BODY_BYTES=8388608`. Без `SESSION_SECRET` логін і реєстрація на проді падають.
-
-## Безпека (без Cloudflare)
-
-На shared-хостингу немає edge-WAF. У коді:
-
-- `server.js` — `.env.production`, ліміт тіла (`MAX_BODY_BYTES`, дефолт 8 МіБ), early `413`
-- `src/middleware.ts` — rate limit + auth guard + блок probe-шляхів
-- `next.config.ts` — security headers (CSP, HSTS, …)
-- Bearer auth на admin/import API — `timingSafeEqual` після SHA-256
-
-`MAX_BODY_BYTES` має бути ≥ `MAX_REQUEST_BODY_BYTES` (8 МіБ у `src/modules/content-import/schema.ts`). Скрипт `scripts/ensure-hosting-max-body-bytes.sh` виставляє `8388608` на хостингу.
-
-## Структура
-
-```
-src/app/                          маршрути дашборду + SEO metadata
-src/app/login/                    форма входу + демо-кнопки
-src/app/register/                 реєстрація учня
-src/app/welcome/                  вітальна (завжди, без кабінетного хрома)
-src/app/api/import/               POST імпорт CSV/JSON
-src/app/api/admin/sessions/       POST призначення mentor-сесії
-src/app/session/[id]/             інтерактивний тренажер
-src/components/auth/              AuthShell, LoginForm, RegisterForm, DemoLoginButtons
-src/components/welcome/           публічний лендінг (секції + landing.module.css)
-src/components/ui/                Reveal, ModeTabs
-src/components/dashboard/         Header, Sidebar, PageFrame, таблиці
-src/components/testing/           TopicTrainer, summary, NMT trainer
-src/constants/                    навігація, SEO
-src/modules/auth/                 app_users, cookie-сесія, ролі
-src/modules/content-import/     модуль 2 — CSV/JSON → БД
-src/modules/testing/              модуль 3 — сесії, відповіді, finish
-src/modules/recommendations/      модуль 4 — stats, rules, graph, persist
-src/modules/sessions/             список сесій, createMentorSession
-src/modules/teacher-students/     «Мої учні»: лінк, групи, інвайти (SQL 017 + 034)
-src/modules/admin/                auth для admin API
-src/middleware.ts                 rate limit + auth + probe paths
-server.js                         hardened запуск на хостингу
-.github/workflows/deploy-hosting.yml  merge в main → збірка + swap www
-scripts/deploy-hosting.sh         єдиний реліз (локально або з CI)
-scripts/rewrite-next-build-paths.sh  шляхи runner у .next → шлях хоста
-scripts/hosting-remote-lib.sh     стоп / старт / health на хості
-scripts/rollback-hosting.sh       аварійно повернути попередній www
-scripts/promote-admin.mjs         підвищити логін до admin (DB_* з .env.local)
-scripts/sql/                      DDL для app_users та інших таблиць
-docs/nmt-in-ua-onboarding-dev.md  онбординг розробника
-docs/Goldener-Rechner-beklog-PM.md  беклог PM
-```
-
-## Архітектура
-
-- Тонкі сторінки в `src/app/` — лише рендер UI і metadata.
-- Бізнес-логіка — у `src/modules/*` (не в `app/`).
-- Server Actions для форм; HTTP API для machine-to-machine (імпорт, admin).
-- Доступ до MySQL — тільки через `getConnection()` з `src/lib/db/mysql.ts`: пул один на процес
-  (живе на `globalThis`, щоб HMR його не дублював), кожне з'єднання перевіряється `ping()` і при
-  обриві знищується та береться наступне (3 спроби з бекофом). Мертвий сокет не валить весь пул.
-- `getCurrentUser()` мемоізовано через `react.cache` — один запит користувача на рендер, а не
-  окремий на layout / `generateMetadata` / сторінку.
-
----
-
-## Модуль 2. Імпорт (CSV, JSON → БД)
-
-| Що | Де |
-| --- | --- |
-| Парсинг і запис у БД | [`src/modules/content-import/`](src/modules/content-import/) |
-| HTTP API | [`src/app/api/import/route.ts`](src/app/api/import/route.ts) |
-| UI | [`/settings`](src/app/settings/page.tsx) — CSV/JSON через Server Action |
-
-### Авторизація
-
-```
-Authorization: Bearer <CONTENT_IMPORT_API_KEY>
-```
-
-### Формат запиту — рівно одна форма
-
-- **CSV:** поля `themes`, `themeConnections`, `quizTasks`, опційно `problems`
-- **JSON:** поля `file` + `format=json`
-
-Заголовки CSV:
-
-```
-themes.csv:            id,name,description,ord
-theme_connections.csv: id,vertex_start,vertex_finish
-quiz_tasks.csv:         id,name,task_text,theme_id,answer_1,answer_2,answer_3,answer_4,right_answer_n,comments,difficulty
-problems.csv:           id,name,problem_text,theme_id,answer_1,answer_2,answer_3,answer_4,right_answer_n,comments,difficulty
-```
+Імпорт — одна форма за запит. CSV-поля: `themes`, `themeConnections`, `quizTasks`, опційно `problems`. JSON: `file` + `format=json`.
 
 ```bash
 curl -X POST http://localhost:3000/api/import \
@@ -282,125 +184,6 @@ curl -X POST http://localhost:3000/api/import \
   -F "quizTasks=@quiz_tasks.csv;type=text/csv"
 ```
 
-JSON-схема:
+Гілка фічі від свіжого `dev`, pull request у `dev`. Реліз: pull request `dev` → `main`.
 
-```json
-{
-  "themes": [{ "id": 1, "name": "...", "description": "...", "ord": 1 }],
-  "themeConnections": [{ "id": 1, "vertex_start": 1, "vertex_finish": 2 }],
-  "quizTasks": [{ "id": 1, "name": "...", "task_text": "...", "theme_id": 1, "answer_1": "...", "answer_2": "...", "answer_3": "...", "answer_4": "...", "right_answer_n": 1, "comments": "...", "difficulty": 1 }],
-  "problems": []
-}
-```
-
-### Коди відповіді
-
-| Код | Причина |
-| --- | --- |
-| `200` | успішний імпорт |
-| `400` | валідація / некоректна форма |
-| `401` | немає або невірний Bearer |
-| `413` | перевищено ліміт тіла (8 МіБ) або файлів (5 МіБ) |
-| `415` | непідтримуваний формат |
-| `500` | помилка сервера/БД (без витоку деталей) |
-
-Запис — одна транзакція: `themes → theme_connections → quiz_tasks`.
-
----
-
-## Модуль 3. Тести + тренажери
-
-| Що | Де |
-| --- | --- |
-| Старт topic-test | `startTopicTest`, `startTopicTestAction` — [`src/modules/testing/`](src/modules/testing/) |
-| Planned-сесії | `startPlannedSession` — auto/mentor рядки на `/sessions` |
-| Тренажер | [`TopicTrainer`](src/components/testing/TopicTrainer/) на `/session/[id]` |
-| Симулятор НМТ | `/simulator` — `startNmtSimulatorAction` + `NmtTrainer` |
-| Підручник | `/materials/textbook` |
-| Задачник | `/problems` — друкований тест по темі |
-
-На головній (`/`): тест за темою — кількість завдань з поля (макс. розмір банку), миттєвий розбір після кожної відповіді.
-
-```ts
-import { startTopicTest } from "@/modules/testing/startTopicTest";
-import { checkAnswer } from "@/modules/testing/checkAnswer";
-import { finishTrainerSession } from "@/modules/testing/finishTrainerSession";
-```
-
----
-
-## Модуль 4. Рекомендації
-
-| Що | Де |
-| --- | --- |
-| Статистика учня | `getStudentTopicStats` |
-| Правила | `recommendNextActions`, `recommendNextActionsForStats` |
-| Граф тем | `getThemeConnectionsForThemes` — ребра `vertex_start → vertex_finish` |
-| Auto-сесії | `persistRecommendations` — planned `session_type=2` |
-| Mentor-сесії | `createMentorSession` + admin API — `session_type=3` |
-| UI | `/results`, після finish, reopen completed `/session/[id]` |
-
-Правила (скорочено): слабкі теми → повторний тест; невипробувані → спробувати; освоєна тема A за графом → тест теми B; 2+ слабких → консультація; усе solid → симулятор.
-
-### Admin API — призначення mentor-сесії
-
-```
-POST /api/admin/sessions
-Authorization: Bearer <ADMIN_API_KEY>
-Content-Type: application/json
-
-{ "userId": 1, "themeId": 2 }
-```
-
-Відповідь: `{ "ok": true, "sessionId": 42, "created": true }` (`201`) або `created: false` якщо planned mentor-сесія вже існує (`200`).
-
-```bash
-curl -X POST http://localhost:3000/api/admin/sessions \
-  -H "Authorization: Bearer $ADMIN_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"userId": 1, "themeId": 2}'
-```
-
-На `/sessions` рядок з «Ким створено» = **Ментор**, статус **Заплановано**, кнопки **Старт** / **×**.
-
-```ts
-import {
-  recommendNextActionsForStats,
-  persistRecommendations,
-} from "@/modules/recommendations";
-```
-
----
-
-## Мапа маршрутів
-
-| Маршрут | Стан | Модуль |
-| --- | --- | --- |
-| `/` | Вітальна (гость) / Topic-test (учень) | 1, 3, 5 |
-| `/welcome` | Вітальна (завжди, і для увійшлих) | 1 |
-| `/login` | Вхід, демо-акаунти | 5 |
-| `/register` | Реєстрація учня | 5 |
-| `/session/[id]` | TopicTrainer | 3 |
-| `/results` | Таблиця + рекомендації | 3, 4 |
-| `/sessions` | Історія + planned (auto/mentor) + mentor assign | 3, 4, 5 |
-| `/students` | Мої учні (teacher/admin): створити обліковий запис, логін, групи, інвайти, статистика `/students/[id]` | teacher-students |
-| `/join`, `/join/[code]` | Учень приймає інвайт викладача або групи | teacher-students |
-| `/settings` | Імпорт контенту (admin) | 2, 5 |
-| `/simulator` | Симулятор НМТ | 3 |
-| `/problems` | Друкований тест по темі | 6.6 |
-| `/materials` | Заглушка | контент |
-| `/consultations` | Заявки учнів + черга викладача | 6 |
-| `POST /api/import` | Реалізовано | 2 |
-| `POST /api/admin/sessions` | Реалізовано | 4 |
-
----
-
-## Тести
-
-```bash
-npm test
-```
-
-Покриття: import API, content-import validation/DB, testing actions, auth (password, session token), recommendations (включно з графом), sessions, admin API, SEO helpers.
-
-Відкриті пункти — у [`docs/Goldener-Rechner-beklog-PM.md`](docs/Goldener-Rechner-beklog-PM.md).
+</details>
