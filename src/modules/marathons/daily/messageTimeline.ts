@@ -200,6 +200,89 @@ type ScheduleInput = {
   days: Array<{ dayNumber: number; topic: string }>;
 };
 
+function scheduleSlotsForDay(
+  input: ScheduleInput,
+  dayNumber: number,
+  known: Set<number>,
+  lastDay: number,
+): Array<{ kind: TimelineKind; at: Date }> {
+  const openAt = dayUnlockAt({
+    startDate: input.startDate,
+    unlockHour: input.unlockHour,
+    dayNumber,
+  });
+  const remindAt = reminderAt({
+    startDate: input.startDate,
+    dayNumber,
+    reminderHour: input.reminderHour,
+  });
+  const slots: Array<{ kind: TimelineKind; at: Date }> = [
+    { kind: "day_open", at: openAt },
+    { kind: "reminder", at: remindAt },
+    { kind: "rank", at: new Date(remindAt.getTime() + 60_000) },
+  ];
+  if (known.has(dayNumber - 1)) {
+    slots.push({
+      kind: "tomorrow",
+      at: reminderAt({
+        startDate: input.startDate,
+        dayNumber: dayNumber - 1,
+        reminderHour: input.reminderHour,
+      }),
+    });
+  }
+  if (known.has(dayNumber + 1)) {
+    const nudgeAt = nudgeInstant(input, dayNumber);
+    if (nudgeAt) slots.push({ kind: "nudge", at: nudgeAt });
+  }
+  if (dayNumber === lastDay) slots.push({ kind: "final", at: remindAt });
+  return slots;
+}
+
+/** Earliest send the timeline would still plan. Archived courses have none. */
+export function nextTimelineSend(input: {
+  schedule: ScheduleInput;
+  marathonId: number;
+  overrides: SlotOverride[];
+  now: Date;
+  hold?: boolean;
+  extra?: Array<Date | null>;
+}): Date | null {
+  if (input.hold) return null;
+  let best: number | null = null;
+  const consider = (at: number) => {
+    if (best == null || at < best) best = at;
+  };
+  try {
+    const days = [...input.schedule.days].sort((a, b) => a.dayNumber - b.dayNumber);
+    const known = new Set(days.map((day) => day.dayNumber));
+    const lastDay = days[days.length - 1]?.dayNumber ?? 0;
+    const nowMs = input.now.getTime();
+    for (const day of days) {
+      for (const slot of scheduleSlotsForDay(input.schedule, day.dayNumber, known, lastDay)) {
+        for (const channel of ["email", "telegram"] as const) {
+          const override = findSlotOverride(
+            input.overrides,
+            input.marathonId,
+            day.dayNumber,
+            slot.kind,
+            channel,
+          );
+          if (override?.cancelled) continue;
+          const at = (override?.sendAt ?? slot.at).getTime();
+          if (at >= nowMs) consider(at);
+        }
+      }
+    }
+  } catch {
+    return null;
+  }
+  for (const extra of input.extra ?? []) {
+    if (extra) consider(extra.getTime());
+  }
+  return best == null ? null : new Date(best);
+}
+
 function nudgeInstant(input: ScheduleInput, dayNumber: number): Date | null {
   const known = new Set(input.days.map((day) => day.dayNumber));
   if (!known.has(dayNumber + 1)) return null;
@@ -421,38 +504,7 @@ export function buildMessageTimeline(input: {
   const archived = input.hold === true;
 
   for (const day of days) {
-    const openAt = dayUnlockAt({
-      startDate: input.schedule.startDate,
-      unlockHour: input.schedule.unlockHour,
-      dayNumber: day.dayNumber,
-    });
-    const remindAt = reminderAt({
-      startDate: input.schedule.startDate,
-      dayNumber: day.dayNumber,
-      reminderHour: input.schedule.reminderHour,
-    });
-    const slots: Array<{ kind: TimelineKind; at: Date }> = [
-      { kind: "day_open", at: openAt },
-      { kind: "reminder", at: remindAt },
-      { kind: "rank", at: new Date(remindAt.getTime() + 60_000) },
-    ];
-    if (known.has(day.dayNumber - 1)) {
-      slots.push({
-        kind: "tomorrow",
-        at: reminderAt({
-          startDate: input.schedule.startDate,
-          dayNumber: day.dayNumber - 1,
-          reminderHour: input.schedule.reminderHour,
-        }),
-      });
-    }
-    if (known.has(day.dayNumber + 1)) {
-      const nudgeAt = nudgeInstant(input.schedule, day.dayNumber);
-      if (nudgeAt) slots.push({ kind: "nudge", at: nudgeAt });
-    }
-    if (day.dayNumber === lastDay) {
-      slots.push({ kind: "final", at: remindAt });
-    }
+    const slots = scheduleSlotsForDay(input.schedule, day.dayNumber, known, lastDay);
     for (const slot of slots) {
       for (const channel of ["email", "telegram"] as const) {
         const key = slotKey(day.dayNumber, slot.kind, channel);
