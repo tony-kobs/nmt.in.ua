@@ -1792,7 +1792,7 @@ async function saveRanks(
 export const STALE_NOTIFICATION_CLAIM_MINUTES = 10;
 
 type NotifyKey = Pick<NotifyIntent, "marathonId" | "userId" | "dayNumber" | "channel"> & {
-  kind: NotifyKind | "registered";
+  kind: NotifyKind | "registered" | "rank";
 };
 
 function notifyKeyParams(intent: NotifyKey): unknown[] {
@@ -1950,7 +1950,7 @@ export type TelegramOutboxRow = {
 };
 
 export async function enqueueMarathonTelegram(
-  jobs: Array<{ chatId: string; payload: string }>,
+  jobs: Array<{ chatId: string; payload: string; marathonId?: number | null }>,
   getConnection?: Conn,
 ): Promise<void> {
   if (jobs.length === 0) return;
@@ -1960,8 +1960,8 @@ export async function enqueueMarathonTelegram(
     try {
       for (const job of jobs) {
         await connection.execute(
-          `INSERT INTO marathon_telegram_outbox (chat_id, payload) VALUES (?, ?)`,
-          [job.chatId, job.payload],
+          `INSERT INTO marathon_telegram_outbox (chat_id, marathon_id, payload) VALUES (?, ?, ?)`,
+          [job.chatId, job.marathonId ?? null, job.payload],
         );
       }
       await connection.commit();

@@ -26,6 +26,7 @@ import type {
 import type { FunnelReport } from "@/modules/marathons/daily/funnel";
 import type { BankTheme } from "@/modules/marathons/daily/taskBank";
 import { MathText } from "@/components/ui/MathText";
+import { MessageTimeline } from "./admin/MessageTimeline";
 import { MarathonBoard } from "./MarathonBoard";
 import { AdminNotices } from "./admin/AdminNotices";
 import { TelegramDayPreview } from "./admin/TelegramDayPreview";
@@ -190,6 +191,7 @@ export async function MarathonAdminEditor({
         />
         <CopyEditor marathonId={marathon.id} overrides={copy} />
         <MarathonBoard rows={board} selfId={null} limit={null} titleId="admin-board" />
+        <MessageTimeline marathon={marathon} days={days} />
 
         <section className={css.stack} aria-labelledby="riddles">
           <h2 id="riddles" className={css.anchor}>{t("riddlesTitle")}</h2>

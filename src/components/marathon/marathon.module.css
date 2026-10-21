@@ -909,6 +909,60 @@
   white-space: pre-wrap;
 }
 
+.timeline {
+  min-width: 0;
+  scroll-margin-top: 5.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--grad-glass);
+  box-shadow: var(--shadow-sm);
+}
+
+.timeline > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: var(--space-md) var(--space-lg);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+}
+
+.timeline > summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.timelineBody {
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
+  padding: 0 var(--space-lg) var(--space-lg);
+}
+
+.timeline h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-h4);
+}
+
+.timelineTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-h4);
+}
+
+.timelineWhen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.timelineWhen .field {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sectionChevron,
   .sectionChevronOpen {

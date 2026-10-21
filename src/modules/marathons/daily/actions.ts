@@ -89,6 +89,22 @@ import {
   type BankPreview,
 } from "./taskBank";
 import { openRiddleSession, writeRiddleSession } from "./riddleSession";
+import {
+  buildMessageTimeline,
+  cleanTimelineBody,
+  isTimelineChannel,
+  isTimelineKind,
+  parseKyivDateTime,
+  type TimelineItem,
+} from "./messageTimeline";
+import {
+  loadTimelineSnapshot,
+  rewriteOutbox,
+  saveSlotOverride,
+  syncQueuedJobs,
+  updateMessageJob,
+  type TimelineSnapshot,
+} from "./messageOverrides";
 import { loginCandidatesFromEmail, normalizeCtaUrl } from "./utm";
 
 const RETURN_COOKIE = "marathon_return";
@@ -913,6 +929,194 @@ export async function convertMarathonAction(formData: FormData): Promise<void> {
   await markConverted(marathon.id, user.id, new Date());
   revalidatePath(`/admin/marathons/${marathon.id}`);
   redirect(normalizeCtaUrl(marathon.finalCtaUrl) ?? "/");
+}
+
+async function openTimelineItem(formData: FormData): Promise<{
+  marathonId: number;
+  item: TimelineItem;
+  snapshot: TimelineSnapshot;
+} | null> {
+  const marathonId = readInt(formData.get("marathonId"));
+  const key = readText(formData.get("key"), 80);
+  if (!marathonId || !key) return null;
+  const marathon = await getDailyById(marathonId);
+  if (!marathon) return null;
+  const [days, counts, snapshot] = await Promise.all([
+    listDays(marathonId),
+    listDayTaskCounts(marathonId),
+    loadTimelineSnapshot(marathonId),
+  ]);
+  const countByDay = new Map(counts.map((row) => [row.dayNumber, row.taskCount]));
+  const groups = buildMessageTimeline({
+    schedule: {
+      startDate: marathon.startDate,
+      unlockHour: marathon.unlockHour,
+      reminderHour: marathon.reminderHour,
+      nudgeFrom: marathon.nudgeFrom,
+      nudgeUntil: marathon.nudgeUntil,
+      days: days
+        .filter((day) => (countByDay.get(day.dayNumber) ?? 0) > 0)
+        .map((day) => ({ dayNumber: day.dayNumber, topic: day.topic })),
+    },
+    linkBase: `/marathon/${marathon.slug}`,
+    ...snapshot,
+  });
+  const item = groups.flatMap((group) => group.items).find((row) => row.key === key);
+  if (!item) return null;
+  return { marathonId, item, snapshot };
+}
+
+function timelineInvalid(marathonId: number): never {
+  redirect(`${adminPath(marathonId)}?error=invalid`);
+}
+
+export async function postponeTimelineAction(formData: FormData): Promise<void> {
+  await requireManager();
+  const opened = await openTimelineItem(formData);
+  if (!opened) redirect("/admin/marathons");
+  if (!opened.item.editable) timelineInvalid(opened.marathonId);
+  const when = parseKyivDateTime(
+    readText(formData.get("sendDate"), 10),
+    readText(formData.get("sendTime"), 5),
+  );
+  if (!when) timelineInvalid(opened.marathonId);
+  const { marathonId, item, snapshot } = opened;
+  try {
+    if (item.source === "schedule") {
+      if (!isTimelineKind(item.kind) || !isTimelineChannel(item.channel)) timelineInvalid(marathonId);
+      const current = snapshot.overrides.find(
+        (row) => row.dayNumber === item.dayNumber && row.kind === item.kind && row.channel === item.channel,
+      );
+      await saveSlotOverride({
+        marathonId,
+        dayNumber: item.dayNumber,
+        kind: item.kind,
+        channel: item.channel,
+        cancelled: false,
+        sendAt: when,
+        body: current?.body ?? null,
+      });
+      await syncQueuedJobs({ marathonId, dayNumber: item.dayNumber, kind: item.kind, channel: item.channel, sendAt: when });
+    } else if (item.source === "outbox" && item.outboxId) {
+      const ok = await rewriteOutbox({ marathonId, outboxId: item.outboxId, notBefore: when });
+      if (!ok) timelineInvalid(marathonId);
+    } else if (item.source === "job" && item.jobId) {
+      const ok = await updateMessageJob({ marathonId, jobId: item.jobId, sendAt: when });
+      if (!ok) timelineInvalid(marathonId);
+    } else timelineInvalid(marathonId);
+  } catch (error) {
+    console.error("postponeTimelineAction", error);
+    timelineInvalid(marathonId);
+  }
+  revalidatePath(adminPath(marathonId));
+  redirect(savedPath(marathonId));
+}
+
+export async function editTimelineAction(formData: FormData): Promise<void> {
+  await requireManager();
+  const opened = await openTimelineItem(formData);
+  if (!opened) redirect("/admin/marathons");
+  if (!opened.item.editable) timelineInvalid(opened.marathonId);
+  const body = cleanTimelineBody(String(formData.get("body") ?? ""));
+  if (!body) timelineInvalid(opened.marathonId);
+  const date = readText(formData.get("sendDate"), 10);
+  const time = readText(formData.get("sendTime"), 5);
+  let sendAt: Date | null | undefined;
+  if (date || time) {
+    sendAt = parseKyivDateTime(date, time);
+    if (!sendAt) timelineInvalid(opened.marathonId);
+  }
+  const { marathonId, item, snapshot } = opened;
+  try {
+    if (item.source === "schedule") {
+      if (!isTimelineKind(item.kind) || !isTimelineChannel(item.channel)) timelineInvalid(marathonId);
+      const current = snapshot.overrides.find(
+        (row) => row.dayNumber === item.dayNumber && row.kind === item.kind && row.channel === item.channel,
+      );
+      const nextAt = sendAt === undefined ? (current?.sendAt ?? null) : sendAt;
+      await saveSlotOverride({
+        marathonId,
+        dayNumber: item.dayNumber,
+        kind: item.kind,
+        channel: item.channel,
+        cancelled: false,
+        sendAt: nextAt,
+        body,
+      });
+      await syncQueuedJobs({
+        marathonId,
+        dayNumber: item.dayNumber,
+        kind: item.kind,
+        channel: item.channel,
+        body,
+        ...(nextAt ? { sendAt: nextAt } : {}),
+      });
+    } else if (item.source === "outbox" && item.outboxId) {
+      const ok = await rewriteOutbox({
+        marathonId,
+        outboxId: item.outboxId,
+        text: body,
+        ...(sendAt ? { notBefore: sendAt } : {}),
+      });
+      if (!ok) timelineInvalid(marathonId);
+    } else if (item.source === "job" && item.jobId) {
+      const ok = await updateMessageJob({
+        marathonId,
+        jobId: item.jobId,
+        body,
+        ...(sendAt ? { sendAt } : {}),
+      });
+      if (!ok) timelineInvalid(marathonId);
+    } else timelineInvalid(marathonId);
+  } catch (error) {
+    console.error("editTimelineAction", error);
+    timelineInvalid(marathonId);
+  }
+  revalidatePath(adminPath(marathonId));
+  redirect(savedPath(marathonId));
+}
+
+export async function cancelTimelineAction(formData: FormData): Promise<void> {
+  await requireManager();
+  const opened = await openTimelineItem(formData);
+  if (!opened) redirect("/admin/marathons");
+  if (!opened.item.editable) timelineInvalid(opened.marathonId);
+  const { marathonId, item, snapshot } = opened;
+  try {
+    if (item.source === "schedule") {
+      if (!isTimelineKind(item.kind) || !isTimelineChannel(item.channel)) timelineInvalid(marathonId);
+      const current = snapshot.overrides.find(
+        (row) => row.dayNumber === item.dayNumber && row.kind === item.kind && row.channel === item.channel,
+      );
+      await saveSlotOverride({
+        marathonId,
+        dayNumber: item.dayNumber,
+        kind: item.kind,
+        channel: item.channel,
+        cancelled: true,
+        sendAt: current?.sendAt ?? null,
+        body: current?.body ?? null,
+      });
+      await syncQueuedJobs({
+        marathonId,
+        dayNumber: item.dayNumber,
+        kind: item.kind,
+        channel: item.channel,
+        cancel: true,
+      });
+    } else if (item.source === "outbox" && item.outboxId) {
+      const ok = await rewriteOutbox({ marathonId, outboxId: item.outboxId, cancel: true });
+      if (!ok) timelineInvalid(marathonId);
+    } else if (item.source === "job" && item.jobId) {
+      const ok = await updateMessageJob({ marathonId, jobId: item.jobId, cancel: true });
+      if (!ok) timelineInvalid(marathonId);
+    } else timelineInvalid(marathonId);
+  } catch (error) {
+    console.error("cancelTimelineAction", error);
+    timelineInvalid(marathonId);
+  }
+  revalidatePath(adminPath(marathonId));
+  redirect(savedPath(marathonId));
 }
 
 export async function readMarathonReturnCookie(): Promise<string | null> {

@@ -36,10 +36,12 @@ function readReply(payload: string): TelegramReply | null {
 export async function rememberDeferred(
   replies: TelegramReply[],
   trigger: TelegramSendTrigger = "user",
+  marathonId?: number | null,
 ): Promise<void> {
   if (replies.length === 0) return;
   await enqueueMarathonTelegram(replies.map((reply) => ({
     chatId: reply.chatId,
+    marathonId: marathonId ?? null,
     payload: serializeReply({ ...reply, trigger: reply.trigger ?? trigger }),
   })));
 }

@@ -23,7 +23,9 @@ import {
   type Outgoing,
   type PlayState,
 } from "./botPlay";
-import { renderResolved, resolveCopy } from "./copy";
+import { renderCopy, renderResolved, resolveCopy } from "./copy";
+import { decideSlot, findSlotOverride } from "./messageTimeline";
+import { loadOverridesSafe } from "./messageOverrides";
 import { expandSources, introSources } from "./telegramContent";
 import {
   currentDayNumber,
@@ -407,6 +409,7 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     state: before,
     name: participant.displayName || "учаснику",
     mapUrl: absoluteUrl(`/marathon/${encodeURIComponent(marathon.slug)}/map`),
+    followUp: await botFollowUp(marathon.id, day, participant.displayName || "учаснику", callback, now),
     tokenFor: (action) => {
       const token = randomBytes(12).toString("base64url");
       minted.push({
@@ -458,6 +461,42 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
   });
   if (rankNote) outgoing = [...outgoing, { text: rankNote }];
   return sectionReplies(parsed.chatId, outgoing, marathonReplyKeyboard(copy, { others: several }));
+}
+
+/** Drops or replaces the sentence the bot attaches when the participant finishes a day. */
+async function botFollowUp(
+  marathonId: number,
+  day: DayPacket | null,
+  name: string,
+  callback: BotCallback,
+  now: Date,
+): Promise<string | null | undefined> {
+  if (!day || callback.kind !== "answer") return undefined;
+  const slot = day.dayNumber >= day.daysCount
+    ? { dayNumber: day.dayNumber, kind: "final" as const }
+    : day.next
+      ? { dayNumber: day.next.dayNumber, kind: "tomorrow" as const }
+      : null;
+  if (!slot) return undefined;
+  const row = findSlotOverride(
+    await loadOverridesSafe(marathonId),
+    marathonId,
+    slot.dayNumber,
+    slot.kind,
+    "telegram",
+  );
+  if (!row) return undefined;
+  const decision = decideSlot(row, now);
+  if (decision === "cancel" || decision === "wait") return null;
+  const custom = row.body?.trim();
+  if (!custom) return undefined;
+  return renderCopy(custom, {
+    name,
+    day: slot.dayNumber,
+    topic: slot.kind === "tomorrow" ? (day.next?.topic ?? day.topic) : day.topic,
+    unlock_time: day.next?.unlockLabel ?? "",
+    link: slot.kind === "final" ? day.finalUrl : (day.next?.url ?? day.pageUrl),
+  });
 }
 
 async function persistPlay(input: {

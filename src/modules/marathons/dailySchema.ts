@@ -366,6 +366,7 @@ export async function migrateDailyMarathon(
   await backfillTelegramLinks(connection);
   await applyChannelPreferencesSchema(connection);
   await ensureRiddleBank(connection);
+  await ensureMessageTimeline(connection);
 }
 
 const SQL_SCHEMA_FLAGS = `
@@ -489,6 +490,91 @@ async function ensureRiddleBank(connection: SqlConnection): Promise<void> {
     const errno = (error as { errno?: number }).errno;
     if (errno === 1146 || errno === 1062) return;
     throw error;
+  }
+}
+
+/** Same tables as scripts/sql/047_marathon_message_timeline.sql. */
+async function ensureMessageTimeline(connection: SqlConnection): Promise<void> {
+  await connection.execute(
+    `CREATE TABLE IF NOT EXISTS marathon_message_overrides (
+      marathon_id INT NOT NULL,
+      day_number TINYINT UNSIGNED NOT NULL,
+      kind VARCHAR(32) NOT NULL,
+      channel VARCHAR(16) NOT NULL,
+      cancelled TINYINT(1) NOT NULL DEFAULT 0,
+      send_at DATETIME NULL,
+      body TEXT NULL,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (marathon_id, day_number, kind, channel),
+      CONSTRAINT fk_marathon_message_override FOREIGN KEY (marathon_id)
+        REFERENCES marathons (id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    [],
+  );
+  await connection.execute(
+    `CREATE TABLE IF NOT EXISTS marathon_message_jobs (
+      id BIGINT NOT NULL AUTO_INCREMENT,
+      marathon_id INT NOT NULL,
+      user_id INT NOT NULL,
+      day_number TINYINT UNSIGNED NOT NULL,
+      kind VARCHAR(32) NOT NULL,
+      channel VARCHAR(16) NOT NULL,
+      body TEXT NOT NULL,
+      send_at DATETIME NOT NULL,
+      status ENUM('queued','sending','sent','failed','cancelled') NOT NULL DEFAULT 'queued',
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_marathon_message_job_due (status, send_at),
+      KEY idx_marathon_message_job_slot (marathon_id, day_number, kind, channel),
+      CONSTRAINT fk_marathon_message_job FOREIGN KEY (marathon_id)
+        REFERENCES marathons (id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    [],
+  );
+  const notifyColumns = await columnNames(connection, "marathon_notifications");
+  if (notifyColumns.size > 0 && !notifyColumns.has("outcome")) {
+    await addColumn(connection, "marathon_notifications", "outcome", "VARCHAR(16) NULL AFTER delivered");
+  }
+  const outboxColumns = await columnNames(connection, "marathon_telegram_outbox");
+  if (outboxColumns.size > 0 && !outboxColumns.has("marathon_id")) {
+    await addColumn(connection, "marathon_telegram_outbox", "marathon_id", "INT NULL AFTER chat_id");
+  }
+  const notifyColumnsAfter = await columnNames(connection, "marathon_notifications");
+  if (notifyColumnsAfter.has("kind")) {
+    const kindRows = await connection.query<{ COLUMN_TYPE?: string; column_type?: string }>(
+      `SELECT COLUMN_TYPE AS COLUMN_TYPE
+       FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = 'marathon_notifications'
+         AND COLUMN_NAME = 'kind'`,
+      [],
+    );
+    const kindType = String(kindRows[0]?.COLUMN_TYPE ?? kindRows[0]?.column_type ?? "");
+    if (kindType && !kindType.includes("'rank'")) {
+      await connection.execute(
+        `ALTER TABLE marathon_notifications
+         MODIFY COLUMN kind ENUM('day_open','reminder','tomorrow','final','nudge','registered','rank') NOT NULL`,
+        [],
+      );
+    }
+  }
+  if (outboxColumns.size > 0) {
+    const statusRows = await connection.query<{ COLUMN_TYPE?: string; column_type?: string }>(
+      `SELECT COLUMN_TYPE AS COLUMN_TYPE
+       FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = 'marathon_telegram_outbox'
+         AND COLUMN_NAME = 'status'`,
+      [],
+    );
+    const statusType = String(statusRows[0]?.COLUMN_TYPE ?? statusRows[0]?.column_type ?? "");
+    if (statusType && !statusType.includes("cancelled")) {
+      await connection.execute(
+        `ALTER TABLE marathon_telegram_outbox
+         MODIFY COLUMN status ENUM('pending','sent','failed','cancelled') NOT NULL DEFAULT 'pending'`,
+        [],
+      );
+    }
   }
 }
 
