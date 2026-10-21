@@ -16,7 +16,7 @@ const SQL_PRESENCE = `
 
 const SQL_LIST_PROFILES = `
   SELECT id, login, display_name, email, email_verified_at, role, cabinet_scope,
-         is_banned, last_login_at, last_seen_at, created_at,
+         is_banned, last_login_at, last_seen_at, created_at, deletion_due_at,
 ${SQL_PRESENCE}
   FROM app_users
 `;
@@ -34,7 +34,7 @@ const SQL_ROLE_COUNTS = `
 
 const SQL_FIND_TARGET = `
   SELECT id, login, display_name, email, email_verified_at, role, cabinet_scope,
-         is_banned, last_login_at, last_seen_at, created_at,
+         is_banned, last_login_at, last_seen_at, created_at, deletion_due_at,
 ${SQL_PRESENCE}
   FROM app_users
   WHERE id = ?
@@ -67,6 +67,7 @@ type ProfileRow = {
   last_login_at: Date | string | null;
   last_seen_at: Date | string | null;
   created_at: Date | string;
+  deletion_due_at?: Date | string | null;
   is_online?: number | boolean | null;
   seen_minutes_ago?: number | string | null;
 };
@@ -146,6 +147,7 @@ function mapProfile(row: ProfileRow): AdminProfile {
     lastLoginAt,
     lastSeenAt,
     createdAt: formatTimestamp(row.created_at) ?? String(row.created_at),
+    deletionDueAt: formatTimestamp(row.deletion_due_at),
     telegramLinked: false,
   };
 }
@@ -361,13 +363,19 @@ export type DeleteProfileInput = {
   targetUserId: number;
 };
 
-/** Removes related rows then deletes the user account. */
+export type { DeleteProfileResult } from "./accountDeletion";
+
+/** Banned accounts are removed now. Everyone else is scheduled 14 days out. */
 export async function deleteProfile(
   input: DeleteProfileInput,
-  deps: { getConnection: () => Promise<SqlConnection> } = {
+  deps: {
+    getConnection: () => Promise<SqlConnection>;
+    now?: () => Date;
+    sendMail?: (input: import("@/modules/mail/sendMail").SendMailInput) => Promise<import("@/modules/mail/sendMail").SendMailResult>;
+  } = {
     getConnection: loadDefaultConnection,
   },
-): Promise<AdminProfile> {
+): Promise<import("./accountDeletion").DeleteProfileResult> {
   assertValidIds(input.actorUserId, input.targetUserId);
 
   await ensureProfileSchema(deps);
@@ -376,45 +384,14 @@ export async function deleteProfile(
     const target = await loadTarget(connection, input.targetUserId);
     assertMutableTarget(input.actorUserId, target);
     await assertNotLastActiveAdmin(connection, target);
-
-    await connection.beginTransaction();
-    try {
-      const optionalDeletes = [
-        `DELETE FROM teacher_students
-         WHERE teacher_user_id = ? OR student_user_id = ?`,
-        `DELETE FROM teacher_profiles WHERE user_id = ?`,
-        `DELETE FROM user_avatars WHERE user_id = ?`,
-        `UPDATE site_feedback SET user_id = NULL WHERE user_id = ?`,
-        `UPDATE teacher_payments SET user_id = NULL WHERE user_id = ?`,
-      ] as const;
-
-      for (const sql of optionalDeletes) {
-        try {
-          const params = sql.includes("teacher_user_id")
-            ? [input.targetUserId, input.targetUserId]
-            : [input.targetUserId];
-          await connection.execute(sql, params);
-        } catch (error) {
-          const errno =
-            typeof error === "object" && error !== null && "errno" in error
-              ? Number((error as { errno?: number }).errno)
-              : undefined;
-          // ER_NO_SUCH_TABLE — related feature not migrated yet.
-          if (errno === 1146) continue;
-          throw error;
-        }
-      }
-
-      await connection.execute(`DELETE FROM app_users WHERE id = ?`, [
-        input.targetUserId,
-      ]);
-      await connection.commit();
-    } catch (error) {
-      await connection.rollback();
-      throw error;
-    }
-
-    return target;
+    const { applyDeletionSchedule } = await import("./accountDeletion");
+    return applyDeletionSchedule({
+      connection,
+      actorUserId: input.actorUserId,
+      target,
+      now: deps.now?.(),
+      sendMail: deps.sendMail,
+    });
   } catch (error) {
     if (error instanceof AdminProfilesError) throw error;
     console.error("deleteProfile: unexpected database error", error);

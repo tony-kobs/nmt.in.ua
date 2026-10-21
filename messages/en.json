@@ -2131,6 +2131,10 @@
       "title": "Confirm your email",
       "description": "Check your inbox to confirm your nmt.in.ua account."
     },
+    "keepAccount": {
+      "title": "Keep your account",
+      "description": "Cancel a scheduled deletion of an nmt.in.ua account."
+    },
     "verifyEmail": {
       "title": "Email confirmation",
       "description": "Confirm your email to sign in to the learning workspace."
@@ -2327,8 +2331,11 @@
     "unban": "Unban",
     "banConfirm": "Ban account “{name}”?",
     "unbanConfirm": "Unban account “{name}”?",
-    "delete": "Delete",
-    "deleteConfirm": "Delete account “{name}”? This cannot be undone.",
+    "delete": "Delete account",
+    "deleteConfirm": "Delete account “{name}”? A normal account gets an email and 14 days to keep it. A banned account is removed immediately.",
+    "deletionScheduled": "Deletion scheduled for {date}",
+    "cancelDeletion": "Cancel deletion",
+    "cancelDeletionConfirm": "Cancel deletion of “{name}”?",
     "telegramLinked": "Telegram connected",
     "unlinkTelegram": "Unlink Telegram",
     "unlinkTelegramConfirm": "Unlink Telegram from “{name}”? Marathon progress stays.",
@@ -2338,6 +2345,9 @@
       "ban": "Account {name} has been banned.",
       "unban": "Account {name} has been unbanned.",
       "delete": "Account {name} has been deleted.",
+      "schedule": "Deletion of {name} is scheduled for {date}. The email was sent.",
+      "scheduleMailFailed": "Deletion of {name} is scheduled for {date}. The email was not sent.",
+      "cancelDeletion": "Deletion of {name} was cancelled.",
       "promote": "Account {name} now has the full cabinet.",
       "unlinkTelegram": "Telegram was unlinked from {name}."
     },
@@ -2389,6 +2399,14 @@
       "used": "This link was already used.",
       "generic": "Could not confirm the email. Try again."
     }
+  },
+  "KeepAccount": {
+    "kicker": "Account",
+    "title": "Account kept",
+    "success": "Deletion was cancelled. You can sign in as before.",
+    "invalidTitle": "This link did not work",
+    "invalid": "The link is invalid or already used. Signing in also cancels deletion.",
+    "goToLogin": "Sign in"
   },
   "ForgotPassword": {
     "kicker": "Password",

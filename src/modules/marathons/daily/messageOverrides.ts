@@ -278,12 +278,13 @@ export async function loadTimelineSnapshot(marathonId: number): Promise<Timeline
       day_number: number | null;
       completed_at: unknown;
       is_banned: number;
+      deletion_due_at?: Date | string | null;
       declined: number;
     }>(
       `SELECT p.user_id, u.email, p.telegram_chat_id, p.notify_email, p.notify_bot,
               p.delivery_channel, p.notify_paused, npref.email_on AS pref_email,
               npref.telegram_on AS pref_telegram, uta.telegram_chat_id AS account_chat_id,
-              d.day_number, pr.completed_at, u.is_banned,
+              d.day_number, pr.completed_at, u.is_banned, u.deletion_due_at,
               IF(md.user_id IS NULL, 0, 1) AS declined
        FROM marathon_participants p
        INNER JOIN app_users u ON u.id = p.user_id
@@ -300,7 +301,7 @@ export async function loadTimelineSnapshot(marathonId: number): Promise<Timeline
     );
     const people = new Map<number, TimelinePerson>();
     for (const row of peopleRows) {
-      if (flag(row.is_banned)) continue;
+      if (flag(row.is_banned) || row.deletion_due_at) continue;
       let person = people.get(row.user_id);
       if (!person) {
         const paused = flag(row.notify_paused);
@@ -790,11 +791,12 @@ async function personStillWants(
       pref_telegram: number | null;
       account_chat_id: number | string | null;
       is_banned: number;
+      deletion_due_at?: Date | string | null;
       declined: number;
     }>(
       `SELECT u.email, p.telegram_chat_id, p.notify_email, p.notify_bot, p.notify_paused,
               npref.email_on AS pref_email, npref.telegram_on AS pref_telegram,
-              uta.telegram_chat_id AS account_chat_id, u.is_banned,
+              uta.telegram_chat_id AS account_chat_id, u.is_banned, u.deletion_due_at,
               IF(md.user_id IS NULL, 0, 1) AS declined
        FROM marathon_participants p
        INNER JOIN app_users u ON u.id = p.user_id
@@ -807,7 +809,7 @@ async function personStillWants(
       [marathonId, userId],
     );
     const row = rows[0];
-    if (!row || flag(row.is_banned)) return false;
+    if (!row || flag(row.is_banned) || row.deletion_due_at) return false;
     const paused = flag(row.notify_paused);
     const delivery = resolveMarathonDelivery({
       columnEmail: flag(row.notify_email),

@@ -15,6 +15,8 @@ export type AdminProfile = {
   lastLoginAt: string | null;
   lastSeenAt: string | null;
   createdAt: string;
+  /** When a normal account is due to be removed. Null if deletion is not scheduled. */
+  deletionDueAt: string | null;
   /** Account row or a marathon chat. False when the tables are not there yet. */
   telegramLinked: boolean;
 };

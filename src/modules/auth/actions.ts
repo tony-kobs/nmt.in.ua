@@ -101,6 +101,13 @@ export async function loginAction(
   }
 
   await recordLoginPresence(user.id);
+  try {
+    const { cancelDeletionOnLogin } = await import("@/modules/admin-profiles/accountDeletion");
+    const { getConnection } = await import("@/lib/db/mysql");
+    await cancelDeletionOnLogin(user.id, { getConnection });
+  } catch (error) {
+    console.error("login: cancel scheduled deletion failed", error);
+  }
   await setSessionCookie(user);
   redirect(nextPath);
 }

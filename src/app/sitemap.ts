@@ -8,6 +8,7 @@ import { absoluteUrl } from "@/constants/seo";
 const SITEMAP_EXCLUDED = new Set([
   "/t",
   "/verify-email",
+  "/keep-account",
   "/forgot-password",
   "/reset-password",
 ]);

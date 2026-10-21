@@ -1534,7 +1534,7 @@ export async function loadNotifyAudience(
        LEFT JOIN marathon_days d ON d.marathon_id = m.id
        LEFT JOIN marathon_day_progress pr
          ON pr.marathon_id = m.id AND pr.user_id = p.user_id AND pr.day_id = d.id
-       WHERE m.kind = 'daily' AND m.status = 'active'`,
+       WHERE m.kind = 'daily' AND m.status = 'active' AND u.deletion_due_at IS NULL`,
       [],
     );
     const grouped = new Map<number, NotifyAudienceMarathon>();
@@ -1741,7 +1741,7 @@ async function readStandings(
      INNER JOIN app_users u ON u.id = p.user_id
      LEFT JOIN marathon_day_progress pr
        ON pr.marathon_id = p.marathon_id AND pr.user_id = p.user_id
-     WHERE p.marathon_id = ? AND u.is_banned = 0
+     WHERE p.marathon_id = ? AND u.is_banned = 0 AND u.deletion_due_at IS NULL
      GROUP BY p.user_id, u.display_name, p.streak, p.joined_at`,
     [marathonId],
   );

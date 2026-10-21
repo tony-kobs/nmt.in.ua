@@ -120,6 +120,7 @@
 .you,
 .banned,
 .protected,
+.deletionBadge,
 .presence {
   display: inline-flex;
   align-items: center;
@@ -169,6 +170,12 @@
 .banned {
   background: color-mix(in srgb, crimson 14%, var(--surface));
   color: crimson;
+}
+
+.deletionBadge {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
 }
 
 .protected {
