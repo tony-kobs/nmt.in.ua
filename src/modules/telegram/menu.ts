@@ -15,6 +15,7 @@ import { formatTodayCard } from "./todayCard";
 import { formatTeacherSummary, getTeacherAssignmentSummary, teacherSummaryKeyboard } from "./teacher";
 import type { InlineKeyboard, TelegramReply } from "./taskInteraction";
 import { accountReplyKeyboard, collapsedMenuKeyboard } from "./replyKeyboard";
+import { UNLINK_NOTICE, unlinkTelegramAccount } from "./unlink";
 import { formatKyivDateTime, html, MENU, navRow, NOT_LINKED_TEXT, screen, siteButton, STALE_TEXT } from "./ui";
 
 export type MenuScreen = "home" | "tasks" | "today" | "stats" | "notif" | "acct" | "help" | "stud";
@@ -23,6 +24,7 @@ export type MenuAction =
   | { kind: "toggle"; key: PreferenceToggle }
   | { kind: "quiet" }
   | { kind: "quietSet"; preset: number }
+  | { kind: "unlink" }
   | { kind: "stale" };
 export type MenuRequest = { chatId: string; userId: string; queryId?: string; messageId?: number; action: MenuAction };
 
@@ -32,6 +34,7 @@ export type MenuDeps = TaskListDeps & {
   loadToday?: (userId: number) => Promise<StudentTodayModel>;
   getConnection?: () => Promise<SqlConnection>;
   nowSec?: () => number;
+  unlink?: (userId: number) => Promise<void>;
 };
 
 const SCREENS: Record<string, MenuScreen> = {
@@ -57,6 +60,7 @@ export function parseMenuCallback(update: unknown): MenuRequest | null {
 
 export function parseMenuData(data: string): MenuAction {
   if (data.length > 64) return { kind: "stale" };
+  if (data === "m:unlink") return { kind: "unlink" };
   const screenMatch = /^m:([a-z]{2,8})$/.exec(data);
   if (screenMatch && Object.prototype.hasOwnProperty.call(SCREENS, screenMatch[1])) return { kind: "screen", screen: SCREENS[screenMatch[1]] };
   const toggle = /^p:t:([a-z]{2,4})$/.exec(data);
@@ -93,6 +97,7 @@ const HELP_TEXT = [
   "/done &lt;посилання&gt; — завершити завдання зі списку",
   "/stats — статистика цього тижня",
   "/settings — сповіщення",
+  "/stop — відв’язати бота від акаунта",
   "/top — таблиця місць марафону",
   "",
   "Відповіді на завдання зберігайте в кабінеті на nmt.in.ua, а завершити сесію можна тут кнопкою «✅ Завершити».",
@@ -146,6 +151,18 @@ async function renderMenu(request: MenuRequest, deps: MenuDeps): Promise<Telegra
     return screen(chatId, `${intro}${NOT_LINKED_TEXT}`, [[siteButton("🔗 Підключити в кабінеті", "/account")]]);
   }
   const profile = profileResult.profile;
+  if (action.kind === "unlink") {
+    try {
+      const unlink = deps.unlink ?? (async (userId: number) => {
+        await unlinkTelegramAccount(userId);
+      });
+      await unlink(profile.userId);
+      return { chatId, text: UNLINK_NOTICE };
+    } catch (error) {
+      log(error);
+      return screen(chatId, "Не вдалося відв’язати бота. Спробуйте в кабінеті на nmt.in.ua.", [navRow()], messageId);
+    }
+  }
   const withConnection = async <T>(work: (connection: SqlConnection) => Promise<T>): Promise<T> => {
     if (!deps.getConnection) await ensureTelegramSchema();
     const connection = await getConnection();
@@ -204,7 +221,11 @@ async function renderMenu(request: MenuRequest, deps: MenuDeps): Promise<Telegra
           "",
           "Змінити дані профілю можна в кабінеті на сайті.",
         ];
-        return screen(chatId, lines.join("\n"), [[siteButton("🌐 Кабінет на сайті", "/account")], navRow()], messageId);
+        return screen(chatId, lines.join("\n"), [
+          [{ text: "Відв’язати Telegram", callback_data: "m:unlink" }],
+          [siteButton("🌐 Кабінет на сайті", "/account")],
+          navRow(),
+        ], messageId);
       }
       case "help":
         return screen(chatId, HELP_TEXT, [navRow()], messageId);

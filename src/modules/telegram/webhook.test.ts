@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { handleTelegramUpdate, parseTelegramStart, verifyTelegramWebhookSecret } from "./webhook";
+import { UNLINK_NOTICE } from "./unlink";
+import { handleTelegramUpdate, parseTelegramStart, parseTelegramUnlink, verifyTelegramWebhookSecret } from "./webhook";
 
 function start(text: string, type = "private") {
   return { message: { chat: { id: 123, type }, from: { id: 123, username: "student_user" }, text } };
@@ -21,6 +22,39 @@ test("/start without payload never consumes a link", async () => {
   assert.equal(calls, 0);
   assert.match(reply!.text, /nmt\.in\.ua/);
   assert.equal(parseTelegramStart(start("/start token", "group")), null);
+});
+
+test("/stop and «Відв'язати» unlink the signed-in account; a pause button does not", async () => {
+  const seen: number[] = [];
+  const profile = {
+    status: "success" as const,
+    profile: { accountId: 1, userId: 7, role: "student" as const, displayName: "Учень", linkedAt: null },
+  };
+  const reply = await handleTelegramUpdate(start("/stop@nmt_bot"), {
+    consume: async () => true,
+    getProfile: async () => profile,
+    unlink: async (userId) => { seen.push(userId); },
+  });
+  const label = await handleTelegramUpdate(start("Відв'язати"), {
+    consume: async () => true,
+    getProfile: async () => profile,
+    unlink: async (userId) => { seen.push(userId); },
+  });
+  const typographic = parseTelegramUnlink(start("Відв’язати Telegram"));
+  assert.equal(reply?.text, UNLINK_NOTICE);
+  assert.equal(label?.text, UNLINK_NOTICE);
+  assert.deepEqual(seen, [7, 7]);
+  assert.equal(typographic?.userId, "123");
+  assert.equal(parseTelegramUnlink(start("/stop extra")), null);
+  assert.equal(parseTelegramUnlink(start("/stop", "group")), null);
+  assert.equal(parseTelegramUnlink({ callback_query: { data: "mh:stop" } }), null);
+  const missing = await handleTelegramUpdate(start("/stop"), {
+    consume: async () => true,
+    getProfile: async () => ({ status: "error", code: "notLinked" }),
+    unlink: async () => { seen.push(0); },
+  });
+  assert.match(missing!.text, /не прив/);
+  assert.deepEqual(seen, [7, 7]);
 });
 
 test("/start payload links and invalid payload gets generic reply", async () => {
