@@ -14,7 +14,7 @@ import {
   type ProfileModerationActionState,
 } from "@/modules/admin-profiles/actions";
 import type { AdminProfile, AdminProfilesPage } from "@/modules/admin-profiles/types";
-import { presenceAgo } from "@/modules/auth/presenceRules";
+import { formatKyivDateTime, formatRelativeAgo } from "@/lib/relativeTime";
 import css from "./AdminProfilesPanel.module.css";
 
 const BAN_INITIAL: ProfileModerationActionState = { status: "idle" };
@@ -36,27 +36,14 @@ function formatCreatedAt(iso: string, locale: string): string {
   }).format(date);
 }
 
-function formatDateTime(iso: string, locale: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return new Intl.DateTimeFormat(locale, {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
-}
-
 function presenceText(
   profile: Pick<AdminProfile, "isOnline" | "seenMinutesAgo">,
-  t: (key: string, values?: { count: number }) => string,
+  locale: string,
+  onlineLabel: string,
+  neverLabel: string,
 ): string {
-  if (profile.isOnline) return t("online");
-  const ago = presenceAgo(profile.seenMinutesAgo);
-  if (ago.kind === "never") return t("never");
-  if (ago.kind === "just") return t("presenceJustNow");
-  if (ago.kind === "minutes") {
-    return t("presenceAgoMinutes", { count: ago.count });
-  }
-  return t("presenceAgoHours", { count: ago.count });
+  if (profile.isOnline) return onlineLabel;
+  return formatRelativeAgo(profile.seenMinutesAgo, locale) ?? neverLabel;
 }
 
 function profilesHref(role: RoleFilter, page: number): string {
@@ -190,10 +177,14 @@ export function AdminProfilesPanel({
                               : css.presenceOffline,
                             !profile.isOnline && css.presenceAgo,
                           )}
-                          title={presenceText(profile, t)}
+                          title={
+                            profile.lastSeenAt
+                              ? formatKyivDateTime(profile.lastSeenAt, locale)
+                              : undefined
+                          }
                         >
                           <span className={css.presenceDot} aria-hidden />
-                          {presenceText(profile, t)}
+                          {presenceText(profile, locale, t("online"), t("never"))}
                         </span>
                         {isSelf ? (
                           <span className={css.you}>{t("you")}</span>
@@ -220,14 +211,14 @@ export function AdminProfilesPanel({
                         {" · "}
                         {t("lastLoginMeta", {
                           date: profile.lastLoginAt
-                            ? formatDateTime(profile.lastLoginAt, locale)
+                            ? formatKyivDateTime(profile.lastLoginAt, locale)
                             : t("never"),
                         })}
                       </p>
                       <p className={css.meta}>
                         {t("lastSeenMeta", {
                           date: profile.lastSeenAt
-                            ? formatDateTime(profile.lastSeenAt, locale)
+                            ? formatKyivDateTime(profile.lastSeenAt, locale)
                             : t("never"),
                         })}
                         {" · "}

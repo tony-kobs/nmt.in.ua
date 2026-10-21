@@ -384,7 +384,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 - Логіни з префіксом `demo-` зарезервовані (реєстрація відхилить). Окремих seed-демо-акаунтів немає.
 - Статика з `public/` не повинна потрапляти під auth-guard.
 - Cookie сесії: `setSessionCookie` дає новий `exp`; `renewSessionCookie` **зберігає старий `exp`**. Не повертай `setSessionCookie` у профільні дії (аватар, upgrade cookie). `task_sessions.expire_time` ставиться раз при створенні. Див. `src/modules/testing/sessionExpiry.ts`.
-- Presence: `POST /api/presence` раз на хвилину з кабінету і оновлення `last_seen_at` на запитах кабінету (не частіше раз на хвилину). Онлайн = відкрита `user_sessions` з активністю за 5 хв. Вихід ставить `revoked_at`. Інакше на `/profiles` — «був(ла) N хв/год тому».
+- Presence: `POST /api/presence` раз на хвилину з кабінету і оновлення `last_seen_at` на запитах кабінету (не частіше раз на хвилину). Онлайн = відкрита `user_sessions` з активністю за 5 хв. Вихід ставить `revoked_at`. Інакше на `/profiles` відносний час: «щойно», хвилини, години до 48, далі дні, від 30 днів місяці, від 12 місяців роки (день/дні/днів). Підказка і рядок «Був у кабінеті» — точний час за Києвом (`src/lib/relativeTime.ts`).
 
 ## 11. З чого почати новому dev (вільні задачі)
 
