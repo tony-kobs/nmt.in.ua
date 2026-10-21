@@ -10,10 +10,12 @@ export {
   setProfileBanned,
   deleteProfile,
   promotePlatformStudent,
+  unlinkProfileTelegram,
 } from "./store";
 export type { GetAdminProfilesOptions } from "./store";
 export {
   setProfileBannedAction,
   deleteProfileAction,
   promotePlatformStudentAction,
+  unlinkProfileTelegramAction,
 } from "./actions";

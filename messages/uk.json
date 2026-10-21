@@ -72,6 +72,10 @@
     "telegramLoading": "Створюємо посилання...",
     "telegramOpen": "Відкрити Telegram для підключення",
     "telegramError": "Не вдалося створити посилання. Спробуйте ще раз.",
+    "telegramUnlink": "Відв’язати Telegram",
+    "telegramUnlinkConfirm": "Відв’язати Telegram? Бот перестане писати в цей чат. Прогрес марафону лишиться. Потім можна підключити інший акаунт.",
+    "telegramUnlinkPending": "Відв’язуємо…",
+    "telegramUnlinkError": "Не вдалося відв’язати Telegram. Спробуйте ще раз.",
     "notificationsTitle": "Налаштування сповіщень",
     "notificationsLead": "Дзвіночок на сайті завжди увімкнений. Тут обираєте лист і Telegram для кожної категорії.",
     "notificationsSave": "Зберегти сповіщення",
@@ -900,6 +904,9 @@
     "botJoined": "Telegram підключено",
     "botNotJoined": "Telegram не підключено",
     "linkBot": "Прив’язати Telegram",
+    "unlinkBot": "Відв’язати Telegram",
+    "unlinkBotConfirm": "Відв’язати Telegram? Бот перестане писати в цей чат. Прогрес марафону лишиться. Потім можна підключити інший акаунт.",
+    "unlinkBotPending": "Відв’язуємо…",
     "botOff": "Бот ще не налаштовано.",
     "materialsTitle": "Матеріали",
     "toTasks": "До завдань",
@@ -2318,6 +2325,9 @@
     "deletionScheduled": "Видалення заплановано на {date}",
     "cancelDeletion": "Скасувати видалення",
     "cancelDeletionConfirm": "Скасувати видалення акаунта «{name}»?",
+    "telegramLinked": "Telegram підключено",
+    "unlinkTelegram": "Відв’язати Telegram",
+    "unlinkTelegramConfirm": "Відв’язати Telegram від акаунта «{name}»? Прогрес марафону лишиться.",
     "selfLocked": "Це ваш акаунт — дії недоступні.",
     "protectedLocked": "Демо-акаунт захищено від змін.",
     "success": {
@@ -2327,7 +2337,8 @@
       "schedule": "Видалення акаунта {name} заплановано на {date}. Лист надіслано.",
       "scheduleMailFailed": "Видалення акаунта {name} заплановано на {date}. Лист не надіслано — напишіть людині самі.",
       "cancelDeletion": "Видалення акаунта {name} скасовано.",
-      "promote": "Акаунт {name} тепер має повний кабінет."
+      "promote": "Акаунт {name} тепер має повний кабінет.",
+      "unlinkTelegram": "Telegram відв’язано від акаунта {name}."
     },
     "errors": {
       "invalid_input": "Некоректні дані.",

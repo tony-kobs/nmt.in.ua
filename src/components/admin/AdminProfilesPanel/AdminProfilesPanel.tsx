@@ -12,6 +12,7 @@ import {
   deleteProfileAction,
   promotePlatformStudentAction,
   setProfileBannedAction,
+  unlinkProfileTelegramAction,
   type ProfileModerationActionState,
 } from "@/modules/admin-profiles/actions";
 import type { AdminProfile, AdminProfilesPage } from "@/modules/admin-profiles/types";
@@ -90,8 +91,12 @@ export function AdminProfilesPanel({
     cancelDeletionAction,
     BAN_INITIAL,
   );
+  const [unlinkState, unlinkAction, unlinkPending] = useActionState(
+    unlinkProfileTelegramAction,
+    BAN_INITIAL,
+  );
 
-  const pending = banPending || deletePending || promotePending || cancelPending;
+  const pending = banPending || deletePending || promotePending || cancelPending || unlinkPending;
   const flash =
     banState.status !== "idle"
       ? banState
@@ -99,7 +104,9 @@ export function AdminProfilesPanel({
         ? deleteState
         : cancelState.status !== "idle"
           ? cancelState
-          : promoteState;
+          : promoteState.status !== "idle"
+            ? promoteState
+            : unlinkState;
   const { items, page, totalPages, total, roleCounts } = profilesPage;
   const showPager = totalPages > 1;
 
@@ -108,11 +115,12 @@ export function AdminProfilesPanel({
       banState.status === "success" ||
       deleteState.status === "success" ||
       cancelState.status === "success" ||
-      promoteState.status === "success"
+      promoteState.status === "success" ||
+      unlinkState.status === "success"
     ) {
       router.refresh();
     }
-  }, [banState, deleteState, cancelState, promoteState, router]);
+  }, [banState, deleteState, cancelState, promoteState, unlinkState, router]);
 
   const locale =
     typeof document !== "undefined"
@@ -235,6 +243,9 @@ export function AdminProfilesPanel({
                           ? t("emailVerified")
                           : t("emailUnverified")}
                       </p>
+                      {profile.telegramLinked ? (
+                        <p className={css.meta}>{t("telegramLinked")}</p>
+                      ) : null}
                       <p className={css.meta}>
                         {t("roleMeta", { role: roleLabel(profile.role) })}
                         {" · "}
@@ -320,6 +331,31 @@ export function AdminProfilesPanel({
                               disabled={pending}
                             >
                               {t("promote")}
+                            </button>
+                          </form>
+                        ) : null}
+                        {profile.telegramLinked ? (
+                          <form
+                            action={unlinkAction}
+                            onSubmit={(event) => {
+                              if (
+                                !window.confirm(
+                                  t("unlinkTelegramConfirm", {
+                                    name: profile.displayName,
+                                  }),
+                                )
+                              ) {
+                                event.preventDefault();
+                              }
+                            }}
+                          >
+                            <input type="hidden" name="userId" value={profile.id} />
+                            <button
+                              type="submit"
+                              className={css.actionBtn}
+                              disabled={pending}
+                            >
+                              {t("unlinkTelegram")}
                             </button>
                           </form>
                         ) : null}
