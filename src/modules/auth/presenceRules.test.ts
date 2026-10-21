@@ -42,12 +42,14 @@ test("isLivePresence rejects a last_seen that sits in the future", () => {
   );
 });
 
-test("presenceAgo uses minutes then hours", () => {
+test("presenceAgo uses the shared relative buckets", () => {
   assert.deepEqual(presenceAgo(null), { kind: "never" });
   assert.deepEqual(presenceAgo(0), { kind: "just" });
   assert.deepEqual(presenceAgo(4), { kind: "minutes", count: 4 });
   assert.deepEqual(presenceAgo(60), { kind: "hours", count: 1 });
   assert.deepEqual(presenceAgo(125), { kind: "hours", count: 2 });
+  assert.deepEqual(presenceAgo(49 * 60), { kind: "days", count: 2 });
+  assert.deepEqual(presenceAgo(30 * 24 * 60), { kind: "months", count: 1 });
 });
 
 test("online session SQL excludes revoked and expired rows", () => {
