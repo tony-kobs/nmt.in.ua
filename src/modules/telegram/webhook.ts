@@ -2,6 +2,7 @@ import "server-only";
 
 import { timingSafeEqual } from "node:crypto";
 import { consumeTelegramLink } from "./link";
+import { UNLINK_NOTICE, unlinkTelegramAccount } from "./unlink";
 import { getTelegramTaskSessions, getTelegramTodayTaskSessions } from "./tasks";
 import { completeTelegramTask } from "./completeTask";
 import { handleTaskCallback, parseTaskCallback, type TelegramReply } from "./taskInteraction";
@@ -25,6 +26,20 @@ export function verifyTelegramWebhookSecret(received: string | null, expected: s
   const left = Buffer.from(received);
   const right = Buffer.from(expected);
   return left.length === right.length && timingSafeEqual(left, right);
+}
+
+const UNLINK_TEXT = new Set(["Відв'язати", "Відв’язати", "Відв'язати Telegram", "Відв’язати Telegram"]);
+
+/** `/stop` or the exact «Відв'язати» label in a private chat owned by the sender. */
+export function parseTelegramUnlink(update: unknown): { chatId: string; userId: string } | null {
+  if (typeof update !== "object" || update === null) return null;
+  const message = (update as { message?: TelegramMessage }).message;
+  if (!message?.chat || !message.from || message.chat.type !== "private" ||
+      !Number.isSafeInteger(message.chat.id) || !Number.isSafeInteger(message.from.id) ||
+      message.chat.id !== message.from.id || typeof message.text !== "string") return null;
+  const text = message.text.trim();
+  if (!/^\/stop(?:@\w+)?$/.test(text) && !UNLINK_TEXT.has(text)) return null;
+  return { chatId: String(message.chat.id), userId: String(message.from.id) };
 }
 
 export function parseTelegramStart(update: unknown): {
@@ -63,6 +78,7 @@ export async function handleTelegramUpdate(
     marathonBareStart?: (chatId: string) => Promise<TelegramReply | null>;
     marathonLinkText?: (chatId: string) => Promise<string>;
     marathonWelcome?: (chatId: string) => Promise<TelegramReply | null>;
+    unlink?: (userId: number) => Promise<unknown>;
     consumeMarathon?: (
       token: string,
       identity: { userId: string; chatId: string; username?: string },
@@ -80,6 +96,23 @@ export async function handleTelegramUpdate(
     logError: deps.logError,
   };
   const log = deps.logError ?? ((value: unknown) => console.error("telegram update failed", value));
+  const unlinkRequest = parseTelegramUnlink(update);
+  if (unlinkRequest) {
+    try {
+      const profile = await (deps.getProfile ?? getTelegramAccountProfile)(unlinkRequest.userId, {
+        getConnection: menuDeps.getConnection ?? loadTelegramConnection,
+        logError: deps.logError,
+      });
+      if (profile.status !== "success") {
+        return { chatId: unlinkRequest.chatId, text: "Telegram уже не прив’язано до акаунта nmt.in.ua." };
+      }
+      await (deps.unlink ?? unlinkTelegramAccount)(profile.profile.userId);
+      return { chatId: unlinkRequest.chatId, text: UNLINK_NOTICE };
+    } catch (error) {
+      log(error);
+      return { chatId: unlinkRequest.chatId, text: "Не вдалося відв’язати бота. Спробуйте в кабінеті на nmt.in.ua." };
+    }
+  }
   async function accountKeyboard(userId: string) {
     try {
       const profile = await (deps.getProfile ?? getTelegramAccountProfile)(userId, {
