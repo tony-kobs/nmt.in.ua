@@ -1,0 +1,140 @@
+# Журнал не пушиться в dev напряму.
+# У PR на dev коміт із журналом лягає в гілку цього PR.
+# У PR dev → main відкривається окремий PR у dev із новинами релізу.
+name: Changelog
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
+    branches: [dev, main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: changelog-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  record:
+    if: >-
+      github.event.pull_request.merged == false &&
+      github.event.pull_request.base.ref == 'dev' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !startsWith(github.head_ref, 'changelog/') &&
+      github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the pull request branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Record the pull request
+        env:
+          TARGET: dev
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          MERGED_AT: ${{ github.event.pull_request.updated_at }}
+          COMMENT_PATH: changelog-comment.txt
+        run: node scripts/record-changelog.mjs
+
+      - name: Commit journal onto the pull request branch
+        env:
+          HEAD: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/changelog.md docs/nmt-in-ua-onboarding-dev.md
+          if git diff --cached --quiet; then
+            echo "Journal already matches this pull request."
+            exit 0
+          fi
+          git commit -m "docs: журнал змін з #${PR_NUMBER}"
+          git pull --rebase origin "$HEAD"
+          git push origin "HEAD:${HEAD}"
+
+      - name: Remind about the screencast
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ ! -s changelog-comment.txt ]; then
+            exit 0
+          fi
+          if gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --jq '.[].body' | grep -F '<!-- changelog-screencast -->' >/dev/null; then
+            rm -f changelog-comment.txt
+            exit 0
+          fi
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file changelog-comment.txt
+          rm -f changelog-comment.txt
+
+  release-news:
+    if: >-
+      github.event.pull_request.merged == false &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.head.ref == 'dev' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Collect news for the release
+        env:
+          TARGET: main
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          MERGED_AT: ${{ github.event.pull_request.updated_at }}
+        run: node scripts/record-changelog.mjs
+
+      - name: Open a pull request into dev
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BRANCH: changelog/release-${{ github.event.pull_request.number }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/changelog.md docs/nmt-in-ua-onboarding-dev.md
+          if git diff --cached --quiet; then
+            echo "No news to publish."
+            exit 0
+          fi
+          git commit -m "docs: новини релізу #${PR_NUMBER}"
+          # Лише гілка changelog/release-*. dev і main цей push не чіпає.
+          git push --force-with-lease origin "HEAD:${BRANCH}"
+          existing="$(gh pr list --repo "$REPO" --head "$BRANCH" --base dev --state open --json number --jq '.[0].number')"
+          if [ -n "$existing" ]; then
+            echo "Updated pull request #${existing}"
+            exit 0
+          fi
+          gh pr create --repo "$REPO" --base dev --head "$BRANCH" --title "docs: новини релізу #${PR_NUMBER}" --body "$(cat <<EOF
+          Новини для релізу #${PR_NUMBER}.
+
+          Це звичайний pull request у \`dev\`. Після approve і мерджу рядки «Для учня і викладача» входять у реліз \`dev\` → \`main\`.
+
+          EOF
+          )"
