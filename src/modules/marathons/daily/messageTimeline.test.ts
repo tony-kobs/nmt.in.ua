@@ -323,6 +323,30 @@ test("opt-out and a missing Telegram link skip the slot; an unfinished kind stay
   assert.equal(tomorrow?.status, "planned");
 });
 
+test("a cancelled outbox row with the unlink reason is skipped", () => {
+  const item = buildMessageTimeline({
+    schedule,
+    linkBase: "https://nmt.in.ua/marathon/vesna",
+    people: [person()],
+    ledger: [],
+    overrides: [],
+    jobs: [],
+    outbox: [{
+      id: 9,
+      status: "cancelled",
+      notBefore: null,
+      createdAt: new Date("2026-01-10T07:00:00.000Z"),
+      text: "День",
+      dayNumber: 1,
+      kind: "day_open",
+      errorText: SKIP_REASON_TEXT.unlinked,
+    }],
+  }).flatMap((day) => day.items).find((entry) => entry.key === "outbox:9");
+  assert.equal(item?.status, "skipped");
+  assert.equal(item?.reason, SKIP_REASON_TEXT.unlinked);
+  assert.equal(deriveTimelineStatus({ skip: "unlinked", audience: 1, sent: 0, pending: 0, failed: 0 }), "skipped");
+});
+
 test("deliveryErrorText keeps a short stored reason", () => {
   assert.equal(deliveryErrorText({ channel: "telegram", errorCode: 403 }), "Telegram 403: бот заблоковано");
   assert.equal(deliveryErrorText({ channel: "telegram", errorCode: 400 }), "Telegram 400");

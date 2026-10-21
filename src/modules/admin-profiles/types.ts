@@ -15,6 +15,8 @@ export type AdminProfile = {
   lastLoginAt: string | null;
   lastSeenAt: string | null;
   createdAt: string;
+  /** Account row or a marathon chat. False when the tables are not there yet. */
+  telegramLinked: boolean;
 };
 
 export const ADMIN_PROFILES_PAGE_SIZE = 10;

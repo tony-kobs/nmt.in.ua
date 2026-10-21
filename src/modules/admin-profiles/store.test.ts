@@ -3,7 +3,7 @@ import test from "node:test";
 
 import type { SqlConnection } from "@/lib/db/mysql";
 import { AdminProfilesError } from "./types";
-import { deleteProfile, promotePlatformStudent, setProfileBanned } from "./store";
+import { deleteProfile, getAdminProfiles, promotePlatformStudent, setProfileBanned, unlinkProfileTelegram } from "./store";
 
 function mockConnection(handlers: {
   query?: (sql: string, params?: unknown[]) => Promise<unknown[]>;
@@ -227,5 +227,60 @@ test("deleteProfile blocks the last active admin", async () => {
       ),
     (error: unknown) =>
       error instanceof AdminProfilesError && error.code === "last_admin",
+  );
+});
+
+test("getAdminProfiles marks a telegram link and treats a missing table as unlinked", async () => {
+  const linked = await getAdminProfiles({}, {
+    getConnection: async () =>
+      mockConnection({
+        query: async (sql) => {
+          if (sql.includes("GROUP BY role")) return [{ role: "student", count: 1 }];
+          if (sql.includes("COUNT(*)")) return [{ total: 1 }];
+          if (sql.includes("user_telegram_accounts")) return [{ user_id: 10 }];
+          if (sql.includes("marathon_participants")) return [];
+          return [{ ...studentRow, is_online: 0, seen_minutes_ago: 4 }];
+        },
+      }),
+  });
+  assert.equal(linked.items[0]?.telegramLinked, true);
+
+  const missing = await getAdminProfiles({}, {
+    getConnection: async () =>
+      mockConnection({
+        query: async (sql) => {
+          if (sql.includes("GROUP BY role")) return [{ role: "student", count: 1 }];
+          if (sql.includes("COUNT(*)")) return [{ total: 1 }];
+          if (sql.includes("user_telegram_accounts") || sql.includes("marathon_participants")) {
+            throw Object.assign(new Error("missing"), { errno: 1146 });
+          }
+          return [{ ...studentRow, is_online: 0, seen_minutes_ago: 4 }];
+        },
+      }),
+  });
+  assert.equal(missing.items[0]?.telegramLinked, false);
+});
+
+test("unlinkProfileTelegram clears another user and refuses self", async () => {
+  const seen: number[] = [];
+  const profile = await unlinkProfileTelegram(
+    { actorUserId: 3, targetUserId: 10 },
+    {
+      getConnection: async () => mockConnection({ query: async () => [studentRow] }),
+      unlink: async (userId) => { seen.push(userId); },
+    },
+  );
+  assert.deepEqual(seen, [10]);
+  assert.equal(profile.telegramLinked, false);
+  assert.equal(profile.id, 10);
+  await assert.rejects(
+    () => unlinkProfileTelegram(
+      { actorUserId: 10, targetUserId: 10 },
+      {
+        getConnection: async () => mockConnection({ query: async () => [studentRow] }),
+        unlink: async () => { throw new Error("should not unlink self"); },
+      },
+    ),
+    (error: unknown) => error instanceof AdminProfilesError && error.code === "self_action",
   );
 });
