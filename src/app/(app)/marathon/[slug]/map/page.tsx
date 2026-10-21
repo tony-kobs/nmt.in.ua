@@ -42,7 +42,7 @@ export default async function MarathonMapPage({ params, searchParams }: PageProp
   const { slug } = await params;
   const query = await searchParams;
   const marathon = await getDailyBySlug(slug);
-  if (!marathon || marathon.status === "draft") notFound();
+  if (!marathon || marathon.status === "draft" || marathon.status === "archived") notFound();
   if (marathon.status !== "active" && marathon.status !== "finished") notFound();
   const [days, participant, progress, locale, copy, telegramRecord] = await Promise.all([
     listDays(marathon.id),

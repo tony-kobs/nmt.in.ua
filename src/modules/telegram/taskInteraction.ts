@@ -44,6 +44,11 @@ export type TelegramReply = {
    * Missing means `user`, so an old outbox row is not held by quiet hours.
    */
   trigger?: "user" | "system";
+  /**
+   * Which marathon slot this bubble belongs to. Not sent to Telegram.
+   * The admin timeline reads it back from the outbox payload.
+   */
+  schedule?: { dayNumber: number; kind: string };
 };
 export type TaskCallback = { queryId: string; chatId: string; userId: string; action: "d" | "a" | "y" | "n" | null; reference: string };
 

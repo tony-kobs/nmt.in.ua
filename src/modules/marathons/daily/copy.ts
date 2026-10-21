@@ -55,37 +55,43 @@ export const COPY_KEYS = [
 
 export type CopyKey = (typeof COPY_KEYS)[number];
 
-export const COPY_GROUPS: Array<{ id: "intro" | "day" | "final" | "notify" | "rank" | "channel" | "bot"; keys: CopyKey[] }> = [
-  { id: "intro", keys: ["intro_rules"] },
-  { id: "day", keys: ["review_intro"] },
-  { id: "final", keys: ["final_summary"] },
+export const COPY_GROUPS: Array<{
+  id: "register" | "intro" | "day" | "remind" | "rank" | "final" | "bot";
+  keys: CopyKey[];
+}> = [
+  { id: "register", keys: ["bot_registered"] },
+  { id: "intro", keys: ["intro_rules", "channel_prompt"] },
   {
-    id: "notify",
-    keys: ["notify_day_open", "notify_reminder", "notify_tomorrow", "notify_final"],
+    id: "day",
+    keys: ["notify_day_open", "review_intro", "bot_locked", "bot_to_tasks", "bot_open_site"],
   },
+  { id: "remind", keys: ["notify_reminder", "notify_tomorrow", "rank_nudge"] },
   {
     id: "rank",
-    keys: ["rank_up", "rank_down", "rank_same", "rank_first", "rank_nudge", "rank_board"],
+    keys: ["rank_up", "rank_down", "rank_same", "rank_first", "rank_board", "bot_btn_top"],
   },
-  { id: "channel", keys: ["channel_prompt", "bot_btn_site", "bot_btn_telegram"] },
+  { id: "final", keys: ["final_summary", "notify_final"] },
   {
     id: "bot",
     keys: [
       "bot_start",
       "bot_menu",
       "bot_btn_today",
-      "bot_btn_top",
       "bot_btn_map",
       "bot_btn_channel",
       "bot_btn_stop",
-      "bot_locked",
+      "bot_btn_site",
+      "bot_btn_telegram",
       "bot_link_ok",
-      "bot_registered",
-      "bot_open_site",
-      "bot_to_tasks",
     ],
   },
 ];
+
+export function copyFieldMatches(query: string, parts: readonly string[]): boolean {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  return parts.some((part) => part.toLowerCase().includes(needle));
+}
 
 export const TELEGRAM_MESSAGE_LIMIT = 4096;
 export const TELEGRAM_BUTTON_LIMIT = 64;

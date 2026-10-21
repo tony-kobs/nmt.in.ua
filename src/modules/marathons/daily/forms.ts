@@ -4,7 +4,7 @@ import { isInviteAudience, type InviteAudience } from "./invite";
 import { loomEmbedSrc, youtubeEmbedSrc } from "./richText";
 import { normalizeCtaUrl, readUtm, serializeUtm, type UtmParams } from "./utm";
 
-type DailyStatus = "draft" | "active" | "finished";
+type DailyStatus = "draft" | "active" | "finished" | "archived";
 type MaterialType = "loom" | "youtube" | "text";
 
 export function readText(raw: FormDataEntryValue | null, max: number): string {
@@ -23,7 +23,7 @@ export function isSlug(slug: string): boolean {
 }
 
 export function isDailyStatus(value: string): value is DailyStatus {
-  return value === "draft" || value === "active" || value === "finished";
+  return value === "draft" || value === "active" || value === "finished" || value === "archived";
 }
 
 export type FieldIssue = {
