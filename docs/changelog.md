@@ -12,7 +12,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/218
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-10-21 — docs: журнал змін з опису pull request (#216)
 
@@ -23,7 +23,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/216
-<!-- released: no -->
+<!-- released: yes -->
 <!-- /changelog:entries -->
 
 ## Новини для сайту
