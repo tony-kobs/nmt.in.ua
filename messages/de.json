@@ -949,6 +949,19 @@
     "create": "Neuer Marathon",
     "delete": "Löschen",
     "deleteConfirm": "Unwiderruflich löschen?",
+    "settings": "Einstellungen",
+    "activate": "Aktivieren",
+    "activateConfirm": "Marathon aktivieren? Wenn der Kurs bereit ist, geht die Einladung einmal raus.",
+    "deactivate": "Deaktivieren",
+    "deactivateConfirm": "Deaktivieren? Der Kurs wird ein Entwurf. Teilnehmer und Punkte bleiben.",
+    "archive": "Archivieren",
+    "archiveConfirm": "Ins Archiv? Der Kurs verschwindet aus aktiven Listen, der Anmeldung und dem Bot. Geplante Nachrichten gehen nicht raus. Punkte bleiben in der Tabelle.",
+    "restore": "Aus dem Archiv holen",
+    "restoreConfirm": "Aus dem Archiv holen? Der Kurs wird ein Entwurf. Nachrichten bleiben aus, bis du ihn wieder aktivierst. Punkte bleiben.",
+    "currentSection": "Aktuell",
+    "archiveSection": "Archiv",
+    "currentEmpty": "Keine aktuellen Marathons.",
+    "archiveLead": "Versteckt vor Anmeldung und Versand. Punkte bleiben in Gesamt und in der Tabelle dieses Kurses.",
     "addRiddle": "Rätsel hinzufügen",
     "addDay": "Tag hinzufügen",
     "addMaterial": "Material hinzufügen",
@@ -1254,7 +1267,8 @@
     "status": {
       "draft": "Entwurf",
       "active": "Aktiv",
-      "finished": "Beendet"
+      "finished": "Beendet",
+      "archived": "Archiviert"
     },
     "errors": {
       "closed": "Dieser Marathon nimmt gerade keine Teilnehmer auf.",
@@ -1294,6 +1308,7 @@
     "pickerLabel": "Marathon",
     "allMarathons": "Gesamt",
     "statusFinished": "beendet",
+    "statusArchived": "Archiv",
     "openMarathon": "Marathon öffnen",
     "joinTitle": "Teilnehmen",
     "joinLead": "Nach dem Beitritt zählen nur abgeschlossene Sitzungen, die nach dem Beitritt und innerhalb des Marathonzeitraums begonnen haben.",

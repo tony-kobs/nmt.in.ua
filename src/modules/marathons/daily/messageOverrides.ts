@@ -128,6 +128,41 @@ export async function saveSlotOverride(row: SlotOverride & { marathonId: number 
   });
 }
 
+/** Closes queued sends for one course. Scores, participants and sent history stay. */
+export async function silenceMarathonSends(marathonId: number): Promise<void> {
+  if (!process.env.DB_HOST) return;
+  await withConn(async (connection) => {
+    await connection.execute(
+      `UPDATE marathon_message_jobs
+       SET status = 'cancelled'
+       WHERE marathon_id = ? AND status IN ('queued', 'sending', 'failed')`,
+      [marathonId],
+    );
+    await connection.execute(
+      `UPDATE marathon_telegram_outbox
+       SET status = 'cancelled'
+       WHERE marathon_id = ? AND status IN ('pending', 'failed')`,
+      [marathonId],
+    );
+    await connection.execute(
+      `UPDATE marathon_notifications
+       SET delivered = 1, outcome = 'cancelled'
+       WHERE marathon_id = ? AND delivered = 0`,
+      [marathonId],
+    );
+  });
+}
+
+async function marathonIsArchived(marathonId: number): Promise<boolean> {
+  return withConn(async (connection) => {
+    const rows = await connection.query<{ status: string }>(
+      `SELECT status FROM marathons WHERE id = ? LIMIT 1`,
+      [marathonId],
+    );
+    return rows[0]?.status === "archived";
+  });
+}
+
 export async function markNotificationOutcome(
   intent: {
     marathonId: number;
@@ -685,6 +720,17 @@ export async function deliverDueMessageJobs(now: Date, deps?: {
   const hold = deps?.holdTelegram ?? quietHoldForChat;
   for (const job of jobs) {
     try {
+      if (await marathonIsArchived(job.marathonId)) {
+        await setJobStatus(job.id, "cancelled");
+        await markNotificationOutcome({
+          marathonId: job.marathonId,
+          userId: job.userId,
+          dayNumber: job.dayNumber,
+          kind: job.kind,
+          channel: job.channel,
+        }, "cancelled");
+        continue;
+      }
       const override = findSlotOverride(overrides, job.marathonId, job.dayNumber, job.kind, job.channel);
       const allowed = await personStillWants(job.marathonId, job.userId, job.channel);
       if (override?.cancelled || !allowed) {

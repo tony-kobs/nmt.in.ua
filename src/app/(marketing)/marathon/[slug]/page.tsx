@@ -34,7 +34,7 @@ export default async function MarathonLandingPage({ params, searchParams }: Page
   const { slug } = await params;
   const query = await searchParams;
   const marathon = await getDailyBySlug(slug);
-  if (!marathon || marathon.status === "draft") notFound();
+  if (!marathon || marathon.status === "draft" || marathon.status === "archived") notFound();
   const [riddles, user, board] = await Promise.all([
     loadLandingRiddles({
       marathonId: marathon.id,

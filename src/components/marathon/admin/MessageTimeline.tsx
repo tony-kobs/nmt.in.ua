@@ -134,7 +134,7 @@ export async function MessageTimeline({
   marathon,
   days,
 }: {
-  marathon: Pick<DailyMarathon, "id" | "slug" | "startDate" | "unlockHour" | "reminderHour" | "nudgeFrom" | "nudgeUntil">;
+  marathon: Pick<DailyMarathon, "id" | "slug" | "status" | "startDate" | "unlockHour" | "reminderHour" | "nudgeFrom" | "nudgeUntil">;
   days: Array<Pick<MarathonDay, "dayNumber" | "topic"> & { tasks: unknown[] }>;
 }) {
   const content = days
@@ -154,6 +154,7 @@ export async function MessageTimeline({
         days: content,
       },
       linkBase: `/marathon/${marathon.slug}`,
+      hold: marathon.status === "archived",
       ...snapshot,
     });
   } catch (error) {
@@ -168,6 +169,11 @@ export async function MessageTimeline({
         <p className={css.lead}>
           Усе, що марафон планує надіслати: розклад днів, черга Telegram і відкладені повідомлення. Час — за Києвом.
         </p>
+        {marathon.status === "archived" ? (
+          <p className={css.lead}>
+            Курс в архіві: заплановані повідомлення скасовані і не підуть, доки його знову не активують.
+          </p>
+        ) : null}
         {failed ? <p className={css.fieldError}>Не вдалося прочитати чергу. Оновіть сторінку.</p> : null}
         {empty ? <p className={css.hint}>Немає днів із завданнями — розсилки ще не заплановані.</p> : null}
         {groups.map((group) => (

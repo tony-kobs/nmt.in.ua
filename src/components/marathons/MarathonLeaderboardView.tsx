@@ -23,8 +23,11 @@ function formatAvgSec(sec: number | null): string {
 function optionLabel(
   option: { title: string; status: string },
   finished: string,
+  archived: string,
 ): string {
-  return option.status === "finished" ? `${option.title} · ${finished}` : option.title;
+  if (option.status === "finished") return `${option.title} · ${finished}`;
+  if (option.status === "archived") return `${option.title} · ${archived}`;
+  return option.title;
 }
 
 function visibleLogin(
@@ -67,7 +70,7 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
             label:
               option.slug === ALL_MARATHONS_SLUG
                 ? t("allMarathons")
-                : optionLabel(option, t("statusFinished")),
+                : optionLabel(option, t("statusFinished"), t("statusArchived")),
           }))}
         />
       ) : null}

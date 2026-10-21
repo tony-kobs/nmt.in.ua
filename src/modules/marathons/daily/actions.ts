@@ -101,6 +101,7 @@ import {
   loadTimelineSnapshot,
   rewriteOutbox,
   saveSlotOverride,
+  silenceMarathonSends,
   syncQueuedJobs,
   updateMessageJob,
   type TimelineSnapshot,
@@ -195,6 +196,13 @@ export async function setMarathonStatusAction(formData: FormData): Promise<void>
   }
   const previous = await getDailyById(id);
   await setDailyStatus(id, status);
+  if (status === "archived") {
+    try {
+      await silenceMarathonSends(id);
+    } catch (error) {
+      console.error("marathon archive silence", error);
+    }
+  }
   if (status === "active" && previous && previous.status !== "active") {
     try {
       const { dispatchMarathonInvites } = await import("./inviteDispatch");
@@ -544,7 +552,7 @@ export async function reshuffleTasksAction(formData: FormData): Promise<void> {
 
 async function openMarathon(slug: string) {
   const marathon = await getDailyBySlug(slug);
-  if (!marathon || marathon.status === "draft") return null;
+  if (!marathon || marathon.status === "draft" || marathon.status === "archived") return null;
   return marathon;
 }
 

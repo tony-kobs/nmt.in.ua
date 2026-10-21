@@ -47,7 +47,7 @@ export {
   updateRiddle,
 } from "./riddleStore";
 
-export type DailyStatus = "draft" | "active" | "finished";
+export type DailyStatus = "draft" | "active" | "finished" | "archived";
 export type MaterialType = "loom" | "youtube" | "text";
 
 export type DailyMarathon = {
@@ -193,7 +193,12 @@ function mapMarathon(row: {
   landing_riddle_count?: number | null;
   status: string;
 }): DailyMarathon | null {
-  if (row.status !== "draft" && row.status !== "active" && row.status !== "finished") {
+  if (
+    row.status !== "draft" &&
+    row.status !== "active" &&
+    row.status !== "finished" &&
+    row.status !== "archived"
+  ) {
     return null;
   }
   const startDate = isoDate(row.start_date);
@@ -1415,6 +1420,8 @@ export type NotifyAudienceMarathon = {
   contentDayNumbers: number[];
   topics: Record<number, string>;
   copy: Partial<Record<CopyKey, string>>;
+  /** Absent in older fixtures. A set value other than active must not be sent. */
+  status?: DailyStatus;
   people: Array<{
     userId: number;
     email: string | null;
@@ -1552,6 +1559,7 @@ export async function loadNotifyAudience(
           contentDayNumbers: [],
           topics: {},
           copy: {},
+          status: "active",
           people: [],
         };
         grouped.set(row.marathon_id, marathon);
@@ -1986,10 +1994,13 @@ export async function claimMarathonTelegram(
       payload: string;
       attempts: number;
     }>(
-      `SELECT id, chat_id, payload, attempts
-       FROM marathon_telegram_outbox
-       WHERE status = 'pending' AND (not_before IS NULL OR not_before <= CURRENT_TIMESTAMP)
-       ORDER BY id
+      `SELECT o.id, o.chat_id, o.payload, o.attempts
+       FROM marathon_telegram_outbox o
+       LEFT JOIN marathons m ON m.id = o.marathon_id
+       WHERE o.status = 'pending'
+         AND (o.not_before IS NULL OR o.not_before <= CURRENT_TIMESTAMP)
+         AND (o.marathon_id IS NULL OR m.status IS NULL OR m.status <> 'archived')
+       ORDER BY o.id
        LIMIT ${size}`,
       [],
     );

@@ -154,3 +154,22 @@ test("audience ignores a paused participant", () => {
     person({ paused: true, email: "b@example.com" }),
   ], 1, "reminder", "email", 2), 1);
 });
+
+test("an archived course keeps sent rows and cancels the rest", () => {
+  const days = buildMessageTimeline({
+    schedule,
+    linkBase: "https://nmt.in.ua/marathon/vesna",
+    people: [person()],
+    ledger: [{ dayNumber: 1, kind: "day_open", channel: "telegram", sent: 1, pending: 0 }],
+    overrides: [],
+    outbox: [],
+    jobs: [],
+    hold: true,
+  });
+  const items = days.flatMap((day) => day.items);
+  const sent = items.filter((item) => item.status === "sent");
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0]?.editable, false);
+  assert.ok(items.length > 1);
+  assert.ok(items.filter((item) => item !== sent[0]).every((item) => item.status === "cancelled" && !item.editable));
+});

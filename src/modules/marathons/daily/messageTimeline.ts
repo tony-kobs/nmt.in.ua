@@ -249,6 +249,8 @@ export function buildMessageTimeline(input: {
   outbox: OutboxSnapshot[];
   jobs: JobSnapshot[];
   now?: Date;
+  /** Archived course: keep sent history, show every other row as cancelled. */
+  hold?: boolean;
 }): TimelineDay[] {
   const days = [...input.schedule.days].sort((a, b) => a.dayNumber - b.dayNumber);
   const known = new Set(days.map((day) => day.dayNumber));
@@ -378,6 +380,14 @@ export function buildMessageTimeline(input: {
       editable: status === "queued" || status === "failed",
       jobId: job.id,
     });
+  }
+
+  if (input.hold) {
+    for (const item of items) {
+      if (item.status === "sent") continue;
+      item.status = "cancelled";
+      item.editable = false;
+    }
   }
 
   items.sort((a, b) => a.effectiveAt.localeCompare(b.effectiveAt) || a.key.localeCompare(b.key));

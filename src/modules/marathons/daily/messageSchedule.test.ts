@@ -102,6 +102,27 @@ test("a postponed slot waits, then uses the override text inside its window", as
   assert.equal(due.some((text) => text === "Пізніше Дроби"), true);
 });
 
+test("an archived marathon is excluded from email and telegram sends", async () => {
+  const telegram: string[] = [];
+  const email: string[] = [];
+  const result = await runMarathonNotifications({
+    ...hooks,
+    load: async () => [{ ...audience, status: "archived" }],
+    now: () => new Date("2026-01-10T21:30:00.000Z"),
+    sendTelegram: async () => {
+      telegram.push("sent");
+      return true;
+    },
+    sendEmail: async () => {
+      email.push("sent");
+      return true;
+    },
+  });
+  assert.deepEqual(telegram, []);
+  assert.deepEqual(email, []);
+  assert.equal(result.sent, 0);
+});
+
 test("a cancelled or postponed rank notice is not handed to Telegram", async () => {
   const person = { ...audience.people[0]!, notifyEmail: false, email: null };
   const queued: string[] = [];

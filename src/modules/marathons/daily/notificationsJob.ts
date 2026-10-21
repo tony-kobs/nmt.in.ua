@@ -173,6 +173,7 @@ async function buildDeliveries(
 ): Promise<Delivery[]> {
   const deliveries: Delivery[] = [];
   for (const marathon of audience) {
+    if (marathon.status != null && marathon.status !== "active") continue;
     if (shouldFinishDailyMarathon(now, marathon)) continue;
     const dayNumbers = marathon.contentDayNumbers;
     if (dayNumbers.length === 0) continue;
@@ -485,6 +486,7 @@ async function deliverSiteDayNotifications(
 ): Promise<void> {
   const { notifyUser } = await import("@/modules/notifications/store");
   for (const marathon of audience) {
+    if (marathon.status != null && marathon.status !== "active") continue;
     if (shouldFinishDailyMarathon(now, marathon)) continue;
     const opens = planSiteDayOpens({
       now,
