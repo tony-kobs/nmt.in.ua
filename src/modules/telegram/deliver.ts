@@ -237,7 +237,8 @@ export async function deliverTelegramReplies(
   replies: TelegramReply[],
   token: string,
   options: DeliverOptions = {},
-): Promise<{ sent: number; deferred: TelegramReply[] }> {
+): Promise<{ sent: number; deferred: TelegramReply[]; errorCode?: number }> {
+  let errorCode: number | undefined;
   const result = await sendThrottled(replies, {
     chatId: (reply) => reply.chatId,
     budgetMs: options.budgetMs,
@@ -245,7 +246,15 @@ export async function deliverTelegramReplies(
     sleep: options.sleep,
     startedAt: options.startedAt,
     pace: options.now ? undefined : sharedTelegramPace(),
-    send: async (reply) => outcomeOf(await sendOne(reply, token, options)),
+    send: async (reply) => {
+      const sent = await sendOne(reply, token, options);
+      if (sent.status !== "sent" && sent.context.errorCode != null) errorCode = sent.context.errorCode;
+      return outcomeOf(sent);
+    },
   });
-  return { sent: result.sent.length, deferred: result.deferred };
+  return {
+    sent: result.sent.length,
+    deferred: result.deferred,
+    ...(errorCode != null ? { errorCode } : {}),
+  };
 }

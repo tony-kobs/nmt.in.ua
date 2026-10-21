@@ -6,7 +6,25 @@ import type { NotifyKind } from "./notifications";
 export const TIMELINE_KINDS = ["day_open", "reminder", "nudge", "tomorrow", "final", "rank"] as const;
 export type TimelineKind = (typeof TIMELINE_KINDS)[number];
 export type TimelineChannel = "email" | "telegram";
-export type TimelineStatus = "planned" | "queued" | "sent" | "failed" | "cancelled";
+export type TimelineStatus =
+  | "planned"
+  | "queued"
+  | "postponed"
+  | "quiet"
+  | "sent"
+  | "partial"
+  | "failed"
+  | "skipped"
+  | "cancelled";
+
+export type SkipCode = "opt_out" | "no_telegram" | "archived";
+
+/** Stored as-is on a failed or skipped row. The timeline prints this text. */
+export const SKIP_REASON_TEXT: Record<SkipCode, string> = {
+  opt_out: "відмова від сповіщень",
+  no_telegram: "немає прив’язаного Telegram",
+  archived: "марафон в архіві",
+};
 
 export type SlotOverride = {
   /** Set for rows loaded from the database. Omitted only in unit fixtures. */
@@ -29,6 +47,17 @@ export type LedgerCount = {
   channel: string;
   sent: number;
   pending: number;
+  failed?: number;
+  sentAt?: Date | null;
+  errorText?: string | null;
+};
+
+export type SlotFailure = {
+  dayNumber: number;
+  kind: string;
+  channel: string;
+  who: string;
+  reason: string;
 };
 
 export type OutboxSnapshot = {
@@ -39,6 +68,9 @@ export type OutboxSnapshot = {
   text: string;
   dayNumber: number | null;
   kind: string | null;
+  errorText?: string | null;
+  holdReason?: "quiet" | "postpone" | null;
+  who?: string | null;
 };
 
 export type JobSnapshot = {
@@ -50,6 +82,14 @@ export type JobSnapshot = {
   body: string;
   sendAt: Date;
   status: "queued" | "sending" | "sent" | "failed" | "cancelled";
+  errorText?: string | null;
+  holdReason?: "quiet" | "postpone" | null;
+  who?: string | null;
+};
+
+export type TimelineFailure = {
+  who: string;
+  reason: string;
 };
 
 export type TimelineItem = {
@@ -63,6 +103,12 @@ export type TimelineItem = {
   status: TimelineStatus;
   audience: number;
   sentCount: number;
+  failedCount: number;
+  /** When the slot actually left. Empty when the ledger has no sent_at. */
+  sentAt: string | null;
+  /** Stored error, or a skip reason. Empty for a clean plan. */
+  reason: string | null;
+  failures: TimelineFailure[];
   preview: string;
   /** Raw template for a schedule slot, or the stored text of one queued message. */
   template: string;
@@ -225,19 +271,123 @@ function previewFor(
   return renderCopy(COPY_DEFAULTS[key], vars);
 }
 
-function statusFor(input: {
-  cancelled: boolean;
+export type StatusInput = {
+  cancelled?: boolean;
+  /** Admin moved this slot or row to a new time. */
+  postponed?: boolean;
+  /** System quiet-hours hold. A user reply is never this. */
+  quiet?: boolean;
+  /** Archived course: unsent work does not go out. */
+  archived?: boolean;
+  skip?: SkipCode | null;
   audience: number;
   sent: number;
   pending: number;
-  failed: boolean;
-}): TimelineStatus {
+  failed: number;
+};
+
+/**
+ * One badge for a schedule slot or a single queued row.
+ * A future slot with an empty audience because of the kind rules stays planned.
+ * Opt-out, a missing Telegram link, and an archived course are skipped.
+ */
+export function deriveTimelineStatus(input: StatusInput): TimelineStatus {
+  const sent = input.sent;
+  const pending = input.pending;
+  const failed = input.failed;
+  const audience = input.audience;
   if (input.cancelled) return "cancelled";
-  if (input.pending > 0) return "queued";
-  if (input.failed && input.sent === 0) return "failed";
-  if (input.sent > 0 && input.audience === 0) return "sent";
-  if (input.audience > 0 && input.sent >= input.audience) return "sent";
+  if (sent > 0 && failed > 0) return "partial";
+  if (failed === 0 && sent > 0 && (input.archived || audience === 0 || sent >= audience)) return "sent";
+  if (failed > 0 && sent === 0 && pending === 0) return "failed";
+  if (input.archived && sent === 0) return "skipped";
+  if (input.postponed && sent === 0 && failed === 0) return "postponed";
+  if (input.quiet && sent === 0 && failed === 0) return "quiet";
+  if (input.skip && sent === 0 && pending === 0 && failed === 0) return "skipped";
+  if (pending > 0) return "queued";
   return "planned";
+}
+
+function itemReason(
+  status: TimelineStatus,
+  input: { errorText?: string | null; skip?: SkipCode | null; archived?: boolean },
+): string | null {
+  if (status === "failed") return input.errorText?.trim() || null;
+  if (status !== "skipped") return null;
+  if (input.skip) return SKIP_REASON_TEXT[input.skip];
+  if (input.archived) return SKIP_REASON_TEXT.archived;
+  return input.errorText?.trim() || null;
+}
+
+export function timelineEditable(status: TimelineStatus): boolean {
+  return status === "planned"
+    || status === "queued"
+    || status === "postponed"
+    || status === "quiet"
+    || status === "failed";
+}
+
+export function skipCodeFromText(text: string | null | undefined): SkipCode | null {
+  if (!text) return null;
+  const found = (Object.entries(SKIP_REASON_TEXT) as Array<[SkipCode, string]>)
+    .find(([, value]) => value === text);
+  return found?.[0] ?? null;
+}
+
+/** Short reason we store. Telegram's own description is not kept. */
+export function deliveryErrorText(input: {
+  channel: "telegram" | "email";
+  errorCode?: number | null;
+  mailError?: string | null;
+  invalidPayload?: boolean;
+  gaveUp?: boolean;
+}): string {
+  if (input.invalidPayload) return "Некоректне повідомлення в черзі";
+  if (input.channel === "telegram") {
+    if (input.errorCode === 403) return "Telegram 403: бот заблоковано";
+    if (input.errorCode != null) return `Telegram ${input.errorCode}`;
+    if (input.gaveUp) return "Час очікування Telegram вичерпано";
+    return "Помилка Telegram";
+  }
+  const mail = (input.mailError ?? "").trim();
+  if (mail === "timeout" || /timed out/i.test(mail)) return "Час очікування Brevo вичерпано";
+  if (mail === "bad_from") return "Помилка Brevo: некоректний відправник";
+  if (mail === "missing_api_key") return "Помилка Brevo: ключ не налаштовано";
+  if (mail === "brevo_error" || mail === "send_failed" || !mail) return "Помилка Brevo";
+  return `Помилка Brevo: ${mail}`.slice(0, 500);
+}
+
+function kindMatches(person: TimelinePerson, dayNumber: number, kind: string, lastDay: number): boolean {
+  if (kind === "tomorrow") return person.completedDayNumbers.includes(dayNumber - 1);
+  if (kind === "final") return person.completedDayNumbers.includes(lastDay);
+  if (kind === "day_open" || kind === "reminder" || kind === "nudge" || kind === "rank") {
+    return !person.completedDayNumbers.includes(dayNumber);
+  }
+  return true;
+}
+
+/**
+ * Skip only when nobody left can receive this channel.
+ * An empty audience because the day is already done, or tomorrow's day
+ * has no completers yet, stays a normal planned slot.
+ */
+export function scheduleSkipReason(
+  people: TimelinePerson[],
+  dayNumber: number,
+  kind: string,
+  channel: TimelineChannel,
+  lastDay: number,
+): SkipCode | null {
+  if (people.length === 0) return null;
+  const active = people.filter((person) => !person.paused && !person.declined);
+  if (active.length === 0) return "opt_out";
+  const inKind = active.filter((person) => kindMatches(person, dayNumber, kind, lastDay));
+  if (inKind.length === 0) return null;
+  if (inKind.some((person) => channelEnabled(person, channel))) return null;
+  if (channel === "telegram" && inKind.some((person) => person.notifyBot && !person.telegramChatId)) {
+    return "no_telegram";
+  }
+  return "opt_out";
 }
 
 export function buildMessageTimeline(input: {
@@ -248,8 +398,9 @@ export function buildMessageTimeline(input: {
   overrides: SlotOverride[];
   outbox: OutboxSnapshot[];
   jobs: JobSnapshot[];
+  failures?: SlotFailure[];
   now?: Date;
-  /** Archived course: keep sent history, show every other row as cancelled. */
+  /** Archived course: keep sent history, show every other unsent row as skipped. */
   hold?: boolean;
 }): TimelineDay[] {
   const days = [...input.schedule.days].sort((a, b) => a.dayNumber - b.dayNumber);
@@ -258,7 +409,16 @@ export function buildMessageTimeline(input: {
   const topics = new Map(days.map((day) => [day.dayNumber, day.topic]));
   const overrides = new Map(input.overrides.map((row) => [slotKey(row.dayNumber, row.kind, row.channel), row]));
   const ledger = new Map(input.ledger.map((row) => [slotKey(row.dayNumber, row.kind, row.channel), row]));
+  const failureLists = new Map<string, TimelineFailure[]>();
+  for (const failure of input.failures ?? []) {
+    const key = slotKey(failure.dayNumber, failure.kind, failure.channel);
+    const list = failureLists.get(key);
+    const entry = { who: failure.who, reason: failure.reason };
+    if (list) list.push(entry);
+    else failureLists.set(key, [entry]);
+  }
   const items: TimelineItem[] = [];
+  const archived = input.hold === true;
 
   for (const day of days) {
     const openAt = dayUnlockAt({
@@ -302,14 +462,22 @@ export function buildMessageTimeline(input: {
         const audience = audienceFor(input.people, day.dayNumber, slot.kind, channel, lastDay);
         const sent = counts?.sent ?? 0;
         const pending = counts?.pending ?? 0;
-        const status = statusFor({
+        const failed = counts?.failed ?? 0;
+        const skip = override?.cancelled
+          ? null
+          : scheduleSkipReason(input.people, day.dayNumber, slot.kind, channel, lastDay);
+        const status = deriveTimelineStatus({
           cancelled: override?.cancelled === true,
+          postponed: override?.sendAt != null && !override.cancelled,
+          archived,
+          skip,
           audience,
           sent,
           pending,
-          failed: false,
+          failed,
         });
         const whenLabel = formatKyivWhen(effective, "uk-UA");
+        const failures = failureLists.get(key) ?? [];
         items.push({
           key,
           source: "schedule",
@@ -321,6 +489,14 @@ export function buildMessageTimeline(input: {
           status,
           audience,
           sentCount: sent,
+          failedCount: failed,
+          sentAt: counts?.sentAt ? counts.sentAt.toISOString() : null,
+          reason: itemReason(status, {
+            errorText: counts?.errorText ?? failures[0]?.reason ?? null,
+            skip,
+            archived,
+          }),
+          failures,
           preview: previewFor(
             slot.kind,
             day.dayNumber,
@@ -331,7 +507,7 @@ export function buildMessageTimeline(input: {
           ),
           template: override?.body?.trim()
             || COPY_DEFAULTS[KIND_COPY[slot.kind]],
-          editable: status !== "sent" && status !== "cancelled",
+          editable: timelineEditable(status),
         });
       }
     }
@@ -339,11 +515,22 @@ export function buildMessageTimeline(input: {
 
   for (const row of input.outbox) {
     const at = row.notBefore ?? row.createdAt;
-    const status: TimelineStatus = row.status === "pending"
-      ? "queued"
-      : row.status === "cancelled"
-        ? "cancelled"
-        : row.status;
+    const skip = skipCodeFromText(row.errorText);
+    const failed = row.status === "failed";
+    const sent = row.status === "sent";
+    const pending = row.status === "pending";
+    const status = deriveTimelineStatus({
+      cancelled: row.status === "cancelled" && !skip,
+      postponed: row.holdReason === "postpone",
+      quiet: row.holdReason === "quiet",
+      archived,
+      skip: row.status === "cancelled" ? skip : null,
+      audience: 1,
+      sent: sent ? 1 : 0,
+      pending: pending ? 1 : 0,
+      failed: failed ? 1 : 0,
+    });
+    const who = row.who?.trim() || "Учасник";
     items.push({
       key: `outbox:${row.id}`,
       source: "outbox",
@@ -354,16 +541,35 @@ export function buildMessageTimeline(input: {
       effectiveAt: at.toISOString(),
       status,
       audience: 1,
-      sentCount: row.status === "sent" ? 1 : 0,
+      sentCount: sent ? 1 : 0,
+      failedCount: failed ? 1 : 0,
+      sentAt: sent ? at.toISOString() : null,
+      reason: itemReason(status, { errorText: row.errorText, skip, archived }),
+      failures: failed && row.errorText ? [{ who, reason: row.errorText }] : [],
       preview: row.text,
       template: row.text,
-      editable: status === "queued" || status === "failed",
+      editable: timelineEditable(status),
       outboxId: row.id,
     });
   }
 
   for (const job of input.jobs) {
-    const status: TimelineStatus = job.status === "sending" ? "queued" : job.status;
+    const skip = skipCodeFromText(job.errorText);
+    const failed = job.status === "failed";
+    const sent = job.status === "sent";
+    const pending = job.status === "queued" || job.status === "sending";
+    const status = deriveTimelineStatus({
+      cancelled: job.status === "cancelled" && !skip,
+      postponed: job.holdReason === "postpone",
+      quiet: job.holdReason === "quiet",
+      archived,
+      skip: job.status === "cancelled" ? skip : null,
+      audience: 1,
+      sent: sent ? 1 : 0,
+      pending: pending ? 1 : 0,
+      failed: failed ? 1 : 0,
+    });
+    const who = job.who?.trim() || "Учасник";
     items.push({
       key: `job:${job.id}`,
       source: "job",
@@ -374,20 +580,16 @@ export function buildMessageTimeline(input: {
       effectiveAt: job.sendAt.toISOString(),
       status,
       audience: 1,
-      sentCount: job.status === "sent" ? 1 : 0,
+      sentCount: sent ? 1 : 0,
+      failedCount: failed ? 1 : 0,
+      sentAt: sent ? job.sendAt.toISOString() : null,
+      reason: itemReason(status, { errorText: job.errorText, skip, archived }),
+      failures: failed && job.errorText ? [{ who, reason: job.errorText }] : [],
       preview: job.body,
       template: job.body,
-      editable: status === "queued" || status === "failed",
+      editable: timelineEditable(status),
       jobId: job.id,
     });
-  }
-
-  if (input.hold) {
-    for (const item of items) {
-      if (item.status === "sent") continue;
-      item.status = "cancelled";
-      item.editable = false;
-    }
   }
 
   items.sort((a, b) => a.effectiveAt.localeCompare(b.effectiveAt) || a.key.localeCompare(b.key));

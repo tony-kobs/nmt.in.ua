@@ -6,6 +6,8 @@
 -- Jobs hold a rank notice (or similar) that should leave later than the submit.
 -- marathon_telegram_outbox.marathon_id ties queued Telegram to the admin timeline.
 -- outcome marks a claim that was closed without a send.
+-- error_text keeps a short reason (Telegram 403, Brevo, timeout, skip).
+-- hold_reason is 'quiet' for system quiet hours or 'postpone' for an admin time.
 --
 -- Idempotent: CREATE IF NOT EXISTS, ADD COLUMN (errno 1060), MODIFY enum.
 -- scripts/migrate.mjs skips errno 1050, 1060 and 1061.
@@ -56,3 +58,18 @@ ALTER TABLE marathon_telegram_outbox
 
 ALTER TABLE marathon_telegram_outbox
   MODIFY COLUMN status ENUM('pending','sent','failed','cancelled') NOT NULL DEFAULT 'pending';
+
+ALTER TABLE marathon_notifications
+  ADD COLUMN error_text VARCHAR(500) NULL AFTER outcome;
+
+ALTER TABLE marathon_telegram_outbox
+  ADD COLUMN error_text VARCHAR(500) NULL AFTER attempts;
+
+ALTER TABLE marathon_telegram_outbox
+  ADD COLUMN hold_reason VARCHAR(16) NULL AFTER error_text;
+
+ALTER TABLE marathon_message_jobs
+  ADD COLUMN error_text VARCHAR(500) NULL AFTER status;
+
+ALTER TABLE marathon_message_jobs
+  ADD COLUMN hold_reason VARCHAR(16) NULL AFTER error_text;

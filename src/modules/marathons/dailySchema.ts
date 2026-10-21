@@ -576,6 +576,24 @@ async function ensureMessageTimeline(connection: SqlConnection): Promise<void> {
       );
     }
   }
+  const notifyForError = await columnNames(connection, "marathon_notifications");
+  if (notifyForError.size > 0 && !notifyForError.has("error_text")) {
+    await addColumn(connection, "marathon_notifications", "error_text", "VARCHAR(500) NULL AFTER outcome");
+  }
+  const outboxForError = await columnNames(connection, "marathon_telegram_outbox");
+  if (outboxForError.size > 0 && !outboxForError.has("error_text")) {
+    await addColumn(connection, "marathon_telegram_outbox", "error_text", "VARCHAR(500) NULL");
+  }
+  if (outboxForError.size > 0 && !outboxForError.has("hold_reason")) {
+    await addColumn(connection, "marathon_telegram_outbox", "hold_reason", "VARCHAR(16) NULL");
+  }
+  const jobColumns = await columnNames(connection, "marathon_message_jobs");
+  if (jobColumns.size > 0 && !jobColumns.has("error_text")) {
+    await addColumn(connection, "marathon_message_jobs", "error_text", "VARCHAR(500) NULL");
+  }
+  if (jobColumns.size > 0 && !jobColumns.has("hold_reason")) {
+    await addColumn(connection, "marathon_message_jobs", "hold_reason", "VARCHAR(16) NULL");
+  }
 }
 
 async function promoteMarathonCabinets(connection: SqlConnection): Promise<void> {

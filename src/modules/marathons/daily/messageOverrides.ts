@@ -9,12 +9,15 @@ import { wrapMarathonMail } from "./mailCopy";
 import { optionalTelegramBot } from "./botLink";
 import { sendThrottled, sharedTelegramPace } from "@/modules/telegram/throttle";
 import { sendTelegramMessage } from "@/modules/telegram/transport";
-import { isDefinitiveTelegramFailure } from "./notifications";
+import { QUIET_HOLD_RETRY_MS } from "@/modules/telegram/outbox";
 import {
+  deliveryErrorText,
   findSlotOverride,
+  SKIP_REASON_TEXT,
   type JobSnapshot,
   type LedgerCount,
   type OutboxSnapshot,
+  type SlotFailure,
   type SlotOverride,
   type TimelineChannel,
   type TimelinePerson,
@@ -132,23 +135,51 @@ export async function saveSlotOverride(row: SlotOverride & { marathonId: number 
 export async function silenceMarathonSends(marathonId: number): Promise<void> {
   if (!process.env.DB_HOST) return;
   await withConn(async (connection) => {
-    await connection.execute(
-      `UPDATE marathon_message_jobs
-       SET status = 'cancelled'
-       WHERE marathon_id = ? AND status IN ('queued', 'sending', 'failed')`,
-      [marathonId],
+    const reason = SKIP_REASON_TEXT.archived;
+    await executeOr(
+      connection,
+      {
+        sql: `UPDATE marathon_message_jobs
+              SET status = 'cancelled', error_text = ?
+              WHERE marathon_id = ? AND status IN ('queued', 'sending', 'failed')`,
+        params: [reason, marathonId],
+      },
+      {
+        sql: `UPDATE marathon_message_jobs
+              SET status = 'cancelled'
+              WHERE marathon_id = ? AND status IN ('queued', 'sending', 'failed')`,
+        params: [marathonId],
+      },
     );
-    await connection.execute(
-      `UPDATE marathon_telegram_outbox
-       SET status = 'cancelled'
-       WHERE marathon_id = ? AND status IN ('pending', 'failed')`,
-      [marathonId],
+    await executeOr(
+      connection,
+      {
+        sql: `UPDATE marathon_telegram_outbox
+              SET status = 'cancelled', error_text = ?, hold_reason = NULL
+              WHERE marathon_id = ? AND status IN ('pending', 'failed')`,
+        params: [reason, marathonId],
+      },
+      {
+        sql: `UPDATE marathon_telegram_outbox
+              SET status = 'cancelled'
+              WHERE marathon_id = ? AND status IN ('pending', 'failed')`,
+        params: [marathonId],
+      },
     );
-    await connection.execute(
-      `UPDATE marathon_notifications
-       SET delivered = 1, outcome = 'cancelled'
-       WHERE marathon_id = ? AND delivered = 0`,
-      [marathonId],
+    await executeOr(
+      connection,
+      {
+        sql: `UPDATE marathon_notifications
+              SET delivered = 1, outcome = 'cancelled', error_text = ?
+              WHERE marathon_id = ? AND delivered = 0`,
+        params: [reason, marathonId],
+      },
+      {
+        sql: `UPDATE marathon_notifications
+              SET delivered = 1, outcome = 'cancelled'
+              WHERE marathon_id = ? AND delivered = 0`,
+        params: [marathonId],
+      },
     );
   });
 }
@@ -194,7 +225,25 @@ export type TimelineSnapshot = {
   overrides: SlotOverride[];
   outbox: OutboxSnapshot[];
   jobs: JobSnapshot[];
+  failures: SlotFailure[];
 };
+
+function missingColumn(error: unknown): boolean {
+  return (error as { errno?: number }).errno === 1054;
+}
+
+async function executeOr(
+  connection: SqlConnection,
+  primary: { sql: string; params: unknown[] },
+  fallback: { sql: string; params: unknown[] },
+): Promise<void> {
+  try {
+    await connection.execute(primary.sql, primary.params);
+  } catch (error) {
+    if (!missingColumn(error)) throw error;
+    await connection.execute(fallback.sql, fallback.params);
+  }
+}
 
 function readOutbox(payload: string): { text: string; dayNumber: number | null; kind: string | null } {
   try {
@@ -286,13 +335,39 @@ export async function loadTimelineSnapshot(marathonId: number): Promise<Timeline
       channel: string;
       sent: number;
       pending: number;
+      failed: number;
+      sent_at: unknown;
+      error_text: string | null;
     }>(
       `SELECT day_number, kind, channel,
-              SUM(delivered = 1 AND (outcome IS NULL OR outcome <> 'cancelled')) AS sent,
-              SUM(delivered = 0) AS pending
+              SUM(delivered = 1 AND (outcome IS NULL OR outcome NOT IN ('cancelled', 'failed'))) AS sent,
+              SUM(delivered = 0) AS pending,
+              SUM(delivered = 1 AND outcome = 'failed') AS failed,
+              MAX(CASE
+                WHEN delivered = 1 AND (outcome IS NULL OR outcome NOT IN ('cancelled', 'failed'))
+                THEN sent_at
+              END) AS sent_at,
+              MAX(CASE WHEN outcome = 'failed' THEN error_text END) AS error_text
        FROM marathon_notifications
        WHERE marathon_id = ?
        GROUP BY day_number, kind, channel`,
+      [marathonId],
+    );
+
+    const failureRows = await connection.query<{
+      day_number: number;
+      kind: string;
+      channel: string;
+      error_text: string | null;
+      who: string | null;
+    }>(
+      `SELECT n.day_number, n.kind, n.channel, n.error_text,
+              COALESCE(NULLIF(TRIM(u.display_name), ''), u.login) AS who
+       FROM marathon_notifications n
+       INNER JOIN app_users u ON u.id = n.user_id
+       WHERE n.marathon_id = ? AND n.delivered = 1 AND n.outcome = 'failed'
+       ORDER BY n.sent_at, n.user_id
+       LIMIT 200`,
       [marathonId],
     );
 
@@ -302,11 +377,18 @@ export async function loadTimelineSnapshot(marathonId: number): Promise<Timeline
       not_before: unknown;
       created_at: unknown;
       payload: string;
+      error_text: string | null;
+      hold_reason: string | null;
+      who: string | null;
     }>(
-      `SELECT id, status, not_before, created_at, payload
-       FROM marathon_telegram_outbox
-       WHERE marathon_id = ?
-       ORDER BY id DESC
+      `SELECT o.id, o.status, o.not_before, o.created_at, o.payload, o.error_text, o.hold_reason,
+              COALESCE(NULLIF(TRIM(u.display_name), ''), u.login) AS who
+       FROM marathon_telegram_outbox o
+       LEFT JOIN user_telegram_accounts uta
+         ON CAST(uta.telegram_chat_id AS CHAR) = o.chat_id
+       LEFT JOIN app_users u ON u.id = uta.user_id
+       WHERE o.marathon_id = ?
+       ORDER BY o.id DESC
        LIMIT 200`,
       [marathonId],
     );
@@ -320,10 +402,16 @@ export async function loadTimelineSnapshot(marathonId: number): Promise<Timeline
       body: string;
       send_at: unknown;
       status: JobSnapshot["status"];
+      error_text: string | null;
+      hold_reason: string | null;
+      who: string | null;
     }>(
-      `SELECT id, user_id, day_number, kind, channel, body, send_at, status
-       FROM marathon_message_jobs
-       WHERE marathon_id = ?`,
+      `SELECT j.id, j.user_id, j.day_number, j.kind, j.channel, j.body, j.send_at, j.status,
+              j.error_text, j.hold_reason,
+              COALESCE(NULLIF(TRIM(u.display_name), ''), u.login) AS who
+       FROM marathon_message_jobs j
+       LEFT JOIN app_users u ON u.id = j.user_id
+       WHERE j.marathon_id = ?`,
       [marathonId],
     );
 
@@ -350,7 +438,21 @@ export async function loadTimelineSnapshot(marathonId: number): Promise<Timeline
         channel: row.channel,
         sent: Number(row.sent) || 0,
         pending: Number(row.pending) || 0,
+        failed: Number(row.failed) || 0,
+        sentAt: asDate(row.sent_at),
+        errorText: row.error_text,
       })),
+      failures: failureRows.flatMap((row) => {
+        const reason = row.error_text?.trim();
+        if (!reason) return [];
+        return [{
+          dayNumber: Number(row.day_number),
+          kind: row.kind,
+          channel: row.channel,
+          who: row.who?.trim() || "Учасник",
+          reason,
+        }];
+      }),
       overrides,
       outbox: outboxRows.flatMap((row) => {
         const createdAt = asDate(row.created_at);
@@ -368,6 +470,9 @@ export async function loadTimelineSnapshot(marathonId: number): Promise<Timeline
           text: parsed.text,
           dayNumber: parsed.dayNumber,
           kind: parsed.kind,
+          errorText: row.error_text,
+          holdReason: row.hold_reason === "quiet" || row.hold_reason === "postpone" ? row.hold_reason : null,
+          who: row.who,
         }];
       }),
       jobs: jobRows.flatMap((row) => {
@@ -382,6 +487,9 @@ export async function loadTimelineSnapshot(marathonId: number): Promise<Timeline
           body: row.body,
           sendAt,
           status: row.status,
+          errorText: row.error_text,
+          holdReason: row.hold_reason === "quiet" || row.hold_reason === "postpone" ? row.hold_reason : null,
+          who: row.who,
         }];
       }),
     };
@@ -432,6 +540,18 @@ export async function rewriteOutbox(
        WHERE id = ? AND marathon_id = ? AND status IN ('pending', 'failed')`,
       [payload, notBefore, input.outboxId, input.marathonId],
     );
+    if (result.affectedRows === 1 && input.notBefore) {
+      try {
+        await connection.execute(
+          `UPDATE marathon_telegram_outbox
+           SET hold_reason = 'postpone', error_text = NULL
+           WHERE id = ?`,
+          [input.outboxId],
+        );
+      } catch (error) {
+        if (!missingColumn(error)) throw error;
+      }
+    }
     return result.affectedRows === 1;
   });
 }
@@ -515,6 +635,18 @@ export async function updateMessageJob(input: {
        WHERE id = ? AND marathon_id = ? AND status IN ('queued', 'failed')`,
       params,
     );
+    if (result.affectedRows === 1 && input.sendAt) {
+      try {
+        await connection.execute(
+          `UPDATE marathon_message_jobs
+           SET hold_reason = 'postpone', error_text = NULL
+           WHERE id = ?`,
+          [input.jobId],
+        );
+      } catch (error) {
+        if (!missingColumn(error)) throw error;
+      }
+    }
     return result.affectedRows === 1;
   });
 }
@@ -611,12 +743,34 @@ async function claimDueJobs(now: Date): Promise<DueJob[]> {
   });
 }
 
-async function setJobStatus(id: number, status: "queued" | "sent" | "failed" | "cancelled"): Promise<void> {
+async function setJobStatus(
+  id: number,
+  status: "queued" | "sent" | "failed" | "cancelled",
+  detail?: { errorText?: string | null; holdReason?: "quiet" | "postpone" | null; sendAt?: Date },
+): Promise<void> {
   await withConn(async (connection) => {
     await connection.execute(
       `UPDATE marathon_message_jobs SET status = ? WHERE id = ?`,
       [status, id],
     );
+    if (!detail) return;
+    if (detail.sendAt) {
+      await connection.execute(
+        `UPDATE marathon_message_jobs SET send_at = ? WHERE id = ?`,
+        [detail.sendAt, id],
+      );
+    }
+    if (detail.errorText === undefined && detail.holdReason === undefined) return;
+    try {
+      await connection.execute(
+        `UPDATE marathon_message_jobs
+         SET error_text = ?, hold_reason = ?
+         WHERE id = ?`,
+        [detail.errorText ?? null, detail.holdReason ?? null, id],
+      );
+    } catch (error) {
+      if (!missingColumn(error)) throw error;
+    }
   });
 }
 
@@ -721,7 +875,10 @@ export async function deliverDueMessageJobs(now: Date, deps?: {
   for (const job of jobs) {
     try {
       if (await marathonIsArchived(job.marathonId)) {
-        await setJobStatus(job.id, "cancelled");
+        await setJobStatus(job.id, "cancelled", {
+          errorText: SKIP_REASON_TEXT.archived,
+          holdReason: null,
+        });
         await markNotificationOutcome({
           marathonId: job.marathonId,
           userId: job.userId,
@@ -734,7 +891,10 @@ export async function deliverDueMessageJobs(now: Date, deps?: {
       const override = findSlotOverride(overrides, job.marathonId, job.dayNumber, job.kind, job.channel);
       const allowed = await personStillWants(job.marathonId, job.userId, job.channel);
       if (override?.cancelled || !allowed) {
-        await setJobStatus(job.id, "cancelled");
+        await setJobStatus(job.id, "cancelled", {
+          errorText: !allowed && !override?.cancelled ? SKIP_REASON_TEXT.opt_out : null,
+          holdReason: null,
+        });
         await markNotificationOutcome({
           marathonId: job.marathonId,
           userId: job.userId,
@@ -747,19 +907,26 @@ export async function deliverDueMessageJobs(now: Date, deps?: {
       if (job.channel === "telegram") {
         const chatId = await chatIdFor(job.marathonId, job.userId);
         if (!chatId) {
-          await setJobStatus(job.id, "cancelled");
+          await setJobStatus(job.id, "cancelled", {
+            errorText: SKIP_REASON_TEXT.no_telegram,
+            holdReason: null,
+          });
           continue;
         }
         if (await hold(chatId)) {
-          await setJobStatus(job.id, "queued");
+          await setJobStatus(job.id, "queued", {
+            holdReason: "quiet",
+            errorText: null,
+            sendAt: new Date(Date.now() + QUIET_HOLD_RETRY_MS),
+          });
           continue;
         }
         const bot = optionalTelegramBot();
         if (!bot) {
-          await setJobStatus(job.id, "queued");
+          await setJobStatus(job.id, "queued", { holdReason: null, errorText: null });
           continue;
         }
-        let definitive = false;
+        let errorCode: number | undefined;
         const paced = await sendThrottled([{ chatId, text: job.body }], {
           chatId: (item) => item.chatId,
           pace: sharedTelegramPace(),
@@ -767,15 +934,20 @@ export async function deliverDueMessageJobs(now: Date, deps?: {
           send: async (item) => {
             const result = await sendTelegramMessage({ chatId: item.chatId, text: item.text }, bot.token);
             if (result.status === "sent") return { ok: true };
-            if (isDefinitiveTelegramFailure({
-              status: result.status,
-              errorCode: result.context.errorCode,
-              retryAfter: result.context.retryAfter,
-            })) definitive = true;
+            if (result.context.errorCode != null) errorCode = result.context.errorCode;
             return { ok: false };
           },
         });
-        await setJobStatus(job.id, paced.sent.length === 1 ? "sent" : definitive ? "cancelled" : "failed");
+        await setJobStatus(
+          job.id,
+          paced.sent.length === 1 ? "sent" : "failed",
+          paced.sent.length === 1
+            ? { errorText: null, holdReason: null }
+            : {
+              errorText: deliveryErrorText({ channel: "telegram", errorCode }),
+              holdReason: null,
+            },
+        );
         if (paced.sent.length === 1) {
           const { claimNotification, confirmNotification } = await import("./store");
           const intent = {
@@ -791,7 +963,10 @@ export async function deliverDueMessageJobs(now: Date, deps?: {
       }
       const email = await emailFor(job.userId);
       if (!email) {
-        await setJobStatus(job.id, "cancelled");
+        await setJobStatus(job.id, "cancelled", {
+          errorText: SKIP_REASON_TEXT.opt_out,
+          holdReason: null,
+        });
         continue;
       }
       const secret = process.env.MARATHON_UNSUBSCRIBE_SECRET?.trim()
@@ -805,7 +980,16 @@ export async function deliverDueMessageJobs(now: Date, deps?: {
         : null;
       const mail = wrapMarathonMail({ rendered: job.body, unsubscribeUrl: unsub });
       const result = await sendMail({ to: email, subject: mail.subject, html: mail.html, text: mail.text });
-      await setJobStatus(job.id, result.ok ? "sent" : "failed");
+      await setJobStatus(
+        job.id,
+        result.ok ? "sent" : "failed",
+        result.ok
+          ? { errorText: null, holdReason: null }
+          : {
+            errorText: deliveryErrorText({ channel: "email", mailError: result.error }),
+            holdReason: null,
+          },
+      );
       if (result.ok) {
         const { claimNotification, confirmNotification } = await import("./store");
         const intent = {
@@ -820,7 +1004,7 @@ export async function deliverDueMessageJobs(now: Date, deps?: {
     } catch (error) {
       console.error("marathon message job", error);
       try {
-        await setJobStatus(job.id, "failed");
+        await setJobStatus(job.id, "failed", { errorText: "Помилка надсилання", holdReason: null });
       } catch (statusError) {
         console.error("marathon message job status", statusError);
       }

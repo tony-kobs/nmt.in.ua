@@ -967,6 +967,7 @@ async function openTimelineItem(formData: FormData): Promise<{
         .map((day) => ({ dayNumber: day.dayNumber, topic: day.topic })),
     },
     linkBase: `/marathon/${marathon.slug}`,
+    hold: marathon.status === "archived",
     ...snapshot,
   });
   const item = groups.flatMap((group) => group.items).find((row) => row.key === key);

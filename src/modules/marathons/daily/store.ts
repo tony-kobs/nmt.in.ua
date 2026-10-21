@@ -2127,6 +2127,47 @@ export async function postponeMarathonTelegram(
        WHERE id = ?`,
       [notBefore, id],
     );
+    try {
+      await connection.execute(
+        `UPDATE marathon_telegram_outbox
+         SET hold_reason = 'quiet', error_text = NULL
+         WHERE id = ?`,
+        [id],
+      );
+    } catch (error) {
+      if ((error as { errno?: number }).errno !== 1054) throw error;
+    }
+  }, getConnection);
+}
+
+/** Writes a short stored reason. Missing columns (before migration 047) are ignored. */
+export async function noteMarathonTelegram(
+  id: number,
+  detail: { errorText?: string | null; holdReason?: "quiet" | "postpone" | null },
+  getConnection?: Conn,
+): Promise<void> {
+  const sets: string[] = [];
+  const params: unknown[] = [];
+  if (detail.errorText !== undefined) {
+    sets.push("error_text = ?");
+    params.push(detail.errorText);
+  }
+  if (detail.holdReason !== undefined) {
+    sets.push("hold_reason = ?");
+    params.push(detail.holdReason);
+  }
+  if (sets.length === 0) return;
+  params.push(id);
+  await withConn(async (connection) => {
+    try {
+      await connection.execute(
+        `UPDATE marathon_telegram_outbox SET ${sets.join(", ")} WHERE id = ?`,
+        params,
+      );
+    } catch (error) {
+      if ((error as { errno?: number }).errno === 1054) return;
+      throw error;
+    }
   }, getConnection);
 }
 
