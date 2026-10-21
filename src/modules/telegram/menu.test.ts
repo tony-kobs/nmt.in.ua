@@ -209,6 +209,7 @@ test("notification preferences are scoped to the account, validated and atomical
   assert.deepEqual(parseMenuData("p:t:new"), { kind: "toggle", key: "new" });
   assert.deepEqual(parseMenuData("p:t:constructor"), { kind: "stale" });
   assert.deepEqual(parseMenuData("m:toString"), { kind: "stale" });
+  assert.deepEqual(parseMenuData("m:unlink"), { kind: "unlink" });
 });
 
 test("quiet hours handle windows across midnight and same-day windows", () => {
