@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
-import { kyivDateIso } from "@/modules/marathons/daily/calendar";
+import type { CardStats } from "@/modules/marathons/daily/cardStats";
+import { formatKyivWhen, kyivDateIso } from "@/modules/marathons/daily/calendar";
 import { activationBlockers, marathonIsReady } from "@/modules/marathons/daily/readiness";
 import { loadMarathonBoard, loadMarathonCopy } from "@/modules/marathons/daily/store";
 import {
@@ -95,9 +96,30 @@ function StatusConfirm({
   );
 }
 
-async function MarathonAdminCard({ marathon }: { marathon: DailyMarathon }) {
+function kyivDayLabel(locale: string, isoDate: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeZone: "Europe/Kyiv",
+  }).format(new Date(`${isoDate}T12:00:00Z`));
+}
+
+async function MarathonAdminCard({
+  marathon,
+  stats,
+}: {
+  marathon: DailyMarathon;
+  stats: CardStats | null;
+}) {
   const t = await getTranslations("Marathon");
+  const locale = await getLocale();
   const hidden = marathon.status === "draft" || marathon.status === "archived";
+  const focusLabel = !stats
+    ? ""
+    : stats.focus === "today"
+      ? t("cardStatToday")
+      : stats.focus === "last"
+        ? t("cardStatLastDay")
+        : t("cardStatDay", { day: stats.focusDay ?? "—" });
   return (
     <li className={css.listItem}>
       <div className={css.cardHead}>
@@ -117,6 +139,52 @@ async function MarathonAdminCard({ marathon }: { marathon: DailyMarathon }) {
         {t(`status.${marathon.status}`)}
       </p>
       <MarathonPublicLink href={publicHref(marathon.slug)} draft={hidden} />
+      {stats ? (
+        <dl className={css.cardStats}>
+          <div>
+            <dt>{t("cardStatParticipants")}</dt>
+            <dd>{stats.registered}</dd>
+          </div>
+          <div>
+            <dt>{t("cardStatTelegram")}</dt>
+            <dd>{stats.telegram}</dd>
+          </div>
+          <div>
+            <dt>{focusLabel}</dt>
+            <dd>{stats.focusSubmitted}</dd>
+          </div>
+          <div>
+            <dt>{t("cardStatFinished")}</dt>
+            <dd>{stats.finished}</dd>
+          </div>
+          <div>
+            <dt>{t("cardStatAverage")}</dt>
+            <dd>{stats.avgScore == null ? t("cardStatEmpty") : t("cardStatPercent", { value: stats.avgScore })}</dd>
+          </div>
+          <div>
+            <dt>{t("cardStatCompletion")}</dt>
+            <dd>
+              {stats.completionPercent == null
+                ? t("cardStatEmpty")
+                : t("cardStatPercent", { value: stats.completionPercent })}
+            </dd>
+          </div>
+          <div>
+            <dt>{stats.progress.kind === "start" ? t("cardStatStart") : t("cardStatProgress")}</dt>
+            <dd>
+              {stats.progress.kind === "start"
+                ? kyivDayLabel(locale, stats.progress.date)
+                : t("cardStatDayOf", { current: stats.progress.current, total: stats.progress.total })}
+            </dd>
+          </div>
+          {stats.nextSendAt ? (
+            <div>
+              <dt>{t("cardStatNext")}</dt>
+              <dd>{formatKyivWhen(stats.nextSendAt, locale)}</dd>
+            </div>
+          ) : null}
+        </dl>
+      ) : null}
       <div className={css.actions}>
         {marathon.status === "draft" ? (
           <StatusConfirm
@@ -164,10 +232,12 @@ async function MarathonAdminCard({ marathon }: { marathon: DailyMarathon }) {
 
 export async function MarathonAdminList({
   marathons,
+  stats,
   error,
   savedToken,
 }: {
   marathons: DailyMarathon[];
+  stats: Map<number, CardStats>;
   error?: string;
   savedToken?: string;
 }) {
@@ -178,7 +248,7 @@ export async function MarathonAdminList({
   const cards = (items: DailyMarathon[]) => (
     <ul className={css.stack}>
       {items.map((marathon) => (
-        <MarathonAdminCard key={marathon.id} marathon={marathon} />
+        <MarathonAdminCard key={marathon.id} marathon={marathon} stats={stats.get(marathon.id) ?? null} />
       ))}
     </ul>
   );
