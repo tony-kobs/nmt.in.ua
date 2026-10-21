@@ -168,7 +168,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `src/app/(app)/results/` і `sessions/` | Прогрес і історія (учень або клас викладача) |
 | `src/app/(app)/settings/` | Імпорт (лише admin) |
 | `src/app/(app)/feedback/` | Список відгуків (лише admin) |
-| `src/app/(app)/profiles/` | Профілі: бан / видалення (лише admin) |
+| `src/app/(app)/profiles/` | Профілі: бан / видалення (лише admin). Звичайний акаунт — 14 днів і лист; забанений — одразу |
 | `src/app/(app)/tasks/` | CRUD завдання банку (лише admin) |
 | `src/app/(app)/assign/` | Призначити тест (teacher/admin) |
 | `src/app/(app)/students/` | Мої учні, групи, інвайти |
@@ -315,7 +315,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `/simulator` | Учень+ | Офіційні варіанти (`nmt_variants`) |
 | `/settings` | Лише admin | Імпорт |
 | `/feedback` | Лише admin | `site_feedback` |
-| `/profiles` | Лише admin | Бан / видалення. Демо й власний акаунт захищені |
+| `/profiles` | Лише admin | Бан / видалення. Звичайний акаунт: лист Brevo, 14 днів, «Зберегти акаунт» або вхід. Забанений — одразу і без листа. Демо й власний акаунт захищені |
 | `/tasks/new`, `/tasks/[id]` | Лише admin | Редактор одного `quiz_tasks` |
 | `/materials`, `/materials/[slug]` | Учень+ | Редірект → `/materials/textbook` |
 | `/materials/textbook` | Учень+ | Один розділ `?topic=<themes.code>` |

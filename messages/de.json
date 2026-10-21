@@ -2110,6 +2110,10 @@
       "title": "E-Mail bestätigen",
       "description": "Prüfe dein Postfach, um dein nmt.in.ua-Konto zu bestätigen."
     },
+    "keepAccount": {
+      "title": "Konto behalten",
+      "description": "Geplante Löschung eines nmt.in.ua-Kontos abbrechen."
+    },
     "verifyEmail": {
       "title": "E-Mail-Bestätigung",
       "description": "E-Mail bestätigen, um dich im Lernbereich anzumelden."
@@ -2309,14 +2313,20 @@
     "unban": "Entsperren",
     "banConfirm": "Konto „{name}“ sperren?",
     "unbanConfirm": "Sperre für „{name}“ aufheben?",
-    "delete": "Löschen",
-    "deleteConfirm": "Konto „{name}“ löschen? Das kann nicht rückgängig gemacht werden.",
+    "delete": "Konto löschen",
+    "deleteConfirm": "Konto „{name}“ löschen? Ein normales Konto erhält eine E-Mail und 14 Tage. Ein gesperrtes Konto wird sofort gelöscht.",
+    "deletionScheduled": "Löschung geplant am {date}",
+    "cancelDeletion": "Löschung abbrechen",
+    "cancelDeletionConfirm": "Löschung von „{name}“ abbrechen?",
     "selfLocked": "Das ist Ihr Konto — Aktionen nicht verfügbar.",
     "protectedLocked": "Demo-Konten sind geschützt.",
     "success": {
       "ban": "Konto {name} wurde gesperrt.",
       "unban": "Konto {name} wurde entsperrt.",
       "delete": "Konto {name} wurde gelöscht.",
+      "schedule": "Löschung von {name} ist für {date} geplant. Die E-Mail wurde gesendet.",
+      "scheduleMailFailed": "Löschung von {name} ist für {date} geplant. Die E-Mail wurde nicht gesendet.",
+      "cancelDeletion": "Löschung von {name} wurde abgebrochen.",
       "promote": "Konto {name} hat jetzt den vollen Bereich."
     },
     "errors": {
@@ -2367,6 +2377,14 @@
       "used": "Dieser Link wurde bereits verwendet.",
       "generic": "E-Mail konnte nicht bestätigt werden. Erneut versuchen."
     }
+  },
+  "KeepAccount": {
+    "kicker": "Konto",
+    "title": "Konto behalten",
+    "success": "Die Löschung wurde abgebrochen. Du kannst dich wie bisher anmelden.",
+    "invalidTitle": "Der Link hat nicht funktioniert",
+    "invalid": "Der Link ist ungültig oder schon benutzt. Eine Anmeldung bricht die Löschung ebenfalls ab.",
+    "goToLogin": "Anmelden"
   },
   "ForgotPassword": {
     "kicker": "Passwort",

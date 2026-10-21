@@ -198,6 +198,7 @@ const AUTH_MIGRATIONS = [
   "036_app_users_email_verify_required.sql",
   "041_marathon_student_access.sql",
   "045_cabinet_scope_full.sql",
+  "048_account_deletion_grace.sql",
 ];
 
 async function runAuthSchemaMigration(connection: SqlConnection): Promise<void> {
@@ -237,6 +238,31 @@ async function runAuthSchemaMigration(connection: SqlConnection): Promise<void> 
       connection,
       "email_verify_required",
       "email_verify_required TINYINT(1) NOT NULL DEFAULT 0 AFTER email_verified_at",
+    );
+    await ensureUserColumn(
+      connection,
+      "deletion_requested_at",
+      "deletion_requested_at TIMESTAMP NULL DEFAULT NULL",
+    );
+    await ensureUserColumn(
+      connection,
+      "deletion_due_at",
+      "deletion_due_at TIMESTAMP NULL DEFAULT NULL",
+    );
+    await ensureUserColumn(
+      connection,
+      "deletion_requested_by",
+      "deletion_requested_by INT NULL DEFAULT NULL",
+    );
+    await ensureUserColumn(
+      connection,
+      "deletion_cancel_token_hash",
+      "deletion_cancel_token_hash CHAR(64) NULL DEFAULT NULL",
+    );
+    await ensureUserColumn(
+      connection,
+      "deletion_reminder_sent_at",
+      "deletion_reminder_sent_at TIMESTAMP NULL DEFAULT NULL",
     );
     await ensureEmailUniqueIndex(connection);
     await connection.execute(SQL_CREATE_USER_AVATARS, []);

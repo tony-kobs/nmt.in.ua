@@ -8,6 +8,7 @@ import clsx from "clsx";
 import { roleLabel, type UserRole, USER_ROLES } from "@/modules/auth/client";
 import { queryHref } from "@/lib/queryHref";
 import {
+  cancelDeletionAction,
   deleteProfileAction,
   promotePlatformStudentAction,
   setProfileBannedAction,
@@ -85,14 +86,20 @@ export function AdminProfilesPanel({
     promotePlatformStudentAction,
     BAN_INITIAL,
   );
+  const [cancelState, cancelAction, cancelPending] = useActionState(
+    cancelDeletionAction,
+    BAN_INITIAL,
+  );
 
-  const pending = banPending || deletePending || promotePending;
+  const pending = banPending || deletePending || promotePending || cancelPending;
   const flash =
     banState.status !== "idle"
       ? banState
       : deleteState.status !== "idle"
         ? deleteState
-        : promoteState;
+        : cancelState.status !== "idle"
+          ? cancelState
+          : promoteState;
   const { items, page, totalPages, total, roleCounts } = profilesPage;
   const showPager = totalPages > 1;
 
@@ -100,11 +107,12 @@ export function AdminProfilesPanel({
     if (
       banState.status === "success" ||
       deleteState.status === "success" ||
+      cancelState.status === "success" ||
       promoteState.status === "success"
     ) {
       router.refresh();
     }
-  }, [banState, deleteState, promoteState, router]);
+  }, [banState, deleteState, cancelState, promoteState, router]);
 
   const locale =
     typeof document !== "undefined"
@@ -200,6 +208,18 @@ export function AdminProfilesPanel({
                         ) : null}
                         {profile.isBanned ? (
                           <span className={css.banned}>{t("bannedBadge")}</span>
+                        ) : null}
+                        {profile.deletionDueAt ? (
+                          <span className={css.deletionBadge}>
+                            {t("deletionScheduled", {
+                              date: new Intl.DateTimeFormat(locale, {
+                                timeZone: "Europe/Kyiv",
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              }).format(new Date(profile.deletionDueAt)),
+                            })}
+                          </span>
                         ) : null}
                         {profile.cabinetScope === "marathon" ? (
                           <span className={css.scopeBadge}>{t("marathonOnlyBadge")}</span>
@@ -303,33 +323,54 @@ export function AdminProfilesPanel({
                             </button>
                           </form>
                         ) : null}
-                        <form
-                          action={deleteAction}
-                          onSubmit={(event) => {
-                            if (
-                              !window.confirm(
-                                t("deleteConfirm", {
-                                  name: profile.displayName,
-                                }),
-                              )
-                            ) {
-                              event.preventDefault();
-                            }
-                          }}
-                        >
-                          <input
-                            type="hidden"
-                            name="userId"
-                            value={profile.id}
-                          />
-                          <button
-                            type="submit"
-                            className={clsx(css.actionBtn, css.actionDelete)}
-                            disabled={pending}
+                        {profile.deletionDueAt ? (
+                          <form
+                            action={cancelAction}
+                            onSubmit={(event) => {
+                              if (
+                                !window.confirm(
+                                  t("cancelDeletionConfirm", { name: profile.displayName }),
+                                )
+                              ) {
+                                event.preventDefault();
+                              }
+                            }}
                           >
-                            {t("delete")}
-                          </button>
-                        </form>
+                            <input type="hidden" name="userId" value={profile.id} />
+                            <input type="hidden" name="displayName" value={profile.displayName} />
+                            <button
+                              type="submit"
+                              className={clsx(css.actionBtn, css.actionUnban)}
+                              disabled={pending}
+                            >
+                              {t("cancelDeletion")}
+                            </button>
+                          </form>
+                        ) : (
+                          <form
+                            action={deleteAction}
+                            onSubmit={(event) => {
+                              if (
+                                !window.confirm(
+                                  t("deleteConfirm", {
+                                    name: profile.displayName,
+                                  }),
+                                )
+                              ) {
+                                event.preventDefault();
+                              }
+                            }}
+                          >
+                            <input type="hidden" name="userId" value={profile.id} />
+                            <button
+                              type="submit"
+                              className={clsx(css.actionBtn, css.actionDelete)}
+                              disabled={pending}
+                            >
+                              {t("delete")}
+                            </button>
+                          </form>
+                        )}
                       </div>
                     ) : (
                       <p className={css.lockedHint}>
@@ -377,7 +418,19 @@ export function AdminProfilesPanel({
 
         {flash.status === "success" ? (
           <p className={clsx(css.alert, css.alertSuccess)} role="status">
-            {t(`success.${flash.action}`, { name: flash.displayName })}
+            {flash.action === "schedule"
+              ? t(flash.mailWarning ? "success.scheduleMailFailed" : "success.schedule", {
+                  name: flash.displayName,
+                  date: flash.dueAt
+                    ? new Intl.DateTimeFormat(locale, {
+                        timeZone: "Europe/Kyiv",
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      }).format(new Date(flash.dueAt))
+                    : "",
+                })
+              : t(`success.${flash.action}`, { name: flash.displayName })}
           </p>
         ) : null}
         {flash.status === "error" ? (
