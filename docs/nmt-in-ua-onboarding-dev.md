@@ -150,7 +150,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 Опис pull request — джерело журналу. Дія [`.github/workflows/changelog.yml`](../.github/workflows/changelog.yml) додає коміт у гілку цього PR на `dev`: оновлюються [`docs/changelog.md`](./changelog.md) і блок нижче. У `dev` це потрапляє разом із мерджем PR, без окремого push. Скрінкаст з’являється тут лише після галочки «схвалено показувати». Коли відкривають реліз `dev` → `main`, дія відкриває ще один PR у `dev` із рядками для новин.
 
 <!-- changelog:wiki -->
-Поки що записів немає.
+- **21 жовтня 2026** — [docs: журнал змін з опису pull request](https://github.com/tony-kobs/nmt.in.ua/pull/218). docs: журнал змін з опису pull request
 <!-- /changelog:wiki -->
 
 ## 5. Карта репозиторію
