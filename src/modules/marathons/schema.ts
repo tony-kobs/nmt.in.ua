@@ -46,6 +46,7 @@ const MARATHON_MIGRATIONS = [
   "045_cabinet_scope_full.sql",
   "046_riddle_bank.sql",
   "047_marathon_message_timeline.sql",
+  "050_marathon_cron_heartbeat.sql",
 ];
 
 async function participantForeignKeys(

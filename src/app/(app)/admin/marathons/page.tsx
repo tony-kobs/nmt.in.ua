@@ -5,6 +5,7 @@ import { createPageMetadata } from "@/constants/seo";
 import { requireUser } from "@/modules/auth/getCurrentUser";
 import { hasPermission } from "@/modules/auth/permissions";
 import { loadMarathonCardStats } from "@/modules/marathons/daily/cardStats";
+import { readMarathonCronHealth, type CronHealth } from "@/modules/marathons/daily/cronHeartbeat";
 import { loadDailyFunnels } from "@/modules/marathons/daily/dailyStatsStore";
 import { listDailyMarathons } from "@/modules/marathons/daily/store";
 
@@ -37,6 +38,12 @@ export default async function AdminMarathonsPage({
     loadMarathonCardStats(marathons),
     loadDailyFunnels(marathons),
   ]);
+  let cron: CronHealth | null = null;
+  try {
+    cron = await readMarathonCronHealth();
+  } catch (error) {
+    console.error("marathon cron badge", error);
+  }
   return (
     <MarathonAdminList
       marathons={marathons}
@@ -44,6 +51,7 @@ export default async function AdminMarathonsPage({
       funnels={funnels}
       error={first(query.error)}
       savedToken={first(query.saved)}
+      cron={cron}
     />
   );
 }
