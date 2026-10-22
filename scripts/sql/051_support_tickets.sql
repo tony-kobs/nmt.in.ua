@@ -1,5 +1,5 @@
 -- Take a database backup before applying this on production.
--- 050 is reserved by the unmerged cron-heartbeat migration. This file is 051.
+-- 050_marathon_cron_heartbeat.sql is the cron pulse. This file stays 051.
 
 ALTER TABLE marathons
   ADD COLUMN public_chat_url VARCHAR(500) NULL AFTER landing_riddle_count;
