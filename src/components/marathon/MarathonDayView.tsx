@@ -50,22 +50,30 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
             </p>
           ) : (
             <>
-              <section className={css.stack} aria-labelledby="day-materials">
-                <h2 id="day-materials">{t("materialsTitle")}</h2>
-                {materials.map((material) => (
-                  <MaterialBlock key={material.id} material={material} title={day.topic} />
-                ))}
-                {!progress?.materialsViewed ? (
-                  <form action={markMaterialsAction}>
-                    <input type="hidden" name="slug" value={marathon.slug} />
-                    <input type="hidden" name="day" value={day.dayNumber} />
-                    <button type="submit" className={css.button}>{t("toTasks")}</button>
-                  </form>
-                ) : null}
-              </section>
+              {materials.length > 0 ? (
+                <section className={css.stack} aria-labelledby="day-materials">
+                  <h2 id="day-materials" className={css.dayHeading}>{t("materialsTitle")}</h2>
+                  {materials.map((material) => (
+                    <MaterialBlock key={material.id} material={material} title={day.topic} />
+                  ))}
+                  {!progress?.materialsViewed ? (
+                    <form action={markMaterialsAction}>
+                      <input type="hidden" name="slug" value={marathon.slug} />
+                      <input type="hidden" name="day" value={day.dayNumber} />
+                      <button type="submit" className={css.button}>{t("toTasks")}</button>
+                    </form>
+                  ) : null}
+                </section>
+              ) : !progress?.materialsViewed ? (
+                <form action={markMaterialsAction}>
+                  <input type="hidden" name="slug" value={marathon.slug} />
+                  <input type="hidden" name="day" value={day.dayNumber} />
+                  <button type="submit" className={css.button}>{t("toTasks")}</button>
+                </form>
+              ) : null}
               {progress?.materialsViewed ? (
                 <section className={css.stack} aria-labelledby="day-tasks">
-                  <h2 id="day-tasks">{t("tasksTitle")}</h2>
+                  <h2 id="day-tasks" className={css.dayHeading}>{t("tasksTitle")}</h2>
                   {submitted ? (
                     <p className={css.alert} role="status">
                       {progress.passed
@@ -81,7 +89,7 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                       {reviewIntro ? <p className={css.lead}>{reviewIntro}</p> : null}
                       {review.map((task, index) => (
                         <article key={task.id} className={css.card}>
-                          <h3>
+                          <h3 className={css.prompt}>
                             {index + 1}. <MathText text={task.prompt} as="span" />
                           </h3>
                           <p className={task.right ? css.reviewRight : css.reviewWrong}>
@@ -133,8 +141,8 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                       <input type="hidden" name="slug" value={marathon.slug} />
                       <input type="hidden" name="day" value={day.dayNumber} />
                       {tasks.map((task, index) => (
-                        <fieldset key={task.id} className={css.card}>
-                          <legend>
+                        <fieldset key={task.id} className={`${css.card} ${css.question}`}>
+                          <legend className={css.prompt}>
                             {index + 1}. <MathText text={task.prompt} as="span" />
                           </legend>
                           <div className={css.options}>
