@@ -59,7 +59,8 @@
       "assign": "Призначити тест за темою",
       "leaderboard": "Лідерборд марафону",
       "marathons": "Марафон",
-      "marathon": "Марафон"
+      "marathon": "Марафон",
+      "support": "Звернення"
     }
   },
   "RecentResults": {
@@ -1070,6 +1071,7 @@
       "passThreshold": "Поріг, %",
       "finalCtaText": "Текст кнопки",
       "finalCtaUrl": "Посилання кнопки",
+      "publicChatUrl": "Чат учасників",
       "introVideo": "Відео на вступ",
       "inviteAudience": "Кого сповістити",
       "landingRiddleCount": "Загадок на сторінці",
@@ -1132,6 +1134,7 @@
       "daysCount": "Ціле число від 1 до 14.",
       "passThreshold": "Ціле число від 0 до 100.",
       "finalCtaUrl": "Шлях із / або повна адреса http:// чи https://.",
+      "publicChatUrl": "Необов’язково. Якщо вказати, бот покаже посилання в допомозі і на вступі. Для onemath порожнє поле — https://t.me/nmt_onemath.",
       "introVideo": "Необов’язково. Посилання YouTube або Loom. Показується один раз на початку.",
       "inviteAudience": "Один раз, коли марафон стає активним. Чернетка за замовчуванням нікого не кличе. Повторне збереження запрошення не дублює. Картка на головній лишається для всіх.",
       "landingRiddleCount": "Скільки загадок випадково показати на лендінгу. Ціле число від 1 до 12. Типово 3.",
@@ -1145,7 +1148,8 @@
       "slug": "math-5",
       "unlockHour": "09:00",
       "reminderHour": "19:00",
-      "finalCtaUrl": "/"
+      "finalCtaUrl": "/",
+      "publicChatUrl": "https://t.me/"
     },
     "fieldErrors": {
       "form": {
@@ -1188,6 +1192,9 @@
       },
       "finalCtaUrl": {
         "required": "Вкажіть посилання кнопки.",
+        "format": "Посилання має починатися з / або з http:// чи https://."
+      },
+      "publicChatUrl": {
         "format": "Посилання має починатися з / або з http:// чи https://."
       },
       "order": {
@@ -1268,6 +1275,7 @@
       },
       "labels": {
         "intro_rules": "Правила",
+        "bot_help_chat": "Чат учасників",
         "review_intro": "Текст перед розбором",
         "final_summary": "Текст підсумку",
         "notify_day_open": "Відкрито день",
@@ -1305,6 +1313,9 @@
         "bot_open_site": "Кнопка «Відкрити на сайті»",
         "bot_to_tasks": "Кнопка «До завдань»",
         "bot_btn_begin": "Кнопка «Почати»",
+        "bot_btn_support": "Кнопка «Написати команді»",
+        "bot_support_ask": "Запит звернення",
+        "bot_support_thanks": "Звернення прийнято",
         "bot_day_done": "День уже зданий",
         "bot_finished": "Марафон завершено",
         "bot_archived": "Марафон в архіві"
@@ -2192,9 +2203,46 @@
       "title": "Марафони",
       "description": "Керування математичними марафонами, учасниками й воронкою."
     },
+    "supportAdmin": {
+      "title": "Звернення",
+      "description": "Повідомлення учасників з бота і відповідь у Telegram."
+    },
     "assign": {
       "title": "Призначити тест за темою",
       "description": "Призначення тематичних тестів учням викладача з дедлайном і статусами."
+    }
+  },
+  "Support": {
+    "kicker": "Адмін",
+    "title": "Звернення",
+    "lead": "Повідомлення з бота. Відповідь іде учаснику в Telegram.",
+    "filterLabel": "Статус звернень",
+    "listTitle": "Список",
+    "empty": "Звернень немає.",
+    "noName": "Учасник",
+    "noMarathon": "Без марафону",
+    "day": "День {day}",
+    "statusLegend": "Статус",
+    "reply": "Відповідь",
+    "replyPlaceholder": "Текст для учасника",
+    "save": "Зберегти",
+    "saved": "Збережено",
+    "migratedChat": "Telegram переніс чат команди на {chatId}. Запишіть це значення в TELEGRAM_SUPPORT_CHAT_ID у файлі оточення на хості і перезапустіть сайт.",
+    "filters": {
+      "all": "Усі",
+      "new": "Нові",
+      "in_progress": "В роботі",
+      "closed": "Закриті"
+    },
+    "status": {
+      "new": "Нове",
+      "in_progress": "В роботі",
+      "closed": "Закрите"
+    },
+    "errors": {
+      "invalid": "Не вдалося зберегти. Оновіть сторінку.",
+      "missing": "Звернення не знайдено.",
+      "send_failed": "Не вдалося надіслати відповідь у Telegram. Статус не змінено."
     }
   },
   "SettingsPage": {

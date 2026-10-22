@@ -60,6 +60,7 @@ function snapshotFrom(values: MarathonInput): Record<string, string> {
     finalCtaText: values.finalCtaText,
     finalCtaUrl: values.finalCtaUrl,
     introVideoUrl: values.introVideoUrl,
+    publicChatUrl: values.publicChatUrl,
     inviteAudience: values.inviteAudience,
     landingRiddleCount: String(values.landingRiddleCount),
   };
@@ -240,6 +241,14 @@ function MarathonSettingsFields({
                 spellCheck={false}
               />
             </AdminField>
+            <AdminField name="publicChatUrl" label={t("fields.publicChatUrl")} hint={t("hints.publicChatUrl")}>
+              <AdminInput
+                name="publicChatUrl"
+                defaultValue={values.publicChatUrl}
+                placeholder={t("placeholders.publicChatUrl")}
+                spellCheck={false}
+              />
+            </AdminField>
           </div>
           <div className={css.stack}>
             <p className={css.fieldLabel}>{t("sections.riddleLinks")}</p>
@@ -347,6 +356,7 @@ export function CreateMarathonForm({ today }: { today: string }) {
           finalCtaText: t("defaults.finalCta"),
           finalCtaUrl: "/",
           introVideoUrl: "",
+          publicChatUrl: "",
           inviteAudience: "none",
           landingRiddleCount: 3,
         }}

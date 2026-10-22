@@ -24,6 +24,7 @@ export type CopyPlaceholder = (typeof COPY_PLACEHOLDERS)[number];
 
 export const COPY_KEYS = [
   "intro_rules",
+  "bot_help_chat",
   "review_intro",
   "final_summary",
   "notify_day_open",
@@ -59,6 +60,9 @@ export const COPY_KEYS = [
   "bot_open_site",
   "bot_to_tasks",
   "bot_btn_begin",
+  "bot_btn_support",
+  "bot_support_ask",
+  "bot_support_thanks",
   "bot_day_done",
   "bot_finished",
   "bot_archived",
@@ -73,7 +77,7 @@ export const COPY_GROUPS: Array<{
   keys: CopyKey[];
 }> = [
   { id: "register", keys: ["bot_registered"] },
-  { id: "intro", keys: ["intro_rules", "channel_prompt"] },
+  { id: "intro", keys: ["intro_rules", "bot_help_chat", "channel_prompt"] },
   {
     id: "day",
     keys: ["notify_day_open", "review_intro", "bot_locked", "bot_to_tasks", "bot_open_site", "bot_day_done"],
@@ -104,6 +108,9 @@ export const COPY_GROUPS: Array<{
       "bot_btn_telegram",
       "bot_link_ok",
       "bot_btn_begin",
+      "bot_btn_support",
+      "bot_support_ask",
+      "bot_support_thanks",
       "bot_archived",
     ],
   },
@@ -132,11 +139,13 @@ const BUTTON_KEYS = new Set<CopyKey>([
   "bot_open_site",
   "bot_to_tasks",
   "bot_btn_begin",
+  "bot_btn_support",
 ]);
 
 export const COPY_DEFAULTS: Record<CopyKey, string> = {
   intro_rules:
     "Вітаємо, {name}!\n\nОдин день — одна тема. День відкривається для всіх одночасно. Пройти його можна на сайті або в Telegram: завдання й результат спільні. Пропущений день можна здати пізніше — серія тоді почнеться спочатку. Після здачі буде розбір: ваш вибір, правильна відповідь і пояснення.",
+  bot_help_chat: "Чат учасників: {link}",
   review_intro: "Розбір дня {day}: {topic}. Нижче — ваш вибір, правильна відповідь і пояснення.",
   final_summary:
     "{name}, марафон завершено. Нижче — дні, серія і теми, які варто повторити.",
@@ -182,6 +191,10 @@ export const COPY_DEFAULTS: Record<CopyKey, string> = {
   bot_open_site: "Відкрити на сайті",
   bot_to_tasks: "До завдань",
   bot_btn_begin: "Почати",
+  bot_btn_support: "Написати команді",
+  bot_support_ask:
+    "Напишіть команді одним повідомленням: текст або підпис до фото. Наступне повідомлення стане зверненням.",
+  bot_support_thanks: "Дякуємо. Звернення передано команді.",
   bot_day_done: "День {day} ({topic}) вже зданий.\n{link}",
   bot_finished: "{name}, марафон «{title}» завершено. Таблиця і карта лишаються.\n{link}",
   bot_archived: "Марафон «{title}» в архіві. Нові дні не надходять.",
