@@ -1,6 +1,6 @@
 -- Take a database backup before applying this on production.
--- 050 is reserved by the unmerged cron-heartbeat migration.
--- 051 is reserved by the unmerged support-tickets migration.
+-- 050_marathon_cron_heartbeat.sql is the cron pulse, now on dev.
+-- 051_support_tickets.sql stays with the open support-tickets PR. This file is 052.
 
 CREATE TABLE IF NOT EXISTS marathon_surveys (
   marathon_id INT NOT NULL,

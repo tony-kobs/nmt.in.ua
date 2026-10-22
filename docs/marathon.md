@@ -178,6 +178,28 @@ Header: Authorization: Bearer <MARATHON_CRON_SECRET>
 
 Той самий виклик досилає чергу Telegram, якщо попередній запит не встиг через ліміт функції. Секрет `MARATHON_CRON_SECRET` ставить власник репозиторію в GitHub Actions Secrets і кладе те саме значення в env на хості. У репозиторій секрет не потрапляє.
 
+Кожен такий POST, який дорахував розсилку (навіть якщо частина листів не пішла), пише один рядок у `marathon_cron_heartbeat`: час і лічильники планувальника. Якщо планування впало і відповідь 500, час не оновлюється. Сторож для зовнішнього cron-job.org (POST кожні 10 хвилин):
+
+```text
+GET https://nmt.in.ua/api/marathon/notifications/health
+Header: Authorization: Bearer <MARATHON_CRON_SECRET>
+```
+
+Відповідь без кешу:
+
+```json
+{
+  "lastRunAt": "2026-10-26T06:10:00.000Z",
+  "ageMinutes": 8,
+  "ok": true,
+  "lastCounts": { "processed": 4, "sent": 3, "failed": 1 },
+  "pendingOutbox": 0,
+  "failedLast24h": 1
+}
+```
+
+`ok` — `true`, коли останній успішний запуск був не давніше 25 хвилин. Немає жодного запуску: `lastRunAt` і `ageMinutes` і `lastCounts` — `null`, `ok` — `false`. `processed` — сума надісланих, пропущених і зірваних намірів цього тіку. `pendingOutbox` — рядки `marathon_telegram_outbox` зі статусом `pending`. `failedLast24h` — зірвані за 24 години рядки черги Telegram, черги повідомлень і `marathon_notifications` з `outcome = failed`. Той самий стан — бейдж зверху `/admin/marathons`. Міграція `scripts/sql/050_marathon_cron_heartbeat.sql`. Перед продом потрібен бекап бази.
+
 ### Telegram
 
 Один процес Next.js. Окремого бота чи Python немає.

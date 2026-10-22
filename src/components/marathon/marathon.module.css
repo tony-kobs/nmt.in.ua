@@ -982,6 +982,20 @@
   font-size: var(--fs-small);
 }
 
+.badgeStale {
+  justify-self: start;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid color-mix(in srgb, crimson 45%, var(--line));
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, crimson 8%, var(--surface));
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--fs-small);
+}
+
 .linkStatus {
   display: flex;
   flex-wrap: wrap;

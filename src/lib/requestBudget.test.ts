@@ -87,16 +87,22 @@ test("presence is per user; a webhook only hits the IP ceiling", () => {
       { key: `api:ip:${ip}`, limit: LIMIT_API_IP },
     ],
   );
-  assert.deepEqual(
-    budgetCharges({
-      method: "POST",
-      pathname: "/api/payments/wayforpay/webhook",
-      headers: headers(),
-      ip,
-      userId: null,
-    }),
-    [{ key: `api:ip:${ip}`, limit: LIMIT_API_IP }],
-  );
+  for (const pathname of [
+    "/api/payments/wayforpay/webhook",
+    "/api/marathon/notifications/process",
+    "/api/marathon/notifications/health",
+  ]) {
+    assert.deepEqual(
+      budgetCharges({
+        method: pathname.endsWith("/health") ? "GET" : "POST",
+        pathname,
+        headers: headers(),
+        ip,
+        userId: null,
+      }),
+      [{ key: `api:ip:${ip}`, limit: LIMIT_API_IP }],
+    );
+  }
 });
 
 test("two students on one IP each get 180 page hits", () => {
