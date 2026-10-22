@@ -67,11 +67,15 @@ test("marathon bottom buttons use the same labels as the inline menu", () => {
   assert.equal(keyboard.resize_keyboard, true);
   assert.equal(keyboard.is_persistent, true);
   assert.deepEqual(keyboard.keyboard.flat().map((button) => button.text), [
-    "День", "Топ", "Карта на сайті", "🏠 Головне меню",
+    "День", "Топ", "Карта на сайті", "Змінити канал", "🏠 Головне меню",
   ]);
   assert.equal(keyboard.keyboard.flat().some((button) => button.text === "Зупинити сповіщення"), false);
+  const closed = marathonReplyKeyboard(undefined, { closed: true });
+  assert.equal(closed.keyboard.flat().some((button) => button.text === "Сьогодні"), false);
+  assert.equal(closed.keyboard.flat().some((button) => button.text === "Змінити канал"), true);
   assert.equal(keyboard.keyboard.flat().some((button) => button.text === "Пройти тестування"), false);
   assert.equal(marathonCallbackFromText("День", { bot_btn_today: "День" }), "mh:today");
+  assert.equal(marathonCallbackFromText("Змінити канал", undefined), "mh:ch");
   assert.equal(marathonCallbackFromText("Топ", { bot_btn_top: "Топ" }), "mh:top");
   assert.equal(marathonCallbackFromText("Карта на сайті", undefined), "mh:map");
   assert.equal(marathonCallbackFromText("Зупинити сповіщення", undefined), "mh:stop");

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { runMarathonNotifications, sendRankNotice } from "./notificationsJob";
+import { dayOpenPrompt, runMarathonNotifications, sendRankNotice } from "./notificationsJob";
 import type { NotifyAudienceMarathon } from "./store";
 
 const audience: NotifyAudienceMarathon = {
@@ -83,6 +83,37 @@ test("the same marathon telegram is sent once quiet hours are over", async () =>
   assert.ok(telegram.length >= 1);
   assert.equal(result.failed, 0);
   assert.ok(result.sent >= 1);
+});
+
+test("day open queues one short message with a start button", async () => {
+  const queued: Array<{ text: string; data?: string; label?: string }> = [];
+  const result = await runMarathonNotifications({
+    now: () => new Date("2026-01-10T07:30:00.000Z"),
+    load: async () => [audience],
+    telegramEnabled: true,
+    secret: "test-secret",
+    loadBoard: async () => [],
+    skipSiteDay: true,
+    holdTelegram: async () => false,
+    enqueueTelegram: async (replies) => {
+      for (const reply of replies) {
+        const button = reply.replyMarkup?.inline_keyboard[0]?.[0];
+        queued.push({ text: reply.text, data: button?.callback_data, label: button?.text });
+      }
+    },
+    sendEmail: async () => true,
+    claim: async () => "claimed",
+    release: async () => {},
+    confirm: async () => {},
+  });
+  assert.equal(queued.length, 1);
+  assert.match(queued[0]!.text, /Відкрито день/);
+  assert.equal(queued[0]!.text.includes("Прочитайте"), false);
+  assert.equal(queued[0]!.data, "mh:today");
+  assert.equal(queued[0]!.label, "Почати");
+  assert.equal(result.failed, 0);
+  const prompt = dayOpenPrompt({ chatId: "100", text: "Відкрито день 1", dayNumber: 1, beginLabel: "  " });
+  assert.equal(prompt.replyMarkup?.inline_keyboard[0]?.[0]?.text, "Почати");
 });
 
 test("a rank change is queued as a system send during quiet hours and skipped when the bot already replied", async () => {

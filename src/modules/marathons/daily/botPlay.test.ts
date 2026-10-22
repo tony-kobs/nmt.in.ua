@@ -287,4 +287,47 @@ test("a marathon day keeps answer buttons inline and offers the main menu", () =
   const labels = finished.messages.flatMap((message) => message.buttons ?? []).map((button) => button.text);
   assert.equal(labels.includes("🏠 Головне меню"), true);
   assert.equal(labels.includes("Пройти тестування"), false);
+  assert.equal(blob(finished.messages).includes(EXPLANATION), false);
+  assert.match(blob(finished.messages), /вже зданий/);
+});
+
+test("materials are one message and an empty set opens the task", () => {
+  const materials = presentMarathon({
+    callback: { kind: "today" },
+    day: day(),
+    state: blankPlay(),
+    name: "Марія",
+    mapUrl: "https://nmt.in.ua/marathon/math-5/map",
+  });
+  assert.equal(materials.messages.length, 1);
+  assert.match(materials.messages[0]!.text, /Прочитайте правило додавання/);
+  assert.equal(materials.messages[0]!.buttons?.some((button) => button.data === "mh:mat:1"), true);
+  assert.equal(materials.messages.some((message) => message.text.trim() === ""), false);
+
+  const empty = presentMarathon({
+    callback: { kind: "today" },
+    day: day({ materials: [], introText: "  " }),
+    state: blankPlay(),
+    name: "Марія",
+    mapUrl: "https://nmt.in.ua/marathon/math-5/map",
+  });
+  assert.equal(empty.state.materialsViewed, true);
+  assert.match(blob(empty.messages), /2\+2/);
+  assert.equal(empty.messages.some((message) => message.text.trim() === ""), false);
+});
+
+test("finishing a day sends the review once, in a single message", () => {
+  const opened = applyPlay(blankPlay(), { type: "materials" }, tasks, 60);
+  const first = applyPlay(opened.state, { type: "answer", taskId: 15, option: 2 }, tasks, 60);
+  const last = presentMarathon({
+    callback: { kind: "answer", day: 1, taskId: 16, option: 1 },
+    day: day(),
+    state: first.state,
+    name: "Марія",
+    mapUrl: "https://nmt.in.ua/marathon/math-5/map",
+  });
+  assert.equal(last.completedNow, true);
+  assert.equal(last.messages.length, 1);
+  assert.match(blob(last.messages), new RegExp(EXPLANATION));
+  assert.match(blob(last.messages), /Дроби/);
 });

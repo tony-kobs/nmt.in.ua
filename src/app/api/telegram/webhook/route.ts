@@ -51,11 +51,15 @@ export async function POST(request: Request): Promise<Response> {
       marathonLinkText,
       marathonWelcome,
       acknowledgeCallback: async (queryId) => {
-        const response = await fetch(`https://api.telegram.org/bot${config.botToken}/answerCallbackQuery`, {
-          method: "POST", headers: { "content-type": "application/json" },
-          body: JSON.stringify({ callback_query_id: queryId }), cache: "no-store",
-        });
-        if (!response.ok) throw new Error("Telegram callback acknowledgement failed");
+        try {
+          const response = await fetch(`https://api.telegram.org/bot${config.botToken}/answerCallbackQuery`, {
+            method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ callback_query_id: queryId }), cache: "no-store",
+          });
+          if (!response.ok) console.error("telegram callback acknowledgement failed", response.status);
+        } catch (error) {
+          console.error("telegram callback acknowledgement failed", error);
+        }
       },
     });
     // An incoming update is always a user trigger. Quiet hours do not apply.

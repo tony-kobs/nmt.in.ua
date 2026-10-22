@@ -1,6 +1,5 @@
 import { composeRichText, composeTelegramTask } from "@/modules/telegram/taskRender";
 import { MAIN_MENU_LABEL, MENU, mainMenuDataButton } from "@/modules/telegram/ui";
-import { materialSources } from "./telegramContent";
 import { isDayPassed, scorePercent } from "./score";
 import {
   COPY_DEFAULTS,
@@ -301,16 +300,17 @@ export const MARATHON_OTHERS_LABEL = "Інші марафони";
 /** Marathon navigation under the input. It replaces the cabinet section list. */
 export function marathonReplyKeyboard(
   copy: Partial<Record<CopyKey, string>> | undefined,
-  options?: { others?: boolean },
+  options?: { others?: boolean; closed?: boolean },
 ): {
   keyboard: { text: string }[][];
   resize_keyboard: true;
   is_persistent: true;
 } {
-  const rows: { text: string }[][] = [
-    [{ text: buttonLabel(copy, "bot_btn_today") }, { text: buttonLabel(copy, "bot_btn_top") }],
-    [{ text: buttonLabel(copy, "bot_btn_map") }],
-  ];
+  const rows: { text: string }[][] = [];
+  if (options?.closed) rows.push([{ text: buttonLabel(copy, "bot_btn_top") }]);
+  else rows.push([{ text: buttonLabel(copy, "bot_btn_today") }, { text: buttonLabel(copy, "bot_btn_top") }]);
+  rows.push([{ text: buttonLabel(copy, "bot_btn_map") }]);
+  rows.push([{ text: buttonLabel(copy, "bot_btn_channel") }]);
   if (options?.others) rows.push([{ text: MARATHON_OTHERS_LABEL }]);
   rows.push([{ text: MAIN_MENU_LABEL }]);
   return { keyboard: rows, resize_keyboard: true, is_persistent: true };
@@ -327,6 +327,7 @@ export function marathonCallbackFromText(
     { text: buttonLabel(copy, "bot_btn_today"), data: "mh:today" },
     { text: buttonLabel(copy, "bot_btn_top"), data: "mh:top" },
     { text: buttonLabel(copy, "bot_btn_map"), data: "mh:map" },
+    { text: buttonLabel(copy, "bot_btn_channel"), data: "mh:ch" },
     { text: buttonLabel(copy, "bot_btn_stop"), data: "mh:stop" },
     { text: buttonLabel(undefined, "bot_btn_stop"), data: "mh:stop" },
     { text: MARATHON_OTHERS_LABEL, data: "mh:list" },
@@ -374,6 +375,7 @@ export function menuMessages(
         { text: buttonLabel(copy, "bot_btn_today"), data: "mh:today" },
         { text: buttonLabel(copy, "bot_btn_top"), data: "mh:top" },
         { text: buttonLabel(copy, "bot_btn_map"), url: mapUrl },
+        { text: buttonLabel(copy, "bot_btn_channel"), data: "mh:ch" },
       ]),
     },
   ];
@@ -426,17 +428,32 @@ function nextTask(day: DayPacket, state: PlayState): GradedTask | null {
   return day.tasks.find((task) => state.answers[task.id] == null) ?? null;
 }
 
-function reviewMessages(
+function materialBody(day: DayPacket): string {
+  const parts: string[] = [];
+  const intro = day.introText?.trim();
+  if (intro) parts.push(intro);
+  for (const material of day.materials) {
+    const body = material.urlOrBody.trim();
+    if (body) parts.push(body);
+  }
+  return parts.join("\n\n");
+}
+
+function clipCard(text: string): string {
+  const clean = text.trim();
+  if (clean.length <= 3900) return clean;
+  return `${clean.slice(0, 3850).trim()}\n…`;
+}
+
+/** One card when the day is just finished. Reopening the day does not send this again. */
+function reviewCard(
   day: DayPacket,
   state: PlayState,
   copy: Partial<Record<CopyKey, string>> | undefined,
   name: string,
-  withFollowUp: boolean,
   followUp?: string | null,
 ): Outgoing[] {
-  const messages: Outgoing[] = [
-    { text: renderResolved("review_intro", copy, varsFor(day, name)), rich: true },
-  ];
+  const blocks = [renderResolved("review_intro", copy, varsFor(day, name))];
   for (const [index, task] of day.tasks.entries()) {
     const choice = state.answers[task.id] ?? null;
     const right = choice === task.correct;
@@ -449,19 +466,29 @@ function reviewMessages(
       `Правильна відповідь: ${correct}`,
     ];
     if (task.explanation) lines.push(task.explanation);
-    messages.push(composeRichText({
-      text: lines.join("\n"),
-      siteUrl: day.pageUrl,
-      siteLabel: buttonLabel(copy, "bot_open_site"),
-    }));
+    blocks.push(lines.join("\n"));
   }
-  if (withFollowUp && followUp !== null) {
+  if (followUp !== null) {
     const follow = followUp === undefined ? followUpText(day, copy, name) : followUp;
-    if (follow) messages.push({ text: follow });
+    if (follow) blocks.push(follow);
   }
-  const last = messages[messages.length - 1];
-  if (last) last.buttons = withMainMenu(last.buttons);
-  return messages;
+  return [composeRichText({
+    text: clipCard(blocks.join("\n\n")),
+    buttons: withMainMenu(),
+    siteUrl: day.pageUrl,
+    siteLabel: buttonLabel(copy, "bot_open_site"),
+  })];
+}
+
+function doneCard(
+  day: DayPacket,
+  copy: Partial<Record<CopyKey, string>> | undefined,
+  name: string,
+): Outgoing[] {
+  return [{
+    text: renderResolved("bot_day_done", copy, varsFor(day, name)),
+    buttons: withMainMenu([{ text: buttonLabel(copy, "bot_open_site"), url: day.pageUrl }]),
+  }];
 }
 
 export function followUpText(
@@ -504,21 +531,25 @@ function currentStep(
       },
     ];
   }
-  if (state.completed) return reviewMessages(day, state, copy, name, announce, followUp);
-  if (!state.materialsViewed) {
-    const messages: Outgoing[] = [];
-    if (day.introText?.trim()) messages.push({ text: day.introText.trim(), rich: true });
-    for (const material of day.materials) messages.push(...materialSources(material));
-    if (messages.length === 0) messages.push({ text: " " });
-    messages.push({
-      text: buttonLabel(copy, "bot_to_tasks"),
+  if (state.completed) {
+    return announce ? reviewCard(day, state, copy, name, followUp) : doneCard(day, copy, name);
+  }
+  if (!state.materialsViewed && materialBody(day)) {
+    return [{
+      text: materialBody(day),
+      rich: true,
       buttons: withMainMenu([{ text: buttonLabel(copy, "bot_to_tasks"), data: `mh:mat:${day.dayNumber}` }]),
-    });
-    return messages;
+    }];
   }
   const task = nextTask(day, state);
-  if (!task) return reviewMessages(day, state, copy, name, announce, followUp);
+  if (!task) return reviewCard(day, state, copy, name, announce ? followUp : null);
   return [taskMessage(day, task, copy, tokenFor)];
+}
+
+/** An empty materials step is already done: the next screen is the task, not a blank bubble. */
+function openedMaterials(state: PlayState, day: DayPacket): PlayState {
+  if (day.locked || state.materialsViewed || state.completed || materialBody(day)) return state;
+  return applyPlay(state, { type: "materials" }, day.tasks, day.passThreshold).state;
 }
 
 export function presentMarathon(input: {
@@ -576,17 +607,19 @@ export function presentMarathon(input: {
     };
   }
   if (input.callback.kind === "today" || input.callback.kind === "open") {
+    const state = openedMaterials(input.state, day);
     return {
-      messages: currentStep(day, input.state, copy, input.name, false, input.tokenFor),
-      state: input.state,
+      messages: currentStep(day, state, copy, input.name, false, input.tokenFor),
+      state,
       completedNow: false,
     };
   }
   if (input.callback.kind === "materials") {
     if (input.callback.day !== day.dayNumber) {
-      return { messages: currentStep(day, input.state, copy, input.name, false, input.tokenFor), state: input.state, completedNow: false };
+      const state = openedMaterials(input.state, day);
+      return { messages: currentStep(day, state, copy, input.name, false, input.tokenFor), state, completedNow: false };
     }
-    const applied = applyPlay(input.state, { type: "materials" }, day.tasks, day.passThreshold);
+    const applied = applyPlay(openedMaterials(input.state, day), { type: "materials" }, day.tasks, day.passThreshold);
     return {
       messages: currentStep(day, applied.state, copy, input.name, false, input.tokenFor),
       state: applied.state,

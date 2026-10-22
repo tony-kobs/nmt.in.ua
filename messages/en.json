@@ -1296,7 +1296,11 @@
         "bot_link_ok": "Bot linked",
         "bot_registered": "Registration confirmation",
         "bot_open_site": "Open on the site button",
-        "bot_to_tasks": "To the tasks button"
+        "bot_to_tasks": "To the tasks button",
+        "bot_btn_begin": "Start button",
+        "bot_day_done": "Day already submitted",
+        "bot_finished": "Marathon finished",
+        "bot_archived": "Marathon archived"
       }
     },
     "status": {
