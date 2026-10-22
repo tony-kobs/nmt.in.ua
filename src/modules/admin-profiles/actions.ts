@@ -3,15 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/modules/auth/getCurrentUser";
 import { canManageProfiles } from "@/modules/auth/types";
-import { deleteProfile, promotePlatformStudent, setProfileBanned } from "./store";
+import { cancelDeletionByAdmin } from "./accountDeletion";
+import { deleteProfile, promotePlatformStudent, setProfileBanned, unlinkProfileTelegram } from "./store";
 import { AdminProfilesError } from "./types";
 
 export type ProfileModerationActionState =
   | { status: "idle" }
   | {
       status: "success";
-      action: "ban" | "unban" | "delete" | "promote";
+      action: "ban" | "unban" | "delete" | "promote" | "schedule" | "cancelDeletion" | "unlinkTelegram";
       displayName: string;
+      dueAt?: string | null;
+      mailWarning?: boolean;
     }
   | { status: "error"; code: ProfileModerationErrorCode };
 
@@ -28,6 +31,7 @@ type ModerationDeps = {
   setProfileBanned: typeof setProfileBanned;
   deleteProfile: typeof deleteProfile;
   promotePlatformStudent: typeof promotePlatformStudent;
+  cancelDeletion?: typeof cancelDeletionByAdmin;
   revalidatePath: typeof revalidatePath;
 };
 
@@ -129,21 +133,64 @@ export async function deleteProfileAction(
   }
 
   try {
-    const profile = await deps.deleteProfile({
+    const result = await deps.deleteProfile({
       actorUserId: auth.userId,
       targetUserId,
     });
     deps.revalidatePath("/profiles");
     return {
       status: "success",
-      action: "delete",
-      displayName: profile.displayName,
+      action: result.outcome === "scheduled" ? "schedule" : "delete",
+      displayName: result.profile.displayName,
+      dueAt: result.dueAt,
+      mailWarning: result.mailWarning,
     };
   } catch (error) {
     if (error instanceof AdminProfilesError) {
       return { status: "error", code: mapError(error) };
     }
     console.error("deleteProfileAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export async function cancelDeletionAction(
+  _prev: ProfileModerationActionState,
+  formData: FormData,
+  deps: ModerationDeps = {
+    requireUser,
+    setProfileBanned,
+    deleteProfile,
+    promotePlatformStudent,
+    revalidatePath,
+  },
+): Promise<ProfileModerationActionState> {
+  const auth = await requireAdmin(deps);
+  if (!auth.ok) return auth.state;
+  const targetUserId = parseUserId(formData.get("userId"));
+  if (!targetUserId) return { status: "error", code: "invalid_input" };
+  if (targetUserId === auth.userId) return { status: "error", code: "self_action" };
+  const cancel = deps.cancelDeletion ?? cancelDeletionByAdmin;
+  try {
+    const cleared = await cancel({
+      targetUserId,
+      getConnection: async () => {
+        const { getConnection } = await import("@/lib/db/mysql");
+        return getConnection();
+      },
+    });
+    if (!cleared) return { status: "error", code: "invalid_input" };
+    deps.revalidatePath("/profiles");
+    return {
+      status: "success",
+      action: "cancelDeletion",
+      displayName: String(formData.get("displayName") ?? ""),
+    };
+  } catch (error) {
+    if (error instanceof AdminProfilesError) {
+      return { status: "error", code: mapError(error) };
+    }
+    console.error("cancelDeletionAction failed", error);
     return { status: "error", code: "generic" };
   }
 }
@@ -183,6 +230,43 @@ export async function promotePlatformStudentAction(
       return { status: "error", code: mapError(error) };
     }
     console.error("promotePlatformStudentAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export async function unlinkProfileTelegramAction(
+  _prev: ProfileModerationActionState,
+  formData: FormData,
+  deps: {
+    requireUser: typeof requireUser;
+    unlinkProfileTelegram: typeof unlinkProfileTelegram;
+    revalidatePath: typeof revalidatePath;
+  } = { requireUser, unlinkProfileTelegram, revalidatePath },
+): Promise<ProfileModerationActionState> {
+  const auth = await requireAdmin(deps);
+  if (!auth.ok) return auth.state;
+
+  const targetUserId = parseUserId(formData.get("userId"));
+  if (!targetUserId) {
+    return { status: "error", code: "invalid_input" };
+  }
+
+  try {
+    const profile = await deps.unlinkProfileTelegram({
+      actorUserId: auth.userId,
+      targetUserId,
+    });
+    deps.revalidatePath("/profiles");
+    return {
+      status: "success",
+      action: "unlinkTelegram",
+      displayName: profile.displayName,
+    };
+  } catch (error) {
+    if (error instanceof AdminProfilesError) {
+      return { status: "error", code: mapError(error) };
+    }
+    console.error("unlinkProfileTelegramAction failed", error);
     return { status: "error", code: "generic" };
   }
 }

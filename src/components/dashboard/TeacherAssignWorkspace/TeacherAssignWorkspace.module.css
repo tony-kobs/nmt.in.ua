@@ -216,7 +216,7 @@
 }
 
 .assignItem:hover {
-  border-color: rgb(31 143 69 / 40%);
+  border-color: rgb(15 118 110 / 40%);
 }
 
 .assignActive {
@@ -264,7 +264,7 @@
 
 .memberCompleted {
   background: var(--green-bg);
-  border-color: rgb(31 143 69 / 28%);
+  border-color: rgb(15 118 110 / 28%);
   color: var(--green-dark);
 }
 
@@ -290,3 +290,4 @@
   flex-wrap: wrap;
   gap: var(--space-sm);
 }
+

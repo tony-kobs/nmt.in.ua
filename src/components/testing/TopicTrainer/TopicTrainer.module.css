@@ -186,7 +186,6 @@
 .answer:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--green) 55%, var(--border));
   background: color-mix(in srgb, var(--green-bg) 70%, var(--surface-muted));
-  transform: translateY(-1px);
 }
 
 .answer:focus-visible {
@@ -354,3 +353,4 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+

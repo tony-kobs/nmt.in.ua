@@ -106,6 +106,8 @@ export function AccordionSection({
   storageKey,
   defaultOpen = false,
   headingLevel = "h2",
+  keepSummary = false,
+  forceOpen = false,
   children,
 }: {
   id: string;
@@ -115,6 +117,10 @@ export function AccordionSection({
   storageKey: string;
   defaultOpen?: boolean;
   headingLevel?: "h2" | "h3";
+  /** Leave the count line visible after the section is opened. */
+  keepSummary?: boolean;
+  /** Search and validation can open a section without writing that choice to storage. */
+  forceOpen?: boolean;
   children: ReactNode;
 }) {
   const t = useTranslations("Marathon");
@@ -149,7 +155,7 @@ export function AccordionSection({
       rememberOpen(storageKey, id);
     }
   }
-  const open = forced || storedOpen;
+  const open = forceOpen || forced || storedOpen;
   const Heading = headingLevel;
 
   const report = useCallback((formId: string, next: NestedFormError) => {
@@ -174,6 +180,7 @@ export function AccordionSection({
     <section
       ref={sectionRef}
       className={errorCount > 0 ? `${css.section} ${css.sectionInvalid}` : css.section}
+      id={id}
       data-section={id}
       data-section-invalid={errorCount > 0 ? "true" : "false"}
       aria-labelledby={buttonId}
@@ -188,7 +195,7 @@ export function AccordionSection({
           onClick={toggle}
         >
           <span className={css.sectionTitle}>{title}</span>
-          {!open && summary ? <span className={css.sectionSummary}>{summary}</span> : null}
+          {summary && (keepSummary || !open) ? <span className={css.sectionSummary}>{summary}</span> : null}
           {errorCount > 0 ? (
             <span className={css.sectionBadge} aria-label={t("sections.errorBadge", { count: errorCount })}>
               {errorCount}

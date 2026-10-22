@@ -33,7 +33,7 @@
 }
 
 .trigger:hover:not(:disabled) {
-  border-color: rgb(31 143 69 / 45%);
+  border-color: rgb(15 118 110 / 45%);
 }
 
 .trigger:focus-visible {
@@ -48,7 +48,7 @@
 }
 
 .triggerOpen {
-  border-color: rgb(31 143 69 / 45%);
+  border-color: rgb(15 118 110 / 45%);
 }
 
 .triggerCompact {
@@ -144,3 +144,4 @@
     transition: none;
   }
 }
+

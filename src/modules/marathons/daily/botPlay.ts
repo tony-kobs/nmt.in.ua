@@ -429,6 +429,7 @@ function reviewMessages(
   copy: Partial<Record<CopyKey, string>> | undefined,
   name: string,
   withFollowUp: boolean,
+  followUp?: string | null,
 ): Outgoing[] {
   const messages: Outgoing[] = [
     { text: renderResolved("review_intro", copy, varsFor(day, name)), rich: true },
@@ -451,8 +452,8 @@ function reviewMessages(
       siteLabel: buttonLabel(copy, "bot_open_site"),
     }));
   }
-  if (withFollowUp) {
-    const follow = followUpText(day, copy, name);
+  if (withFollowUp && followUp !== null) {
+    const follow = followUp === undefined ? followUpText(day, copy, name) : followUp;
     if (follow) messages.push({ text: follow });
   }
   const last = messages[messages.length - 1];
@@ -490,6 +491,7 @@ function currentStep(
   name: string,
   announce: boolean,
   tokenFor?: (action: { day: number; taskId: number; option: number }) => string,
+  followUp?: string | null,
 ): Outgoing[] {
   if (day.locked) {
     return [
@@ -499,7 +501,7 @@ function currentStep(
       },
     ];
   }
-  if (state.completed) return reviewMessages(day, state, copy, name, announce);
+  if (state.completed) return reviewMessages(day, state, copy, name, announce, followUp);
   if (!state.materialsViewed) {
     const messages: Outgoing[] = [];
     if (day.introText?.trim()) messages.push({ text: day.introText.trim(), rich: true });
@@ -512,7 +514,7 @@ function currentStep(
     return messages;
   }
   const task = nextTask(day, state);
-  if (!task) return reviewMessages(day, state, copy, name, announce);
+  if (!task) return reviewMessages(day, state, copy, name, announce, followUp);
   return [taskMessage(day, task, copy, tokenFor)];
 }
 
@@ -524,6 +526,8 @@ export function presentMarathon(input: {
   name: string;
   mapUrl: string;
   tokenFor?: (action: { day: number; taskId: number; option: number }) => string;
+  /** Replaces the follow-up sentence. `null` omits it. Omit the field for the default text. */
+  followUp?: string | null;
 }): { messages: Outgoing[]; state: PlayState; completedNow: boolean } {
   const copy = input.copy;
   if (input.callback.kind === "menu" || input.callback.kind === "top") {
@@ -597,7 +601,15 @@ export function presentMarathon(input: {
       day.passThreshold,
     );
     return {
-      messages: currentStep(day, applied.state, copy, input.name, applied.completedNow, input.tokenFor),
+      messages: currentStep(
+        day,
+        applied.state,
+        copy,
+        input.name,
+        applied.completedNow,
+        input.tokenFor,
+        input.followUp,
+      ),
       state: applied.state,
       completedNow: applied.completedNow,
     };

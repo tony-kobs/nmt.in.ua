@@ -3,7 +3,8 @@
 import { useTranslations } from "next-intl";
 import { PageFrame, PagePanel } from "@/components/dashboard/PageFrame";
 import { DiagnosticInfoPanel } from "@/components/diagnostic/DiagnosticInfoPanel";
-import { SITE_NAME } from "@/constants/seo";
+import { BrandMark } from "@/components/brand/BrandMark";
+import { BrandWord } from "@/components/brand/BrandWord";
 import shellCss from "@/components/diagnostic/DiagnosticShell/DiagnosticShell.module.css";
 import introCss from "@/components/diagnostic/DiagnosticIntro/DiagnosticIntro.module.css";
 import previewCss from "./DiagnosticDestinationPreview.module.css";
@@ -55,9 +56,11 @@ export function DiagnosticDestinationPreview() {
           </span>
           <span className={shellCss.brand}>
             <span className={shellCss.brandGlyph} aria-hidden="true">
-              ∑
+              <BrandMark />
             </span>
-            <span className={shellCss.brandName}>{SITE_NAME}</span>
+            <span className={shellCss.brandName}>
+              <BrandWord />
+            </span>
           </span>
         </div>
 

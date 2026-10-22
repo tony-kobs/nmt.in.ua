@@ -48,7 +48,7 @@ type Deps = {
 
 function lockAccountSql(teacherOnly = false): string {
   return `SELECT uta.id, uta.user_id, uta.telegram_user_id, uta.telegram_chat_id
-  FROM user_telegram_accounts uta INNER JOIN app_users u ON u.id = uta.user_id AND u.is_banned = 0
+  FROM user_telegram_accounts uta INNER JOIN app_users u ON u.id = uta.user_id AND u.is_banned = 0 AND u.deletion_due_at IS NULL
     ${teacherOnly ? "AND u.role IN ('teacher', 'admin')" : ""}
   WHERE uta.id = ? AND uta.telegram_user_id = ? AND uta.telegram_chat_id = uta.telegram_user_id FOR UPDATE`;
 }
@@ -144,7 +144,7 @@ export async function processTelegramTaskNotifications(
     const now = (deps.nowSec ?? nowUnixSec)();
     const clock = getKyivClock(now);
     const accounts = await connection.query<Account>(`SELECT uta.id, uta.user_id, uta.telegram_user_id, uta.telegram_chat_id, u.role
-      FROM user_telegram_accounts uta INNER JOIN app_users u ON u.id = uta.user_id AND u.is_banned = 0
+      FROM user_telegram_accounts uta INNER JOIN app_users u ON u.id = uta.user_id AND u.is_banned = 0 AND u.deletion_due_at IS NULL
       WHERE uta.telegram_chat_id = uta.telegram_user_id AND uta.id > ? ORDER BY uta.id
       LIMIT ${NOTIFICATION_ACCOUNT_BATCH + 1}`, [afterAccountId]);
     const hasMore = accounts.length > NOTIFICATION_ACCOUNT_BATCH;

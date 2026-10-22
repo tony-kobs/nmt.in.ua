@@ -48,9 +48,9 @@ export async function CabinetHome({
     user.role === "student"
       ? await ensureStudentMarathonInvites(user.id).catch((error: unknown) => {
           console.error("marathon home", error);
-          return { cards: [], invites: [] };
+          return { cards: [], invites: [], spotlight: null };
         })
-      : { cards: [], invites: [] };
+      : { cards: [], invites: [], spotlight: null };
 
   if (user.role === "teacher") {
     redirect("/assign");
@@ -122,7 +122,7 @@ export async function CabinetHome({
       >
         <SavedToast active={saved} text={savedText} />
         <MarathonInviteBanner invites={home.invites} />
-        <MarathonHomeCards cards={home.cards} signedIn />
+        <MarathonHomeCards cards={home.cards} spotlight={home.spotlight} signedIn />
         <StudentToday displayName={displayName} model={today} />
       </DashboardShell>
     </NextIntlClientProvider>

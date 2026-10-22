@@ -6,6 +6,8 @@ import Link from "next/link";
 import clsx from "clsx";
 import { motion, useReducedMotion } from "motion/react";
 import { SkipLink } from "@/components/ui/SkipLink";
+import { BrandMark } from "@/components/brand/BrandMark";
+import { BrandWord } from "@/components/brand/BrandWord";
 import { SITE_NAME } from "@/constants/seo";
 import { revealHidden, revealShown, tweenSlow } from "@/lib/motionPresets";
 import { NotebookSpinner } from "@/components/status/NotebookSpinner";
@@ -62,9 +64,9 @@ export function StatusScene({
         {layout === "page" ? (
           <Link href="/" className={css.brand} aria-label={SITE_NAME} translate="no">
             <span className={css.glyph} aria-hidden>
-              ∑
+              <BrandMark />
             </span>
-            {SITE_NAME}
+            <BrandWord />
           </Link>
         ) : null}
         <Region

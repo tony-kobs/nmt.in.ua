@@ -20,8 +20,15 @@
 
 .bell:hover,
 .bell:focus-visible {
-  border-color: rgb(31 143 69 / 45%);
-  background: var(--surface);
+  border-color: var(--green);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.bell:active {
+  border-color: var(--ultimate);
+  background: var(--ultimate-bg);
+  color: var(--ultimate-dark);
 }
 
 .bell:focus-visible,
@@ -175,3 +182,4 @@
     transition: none;
   }
 }
+

@@ -42,6 +42,8 @@ test("setProfileBannedAction bans for admin", async () => {
         lastLoginAt: null,
         lastSeenAt: null,
         createdAt: "2026-01-01T00:00:00.000Z",
+        deletionDueAt: null,
+        telegramLinked: false,
       }),
       deleteProfile: async () => {
         throw new Error("unused");

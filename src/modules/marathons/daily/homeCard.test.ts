@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { selectHomeMarathonCards } from "./homeCard";
+import { selectFeaturedHomeMarathon, selectHomeMarathonCards } from "./homeCard";
 
 const marathons = [
   {
@@ -53,4 +53,15 @@ test("a joined marathon offers continue and a draft stays off the home page", ()
   const open = cards.find((card) => card.slug === "geo");
   assert.equal(open?.action, "join");
   assert.equal(cards.some((card) => card.slug === "draft-one"), false);
+});
+
+test("the home board features the marathon the viewer already joined", () => {
+  const cards = selectHomeMarathonCards({
+    marathons,
+    joinedSlugs: new Set(["geo"]),
+    declinedSlugs: new Set(),
+  });
+  const featured = selectFeaturedHomeMarathon(cards);
+  assert.equal(featured?.slug, "geo");
+  assert.equal(selectFeaturedHomeMarathon([]), null);
 });

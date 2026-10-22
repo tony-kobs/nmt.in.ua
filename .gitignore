@@ -44,4 +44,7 @@ next-env.d.ts
 # Generated import dumps. The running site reads MySQL, not these files.
 /content/nmt-variants/
 /scripts/content/
-.playwright-cli
+
+# Local browser dumps and screenshots
+.playwright-cli/
+/shots/

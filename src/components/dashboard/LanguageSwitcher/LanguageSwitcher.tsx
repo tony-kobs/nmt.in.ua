@@ -13,17 +13,12 @@ import {
   popoverShown,
   tweenFast,
 } from "@/lib/motionPresets";
+import { LocaleFlag } from "./LocaleFlag";
 import css from "./LanguageSwitcher.module.css";
 
 const LOCALES = ["uk", "en", "de"] as const;
 
 type Locale = (typeof LOCALES)[number];
-
-const LOCALE_CODE: Record<Locale, string> = {
-  uk: "UA",
-  en: "EN",
-  de: "DE",
-};
 
 function isLocale(value: string): value is Locale {
   return LOCALES.includes(value as Locale);
@@ -87,8 +82,8 @@ export function LanguageSwitcher() {
         disabled={pending}
         onClick={() => setOpen((value) => !value)}
       >
-        <span className={css.code} translate="no">
-          {LOCALE_CODE[locale]}
+        <span className={css.flag}>
+          <LocaleFlag locale={locale} />
         </span>
         <span className={css.currentName}>{t(`${locale}Full`)}</span>
         <svg
@@ -134,10 +129,28 @@ export function LanguageSwitcher() {
                     disabled={pending}
                     onClick={() => void changeLocale(item)}
                   >
-                    <span className={css.code} translate="no">
-                      {LOCALE_CODE[item]}
+                    <span className={css.flag}>
+                      <LocaleFlag locale={item} />
                     </span>
                     <span>{t(`${item}Full`)}</span>
+                    {active ? (
+                      <svg
+                        className={css.check}
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        aria-hidden
+                      >
+                        <path
+                          d="M3.2 8.3 6.4 11.4 12.8 4.6"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    ) : null}
                   </button>
                 </li>
               );

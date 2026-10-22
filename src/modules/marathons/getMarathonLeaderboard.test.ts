@@ -193,3 +193,93 @@ test("Загальні sums every daily marathon; one marathon stays on its own 
   const unknown = await getMarathonLeaderboard(7, { marathonSlug: "missing" }, getConnection);
   assert.equal(unknown?.marathon.slug, "math-5");
 });
+
+test("an archived daily marathon stays in Загальні and in its own picker row", async () => {
+  const now = Math.floor(Date.now() / 1000);
+  const marathons = [
+    {
+      id: 9,
+      slug: "math-5",
+      title: "П'ять днів",
+      description: null,
+      status: "active",
+      starts_at: now - 5,
+      ends_at: now + 10_000,
+      min_tasks_per_session: 5,
+      kind: "daily",
+    },
+    {
+      id: 3,
+      slug: "math-old",
+      title: "Архівний",
+      description: null,
+      status: "archived",
+      starts_at: now - 80,
+      ends_at: now - 40,
+      min_tasks_per_session: 5,
+      kind: "daily",
+    },
+    {
+      id: 2,
+      slug: "math-draft",
+      title: "Чернетка",
+      description: null,
+      status: "draft",
+      starts_at: now - 1,
+      ends_at: now + 10,
+      min_tasks_per_session: 5,
+      kind: "daily",
+    },
+  ];
+  const people: Record<number, Array<{
+    user_id: number;
+    display_name: string;
+    login: string;
+    joined_at: number;
+  }>> = {
+    9: [{ user_id: 7, display_name: "Іра", login: "ira", joined_at: now - 4 }],
+    3: [
+      { user_id: 7, display_name: "Іра", login: "ira", joined_at: now - 70 },
+      { user_id: 8, display_name: "Оля", login: "olya", joined_at: now - 60 },
+    ],
+    2: [{ user_id: 7, display_name: "Іра", login: "ira", joined_at: now - 1 }],
+  };
+  const days = [
+    { marathon_id: 9, user_id: 7, day_id: 1, score: 50, correct_count: 2, completed_at: now - 2 },
+    { marathon_id: 3, user_id: 7, day_id: 11, score: 100, correct_count: 5, completed_at: now - 50 },
+    { marathon_id: 3, user_id: 8, day_id: 11, score: 40, correct_count: 1, completed_at: now - 40 },
+    { marathon_id: 2, user_id: 7, day_id: 21, score: 100, correct_count: 9, completed_at: now },
+  ];
+  const connection: SqlConnection = {
+    beginTransaction: async () => {},
+    commit: async () => {},
+    rollback: async () => {},
+    release: () => {},
+    query: async <T>(sql: string, params: unknown[] = []) => {
+      if (sql.includes("FROM marathons") && sql.includes("kind = 'daily'")) return marathons as T[];
+      if (sql.includes("correct_count IS NULL")) return [] as T[];
+      if (sql.includes("FROM marathon_participants")) {
+        return params.flatMap((id) => people[Number(id)] ?? []) as T[];
+      }
+      if (sql.includes("FROM marathon_day_progress") && sql.includes("pr.score")) {
+        const ids = new Set(params.map(Number));
+        return days.filter((day) => ids.has(day.marathon_id)) as T[];
+      }
+      return [] as T[];
+    },
+    execute: async () => ({ insertId: 0, affectedRows: 1 }),
+  };
+  const getConnection = async () => connection;
+
+  const all = await getMarathonLeaderboard(7, { marathonSlug: "all" }, getConnection);
+  assert.deepEqual(all?.options.map((item) => item.slug), ["all", "math-5", "math-old"]);
+  assert.equal(all?.options.find((item) => item.slug === "math-old")?.status, "archived");
+  assert.equal(all?.rows.find((row) => row.userId === 7)?.points, 7);
+  assert.equal(all?.rows.find((row) => row.userId === 7)?.daysDone, 2);
+  assert.equal(all?.rows.find((row) => row.userId === 8)?.points, 1);
+  assert.equal(all?.rows.some((row) => row.points === 9), false);
+
+  const own = await getMarathonLeaderboard(7, { marathonSlug: "math-old" }, getConnection);
+  assert.equal(own?.marathon.slug, "math-old");
+  assert.equal(own?.rows.find((row) => row.userId === 7)?.points, 5);
+});

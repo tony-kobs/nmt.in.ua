@@ -8,6 +8,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { useReducedMotion } from "motion/react";
+import landing from "../landing.module.css";
 import css from "./Teachers.module.css";
 
 export type TeacherOfferItem = {
@@ -18,17 +19,18 @@ export type TeacherOfferItem = {
 
 export type LandingTeacherCard = {
   id: string;
-  /** Absolute/public avatar URL when the teacher uploaded a photo. */
   photoSrc: string | null;
   initials: string;
   name: string;
-  subject: string;
-  education: string;
+  subjects: string[];
+  city: string;
   experience: string;
-  bioLead: string;
-  bioRest: string;
-  rating: number;
-  reviewCount: number;
+  languages: string;
+  levels: string[];
+  headline: string;
+  bio: string;
+  publications: string;
+  studentCount: number;
 };
 
 export type TeachersPanelLabels = {
@@ -36,9 +38,15 @@ export type TeachersPanelLabels = {
   title: string;
   lead: string;
   verified: string;
-  education: string;
+  city: string;
   experience: string;
+  languages: string;
+  levels: string;
   reviews: string;
+  about: string;
+  publications: string;
+  readMore: string;
+  showLess: string;
   empty: string;
   carouselAria: string;
   prev: string;
@@ -47,6 +55,7 @@ export type TeachersPanelLabels = {
   offerTitle: string;
   offerLead: string;
   joinCta: string;
+  stub: string;
 };
 
 export type TeachersPanelProps = {
@@ -76,12 +85,35 @@ function VerifiedShield() {
   );
 }
 
-function StarIcon() {
+function PinIcon() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden>
       <path
         fill="currentColor"
-        d="m12 3.4 2.5 5.1 5.6.8-4 3.9.9 5.6L12 16.9 6.9 19l.9-5.6-4-3.9 5.6-.8L12 3.4Z"
+        d="M12 2.8a6.2 6.2 0 0 0-6.2 6.2c0 4.6 6.2 12.2 6.2 12.2s6.2-7.6 6.2-12.2A6.2 6.2 0 0 0 12 2.8Zm0 8.4a2.2 2.2 0 1 1 0-4.4 2.2 2.2 0 0 1 0 4.4Z"
+      />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M12 2.6a9.4 9.4 0 1 0 0 18.8 9.4 9.4 0 0 0 0-18.8Zm.9 4.6v4.5l3.4 2-.9 1.4-4.3-2.6V7.2h1.8Z"
+      />
+    </svg>
+  );
+}
+
+function CheckBadge() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden>
+      <circle cx="12" cy="12" r="9" fill="currentColor" />
+      <path
+        fill="#f6f1e2"
+        d="m10.2 14.8-2.5-2.4 1.2-1.2 1.3 1.3 3.8-3.7 1.2 1.2-5 4.8Z"
       />
     </svg>
   );
@@ -92,126 +124,242 @@ function hasCardText(value: string): boolean {
   return trimmed.length > 0 && trimmed !== "—" && trimmed !== "-";
 }
 
+function descriptionPreview(text: string): { preview: string; canExpand: boolean } {
+  const trimmed = text.trim();
+  const limit = 160;
+  if (trimmed.length <= limit) return { preview: trimmed, canExpand: false };
+  const sentence = trimmed.split(/(?<=[.!?…])\s+/)[0] ?? trimmed;
+  if (sentence.length < trimmed.length && sentence.length <= limit + 40) {
+    return { preview: sentence, canExpand: true };
+  }
+  const slice = trimmed.slice(0, limit);
+  const cut = slice.lastIndexOf(" ");
+  const short = (cut > 80 ? slice.slice(0, cut) : slice).trim();
+  return { preview: `${short}…`, canExpand: true };
+}
+
 function TeacherCard({
   teacher,
   labels,
-  titleId,
 }: {
   teacher: LandingTeacherCard;
   labels: TeachersPanelLabels;
-  titleId?: string;
 }) {
-  const reviews = labels.reviews.replace(
-    "{count}",
-    String(teacher.reviewCount),
-  );
+  const nameId = useId();
+  const bioId = useId();
+  const [open, setOpen] = useState(false);
+  const bioPreview = descriptionPreview(teacher.bio);
+  const publicationsPreview = descriptionPreview(teacher.publications);
+  const canExpand =
+    (hasCardText(teacher.bio) && bioPreview.canExpand) ||
+    hasCardText(teacher.publications);
+  const reviews =
+    teacher.studentCount > 0
+      ? labels.reviews.replace("{count}", String(teacher.studentCount))
+      : "";
 
   return (
-    <article className={css.card} aria-labelledby={titleId}>
-      <div className={css.side}>
-        <div className={css.photoWrap}>
-          {teacher.photoSrc ? (
-            // eslint-disable-next-line @next/next/no-img-element -- per-user API blob, not a static asset
-            <img
-              className={css.photo}
-              src={teacher.photoSrc}
-              alt=""
-              draggable={false}
-            />
-          ) : (
-            <span className={css.photoFallback} aria-hidden>
-              {teacher.initials}
-            </span>
-          )}
-        </div>
-        <p className={css.verified}>{labels.verified}</p>
-        <div className={css.sideMeta}>
-          <div className={css.nameRow}>
-            <h3 id={titleId} className={css.name}>
-              {teacher.name}
-            </h3>
-            <VerifiedShield />
-          </div>
-          {teacher.rating > 0 ? (
-            <p className={css.rating}>
-              <span className={css.star} aria-hidden>
-                <StarIcon />
-              </span>
-              <span className={css.ratingValue}>
-                {teacher.rating.toFixed(1)}
-              </span>
-              <span className={css.reviews}>{reviews}</span>
-            </p>
-          ) : teacher.reviewCount > 0 ? (
-            <p className={css.rating}>
-              <span className={css.reviews}>{reviews}</span>
-            </p>
-          ) : null}
-        </div>
+    <article className={css.card} aria-labelledby={nameId}>
+      <div className={css.photoWrap}>
+        {teacher.photoSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element -- avatar API or a local portrait
+          <img
+            className={css.photo}
+            src={teacher.photoSrc}
+            alt=""
+            draggable={false}
+          />
+        ) : (
+          <span className={css.photoFallback} aria-hidden>
+            {teacher.initials}
+          </span>
+        )}
+        <p className={css.verified}>
+          <CheckBadge />
+          {labels.verified}
+        </p>
       </div>
 
       <div className={css.main}>
-        <p className={css.subject}>{teacher.subject}</p>
-        {hasCardText(teacher.education) ? (
-          <p className={css.fact}>
-            <span className={css.factLabel}>{labels.education}:</span>{" "}
-            {teacher.education}
-          </p>
+        <div className={css.nameRow}>
+          <h3 id={nameId} className={css.name}>
+            {teacher.name}
+          </h3>
+          <VerifiedShield />
+        </div>
+
+        {teacher.subjects.length > 0 ? (
+          <ul className={css.chips}>
+            {teacher.subjects.map((subject) => (
+              <li key={subject} className={css.chip}>
+                {subject}
+              </li>
+            ))}
+          </ul>
         ) : null}
-        {hasCardText(teacher.experience) ? (
-          <div className={css.factRow}>
-            <p className={css.fact}>
-              <span className={css.factLabel}>{labels.experience}:</span>{" "}
-              {teacher.experience}
-            </p>
+
+        <ul className={css.meta}>
+          {hasCardText(teacher.city) ? (
+            <li className={css.metaItem}>
+              <span className={css.metaIcon} aria-hidden>
+                <PinIcon />
+              </span>
+              <span>
+                <span className={css.factLabel}>{labels.city}:</span>{" "}
+                {teacher.city}
+              </span>
+            </li>
+          ) : null}
+          {hasCardText(teacher.experience) ? (
+            <li className={css.metaItem}>
+              <span className={css.metaIcon} aria-hidden>
+                <ClockIcon />
+              </span>
+              <span>
+                <span className={css.factLabel}>{labels.experience}:</span>{" "}
+                {teacher.experience}
+              </span>
+            </li>
+          ) : null}
+          {hasCardText(teacher.languages) ? (
+            <li className={css.metaItem}>
+              <span>
+                <span className={css.factLabel}>{labels.languages}:</span>{" "}
+                {teacher.languages}
+              </span>
+            </li>
+          ) : null}
+          {reviews ? (
+            <li className={css.metaItem}>
+              <span className={css.reviews}>{reviews}</span>
+            </li>
+          ) : null}
+        </ul>
+
+        {teacher.levels.length > 0 ? (
+          <div className={css.levels}>
+            <p className={css.factLabel}>{labels.levels}</p>
+            <ul className={css.chips}>
+              {teacher.levels.map((level) => (
+                <li key={level} className={`${css.chip} ${css.levelChip}`}>
+                  {level}
+                </li>
+              ))}
+            </ul>
           </div>
         ) : null}
-        <div className={css.bio}>
-          <p className={css.bioLead}>{teacher.bioLead}</p>
-          <p className={css.bioRest}>{teacher.bioRest}</p>
-        </div>
+
+        {hasCardText(teacher.headline) ? (
+          <p className={css.headline}>{teacher.headline}</p>
+        ) : null}
+
+        {hasCardText(teacher.bio) || hasCardText(teacher.publications) ? (
+          <div className={css.bio}>
+            {hasCardText(teacher.bio) ? (
+              <p id={bioId} className={css.bioText}>
+                {open ? teacher.bio : bioPreview.preview}
+              </p>
+            ) : (
+              <p id={bioId} className={css.bioText}>
+                {open ? teacher.publications : publicationsPreview.preview}
+              </p>
+            )}
+            {open && hasCardText(teacher.bio) && hasCardText(teacher.publications) ? (
+              <div className={css.publications}>
+                <p className={css.factLabel}>{labels.publications}</p>
+                <p className={css.bioText}>{teacher.publications}</p>
+              </div>
+            ) : null}
+            {canExpand ? (
+              <button
+                type="button"
+                className={css.more}
+                aria-expanded={open}
+                aria-controls={bioId}
+                onClick={() => setOpen((current) => !current)}
+              >
+                {open ? labels.showLess : labels.readMore}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </article>
   );
 }
 
+function slideStride(viewport: HTMLDivElement): number {
+  const slide = viewport.querySelector("li");
+  if (!slide) return viewport.clientWidth;
+  const styles = getComputedStyle(viewport.querySelector("ul") ?? viewport);
+  const gap = Number.parseFloat(styles.columnGap || styles.gap || "0") || 0;
+  return slide.getBoundingClientRect().width + gap;
+}
+
+function nearestIndex(viewport: HTMLDivElement): number {
+  const slides = [...viewport.querySelectorAll("li")];
+  const left = viewport.scrollLeft;
+  let nearest = 0;
+  let best = Number.POSITIVE_INFINITY;
+  slides.forEach((slide, slideIndex) => {
+    const distance = Math.abs(slide.offsetLeft - left);
+    if (distance < best) {
+      best = distance;
+      nearest = slideIndex;
+    }
+  });
+  return nearest;
+}
+
 function TeachersCarousel({
   teachers,
   labels,
-  panelId,
 }: {
   teachers: LandingTeacherCard[];
   labels: TeachersPanelLabels;
-  panelId: string;
 }) {
   const reduceMotion = useReducedMotion();
   const [index, setIndex] = useState(0);
-  const [dragPx, setDragPx] = useState(0);
   const [dragging, setDragging] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const pointerIdRef = useRef<number | null>(null);
   const startXRef = useRef(0);
-  const dragPxRef = useRef(0);
+  const startScrollRef = useRef(0);
+  const startIndexRef = useRef(0);
   const movedRef = useRef(false);
   const total = teachers.length;
 
   if (total === 0) return null;
 
+  function scrollToIndex(next: number) {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const bounded = Math.min(Math.max(next, 0), total - 1);
+    const slide = viewport.querySelectorAll("li")[bounded];
+    viewport.scrollTo({
+      left: slide?.offsetLeft ?? 0,
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
+    setIndex(bounded);
+  }
+
   function go(dir: -1 | 1) {
-    setIndex((current) => (current + dir + total) % total);
+    const viewport = viewportRef.current;
+    const current = viewport ? nearestIndex(viewport) : index;
+    scrollToIndex(current + dir);
   }
 
   function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.button !== 0 || total < 2) return;
     const target = event.target as HTMLElement | null;
-    if (target?.closest("a, button")) return;
+    if (target?.closest("a, button, summary")) return;
 
     pointerIdRef.current = event.pointerId;
     startXRef.current = event.clientX;
-    dragPxRef.current = 0;
+    startScrollRef.current = event.currentTarget.scrollLeft;
+    startIndexRef.current = nearestIndex(event.currentTarget);
     movedRef.current = false;
     setDragging(true);
-    setDragPx(0);
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
@@ -219,24 +367,20 @@ function TeachersCarousel({
     if (pointerIdRef.current !== event.pointerId) return;
     const delta = event.clientX - startXRef.current;
     if (Math.abs(delta) > 4) movedRef.current = true;
-    dragPxRef.current = delta;
-    setDragPx(delta);
+    event.currentTarget.scrollLeft = startScrollRef.current - delta;
   }
 
   function endDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (pointerIdRef.current !== event.pointerId) return;
-
-    const width = viewportRef.current?.offsetWidth ?? 1;
+    const delta = event.clientX - startXRef.current;
+    const width = slideStride(event.currentTarget);
     const threshold = Math.min(72, width * 0.18);
-    const delta = dragPxRef.current;
-    if (delta <= -threshold) go(1);
-    else if (delta >= threshold) go(-1);
+    if (delta <= -threshold) scrollToIndex(startIndexRef.current + 1);
+    else if (delta >= threshold) scrollToIndex(startIndexRef.current - 1);
+    else scrollToIndex(startIndexRef.current);
 
     pointerIdRef.current = null;
-    dragPxRef.current = 0;
     setDragging(false);
-    setDragPx(0);
-
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -249,11 +393,10 @@ function TeachersCarousel({
     movedRef.current = false;
   }
 
-  const trackStyle = {
-    transform: `translate3d(calc(${-index * 100}% + ${dragPx}px), 0, 0)`,
-    transition:
-      dragging || reduceMotion ? "none" : "transform 0.45s var(--ease)",
-  } as const;
+  function onScroll(event: React.UIEvent<HTMLDivElement>) {
+    if (dragging) return;
+    setIndex(nearestIndex(event.currentTarget));
+  }
 
   return (
     <div
@@ -264,33 +407,25 @@ function TeachersCarousel({
       <div
         ref={viewportRef}
         className={
-          dragging ? `${css.viewport} ${css.viewportDragging}` : css.viewport
+          total < 2
+            ? `${css.viewport} ${css.viewportSingle}`
+            : dragging
+              ? `${css.viewport} ${css.viewportDragging}`
+              : css.viewport
         }
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         onClickCapture={onClickCapture}
+        onScroll={onScroll}
       >
-        <ul className={css.track} style={trackStyle}>
-          {teachers.map((teacher, slideIndex) => {
-            const isActive = slideIndex === index;
-            return (
-              <li
-                key={teacher.id}
-                className={css.slide}
-                aria-hidden={isActive ? undefined : true}
-              >
-                <TeacherCard
-                  teacher={teacher}
-                  labels={labels}
-                  titleId={
-                    isActive ? `${panelId}-teacher-${teacher.id}` : undefined
-                  }
-                />
-              </li>
-            );
-          })}
+        <ul className={css.track}>
+          {teachers.map((teacher) => (
+            <li key={teacher.id} className={css.slide}>
+              <TeacherCard teacher={teacher} labels={labels} />
+            </li>
+          ))}
         </ul>
       </div>
 
@@ -351,27 +486,52 @@ export function TeachersPanel({
 
   return (
     <section id="teachers" className={css.root} aria-labelledby={titleId}>
-      <div className={css.panel}>
-        <header className={css.head}>
-          <p className={css.kicker}>{labels.kicker}</p>
+      <div className={landing.container}>
+        <div className={css.head}>
           <h2 id={titleId} className={css.title}>
             {labels.title}
           </h2>
           <p className={css.lead}>{labels.lead}</p>
-        </header>
+        </div>
 
         <div className={css.body}>
-          {teachers.length > 0 ? (
-            <TeachersCarousel
-              teachers={teachers}
-              labels={labels}
-              panelId={panelId}
-            />
-          ) : (
-            <p className={css.empty}>{labels.empty}</p>
-          )}
+          <ul className={css.stubs}>
+            {teachers.map((teacher) => (
+              <li key={teacher.id}>
+                <TeacherCard teacher={teacher} labels={labels} />
+              </li>
+            ))}
+            {Array.from({ length: 2 }, (_, index) => (
+              <li key={`stub-${index}`}>
+                <Link
+                  href="/register?role=teacher"
+                  className={`${css.card} ${css.stub}`}
+                >
+                  <div className={css.photoWrap} />
+                  <p className={css.stubText}>{labels.stub}</p>
+                </Link>
+              </li>
+            ))}
+          </ul>
 
           <aside className={css.offer} aria-labelledby={`${panelId}-offer`}>
+            <div className={css.offerBoard} aria-hidden>
+              <span className={`${css.chalk} ${css.chalkX}`}>x²</span>
+              <span className={`${css.chalk} ${css.chalkPi}`}>π r²</span>
+              <span className={`${css.chalk} ${css.chalkInt}`}>∫ f(x) dx</span>
+              <span className={css.dotLime} />
+              <span className={css.dotSun} />
+              <svg className={css.chalkTri} viewBox="0 0 48 40">
+                <path
+                  d="M6 34h36V6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
             <h3 id={`${panelId}-offer`} className={css.offerTitle}>
               {labels.offerTitle}
             </h3>

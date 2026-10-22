@@ -129,8 +129,16 @@
 
 .primary:hover:not(:disabled),
 .secondary:hover:not(:disabled),
-.danger:hover:not(:disabled) {
-  transform: translateY(-1px);
+.danger:hover:not(:disabled),
+.danger:focus-visible:not(:disabled) {
+  border-color: #8f1d1d;
+  background: #f6e4e1;
+  color: #7f1d1d;
+}
+
+.danger:active:not(:disabled) {
+  background: #7f1d1d;
+  color: var(--on-accent);
 }
 
 .list {
@@ -182,3 +190,4 @@
     transform: none;
   }
 }
+

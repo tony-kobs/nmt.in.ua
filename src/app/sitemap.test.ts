@@ -16,6 +16,7 @@ test("sitemap lists only public pages that do not require login", () => {
         (path) =>
           path !== "/t" &&
           path !== "/verify-email" &&
+          path !== "/keep-account" &&
           path !== "/forgot-password" &&
           path !== "/reset-password",
       ),

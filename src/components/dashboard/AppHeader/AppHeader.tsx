@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import type { AuthUser } from "@/modules/auth/client";
 import { UserAvatar } from "@/components/account/UserAvatar";
+import { BrandMark } from "@/components/brand/BrandMark";
+import { BrandWord } from "@/components/brand/BrandWord";
 import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { useTranslations } from "next-intl";
 import css from "./AppHeader.module.css";
@@ -50,10 +52,12 @@ export function AppHeader({
           translate="no"
         >
           <span className={css.logo} aria-hidden>
-            <span className={css.logoEq}>∑</span>
+            <BrandMark />
           </span>
           <span className={css.brandCopy}>
-            <span className={css.brandText}>{t("siteName")}</span>
+            <span className={css.brandText}>
+              <BrandWord />
+            </span>
             <span className={css.brandSub}>{t("tagline")}</span>
           </span>
         </Link>

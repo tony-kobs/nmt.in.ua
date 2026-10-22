@@ -14,6 +14,21 @@ export type HomeMarathonCard = {
   href: string;
 };
 
+export type HomeBoardRow = {
+  userId: number;
+  place: number;
+  name: string;
+  points: number;
+};
+
+/** The marathon drawn on the home chalkboard, plus its live standings. */
+export type HomeMarathonSpotlight = HomeMarathonCard & {
+  imageUrl: string | null;
+  dayNumber: number;
+  daysCount: number;
+  board: HomeBoardRow[];
+};
+
 /**
  * Active marathons on the home page.
  * Joined students get «Продовжити». A decline hides the card.
@@ -40,4 +55,11 @@ export function selectHomeMarathonCards(input: {
     });
   }
   return cards;
+}
+
+/** The course the viewer is in, otherwise the newest active one still on the page. */
+export function selectFeaturedHomeMarathon(
+  cards: HomeMarathonCard[],
+): HomeMarathonCard | null {
+  return cards.find((card) => card.action === "continue") ?? cards[0] ?? null;
 }

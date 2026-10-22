@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { FeedbackEntry } from "@/components/feedback/FeedbackDialog";
 import { SITE_NAME } from "@/constants/seo";
+import { BrandMark } from "@/components/brand/BrandMark";
+import { BrandWord } from "@/components/brand/BrandWord";
 import css from "../landing.module.css";
 
 const FOOTER_LINKS = [
@@ -22,9 +24,11 @@ export async function LandingFooter() {
           <div>
             <p className={css.brand} translate="no">
               <span className={css.brandGlyph} aria-hidden>
-                ∑
+                <BrandMark />
               </span>
-              <span className={css.brandName}>{SITE_NAME}</span>
+              <span className={css.brandName}>
+                <BrandWord />
+              </span>
             </p>
             <p className={css.footerTagline}>{t("footer.tagline")}</p>
           </div>

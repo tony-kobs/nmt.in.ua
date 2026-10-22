@@ -70,8 +70,9 @@ export async function dispatchMarathonInvites(
       role: string;
       email: string | null;
       is_banned: number;
+      deletion_due_at?: Date | string | null;
     }>(
-      `SELECT id, role, email, is_banned FROM app_users`,
+      `SELECT id, role, email, is_banned, deletion_due_at FROM app_users`,
       [],
     );
     const declined = new Set(
@@ -80,7 +81,9 @@ export async function dispatchMarathonInvites(
         [marathonId],
       )).map((row) => Number(row.user_id)),
     );
-    const ids = users.filter((user) => !user.is_banned).map((user) => Number(user.id));
+    const ids = users
+      .filter((user) => !user.is_banned && !user.deletion_due_at)
+      .map((user) => Number(user.id));
     const prefs = ids.length ? await loadChannelPreferences(connection, ids) : new Map();
     const chats = new Map<number, string>();
     if (ids.length) {
@@ -114,7 +117,7 @@ export async function dispatchMarathonInvites(
       }
     }
     const people: InviteCandidate[] = users
-      .filter((user) => !user.is_banned)
+      .filter((user) => !user.is_banned && !user.deletion_due_at)
       .map((user) => {
         const pref = prefs.get(Number(user.id));
         return {

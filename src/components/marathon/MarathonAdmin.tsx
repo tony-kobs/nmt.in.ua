@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
-import { kyivDateIso } from "@/modules/marathons/daily/calendar";
+import type { CardStats } from "@/modules/marathons/daily/cardStats";
+import { formatKyivWhen, kyivDateIso } from "@/modules/marathons/daily/calendar";
 import { activationBlockers, marathonIsReady } from "@/modules/marathons/daily/readiness";
 import { loadMarathonBoard, loadMarathonCopy } from "@/modules/marathons/daily/store";
 import {
@@ -26,6 +27,7 @@ import type {
 import type { FunnelReport } from "@/modules/marathons/daily/funnel";
 import type { BankTheme } from "@/modules/marathons/daily/taskBank";
 import { MathText } from "@/components/ui/MathText";
+import { MessageTimeline } from "./admin/MessageTimeline";
 import { MarathonBoard } from "./MarathonBoard";
 import { AdminNotices } from "./admin/AdminNotices";
 import { TelegramDayPreview } from "./admin/TelegramDayPreview";
@@ -52,17 +54,204 @@ function publicHref(slug: string): string {
   return absoluteSiteUrl(`/marathon/${encodeURIComponent(slug)}`);
 }
 
+function GearIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8A1.7 1.7 0 0 0 3.2 14H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3.1V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"
+      />
+    </svg>
+  );
+}
+
+function StatusConfirm({
+  id,
+  status,
+  label,
+  confirm,
+  pending,
+  className,
+}: {
+  id: number;
+  status: DailyMarathon["status"];
+  label: string;
+  confirm: string;
+  pending: string;
+  className: string;
+}) {
+  return (
+    <form action={setMarathonStatusAction}>
+      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="status" value={status} />
+      <ConfirmSubmit message={confirm} pendingLabel={pending} className={className}>
+        {label}
+      </ConfirmSubmit>
+    </form>
+  );
+}
+
+function kyivDayLabel(locale: string, isoDate: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+    timeZone: "Europe/Kyiv",
+  }).format(new Date(`${isoDate}T12:00:00Z`));
+}
+
+async function MarathonAdminCard({
+  marathon,
+  stats,
+}: {
+  marathon: DailyMarathon;
+  stats: CardStats | null;
+}) {
+  const t = await getTranslations("Marathon");
+  const locale = await getLocale();
+  const hidden = marathon.status === "draft" || marathon.status === "archived";
+  const focusLabel = !stats
+    ? ""
+    : stats.focus === "today"
+      ? t("cardStatToday")
+      : stats.focus === "last"
+        ? t("cardStatLastDay")
+        : t("cardStatDay", { day: stats.focusDay ?? "—" });
+  return (
+    <li className={css.listItem}>
+      <div className={css.cardHead}>
+        <Link className={css.editorLink} href={`/admin/marathons/${marathon.id}`}>
+          {marathon.title}
+        </Link>
+        <Link
+          className={css.gear}
+          href={`/admin/marathons/${marathon.id}#marathon-settings`}
+          aria-label={t("settings")}
+          title={t("settings")}
+        >
+          <GearIcon />
+        </Link>
+      </div>
+      <p className={css.statusBadge} data-status={marathon.status}>
+        {t(`status.${marathon.status}`)}
+      </p>
+      <MarathonPublicLink href={publicHref(marathon.slug)} draft={hidden} />
+      {stats ? (
+        <dl className={css.cardStats}>
+          <div>
+            <dt>{t("cardStatParticipants")}</dt>
+            <dd>{stats.registered}</dd>
+          </div>
+          <div>
+            <dt>{t("cardStatTelegram")}</dt>
+            <dd>{stats.telegram}</dd>
+          </div>
+          <div>
+            <dt>{focusLabel}</dt>
+            <dd>{stats.focusSubmitted}</dd>
+          </div>
+          <div>
+            <dt>{t("cardStatFinished")}</dt>
+            <dd>{stats.finished}</dd>
+          </div>
+          <div>
+            <dt>{t("cardStatAverage")}</dt>
+            <dd>{stats.avgScore == null ? t("cardStatEmpty") : t("cardStatPercent", { value: stats.avgScore })}</dd>
+          </div>
+          <div>
+            <dt>{t("cardStatCompletion")}</dt>
+            <dd>
+              {stats.completionPercent == null
+                ? t("cardStatEmpty")
+                : t("cardStatPercent", { value: stats.completionPercent })}
+            </dd>
+          </div>
+          <div>
+            <dt>{stats.progress.kind === "start" ? t("cardStatStart") : t("cardStatProgress")}</dt>
+            <dd>
+              {stats.progress.kind === "start"
+                ? kyivDayLabel(locale, stats.progress.date)
+                : t("cardStatDayOf", { current: stats.progress.current, total: stats.progress.total })}
+            </dd>
+          </div>
+          {stats.nextSendAt ? (
+            <div>
+              <dt>{t("cardStatNext")}</dt>
+              <dd>{formatKyivWhen(stats.nextSendAt, locale)}</dd>
+            </div>
+          ) : null}
+        </dl>
+      ) : null}
+      <div className={css.actions}>
+        {marathon.status === "draft" ? (
+          <StatusConfirm
+            id={marathon.id}
+            status="active"
+            label={t("activate")}
+            confirm={t("activateConfirm")}
+            pending={t("saving")}
+            className={css.button}
+          />
+        ) : null}
+        {marathon.status === "active" ? (
+          <StatusConfirm
+            id={marathon.id}
+            status="draft"
+            label={t("deactivate")}
+            confirm={t("deactivateConfirm")}
+            pending={t("saving")}
+            className={css.buttonQuiet}
+          />
+        ) : null}
+        {marathon.status === "archived" ? (
+          <StatusConfirm
+            id={marathon.id}
+            status="draft"
+            label={t("restore")}
+            confirm={t("restoreConfirm")}
+            pending={t("saving")}
+            className={css.button}
+          />
+        ) : (
+          <StatusConfirm
+            id={marathon.id}
+            status="archived"
+            label={t("archive")}
+            confirm={t("archiveConfirm")}
+            pending={t("saving")}
+            className={css.buttonQuiet}
+          />
+        )}
+      </div>
+    </li>
+  );
+}
+
 export async function MarathonAdminList({
   marathons,
+  stats,
   error,
   savedToken,
 }: {
   marathons: DailyMarathon[];
+  stats: Map<number, CardStats>;
   error?: string;
   savedToken?: string;
 }) {
   const t = await getTranslations("Marathon");
   const message = marathonErrorText(t, error);
+  const current = marathons.filter((marathon) => marathon.status !== "archived");
+  const archived = marathons.filter((marathon) => marathon.status === "archived");
+  const cards = (items: DailyMarathon[]) => (
+    <ul className={css.stack}>
+      {items.map((marathon) => (
+        <MarathonAdminCard key={marathon.id} marathon={marathon} stats={stats.get(marathon.id) ?? null} />
+      ))}
+    </ul>
+  );
   return (
     <PageFrame kicker={t("kicker")} title={t("adminTitle")} lead={t("adminLead")}>
       <AdminNotices
@@ -77,19 +266,33 @@ export async function MarathonAdminList({
           </SubmitButton>
         </form>
         <CreateMarathonForm today={kyivDateIso(new Date())} />
-        <ul className={css.stack}>
-          {marathons.map((marathon) => (
-            <li key={marathon.id} className={css.listItem}>
-              <Link className={css.editorLink} href={`/admin/marathons/${marathon.id}`}>
-                {marathon.title} · {t(`status.${marathon.status}`)}
-              </Link>
-              <MarathonPublicLink
-                href={publicHref(marathon.slug)}
-                draft={marathon.status === "draft"}
-              />
-            </li>
-          ))}
-        </ul>
+        {archived.length > 0 ? (
+          <nav className={css.filterRow} aria-label={t("adminTitle")}>
+            <a className={css.filterChip} href="#marathon-current">{t("currentSection")}</a>
+            <a className={css.filterChip} href="#marathon-archive">
+              {t("archiveSection")} · {archived.length}
+            </a>
+          </nav>
+        ) : null}
+        <section className={css.stack} id="marathon-current" aria-labelledby="marathon-current-title">
+          {archived.length > 0 ? (
+            <h2 id="marathon-current-title" className={`${css.sectionHeading} ${css.anchor}`}>
+              {t("currentSection")}
+            </h2>
+          ) : (
+            <h2 id="marathon-current-title" className={css.srOnly}>{t("currentSection")}</h2>
+          )}
+          {current.length === 0 ? <p className={css.meta}>{t("currentEmpty")}</p> : cards(current)}
+        </section>
+        {archived.length > 0 ? (
+          <section className={css.stack} id="marathon-archive" aria-labelledby="marathon-archive-title">
+            <h2 id="marathon-archive-title" className={`${css.sectionHeading} ${css.anchor}`}>
+              {t("archiveSection")}
+            </h2>
+            <p className={css.lead}>{t("archiveLead")}</p>
+            {cards(archived)}
+          </section>
+        ) : null}
       </AdminNotices>
     </PageFrame>
   );
@@ -133,7 +336,22 @@ export async function MarathonAdminEditor({
     loadMarathonBoard(marathon.id),
   ]);
   return (
-    <PageFrame kicker={t("kicker")} title={marathon.title}>
+    <PageFrame
+      kicker={t("kicker")}
+      title={
+        <span className={css.titleRow}>
+          <span>{marathon.title}</span>
+          <Link
+            className={css.gear}
+            href="#marathon-settings"
+            aria-label={t("settings")}
+            title={t("settings")}
+          >
+            <GearIcon />
+          </Link>
+        </span>
+      }
+    >
       <AdminNotices
         key={savedToken ?? "fresh"}
         saved={Boolean(savedToken)}
@@ -143,7 +361,7 @@ export async function MarathonAdminEditor({
         <div className={css.editorTop}>
           <MarathonPublicLink
             href={publicHref(marathon.slug)}
-            draft={marathon.status === "draft"}
+            draft={marathon.status === "draft" || marathon.status === "archived"}
           />
           <MarathonFunnelStrip funnel={funnel} />
         </div>
@@ -158,23 +376,63 @@ export async function MarathonAdminEditor({
             ) : null}
           </div>
         ) : null}
+        <div id="marathon-settings" className={css.anchor}>
         <MarathonSettingsForm
           marathon={marathon}
           riddles={riddles.map((riddle) => ({ id: riddle.id, title: riddle.title }))}
           statusSlot={
             <div className={css.actions}>
-              {(["draft", "active", "finished"] as const).map((status) => (
-                <form key={status} action={setMarathonStatusAction}>
-                  <input type="hidden" name="id" value={marathon.id} />
-                  <input type="hidden" name="status" value={status} />
-                  <SubmitButton
-                    className={status === marathon.status ? css.button : css.buttonQuiet}
-                    pendingLabel={t("saving")}
-                  >
-                    {t(`status.${status}`)}
-                  </SubmitButton>
-                </form>
-              ))}
+              {marathon.status === "archived" ? (
+                <StatusConfirm
+                  id={marathon.id}
+                  status="draft"
+                  label={t("restore")}
+                  confirm={t("restoreConfirm")}
+                  pending={t("saving")}
+                  className={css.button}
+                />
+              ) : (
+                <>
+                  {(["draft", "active", "finished"] as const).map((status) => (
+                    <form key={status} action={setMarathonStatusAction}>
+                      <input type="hidden" name="id" value={marathon.id} />
+                      <input type="hidden" name="status" value={status} />
+                      {status === "active" && marathon.status !== "active" ? (
+                        <ConfirmSubmit
+                          message={t("activateConfirm")}
+                          pendingLabel={t("saving")}
+                          className={css.buttonQuiet}
+                        >
+                          {t(`status.${status}`)}
+                        </ConfirmSubmit>
+                      ) : status === "draft" && marathon.status === "active" ? (
+                        <ConfirmSubmit
+                          message={t("deactivateConfirm")}
+                          pendingLabel={t("saving")}
+                          className={css.buttonQuiet}
+                        >
+                          {t(`status.${status}`)}
+                        </ConfirmSubmit>
+                      ) : (
+                        <SubmitButton
+                          className={status === marathon.status ? css.button : css.buttonQuiet}
+                          pendingLabel={t("saving")}
+                        >
+                          {t(`status.${status}`)}
+                        </SubmitButton>
+                      )}
+                    </form>
+                  ))}
+                  <StatusConfirm
+                    id={marathon.id}
+                    status="archived"
+                    label={t("archive")}
+                    confirm={t("archiveConfirm")}
+                    pending={t("saving")}
+                    className={css.buttonQuiet}
+                  />
+                </>
+              )}
               <form action={deleteMarathonAction}>
                 <input type="hidden" name="id" value={marathon.id} />
                 <ConfirmSubmit
@@ -188,8 +446,10 @@ export async function MarathonAdminEditor({
             </div>
           }
         />
+        </div>
         <CopyEditor marathonId={marathon.id} overrides={copy} />
         <MarathonBoard rows={board} selfId={null} limit={null} titleId="admin-board" />
+        <MessageTimeline marathon={marathon} days={days} />
 
         <section className={css.stack} aria-labelledby="riddles">
           <h2 id="riddles" className={css.anchor}>{t("riddlesTitle")}</h2>

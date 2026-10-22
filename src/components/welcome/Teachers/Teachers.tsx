@@ -1,19 +1,28 @@
 import { getTranslations } from "next-intl/server";
 import { avatarSrc, userInitials } from "@/modules/auth/client";
 import { listPublicTeachersForLanding } from "@/modules/teachers";
+import type {
+  TeacherLandingCard,
+  TeacherLevel,
+  TeachingLanguage,
+} from "@/modules/teachers/types";
 import { TEACHER_OFFER_IDS } from "./offerFeatures";
 import { TeachersPanel, type LandingTeacherCard } from "./TeachersPanel";
 
-function splitBio(bio: string): { lead: string; rest: string } {
-  const trimmed = bio.trim();
-  if (!trimmed) return { lead: "", rest: "" };
-  const parts = trimmed.split(/(?<=[.!?…])\s+/);
-  if (parts.length <= 1) return { lead: trimmed, rest: "" };
-  return { lead: parts[0]!, rest: parts.slice(1).join(" ") };
+const MYKHAILO_PHOTO = "/landing/teachers/mykhailo-maksymov.webp";
+
+function landingPhoto(name: string, avatar: string | null): string | null {
+  if (/максим|maksym/i.test(name)) return MYKHAILO_PHOTO;
+  return avatar;
+}
+
+function placeLine(city: string, country: string): string {
+  return [city, country].filter((part) => part.trim()).join(", ");
 }
 
 export async function Teachers() {
   const t = await getTranslations("WelcomeLanding.teachers");
+  const cardT = await getTranslations("TeacherPublicCard");
   let profiles: Awaited<ReturnType<typeof listPublicTeachersForLanding>> = [];
   try {
     profiles = await listPublicTeachersForLanding();
@@ -21,41 +30,49 @@ export async function Teachers() {
     console.error("welcome: listPublicTeachersForLanding failed", error);
   }
 
-  const fromDb: LandingTeacherCard[] = profiles.map((profile) => {
-    const bio = splitBio(profile.bio || profile.headline);
-    return {
-      id: profile.slug,
-      photoSrc: avatarSrc({ id: profile.userId, avatarRev: profile.avatarRev }),
-      initials: userInitials(profile.displayName),
-      name: profile.displayName,
-      subject:
-        profile.subjects.length > 0
-          ? profile.subjects.join(" · ")
-          : profile.headline || profile.city || "—",
-      education: profile.city || "",
-      experience: profile.experience || "",
-      bioLead: bio.lead || profile.headline || "—",
-      bioRest: bio.rest || profile.publications || "",
-      rating: 0,
-      reviewCount: profile.studentCount,
-    };
+  const levelLabel = (level: TeacherLevel) => cardT(`levels.${level}`);
+  const languageLabel = (language: TeachingLanguage) =>
+    cardT(`languages.${language}`);
+
+  const toCard = (profile: TeacherLandingCard): LandingTeacherCard => ({
+    id: profile.slug,
+    photoSrc: landingPhoto(
+      profile.displayName,
+      avatarSrc({ id: profile.userId, avatarRev: profile.avatarRev }),
+    ),
+    initials: userInitials(profile.displayName),
+    name: profile.displayName,
+    subjects: profile.subjects,
+    city: placeLine(profile.city, profile.country),
+    experience: profile.experience,
+    languages: profile.teachingLanguages.map(languageLabel).join(", "),
+    levels: profile.teachingLevels.map(levelLabel),
+    headline: profile.headline,
+    bio: profile.bio,
+    publications: profile.publications,
+    studentCount: profile.studentCount,
   });
 
   const demoTeacher: LandingTeacherCard = {
     id: "demo",
-    photoSrc: null,
+    photoSrc: MYKHAILO_PHOTO,
     initials: t("demo.initials"),
     name: t("demo.name"),
-    subject: t("demo.subjects"),
-    education: t("demo.city"),
+    subjects: t("demo.subjects")
+      .split(" · ")
+      .map((subject) => subject.trim())
+      .filter(Boolean),
+    city: t("demo.city"),
     experience: t("demo.experience"),
-    bioLead: t("demo.headline"),
-    bioRest: [t("demo.bio"), t("demo.publications")].filter(Boolean).join(" "),
-    rating: 0,
-    reviewCount: 0,
+    languages: "",
+    levels: [],
+    headline: t("demo.headline"),
+    bio: t("demo.bio"),
+    publications: t("demo.publications"),
+    studentCount: 0,
   };
 
-  const teachers = fromDb.length > 0 ? fromDb : [demoTeacher];
+  const teachers = profiles.length > 0 ? profiles.map(toCard) : [demoTeacher];
 
   const features = TEACHER_OFFER_IDS.map((id) => ({
     id,
@@ -72,9 +89,15 @@ export async function Teachers() {
         title: t("title"),
         lead: t("lead"),
         verified: t("verified"),
-        education: t("city"),
+        city: t("city"),
         experience: t("experience"),
+        languages: cardT("teachingLanguages"),
+        levels: cardT("teachingLevels"),
         reviews: t.raw("reviews") as string,
+        about: cardT("about"),
+        publications: cardT("publications"),
+        readMore: cardT("readMore"),
+        showLess: cardT("showLess"),
         empty: t("empty"),
         carouselAria: t("carouselAria"),
         prev: t("prev"),
@@ -83,6 +106,7 @@ export async function Teachers() {
         offerTitle: t("offerTitle"),
         offerLead: t("offerLead"),
         joinCta: t("joinCta"),
+        stub: t("stub"),
       }}
     />
   );

@@ -9,7 +9,7 @@
     "showMenu": "Show menu",
     "goHome": "About the site",
     "goHomeShort": "About",
-    "tagline": "mathematics · practice · progress",
+    "tagline": "Level up your knowledge",
     "logout": "log out",
     "openAccount": "Personal account: {name}",
     "roles": {
@@ -17,7 +17,7 @@
       "teacher": "Teacher",
       "admin": "Admin"
     },
-    "siteName": "NMT Preparation"
+    "siteName": "LevelUP"
   },
   "Notifications": {
     "bell": "Notifications",
@@ -72,6 +72,10 @@
     "telegramLoading": "Creating link...",
     "telegramOpen": "Open Telegram to connect",
     "telegramError": "Could not create a Telegram link. Try again.",
+    "telegramUnlink": "Unlink Telegram",
+    "telegramUnlinkConfirm": "Unlink Telegram? The bot will stop writing to this chat. Marathon progress stays. You can connect another account afterwards.",
+    "telegramUnlinkPending": "Unlinking…",
+    "telegramUnlinkError": "Could not unlink Telegram. Try again.",
     "notificationsTitle": "Notification settings",
     "notificationsLead": "The site bell stays on. Here you choose email and Telegram for each category.",
     "notificationsSave": "Save notifications",
@@ -900,6 +904,9 @@
     "botJoined": "Telegram connected",
     "botNotJoined": "Telegram not connected",
     "linkBot": "Link Telegram",
+    "unlinkBot": "Unlink Telegram",
+    "unlinkBotConfirm": "Unlink Telegram? The bot will stop writing to this chat. Marathon progress stays. You can connect another account afterwards.",
+    "unlinkBotPending": "Unlinking…",
     "botOff": "The bot is not configured yet.",
     "materialsTitle": "Materials",
     "toTasks": "To the tasks",
@@ -917,6 +924,10 @@
     "introContinue": "Continue",
     "introAgain": "Rules",
     "homeTitle": "Active marathons",
+    "homeLead": "Interesting marathons on different topics keep appearing. You can take them even from your phone — in the bot or right on the site.",
+    "homeMarathon": "Marathon",
+    "homeBoard": "Leaderboard",
+    "homeDay": "Day {current} of {total}",
     "homeJoin": "Join",
     "homeContinue": "Continue",
     "shelfLead": "These courses are running now. Join one if you are not in it yet. If you already joined, open the description: rules, days, and where to take it.",
@@ -949,6 +960,33 @@
     "create": "New marathon",
     "delete": "Delete",
     "deleteConfirm": "Delete permanently?",
+    "settings": "Settings",
+    "activate": "Activate",
+    "activateConfirm": "Activate this marathon? If it is ready, the invitation is sent once.",
+    "deactivate": "Deactivate",
+    "deactivateConfirm": "Deactivate? The course becomes a draft. Participants and scores stay.",
+    "archive": "Archive",
+    "archiveConfirm": "Move to the archive? The course leaves active lists, signup and the bot. Planned messages will not go out. Scores stay on the leaderboard.",
+    "restore": "Restore from archive",
+    "restoreConfirm": "Restore from the archive? The course becomes a draft. Messages stay off until you activate it again. Scores stay.",
+    "currentSection": "Current",
+    "archiveSection": "Archive",
+    "currentEmpty": "No current marathons.",
+    "archiveLead": "Hidden from signup and sends. Scores stay in Overall and on this course’s board.",
+    "cardStatParticipants": "Registered",
+    "cardStatTelegram": "Telegram",
+    "cardStatToday": "Today",
+    "cardStatLastDay": "Last day",
+    "cardStatDay": "Day {day}",
+    "cardStatFinished": "Finished",
+    "cardStatAverage": "Average",
+    "cardStatCompletion": "Completed",
+    "cardStatPercent": "{value}%",
+    "cardStatProgress": "Course day",
+    "cardStatStart": "Start",
+    "cardStatDayOf": "{current} of {total}",
+    "cardStatNext": "Next",
+    "cardStatEmpty": "—",
     "addRiddle": "Add a riddle",
     "addDay": "Add a day",
     "addMaterial": "Add material",
@@ -1205,19 +1243,23 @@
     },
     "copy": {
       "title": "Participant texts",
-      "lead": "An empty field is not saved. Reset restores the Ukrainian default. The preview fills in a sample.",
+      "lead": "An empty field is not saved. Reset restores the Ukrainian default. The preview fills in a sample. Email and Telegram share the opening, reminder, preview and final templates. Groups start collapsed; search is at the top.",
       "preview": "Preview",
       "reset": "Reset to default",
       "tooLong": "After substitution the text is longer than Telegram’s limit ({limit} characters). The bot splits long materials, but this template must fit in one message.",
       "buttonLong": "The button label is longer than {limit} characters — Telegram will reject it.",
       "placeholdersHint": "Placeholders in curly braces: name, day, topic, unlock_time, link, place, prev_place, delta, total, title, start_date.",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Key, label or text",
+      "searchEmpty": "Nothing matches.",
+      "groupStats": "{total} · custom {custom} · default {plain}",
       "groups": {
-        "intro": "Intro",
-        "day": "Day review",
-        "final": "Summary",
-        "notify": "Email and notifications",
-        "rank": "Place",
-        "channel": "Channel choice",
+        "register": "Registration",
+        "intro": "Intro and rules",
+        "day": "Day",
+        "remind": "Reminders and missed days",
+        "rank": "Leaderboard",
+        "final": "Finish",
         "bot": "Telegram"
       },
       "labels": {
@@ -1254,7 +1296,8 @@
     "status": {
       "draft": "Draft",
       "active": "Active",
-      "finished": "Finished"
+      "finished": "Finished",
+      "archived": "Archived"
     },
     "errors": {
       "closed": "This marathon is not accepting participants.",
@@ -1294,6 +1337,7 @@
     "pickerLabel": "Marathon",
     "allMarathons": "Overall",
     "statusFinished": "finished",
+    "statusArchived": "archived",
     "openMarathon": "Open the marathon",
     "joinTitle": "Join",
     "joinLead": "After you join, only completed sessions that started after you joined and fall inside the marathon dates count.",
@@ -1494,15 +1538,26 @@
       "cabinet": "Workspace"
     },
     "hero": {
-      "badge": "NMT 2027 · mathematics",
-      "titleStart": "Prepare for the NMT in maths —",
-      "titleAccent": "systematically, with results",
-      "lead": "An online workspace that shows your weak topics, trains you in exam format and gives a clear plan for the next steps. No scattered PDFs, no random tests.",
+      "titleStart": "Prepare for the NMT in maths",
+      "titleAccent": "without stress",
+      "titleEnd": "or cramming",
+      "lead": "Solve real NMT problems, get instant hints with the mathematical reasoning, review your mistakes and raise your score every day.",
       "diagnosticPrompt": "Not sure where to start? Check your level",
-      "ctaDiagnostic": "Test your knowledge",
+      "ctaDiagnostic": "Take the diagnostic",
       "diagnosticHint": "A short test, no sign-up needed. Find out your level and your strong and weak topics, and get recommendations for what to study next.",
       "note": "Sign up in a minute — no card, no payment",
-      "imageAlt": "Illustration: a function graph, a progress ring and geometric shapes",
+      "demo": {
+        "kicker": "Demo problem 1",
+        "meta": "Algebra · 1 point",
+        "topic": "Logarithm problem:",
+        "prompt": "Evaluate the expression:",
+        "optionA": "A) 5",
+        "optionB": "B) 7",
+        "optionC": "C) 12",
+        "optionD": "D) 43",
+        "backA": "Demo problem 2 · Geometry",
+        "backB": "Demo problem 3 · Percentages"
+      },
       "stats": {
         "topics": {
           "value": "20+",
@@ -1516,22 +1571,18 @@
           "value": "1",
           "label": "topic-based textbook"
         }
-      },
-      "chipA": {
-        "title": "Topic progress",
-        "text": "Functions — 78% correct"
-      },
-      "chipB": {
-        "title": "NMT simulator",
-        "text": "Paper · 60 minutes"
       }
     },
     "features": {
       "kicker": "Features",
-      "title": "Everything you need for regular practice in one place",
-      "lead": "From your first topic test to a full exam simulation.",
-      "imageAlt": "A student surrounded by tossed notebooks and math textbooks",
+      "title": "Everything for regular practice — <accent>in one workspace</accent>",
+      "lead": "From your first topic test and a daily marathon to a full exam simulation.",
+      "imageAlt": "The platform mascot among the workspace features",
       "items": {
+        "marathon": {
+          "title": "Marathon",
+          "text": "A new lesson every day: a short explanation, tasks, and your place on the board. Take it on the site or in Telegram, from the first day to the finish."
+        },
         "topics": {
           "title": "Topic tests",
           "text": "Pick a topic and how many tasks to run — then practise right away. Every question comes with an explanation."
@@ -1539,10 +1590,6 @@
         "simulator": {
           "title": "NMT simulator",
           "text": "Official papers in the UCEQA format with a timer and scoring — a full exam rehearsal."
-        },
-        "materials": {
-          "title": "Textbook",
-          "text": "Theory and formulas by certification topics — one textbook with a table of contents."
         },
         "results": {
           "title": "Results and analytics",
@@ -1611,9 +1658,10 @@
     },
     "teachers": {
       "kicker": "Teachers",
-      "title": "Teachers on our platform",
-      "lead": "Public teacher cards: experience, bio, and student count.",
-      "verified": "Verified tutor",
+      "title": "Learn with verified specialists",
+      "lead": "Pick a teacher, see open hours and agree on a lesson when you want to work through topics with a mentor.",
+      "stub": "This could be your visiting card — join the platform",
+      "verified": "Verified teacher",
       "city": "City",
       "education": "Education",
       "experience": "Experience",
@@ -1712,10 +1760,6 @@
           "name": "Nataliia",
           "role": "Project Coordinator"
         },
-        "oleksandr": {
-          "name": "Oleksandr Verba",
-          "role": "Fullstack Developer"
-        },
         "anton": {
           "name": "Anton",
           "role": "Fullstack Developer"
@@ -1741,10 +1785,10 @@
           "role": "Fullstack Developer"
         }
       },
-      "agencyName": "JOJØ",
-      "agencyTaglineJoin": "Join.",
-      "agencyTaglineRest": "Journey to web workflow",
-      "agencyLogoAlt": "JOJØ logo"
+      "agencyName": "Новий Рівень",
+      "agencyTaglineJoin": "A level higher.",
+      "agencyTaglineRest": "The LevelUP product team",
+      "agencyLogoAlt": "Новий Рівень team logo"
     },
     "footer": {
       "tagline": "Online NMT maths preparation: topic tests, result analytics, an exam simulator and learning sessions with a teacher.",
@@ -2091,6 +2135,10 @@
       "title": "Confirm your email",
       "description": "Check your inbox to confirm your nmt.in.ua account."
     },
+    "keepAccount": {
+      "title": "Keep your account",
+      "description": "Cancel a scheduled deletion of an nmt.in.ua account."
+    },
     "verifyEmail": {
       "title": "Email confirmation",
       "description": "Confirm your email to sign in to the learning workspace."
@@ -2264,9 +2312,6 @@
     "you": "you",
     "online": "online",
     "offline": "offline",
-    "presenceJustNow": "last seen less than a minute ago",
-    "presenceAgoMinutes": "last seen {count} min ago",
-    "presenceAgoHours": "last seen {count} h ago",
     "never": "never signed in",
     "entryPointsTitle": "Sign-in points",
     "entryPointsLead": "Recent sign-ins. When the address was not stored, the IP column shows —.",
@@ -2290,15 +2335,25 @@
     "unban": "Unban",
     "banConfirm": "Ban account “{name}”?",
     "unbanConfirm": "Unban account “{name}”?",
-    "delete": "Delete",
-    "deleteConfirm": "Delete account “{name}”? This cannot be undone.",
+    "delete": "Delete account",
+    "deleteConfirm": "Delete account “{name}”? A normal account gets an email and 14 days to keep it. A banned account is removed immediately.",
+    "deletionScheduled": "Deletion scheduled for {date}",
+    "cancelDeletion": "Cancel deletion",
+    "cancelDeletionConfirm": "Cancel deletion of “{name}”?",
+    "telegramLinked": "Telegram connected",
+    "unlinkTelegram": "Unlink Telegram",
+    "unlinkTelegramConfirm": "Unlink Telegram from “{name}”? Marathon progress stays.",
     "selfLocked": "This is your account — actions are unavailable.",
     "protectedLocked": "Demo accounts are protected.",
     "success": {
       "ban": "Account {name} has been banned.",
       "unban": "Account {name} has been unbanned.",
       "delete": "Account {name} has been deleted.",
-      "promote": "Account {name} now has the full cabinet."
+      "schedule": "Deletion of {name} is scheduled for {date}. The email was sent.",
+      "scheduleMailFailed": "Deletion of {name} is scheduled for {date}. The email was not sent.",
+      "cancelDeletion": "Deletion of {name} was cancelled.",
+      "promote": "Account {name} now has the full cabinet.",
+      "unlinkTelegram": "Telegram was unlinked from {name}."
     },
     "errors": {
       "invalid_input": "Invalid data.",
@@ -2348,6 +2403,14 @@
       "used": "This link was already used.",
       "generic": "Could not confirm the email. Try again."
     }
+  },
+  "KeepAccount": {
+    "kicker": "Account",
+    "title": "Account kept",
+    "success": "Deletion was cancelled. You can sign in as before.",
+    "invalidTitle": "This link did not work",
+    "invalid": "The link is invalid or already used. Signing in also cancels deletion.",
+    "goToLogin": "Sign in"
   },
   "ForgotPassword": {
     "kicker": "Password",

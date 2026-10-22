@@ -28,25 +28,19 @@ export async function WelcomeLanding() {
   const t = await getTranslations("Common");
   const home = await loadMarathonHomeState({ userId: null, role: null }).catch((error: unknown) => {
     console.error("marathon home", error);
-    return { cards: [], invites: [] };
+    return { cards: [], invites: [], spotlight: null };
   });
 
   return (
     <div className={css.page}>
       <SkipLink label={t("skipToContent")} />
       <JsonLd data={structuredData} />
-      <div className={css.decor} aria-hidden>
-        <span className={css.decorGrid} />
-        <span className={css.decorOrbA} />
-        <span className={css.decorOrbB} />
-        <span className={css.decorOrbC} />
-      </div>
 
       <div className={css.shell}>
         <LandingHeader />
         <main id="main-content" tabIndex={-1}>
           <Hero />
-          <MarathonHomeCards cards={home.cards} signedIn={false} bleed />
+          <MarathonHomeCards cards={home.cards} spotlight={home.spotlight} signedIn={false} bleed />
           <Features />
           <Teachers />
           <Faq />

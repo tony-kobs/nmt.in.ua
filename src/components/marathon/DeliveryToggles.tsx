@@ -1,5 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { linkBotAction, setChannelAction } from "@/modules/marathons/daily/actions";
+import { unlinkTelegramFormAction } from "@/modules/telegram/actions";
+import { ConfirmSubmit } from "./ConfirmSubmit";
 import css from "./marathon.module.css";
 
 export async function DeliveryToggles({
@@ -24,12 +26,24 @@ export async function DeliveryToggles({
     <div className={css.stack}>
       <p className={css.lead}>{prompt}</p>
       {telegramLinked ? (
-        <p className={css.badgeOn}>
-          {t("botJoined")}
-          {telegramUsername ? (
-            <span translate="no">{` @${telegramUsername}`}</span>
-          ) : null}
-        </p>
+        <div className={css.linkStatus}>
+          <p className={css.badgeOn}>
+            {t("botJoined")}
+            {telegramUsername ? (
+              <span translate="no">{` @${telegramUsername}`}</span>
+            ) : null}
+          </p>
+          <form action={unlinkTelegramFormAction}>
+            <input type="hidden" name="slug" value={slug} />
+            <ConfirmSubmit
+              message={t("unlinkBotConfirm")}
+              pendingLabel={t("unlinkBotPending")}
+              className={css.buttonQuiet}
+            >
+              {t("unlinkBot")}
+            </ConfirmSubmit>
+          </form>
+        </div>
       ) : (
         <div className={css.linkStatus}>
           <p className={css.meta}>{t("botNotJoined")}</p>
