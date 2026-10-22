@@ -3,6 +3,17 @@
 Опис pull request — єдине місце, де це пишуть. Після мерджу в `dev` звідси оновлюється блок «Останні зміни» в [гіді](./nmt-in-ua-onboarding-dev.md). Рядки для учня і викладача збираються в новини, коли реліз потрапляє в `main`. Посилання на скрінкаст з’являється лише після галочки «схвалено показувати».
 
 <!-- changelog:entries -->
+### 2026-10-22 — fix: ім’я і позначка на екрані каналу бота (#238)
+
+- Для команди: Екран «Змінити канал» (`mh:ch`) підставляє `{name}` у `channel_prompt`. Увімкнений лист і Telegram позначені «✓» на кнопках («✓ На сайті», «✓ В Telegram»); обидва можуть лишатися увімкненими. Після вибору бот підтверджує позначений канал і показує кнопки з оновленими позначками. Інші тексти бота теж ідуть через `renderResolved`, тож відомий плейсхолдер не лишається сирим. Тест рендерить кожен шаблон зі зразком і проходить екрани бота. Міграції немає. Перевірки: `npm test` 1447 pass / 0 fail / 3 skipped, `npx tsc --noEmit`, eslint по змінених файлах, `npm run build` (Next 16.3.3).
+- Для людей: У боті на «Змінити канал» видно ім’я, а увімкнений канал позначений галочкою. Після зміни бот підтверджує вибір.
+- Скрінкаст: не потрібен
+- Запис: —
+- Схвалено: ні
+- Автор: groteskzp
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/238
+<!-- released: no -->
+
 ### 2026-10-22 — feat: пульс крону розсилки марафону (#234)
 
 - Для команди: Успішний `POST /api/marathon/notifications/process` пише час і лічильники планувальника в `marathon_cron_heartbeat`. Якщо планування впало (відповідь 500), час не оновлюється. Збій запису пульсу не ламає саму розсилку. `GET /api/marathon/notifications/health` з тим самим `Authorization: Bearer <MARATHON_CRON_SECRET>`. Без секрету — 401 і порожнє тіло. Успіх, `cache-control: no-store`: ```json { "lastRunAt": "2026-10-26T06:10:00.000Z", "ageMinutes": 8, "ok": true, "lastCounts": { "processed": 4, "sent": 3, "failed": 1 }, "pendingOutbox": 0, "failedLast24h": 1 } ``` `ok` — true, коли останній успішний запуск не старіший за 25 хвилин (крон кожні 10). Немає запуску: `lastRunAt`, `ageMinutes` і `lastCounts` — null, `ok` — false. `processed` — сума sent + skipped + failed цього тіку. `pendingOutbox` — черга Telegram зі статусом pending. `failedLast24h` — зірвані за 24 години рядки черги Telegram, черги повідомлень і `marathon_notifications` з outcome failed. На `/admin/marathons` зверху пілюля: зелена «Крон працює» або рожева «Крон мовчить» / «ще не запускався». Міграція `scripts/sql/050_marathon_cron_heartbeat.sql`. Перед продом потрібен бекап бази. Та сама таблиця створюється ліниво в `migrateDailyMarathon`. Перевірки: `npm test` 1442 pass / 0 fail / 3 skipped, `npx tsc --noEmit`, eslint по змінених файлах, `npm run build` (Next 16.3.3).
