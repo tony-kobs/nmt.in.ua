@@ -65,7 +65,7 @@
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
-  box-shadow: 0 10px 22px rgb(17 83 42 / 24%);
+  box-shadow: 0 10px 22px rgb(12 90 84 / 24%);
 }
 
 .joinBtn:disabled {
@@ -92,7 +92,7 @@
 .monitorBanner {
   margin: 0;
   padding: var(--space-sm) var(--space-md);
-  border: 1px dashed rgb(31 143 69 / 35%);
+  border: 1px dashed rgb(15 118 110 / 35%);
   border-radius: var(--radius-lg);
   background: var(--green-bg);
   color: var(--green-dark);
@@ -109,7 +109,7 @@
 }
 
 .cardRoster {
-  border-color: rgb(31 143 69 / 40%);
+  border-color: rgb(15 118 110 / 40%);
 }
 
 .rowRoster {
@@ -179,7 +179,7 @@
 }
 
 .cardSelf {
-  border-color: rgb(31 143 69 / 45%);
+  border-color: rgb(15 118 110 / 45%);
   box-shadow: var(--shadow-md);
 }
 
@@ -272,3 +272,4 @@
     display: block;
   }
 }
+

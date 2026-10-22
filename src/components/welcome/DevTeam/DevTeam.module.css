@@ -18,8 +18,8 @@
   padding: 8px 4px;
   border: 0;
   background: transparent;
-  color: var(--green-dark);
-  font-family: var(--font);
+  color: var(--ink);
+  font-family: var(--font-display);
   font-size: var(--fs-body);
   font-weight: 700;
   cursor: pointer;
@@ -30,7 +30,7 @@
 
 .toggle:hover,
 .toggle:focus-visible {
-  color: var(--ink);
+  color: var(--green-dark);
 }
 
 .chevron,
@@ -53,26 +53,11 @@
 
 .head {
   display: grid;
+  justify-items: center;
   gap: var(--space-sm);
-  max-width: 46rem;
+  max-width: 40rem;
   margin-inline: auto;
   text-align: center;
-}
-
-.kicker {
-  display: inline-flex;
-  justify-self: center;
-  align-items: center;
-  min-height: 28px;
-  padding: 0 12px;
-  border: 1px solid rgb(31 143 69 / 22%);
-  border-radius: var(--radius-pill);
-  background: var(--green-bg);
-  color: var(--green-dark);
-  font-size: var(--fs-kicker);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .title {
@@ -155,8 +140,7 @@
 .marqueeItem {
   display: flex;
   flex: none;
-  /* 22rem @ 1440px, пропорційно вужче на менших бендах */
-  width: min(88vw, calc(22rem * 375 / 1440));
+  width: min(82vw, 17.5rem);
   height: 100%;
   pointer-events: none;
 }
@@ -173,36 +157,23 @@
   min-height: 0;
   height: 100%;
   padding: var(--space-sm) var(--space-md);
-  border: 1px solid rgb(31 143 69 / 30%);
-  border-radius: var(--radius-xl);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   background:
-    radial-gradient(circle at 10% 30%, rgb(31 143 69 / 18%), transparent 40%),
-    radial-gradient(circle at 90% 80%, rgb(201 162 39 / 14%), transparent 38%),
-    radial-gradient(circle at 50% 110%, rgb(31 143 69 / 10%), transparent 45%),
-    linear-gradient(
-      145deg,
-      rgb(253 251 244 / 96%),
-      rgb(31 143 69 / 7%) 48%,
-      rgb(253 251 244 / 92%)
-    ),
-    var(--grad-glass);
-  box-shadow: var(--shadow-md);
-  backdrop-filter: blur(14px);
+    linear-gradient(115deg, rgb(213 237 217 / 78%), var(--surface) 62%),
+    var(--surface);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
 .agencyLogo {
-  width: clamp(3.8rem, 9.5vw, 5.25rem);
-  height: auto;
-  aspect-ratio: 1;
-  max-height: 100%;
+  display: block;
+  flex: none;
+  width: 4.5rem;
+  height: 4.5rem;
   border-radius: var(--radius-lg);
   object-fit: cover;
-  background: var(--surface);
-  box-shadow:
-    0 12px 28px rgb(58 44 18 / 14%),
-    0 0 0 1px rgb(31 143 69 / 14%);
-  transform: rotate(-1.5deg);
+  box-shadow: var(--shadow-sm);
 }
 
 .agencyCopy {
@@ -213,12 +184,12 @@
 
 .agencyName {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-team), var(--font-display);
   font-size: clamp(1.35rem, 2.8vw, 2rem);
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: -0.04em;
   line-height: 1.05;
-  color: var(--green-dark);
+  color: var(--ink);
   text-wrap: balance;
 }
 
@@ -248,8 +219,8 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-xl);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: var(--shadow-md);
 }
@@ -260,8 +231,8 @@
   min-height: 0;
   overflow: hidden;
   background:
-    radial-gradient(circle at 30% 20%, rgb(253 251 244 / 55%), transparent 55%),
-    var(--grad-mint);
+    linear-gradient(165deg, var(--sticker-mint), var(--paper) 58%, var(--sticker-sun)),
+    var(--surface);
 }
 
 .photoImg {
@@ -292,8 +263,16 @@
   gap: var(--space-2xs);
   flex: 3 1 0;
   min-height: 0;
-  padding: var(--space-sm) var(--space-sm) var(--space-md);
+  padding: var(--space-md) var(--space-sm);
   text-align: center;
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(90% 80% at 50% 0%, rgb(164 245 46 / 28%), transparent 70%),
+    radial-gradient(80% 90% at 100% 100%, rgb(46 196 182 / 20%), transparent 62%),
+    linear-gradient(rgb(17 94 89 / 7%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(17 94 89 / 7%) 1px, transparent 1px);
+  background-size: auto, auto, 16px 16px, 16px 16px;
+  box-shadow: inset 0 1px 0 rgb(253 251 244 / 90%);
 }
 
 .name {
@@ -303,7 +282,7 @@
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.02em;
-  color: var(--green-dark);
+  color: var(--ink);
   text-wrap: balance;
 }
 
@@ -329,9 +308,9 @@
   place-items: center;
   width: 44px;
   height: 44px;
-  border: 1px solid rgb(31 143 69 / 28%);
+  border: 1px solid var(--line);
   border-radius: 50%;
-  background: var(--green-bg);
+  background: var(--surface);
   color: var(--green-dark);
   transition:
     transform var(--t) var(--ease),
@@ -346,9 +325,8 @@
 
 .socialLink:hover,
 .socialLink:focus-visible {
-  transform: translateY(-1px);
-  background: var(--grad-brand);
-  color: #f6f1e2;
+  background: var(--green);
+  color: var(--on-accent);
 }
 
 .openings {
@@ -359,10 +337,10 @@
   min-width: 0;
   height: 100%;
   padding: var(--space-md);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-xl);
-  background: rgb(253 251 244 / 72%);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
   text-align: start;
 }
 
@@ -399,9 +377,34 @@
   gap: 4px;
   flex: 0 0 auto;
   padding: var(--space-sm);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+}
+
+.openingCard:nth-child(1) {
+  background: var(--sticker-mint);
+  box-shadow: inset 3px 0 0 var(--green);
+}
+
+.openingCard:nth-child(2) {
+  background: var(--sticker-sky);
+  box-shadow: inset 3px 0 0 var(--green-bright);
+}
+
+.openingCard:nth-child(3) {
+  background: var(--sticker-lilac);
+  box-shadow: inset 3px 0 0 var(--ultimate);
+}
+
+.openingCard:nth-child(4) {
+  background: var(--sticker-sun);
+  box-shadow: inset 3px 0 0 var(--orange);
+}
+
+.openingCard:nth-child(5) {
+  background: var(--sticker-peach);
+  box-shadow: inset 3px 0 0 var(--orange-dark);
 }
 
 .openingTitle {
@@ -435,7 +438,7 @@
   }
 
   .marqueeItem {
-    width: calc(22rem * 768 / 1440);
+    width: max(16rem, calc(22rem * 768 / 1440));
     height: 100%;
   }
 
@@ -458,7 +461,8 @@
   }
 
   .agencyLogo {
-    width: 4.75rem;
+    width: 4.5rem;
+    height: 4.5rem;
   }
 }
 
@@ -480,3 +484,4 @@
     transform: rotate(180deg);
   }
 }
+

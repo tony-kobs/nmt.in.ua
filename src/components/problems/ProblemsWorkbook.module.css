@@ -45,7 +45,7 @@
 }
 
 .ghostActive {
-  border-color: rgb(31 143 69 / 40%);
+  border-color: rgb(15 118 110 / 40%);
   background: var(--grad-mint);
   color: var(--green-dark);
 }
@@ -166,3 +166,4 @@
     background: var(--green-bg);
   }
 }
+

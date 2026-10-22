@@ -40,7 +40,6 @@ export async function Faq() {
 
           <div className={css.content}>
             <Reveal className={css.head}>
-              <p className={`${landing.kicker} ${css.kicker}`}>{t("kicker")}</p>
               <h2 id="faq-title" className={landing.sectionTitle}>
                 {t("title")}
               </h2>

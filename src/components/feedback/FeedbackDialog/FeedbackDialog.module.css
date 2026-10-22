@@ -162,7 +162,7 @@
   border: 0;
   background: var(--grad-brand);
   color: #fdfbf4;
-  box-shadow: 0 12px 26px rgb(17 83 42 / 28%);
+  box-shadow: 0 12px 26px rgb(12 90 84 / 28%);
 }
 
 .submit:disabled,
@@ -224,7 +224,7 @@
 
 .sidebarTrigger:hover,
 .sidebarTrigger:focus-visible {
-  border-color: rgb(31 143 69 / 40%);
+  border-color: rgb(15 118 110 / 40%);
   background: var(--green-hover);
 }
 
@@ -244,3 +244,4 @@
     transition: none;
   }
 }
+

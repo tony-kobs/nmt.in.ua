@@ -1,5 +1,6 @@
 .section {
   padding-block: var(--space-xl) var(--section-y);
+  scroll-margin-top: 5.5rem;
 }
 
 .inset {
@@ -12,49 +13,120 @@
   padding-inline: var(--container-pad);
 }
 
-.title {
-  margin: 0 0 var(--space-lg);
-  font-family: var(--font-display);
-  font-size: var(--fs-h2);
+.intro {
+  max-width: 40rem;
+  margin-bottom: var(--space-lg);
+  padding-inline-end: 1.4rem;
 }
 
-.list {
+.title {
+  margin: 0 0 var(--space-sm);
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
+  text-align: start;
+}
+
+.lead {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-body);
+  text-align: start;
+}
+
+.wood {
+  padding: 0.55rem;
+  border-radius: calc(var(--radius-xl) + 8px);
+  background:
+    linear-gradient(165deg, #c4a57a 0%, #8a6244 22%, #5c3d28 62%, #3a2618 100%);
+  box-shadow:
+    0 18px 40px rgb(58 44 18 / 16%),
+    inset 0 1px 0 rgb(255 236 210 / 40%);
+}
+
+.slate {
+  padding: var(--space-md);
+  border-radius: var(--radius-xl);
+  background-color: #1a332c;
+  background-image: url("/landing/chalkboard.webp");
+  background-position: center;
+  background-size: cover;
+  box-shadow:
+    inset 0 0 0 1px rgb(246 241 226 / 16%),
+    inset 0 0 48px rgb(0 0 0 / 32%);
+}
+
+.panels {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-md);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  align-items: stretch;
 }
 
-.card {
+.panel {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
   min-width: 0;
-  height: 100%;
-  padding: var(--space-lg);
-  background-color: var(--surface);
-  background-image: var(--grad-glass);
-  border: 1px solid var(--line);
+  padding: var(--space-md);
+  border: 1px solid rgb(246 241 226 / 32%);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  background: #17382f;
+  color: #f6f1e2;
+  box-shadow:
+    inset 0 1px 0 rgb(246 241 226 / 16%),
+    0 12px 28px rgb(0 0 0 / 22%);
 }
 
-.cardTitle {
+.kicker,
+.marathonTitle {
+  text-shadow: none;
+}
+
+.kicker {
+  margin: 0;
+  color: rgb(246 241 226 / 78%);
+  font-family: var(--font-display);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
+.marathonTitle {
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-h3);
+  line-height: 1.2;
 }
 
-.description {
+.marathonText {
   margin: 0;
-  color: var(--muted);
+  color: rgb(246 241 226 / 86%);
   font-size: var(--fs-body);
 }
 
+.coverFrame {
+  overflow: hidden;
+  border: 1px solid rgb(246 241 226 / 24%);
+  border-radius: var(--radius-md);
+  background: #10241e;
+}
+
+.cover {
+  display: block;
+  width: 100%;
+  height: 8.5rem;
+  object-fit: cover;
+  object-position: center 42%;
+}
+
+.day {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-h4);
+  font-weight: 700;
+}
+
 .actions {
-  margin-top: auto;
+  margin-top: var(--space-2xs);
 }
 
 .button {
@@ -77,6 +149,77 @@
 .button:focus-visible {
   outline: none;
   box-shadow: var(--ring);
+}
+
+.boardPanel {
+  min-height: 0;
+}
+
+.boardList {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  max-height: 12rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: auto;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(246 241 226 / 45%) transparent;
+}
+
+.boardList:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: var(--radius-sm);
+}
+
+.boardList::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+  height: 8px;
+}
+
+.boardList::-webkit-scrollbar-thumb {
+  border-radius: var(--radius-pill);
+  background: rgb(246 241 226 / 45%);
+}
+
+.boardRow {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: center;
+  padding-block: 0.55rem;
+  border-bottom: 1px solid rgb(246 241 226 / 14%);
+}
+
+.boardRow:last-child {
+  border-bottom: 0;
+}
+
+.place {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.points {
+  color: rgb(246 241 226 / 86%);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.empty {
+  margin: 0;
+  color: rgb(246 241 226 / 78%);
 }
 
 .stack {
@@ -133,13 +276,34 @@
 }
 
 @media (min-width: 768px) {
-  .list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .slate {
+    padding: var(--space-lg);
+  }
+
+  .cover {
+    height: 10.5rem;
+  }
+
+  .panels {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  }
+
+  .boardPanel {
+    height: 0;
+    min-height: 100%;
+  }
+
+  .boardList {
+    max-height: none;
   }
 }
 
 @media (min-width: 1240px) {
-  .list {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .wood {
+    padding: 0.7rem;
+  }
+
+  .slate {
+    padding: var(--space-xl);
   }
 }

@@ -18,9 +18,9 @@
   height: min(72vw, 30rem);
   background: radial-gradient(
     circle,
-    rgb(31 143 69 / 14%) 0%,
-    rgb(31 143 69 / 9%) 32%,
-    rgb(31 143 69 / 3%) 55%,
+    rgb(15 118 110 / 14%) 0%,
+    rgb(15 118 110 / 9%) 32%,
+    rgb(15 118 110 / 3%) 55%,
     transparent 75%
   );
 }
@@ -53,3 +53,4 @@
 .panelPreview.panelPreview {
   backdrop-filter: none;
 }
+

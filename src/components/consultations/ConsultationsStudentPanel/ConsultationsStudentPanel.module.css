@@ -71,7 +71,7 @@
 }
 
 .textarea:hover {
-  border-color: rgb(31 143 69 / 40%);
+  border-color: rgb(15 118 110 / 40%);
 }
 
 .textarea:focus-visible {
@@ -110,10 +110,6 @@
   opacity: 0.7;
 }
 
-.submit:hover:not(:disabled),
-.submit:focus-visible:not(:disabled) {
-  transform: translateY(-1px);
-}
 
 .badge {
   display: inline-flex;
@@ -238,3 +234,4 @@
     transform: none;
   }
 }
+

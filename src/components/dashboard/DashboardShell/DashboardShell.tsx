@@ -149,12 +149,6 @@ export function DashboardShell({
       <SkipLink label={tCommon("skipToContent")} />
       <PresenceHeartbeat />
       <div className={css.noPrint}>
-        <div className={css.decor} aria-hidden>
-          <div className={css.decorGrid} />
-          <div className={css.decorOrbA} />
-          <div className={css.decorOrbB} />
-        </div>
-
         <AppHeader
           sidebarOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen((open) => !open)}

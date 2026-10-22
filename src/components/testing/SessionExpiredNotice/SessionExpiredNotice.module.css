@@ -14,7 +14,7 @@
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   background: var(--grad-brand);
-  box-shadow: 0 8px 18px rgb(17 83 42 / 24%);
+  box-shadow: 0 8px 18px rgb(12 90 84 / 24%);
   color: #f6f1e2;
   font-weight: 700;
   text-decoration: none;
@@ -25,8 +25,7 @@
 
 .cta:hover,
 .cta:focus-visible {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgb(17 83 42 / 30%);
+  box-shadow: 0 12px 24px rgb(12 90 84 / 30%);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -35,3 +34,4 @@
     transform: none;
   }
 }
+

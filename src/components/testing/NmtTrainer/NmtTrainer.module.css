@@ -230,7 +230,7 @@
   border: 0;
   border-radius: var(--radius-pill);
   background: var(--grad-brand);
-  box-shadow: 0 10px 22px rgb(17 83 42 / 22%);
+  box-shadow: 0 10px 22px rgb(12 90 84 / 22%);
   color: #f6f1e2;
   font-size: var(--fs-small);
   font-weight: 700;
@@ -337,3 +337,4 @@
     transition: none;
   }
 }
+

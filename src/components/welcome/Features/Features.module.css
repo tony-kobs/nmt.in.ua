@@ -1,29 +1,90 @@
-/* Mobile: a paper list. Tablet: portrait + list. Desktop: a still life. */
+/* Stickers around the mascot. From 1240 they sit on a clock, tilted ±15deg.
+   Decor is scattered on the dial and may touch a card edge, not the copy. */
 
-.stage {
+.section {
+  --sheet: #f4efe3;
   position: relative;
   isolation: isolate;
-  margin-top: var(--space-xl);
+  padding-block: var(--space-md);
+  background-color: var(--sheet);
+  background-image:
+    radial-gradient(ellipse 36rem 22rem at 8% 12%, rgb(246 231 168 / 78%), transparent 72%),
+    radial-gradient(ellipse 32rem 26rem at 94% 86%, rgb(213 237 217 / 82%), transparent 70%),
+    radial-gradient(ellipse 24rem 18rem at 82% 6%, rgb(212 230 246 / 62%), transparent 68%),
+    linear-gradient(rgb(94 76 40 / 8%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(94 76 40 / 8%) 1px, transparent 1px);
+  background-size: auto, auto, auto, 28px 28px, 28px 28px;
+}
+
+.section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    var(--page) 0%,
+    transparent 9%,
+    transparent 91%,
+    var(--page) 100%
+  );
+}
+
+.section > * {
+  position: relative;
+  z-index: 1;
+}
+
+.head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
+  max-width: 36rem;
+  margin-inline: 0;
+  text-align: left;
+  justify-items: start;
+}
+
+.titleAccent {
+  color: var(--green-dark);
+  background-image: linear-gradient(
+    transparent 58%,
+    var(--sticker-sun) 58% 92%,
+    transparent 92%
+  );
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.stage {
+  margin-top: var(--space-md);
 }
 
 .layout {
-  position: relative;
+  counter-reset: feature;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-md);
+  gap: var(--space-sm);
   min-width: 0;
 }
 
-.scatter,
-.stationery,
 .studentWrap {
+  display: flex;
+  justify-content: center;
+}
+
+.student {
+  display: block;
+  width: min(100%, 13rem);
+  height: auto;
+  filter: drop-shadow(0 14px 18px rgb(58 44 18 / 16%));
+}
+
+.decos {
   display: none;
 }
 
-/* --- list (mobile and tablet) ---------------------------------------------- */
-
-.openBooks {
-  counter-reset: feature;
+.stickers {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-sm);
@@ -32,106 +93,323 @@
   list-style: none;
 }
 
-.openBook {
+.sticker {
   counter-increment: feature;
   position: relative;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--space-sm) var(--space-md);
-  align-items: start;
-  min-width: 0;
-  padding: var(--space-md);
-  border-radius: var(--radius-lg);
-  background-color: var(--surface);
-  background-image:
-    linear-gradient(rgb(215 205 182 / 28%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(215 205 182 / 28%) 1px, transparent 1px);
-  background-size: 16px 16px;
-  box-shadow:
-    var(--shadow-sm),
-    inset 0 0 0 1px rgb(94 76 40 / 14%);
-}
-
-.openBook::before {
-  content: counter(feature, decimal-leading-zero);
-  display: grid;
-  place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: var(--radius-md);
-  background: var(--green-bg);
-  color: var(--green-dark);
-  font-family: var(--font-display);
-  font-size: var(--fs-small);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  line-height: 1;
-}
-
-.spread {
-  display: none;
-}
-
-.openBookCopy {
-  display: grid;
   gap: var(--space-2xs);
+  align-content: start;
   min-width: 0;
-  padding-top: 0.15rem;
+  padding: 1.15rem 1.25rem 1.2rem;
+  border-radius: 3px 1.15rem 0.9rem 0.85rem;
+  background-color: var(--sticker-mint);
+  box-shadow:
+    0 1px 0 rgb(255 252 244 / 70%) inset,
+    0 10px 16px rgb(58 44 18 / 12%),
+    0 22px 36px rgb(58 44 18 / 16%);
 }
 
-.bookTitle {
+.sticker::before {
+  content: counter(feature, decimal-leading-zero);
+  font-family: var(--font-display);
+  font-size: var(--fs-kicker);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.sticker::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1.15rem;
+  height: 1.15rem;
+  background: linear-gradient(
+    225deg,
+    rgb(58 44 18 / 16%) 50%,
+    var(--sheet, var(--page)) 50%
+  );
+  pointer-events: none;
+}
+
+.marathon {
+  background-color: var(--sticker-sun);
+  background-image: linear-gradient(
+    var(--sticker-mint),
+    var(--sticker-mint)
+  );
+  background-repeat: no-repeat;
+  background-position: 0.85rem 0;
+  background-size: 38% 0.55rem;
+}
+
+.topics {
+  background-color: var(--sticker-mint);
+}
+
+.simulator {
+  background-color: var(--sticker-sky);
+}
+
+.results {
+  background-color: var(--sticker-peach);
+}
+
+.recommendations {
+  background-color: var(--sticker-lilac);
+}
+
+.sessions {
+  background-color: var(--sticker-rose);
+}
+
+.stickerTitle {
   margin: 0;
   font-family: var(--font-display);
-  font-size: var(--fs-h4);
+  font-size: var(--fs-h3);
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.marathon .stickerTitle {
   color: var(--green-dark);
 }
 
-.bookText {
+.stickerText {
   margin: 0;
-  color: var(--muted);
+  color: var(--ink);
   font-size: var(--fs-body);
   line-height: 1.5;
   text-wrap: pretty;
 }
 
-/* --- tablet: portrait left, list right ------------------------------------- */
-
 @media (min-width: 768px) {
-  .layout {
-    grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
-    gap: var(--space-lg);
-    align-items: center;
-  }
-
-  .studentWrap {
-    display: block;
-    position: relative;
-    z-index: 2;
-    width: min(100%, 22rem);
-    margin-inline: auto;
+  .section {
+    padding-block: var(--space-lg);
   }
 
   .student {
-    display: block;
-    width: 100%;
-    height: auto;
+    width: min(100%, 15rem);
+  }
+
+  .stickers {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .sticker {
+    height: 100%;
+    min-height: 12.75rem;
+    padding: 1.15rem 1.2rem 1.2rem;
   }
 }
 
-/* --- shared illustration pieces -------------------------------------------- */
+/* Clock: 12 / 2 / 4 / 6 / 8 / 10. Tilt is ±15deg. */
+@media (min-width: 1240px) {
+  .section {
+    padding-block: var(--space-md);
+  }
+
+  .stage {
+    margin-top: var(--space-sm);
+  }
+
+  .layout {
+    --card-w: 19.5rem;
+    --card-h: 13.5rem;
+    --mascot: 14.25rem;
+    --radius: 20.75rem;
+    position: relative;
+    display: block;
+    width: min(100%, calc(var(--radius) * 2 + var(--card-w) + 4.5rem));
+    height: calc(var(--radius) * 2 + var(--card-h) + 4.75rem);
+    margin-inline: auto;
+  }
+
+  .studentWrap {
+    position: absolute;
+    z-index: 4;
+    top: 50%;
+    left: 50%;
+    width: var(--mascot);
+    margin: 0;
+    transform: translate(-50%, -50%);
+  }
+
+  .student {
+    width: 100%;
+  }
+
+  .stickers,
+  .decos {
+    display: contents;
+  }
+
+  .decos {
+    display: block;
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .sticker {
+    position: absolute;
+    z-index: 2;
+    width: var(--card-w);
+    height: var(--card-h);
+    min-height: 0;
+    padding: 1.05rem 1.15rem 1.1rem;
+  }
+
+  .h12,
+  .h2,
+  .h4,
+  .h6,
+  .h8,
+  .h10,
+  .bookS,
+  .pencilH,
+  .penS,
+  .rulerV,
+  .penL,
+  .bookM,
+  .compassSlot {
+    left: 50%;
+    top: 50%;
+  }
+
+  .h12 {
+    transform: translate(-50%, -50%) translate(0, calc(var(--radius) * -1)) rotate(-15deg);
+  }
+
+  .h2 {
+    transform: translate(-50%, -50%)
+      translate(calc(var(--radius) * 0.866), calc(var(--radius) * -0.5)) rotate(15deg);
+  }
+
+  .h4 {
+    transform: translate(-50%, -50%)
+      translate(calc(var(--radius) * 0.866), calc(var(--radius) * 0.5)) rotate(-15deg);
+  }
+
+  .h6 {
+    transform: translate(-50%, -50%) translate(0, var(--radius)) rotate(15deg);
+  }
+
+  .h8 {
+    transform: translate(-50%, -50%)
+      translate(calc(var(--radius) * -0.866), calc(var(--radius) * 0.5)) rotate(-15deg);
+  }
+
+  .h10 {
+    transform: translate(-50%, -50%)
+      translate(calc(var(--radius) * -0.866), calc(var(--radius) * -0.5)) rotate(15deg);
+  }
+
+  .deco {
+    position: absolute;
+    display: block;
+    pointer-events: none;
+  }
+
+  .bookS {
+    width: 2.15rem;
+    height: 2.75rem;
+    transform: translate(-50%, -50%)
+      translate(calc(var(--radius) * -0.62), calc(var(--radius) * -1.16)) rotate(-24deg);
+  }
+
+  .pencilH {
+    width: 5.4rem;
+    height: 0.68rem;
+    transform: translate(-50%, -50%)
+      translate(calc(var(--radius) * 0.64), calc(var(--radius) * -1.16)) rotate(36deg);
+  }
+
+  .penS {
+    width: 3.5rem;
+    height: 0.46rem;
+    transform: translate(-50%, -50%)
+      translate(calc(var(--radius) * 1.2), calc(var(--radius) * -0.02)) rotate(68deg);
+  }
+
+  .rulerV {
+    width: 0.72rem;
+    height: 5.2rem;
+    transform: translate(-50%, -50%)
+      translate(calc(var(--radius) * 0.78), calc(var(--radius) * 1.16)) rotate(18deg);
+  }
+
+  .penL {
+    width: 0.44rem;
+    height: 5.2rem;
+    transform: translate(-50%, -50%)
+      translate(calc(var(--radius) * -1.2), calc(var(--radius) * 0.06)) rotate(-52deg);
+  }
+
+  .bookM {
+    width: 2.85rem;
+    height: 3.6rem;
+    transform: translate(-50%, -50%)
+      translate(calc(var(--radius) * 0.52), calc(var(--radius) * 1.42)) rotate(14deg);
+  }
+
+  .compassSlot {
+    width: 2.65rem;
+    height: 3.1rem;
+    transform: translate(-50%, -50%)
+      translate(calc(var(--radius) * -0.78), calc(var(--radius) * 1.14)) rotate(-20deg);
+  }
+}
+
+@media (min-width: 1440px) {
+  .layout {
+    --card-w: 22.5rem;
+    --card-h: 13rem;
+    --mascot: 15.5rem;
+    --radius: 22.5rem;
+  }
+
+  .bookS {
+    width: 2.45rem;
+    height: 3.1rem;
+  }
+
+  .pencilH {
+    width: 6.6rem;
+    height: 0.8rem;
+  }
+
+  .penL {
+    height: 6.2rem;
+  }
+
+  .bookM {
+    width: 3.15rem;
+    height: 4rem;
+  }
+
+  .compassSlot {
+    width: 3.1rem;
+    height: 3.6rem;
+  }
+}
+
+/* --- stationery pieces ----------------------------------------------------- */
 
 .closedBook {
-  z-index: 0;
-  filter: drop-shadow(0 8px 12px rgb(58 44 18 / 14%));
+  filter: drop-shadow(0 6px 8px rgb(58 44 18 / 14%));
 }
 
 .closedPages {
   position: absolute;
   inset: 0;
-  border-radius: 2px 5px 5px 2px;
+  border-radius: 2px 4px 4px 2px;
   background: linear-gradient(
     90deg,
     rgb(245 238 220 / 98%) 0%,
@@ -143,7 +421,7 @@
 .closedCover {
   position: absolute;
   inset: 0;
-  border-radius: 3px 6px 6px 3px;
+  border-radius: 3px 5px 5px 3px;
   background: linear-gradient(145deg, rgb(96 122 86), rgb(52 74 48));
   box-shadow: inset -2px 0 0 rgb(58 44 18 / 14%);
 }
@@ -154,455 +432,101 @@
   top: 0;
   bottom: 0;
   left: 0;
-  width: 0.38rem;
+  width: 0.28rem;
   border-radius: 3px 0 0 3px;
   background: rgb(32 48 30 / 45%);
 }
 
-.closedC .closedCover {
+.closedWarm .closedCover {
   background: linear-gradient(145deg, rgb(168 124 78), rgb(112 74 42));
-}
-
-.closedBook,
-.pencil,
-.pen,
-.ruler,
-.triangle,
-.compass {
-  position: absolute;
-}
-
-.pencil,
-.pen,
-.ruler,
-.triangle,
-.compass {
-  z-index: 1;
-  filter: drop-shadow(0 5px 8px rgb(58 44 18 / 14%));
 }
 
 .pencil {
   border-radius: 2px;
   background: linear-gradient(
-    180deg,
-    rgb(58 44 18 / 55%) 0 8%,
-    rgb(232 186 78) 8% 78%,
+    90deg,
+    rgb(58 44 18 / 55%) 0 7%,
+    rgb(232 186 78) 7% 78%,
     rgb(196 106 86) 78% 90%,
     var(--surface) 90%
   );
+  filter: drop-shadow(0 4px 6px rgb(58 44 18 / 14%));
 }
 
 .pen {
   border-radius: 3px;
+  filter: drop-shadow(0 4px 6px rgb(58 44 18 / 14%));
+}
+
+.penS {
   background: linear-gradient(
-    180deg,
-    rgb(24 78 52) 0 12%,
-    rgb(31 143 69 / 92%) 12% 82%,
+    90deg,
+    rgb(24 78 52) 0 14%,
+    rgb(15 118 110 / 92%) 14% 82%,
     rgb(40 40 40 / 85%) 82% 94%,
     rgb(186 186 186) 94%
   );
 }
 
-.triangle {
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-color: transparent;
-  border-width: 0 0 3.35rem 3.85rem;
-  border-bottom-color: rgb(120 150 170 / 55%);
-  filter: drop-shadow(0 5px 8px rgb(58 44 18 / 12%));
+.penL {
+  background: linear-gradient(
+    180deg,
+    rgb(24 78 52) 0 12%,
+    rgb(15 118 110 / 92%) 12% 82%,
+    rgb(40 40 40 / 85%) 82% 94%,
+    rgb(186 186 186) 94%
+  );
 }
 
-/* --- desktop: notebooks around the student --------------------------------- */
-
-@media (min-width: 1240px) {
-  .stage {
-    height: auto;
-  }
-
-  .layout {
-    position: relative;
-    display: block;
-    width: 100%;
-    max-width: 72rem;
-    height: 44rem;
-    min-height: 44rem;
-    margin-inline: auto;
-  }
-
-  .scatter,
-  .stationery {
-    display: block;
-    position: absolute;
-    z-index: 1;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    transform: none;
-  }
-
-  .closedB,
-  .closedD,
-  .pencilB,
-  .penA,
-  .penB,
-  .ruler,
-  .compass,
-  .closedA,
-  .closedC,
-  .pencilA,
-  .triangleA {
-    display: block;
-  }
-
-  .studentWrap {
-    position: absolute;
-    z-index: 2;
-    top: 50%;
-    left: 50%;
-    width: 26rem;
-    max-width: none;
-    margin: 0;
-    transform: translate(-50%, -52%);
-    pointer-events: none;
-  }
-
-  .student {
-    filter: drop-shadow(0 18px 24px rgb(58 44 18 / 16%));
-  }
-
-  .openBooks {
-    position: absolute;
-    z-index: 3;
-    inset: 0;
-    display: block;
-  }
-
-  .openBook {
-    position: absolute;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    align-content: start;
-    gap: var(--space-2xs);
-    width: 16.75rem;
-    padding: 0.85rem 1rem 1rem;
-    border-radius: var(--radius-lg);
-    background-color: var(--surface);
-    background-image:
-      linear-gradient(rgb(215 205 182 / 34%) 1px, transparent 1px),
-      linear-gradient(90deg, rgb(215 205 182 / 34%) 1px, transparent 1px);
-    background-size: 16px 16px;
-    box-shadow:
-      0 14px 26px rgb(58 44 18 / 12%),
-      inset 0 0 0 1px rgb(94 76 40 / 16%);
-  }
-
-  .openBook::before {
-    display: block;
-    justify-self: start;
-    width: auto;
-    height: auto;
-    margin: 0;
-    padding: 0;
-    border-radius: 0;
-    background: none;
-    font-size: var(--fs-kicker);
-    letter-spacing: 0.12em;
-    text-align: left;
-  }
-
-  .spread {
-    display: none;
-  }
-
-  .openBookCopy {
-    gap: var(--space-2xs);
-    padding: 0;
-  }
-
-  .bookTitle {
-    font-size: var(--fs-h4);
-  }
-
-  .bookText {
-    font-size: var(--fs-body);
-    line-height: 1.45;
-  }
-
-  .slotA {
-    top: 0;
-    left: 0;
-    transform: rotate(-2.5deg);
-  }
-
-  .slotB {
-    top: 0.35rem;
-    right: 0;
-    transform: rotate(2.5deg);
-  }
-
-  .slotC {
-    top: 37%;
-    left: 0;
-    transform: rotate(1.5deg);
-  }
-
-  .slotD {
-    top: 37%;
-    right: 0;
-    transform: rotate(-1.5deg);
-  }
-
-  .slotE {
-    bottom: 0;
-    left: 1.25rem;
-    transform: rotate(-1.5deg);
-  }
-
-  .slotF {
-    bottom: 0.2rem;
-    right: 1.25rem;
-    transform: rotate(2deg);
-  }
-
-  /* One piece in each gap between notebooks — not across the student. */
-  .closedBook {
-    width: 2.55rem;
-    height: 3.25rem;
-    opacity: 0.92;
-  }
-
-  .closedA {
-    top: 12.15rem;
-    left: 0.85rem;
-    transform: rotate(-14deg);
-  }
-
-  .closedB {
-    top: 12.35rem;
-    right: 1rem;
-    width: 2.35rem;
-    height: 3rem;
-    opacity: 0.84;
-    transform: rotate(12deg);
-  }
-
-  .closedB .closedCover {
-    background: linear-gradient(145deg, rgb(150 112 72), rgb(98 68 40));
-  }
-
-  .closedC {
-    bottom: 12.2rem;
-    left: 1.4rem;
-    width: 2.7rem;
-    height: 3.4rem;
-    opacity: 0.84;
-    transform: rotate(10deg);
-  }
-
-  .closedD {
-    display: none;
-  }
-
-  .pencilA {
-    top: 2.2rem;
-    left: 19.4rem;
-    width: 0.4rem;
-    height: 4.1rem;
-    transform: rotate(-32deg);
-  }
-
-  .pencilB,
-  .penB {
-    display: none;
-  }
-
-  .penA {
-    top: 2.4rem;
-    right: 19.6rem;
-    width: 0.36rem;
-    height: 4rem;
-    transform: rotate(30deg);
-  }
-
-  .rulerA {
-    bottom: 2.2rem;
-    left: 50%;
-    width: 7.25rem;
-    height: 0.68rem;
-    border-radius: 2px;
-    background:
-      repeating-linear-gradient(
-        90deg,
-        transparent 0 8px,
-        rgb(94 76 40 / 32%) 8px 9px
-      ),
-      linear-gradient(180deg, var(--surface), var(--paper-deep));
-    box-shadow: inset 0 0 0 1px rgb(94 76 40 / 22%);
-    transform: translateX(-50%) rotate(-1deg);
-  }
-
-  .triangleA {
-    bottom: 11.6rem;
-    left: 18.6rem;
-    transform: rotate(-16deg);
-  }
-
-  .compassA {
-    right: 18.8rem;
-    bottom: 11.8rem;
-    width: 3.6rem;
-    height: 4.2rem;
-    transform: rotate(16deg);
-  }
-
-  .compassLeg,
-  .compassLegAlt {
-    position: absolute;
-    top: 18%;
-    left: 48%;
-    width: 0.16rem;
-    height: 78%;
-    border-radius: 2px;
-    background: linear-gradient(
+.ruler {
+  border-radius: 2px;
+  background:
+    repeating-linear-gradient(
       180deg,
-      rgb(90 90 95),
-      rgb(160 160 165) 40%,
-      rgb(50 50 55)
-    );
-    transform-origin: top center;
-  }
-
-  .compassLeg {
-    transform: rotate(-16deg);
-  }
-
-  .compassLegAlt {
-    transform: rotate(20deg);
-  }
-
-  .compassKnob {
-    position: absolute;
-    top: 8%;
-    left: 50%;
-    width: 0.62rem;
-    height: 0.62rem;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, rgb(220 220 225), rgb(90 90 95));
-    transform: translateX(-50%);
-  }
+      transparent 0 7px,
+      rgb(94 76 40 / 32%) 7px 8px
+    ),
+    linear-gradient(90deg, var(--surface), var(--paper-deep));
+  box-shadow: inset 0 0 0 1px rgb(94 76 40 / 22%);
+  filter: drop-shadow(0 4px 6px rgb(58 44 18 / 12%));
 }
 
-@media (min-width: 1440px) {
-  .layout {
-    max-width: 80rem;
-    height: 48rem;
-    min-height: 48rem;
-  }
-
-  .studentWrap {
-    width: 29rem;
-  }
-
-  .openBook {
-    width: 18rem;
-  }
-
-  .bookText {
-    font-size: var(--fs-body);
-  }
-
-  .pencilA {
-    left: 20.8rem;
-  }
-
-  .penA {
-    right: 21rem;
-  }
-
-  .triangleA {
-    bottom: 12.6rem;
-    left: 20rem;
-  }
-
-  .compassA {
-    right: 20.2rem;
-    bottom: 12.8rem;
-  }
-
-  .closedA,
-  .closedB {
-    top: 13.6rem;
-  }
-
-  .closedC {
-    bottom: 13.2rem;
-  }
+.compass {
+  filter: drop-shadow(0 4px 6px rgb(58 44 18 / 14%));
 }
 
-@media (min-width: 1920px) {
-  .layout {
-    max-width: 88rem;
-    height: 52rem;
-    min-height: 52rem;
-  }
-
-  .studentWrap {
-    width: 32rem;
-  }
-
-  .openBook {
-    width: 19.25rem;
-  }
-
-  .pencilA {
-    left: 22.2rem;
-  }
-
-  .penA {
-    right: 22.4rem;
-  }
-
-  .triangleA {
-    bottom: 13.4rem;
-    left: 21.2rem;
-  }
-
-  .compassA {
-    right: 21.4rem;
-    bottom: 13.6rem;
-  }
-
-  .closedA,
-  .closedB {
-    top: 14.4rem;
-  }
-
-  .closedC {
-    bottom: 14rem;
-  }
+.compassLeg,
+.compassLegAlt {
+  position: absolute;
+  top: 18%;
+  left: 48%;
+  width: 0.14rem;
+  height: 76%;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    rgb(90 90 95),
+    rgb(160 160 165) 40%,
+    rgb(50 50 55)
+  );
+  transform-origin: top center;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .slotA,
-  .slotB,
-  .slotC,
-  .slotD,
-  .slotE,
-  .slotF,
-  .closedA,
-  .closedB,
-  .closedC,
-  .pencilA,
-  .penA,
-  .rulerA,
-  .triangleA,
-  .compassA {
-    transform: none;
-  }
+.compassLeg {
+  transform: rotate(-16deg);
+}
 
-  .rulerA {
-    transform: translateX(-50%);
-  }
+.compassLegAlt {
+  transform: rotate(20deg);
+}
+
+.compassKnob {
+  position: absolute;
+  top: 6%;
+  left: 50%;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgb(220 220 225), rgb(90 90 95));
+  transform: translateX(-50%);
 }

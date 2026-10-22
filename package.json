@@ -12,10 +12,12 @@
   },
   "dependencies": {
     "@resvg/resvg-wasm": "^2.6.2",
+    "@tanstack/react-query": "^5.104.5",
     "clsx": "^2.1.1",
     "joi": "^18.2.9",
     "katex": "^0.18.5",
     "mathjax-full": "^3.2.1",
+    "modern-normalize": "^3.0.1",
     "motion": "^12.43.0",
     "mysql2": "^3.24.2",
     "next": "16.3.3",

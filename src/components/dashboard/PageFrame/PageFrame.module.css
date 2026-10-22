@@ -18,13 +18,14 @@
   gap: var(--space-xs);
   margin: 0;
   padding: 6px 14px;
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--line);
   border-radius: var(--radius-pill);
-  background: rgb(253 251 244 / 72%);
-  color: var(--green-dark);
+  background: var(--surface);
+  color: var(--ultimate-dark);
+  font-family: var(--font-display);
   font-size: var(--fs-kicker);
   font-weight: 700;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -33,7 +34,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--grad-brand);
+  background: var(--orange);
 }
 
 .title {
@@ -80,17 +81,10 @@
   display: grid;
   gap: var(--space-md);
   padding: var(--space-lg);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-lg);
-  background: var(--grad-glass);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
   box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(10px);
-}
-
-@supports not (backdrop-filter: blur(4px)) {
-  .panel {
-    background: rgb(253 251 244 / 92%);
-  }
 }
 
 .soonCard {
@@ -142,3 +136,4 @@
     display: none;
   }
 }
+

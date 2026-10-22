@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 
-export const SITE_NAME = "Підготовка до НМТ";
-export const SITE_SHORT_NAME = "NMT Math";
-export const SITE_TAGLINE = "Тренажер і практика з математики для НМТ";
+export const SITE_NAME = "LevelUP";
+export const SITE_SHORT_NAME = "LevelUP";
+export const BRAND_SLOGAN = "Прокачай свої знання";
+export const SITE_TAGLINE = "підготовка до НМТ з математики";
 
 export const SITE_DESCRIPTION =
   "Онлайн-підготовка до НМТ з математики: тести за темами, аналіз результатів, симулятор іспиту та задачник. Зручний дашборд для системних тренувань у форматі УЦОЯО.";
@@ -20,20 +21,21 @@ export const SITE_KEYWORDS = [
   "онлайн підготовка до іспиту",
   "завдання НМТ з математики",
   "nmt.in.ua",
+  "LevelUP",
 ];
 
 export const DEFAULT_SITE_URL = "https://nmt.in.ua";
 
-export const THEME_COLOR = "#1f8f45";
+export const THEME_COLOR = "#0f766e";
 export const BACKGROUND_COLOR = "#efe8d7";
 
 /** Open Graph / Twitter default image (1200×630). */
 export const DEFAULT_OG_IMAGE_PATH = "/og/og-default.png";
 export const DEFAULT_OG_IMAGE_ALT =
-  "Підготовка до НМТ з математики — тренажер, тести за темами та симулятор";
+  "LevelUP — підготовка до НМТ з математики: тренажер, тести за темами та симулятор";
 
 export const ICON_PATHS = {
-  favicon: "/favicon.svg",
+  favicon: "/favicon.png",
   appleTouch: "/icons/apple-touch-icon.png",
 } as const;
 
@@ -134,7 +136,7 @@ export function createPageMetadata({
 /** Root layout icons + PWA hints (manifest is generated separately). */
 export function siteIcons(): Metadata["icons"] {
   return {
-    icon: [{ url: ICON_PATHS.favicon, type: "image/svg+xml" }],
+    icon: [{ url: ICON_PATHS.favicon, type: "image/png" }],
     apple: [{ url: ICON_PATHS.appleTouch, sizes: "180x180", type: "image/png" }],
   };
 }

@@ -538,9 +538,18 @@
   margin: 0 0 var(--space-sm);
 }
 
+.prose :global(ul),
+.prose :global(ol) {
+  margin: 0 0 var(--space-sm);
+  padding-inline-start: 1.25rem;
+}
+
 .prose :global(ul) {
-  margin: 0;
-  padding-inline-start: 1.2rem;
+  list-style: disc;
+}
+
+.prose :global(ol) {
+  list-style: decimal;
 }
 
 .checks {
@@ -936,3 +945,4 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+

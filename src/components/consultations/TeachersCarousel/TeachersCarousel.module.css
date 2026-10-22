@@ -54,7 +54,7 @@
 
 .navBtn:hover,
 .navBtn:focus-visible {
-  border-color: rgb(31 143 69 / 45%);
+  border-color: rgb(15 118 110 / 45%);
   background: var(--green-bg);
 }
 
@@ -87,7 +87,7 @@
 
 .carouselItem.cardSelected {
   border-radius: var(--radius-lg);
-  box-shadow: 0 0 0 2px rgb(31 143 69 / 55%);
+  box-shadow: 0 0 0 2px rgb(15 118 110 / 55%);
 }
 
 .card {
@@ -112,7 +112,7 @@
 }
 
 .cardSelected {
-  border-color: rgb(31 143 69 / 55%);
+  border-color: rgb(15 118 110 / 55%);
   box-shadow: var(--shadow-md);
 }
 
@@ -206,7 +206,7 @@
 
 .star:hover:not(:disabled),
 .star:focus-visible:not(:disabled) {
-  color: rgb(31 143 69 / 70%);
+  color: rgb(15 118 110 / 70%);
 }
 
 .starOn {
@@ -270,3 +270,4 @@
     transition: none;
   }
 }
+

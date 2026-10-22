@@ -98,7 +98,6 @@
 
 .action:hover,
 .action:focus-visible {
-  transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
 
@@ -130,3 +129,4 @@
     transform: none;
   }
 }
+

@@ -6,58 +6,20 @@
   min-height: 100dvh;
   overflow-x: clip;
   color: var(--ink-deep);
-  background: var(--grad-aurora);
+  background: transparent;
+}
+
+.decor,
+.decorGrid,
+.orbA,
+.orbB {
+  display: none;
 }
 
 .embed {
   min-height: 0;
-  padding-block: var(--space-xl);
+  padding-block: var(--section-y);
   background: transparent;
-}
-
-.decor {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.embed .decor {
-  display: none;
-}
-
-.decorGrid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgb(94 76 40 / 11%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(94 76 40 / 11%) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: linear-gradient(180deg, rgb(0 0 0 / 65%), rgb(0 0 0 / 18%) 70%);
-}
-
-.orbA,
-.orbB {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(10px);
-}
-
-.orbA {
-  top: -10rem;
-  right: -6rem;
-  width: min(70vw, 28rem);
-  height: min(70vw, 28rem);
-  background: radial-gradient(circle, rgb(31 143 69 / 18%), transparent 68%);
-}
-
-.orbB {
-  bottom: -8rem;
-  left: -7rem;
-  width: min(60vw, 24rem);
-  height: min(60vw, 24rem);
-  background: radial-gradient(circle, rgb(150 118 62 / 16%), transparent 70%);
 }
 
 .shell {
@@ -68,7 +30,8 @@
   width: 100%;
   max-width: 44rem;
   margin-inline: auto;
-  padding: var(--space-lg) var(--container-pad) var(--space-3xl);
+  padding-block: var(--section-y);
+  padding-inline: var(--container-pad);
 }
 
 .brand {
@@ -82,16 +45,10 @@
 }
 
 .glyph {
-  display: grid;
+  display: block;
   flex: none;
-  place-items: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: var(--radius-md);
-  background: var(--grad-brand);
-  color: #f6f1e2;
-  font-family: var(--font-display);
-  font-size: 1.15rem;
+  width: 42px;
+  height: 42px;
 }
 
 .card {
@@ -99,17 +56,10 @@
   gap: var(--space-md);
   min-width: 0;
   padding: var(--space-lg);
-  border: 1px solid rgb(253 251 244 / 72%);
-  border-radius: var(--radius-xl);
-  background: var(--grad-glass);
-  box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(14px);
-}
-
-@supports not (backdrop-filter: blur(4px)) {
-  .card {
-    background: var(--surface);
-  }
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
 }
 
 .kicker {
@@ -117,8 +67,8 @@
   margin: 0;
   padding: 6px 12px;
   border-radius: var(--radius-pill);
-  background: var(--grad-mint);
-  color: var(--green-dark);
+  background: var(--ultimate-bg);
+  color: var(--ultimate-dark);
   font-size: var(--fs-kicker);
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -207,7 +157,7 @@
   border: 0;
   background: var(--grad-brand);
   color: #f6f1e2;
-  box-shadow: 0 12px 26px rgb(17 83 42 / 28%);
+  box-shadow: 0 12px 26px rgb(12 90 84 / 28%);
 }
 
 .ghost {
@@ -216,11 +166,18 @@
   color: var(--green-dark);
 }
 
-.primary:hover,
 .ghost:hover,
-.primary:focus-visible,
 .ghost:focus-visible {
-  transform: translateY(-2px);
+  border-color: var(--green);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.primary:active,
+.ghost:active {
+  border-color: var(--ultimate);
+  background: var(--ultimate);
+  color: var(--on-accent);
 }
 
 .digest {
@@ -255,3 +212,4 @@
     transform: none;
   }
 }
+

@@ -1,6 +1,14 @@
+import { Unbounded } from "next/font/google";
 import { getTranslations } from "next-intl/server";
 import { DEV_TEAM_MEMBERS, DEV_TEAM_SERVICE_IDS } from "./teamMembers";
 import { DevTeamPanel } from "./DevTeamPanel";
+
+const teamName = Unbounded({
+  subsets: ["cyrillic", "latin"],
+  weight: "700",
+  display: "swap",
+  variable: "--font-team",
+});
 
 export async function DevTeam() {
   const t = await getTranslations("WelcomeLanding.devTeam");
@@ -21,12 +29,12 @@ export async function DevTeam() {
 
   return (
     <DevTeamPanel
+      nameFontClass={teamName.variable}
       members={members}
       services={services}
       labels={{
         toggle: t("toggle"),
         collapse: t("collapse"),
-        kicker: t("kicker"),
         title: t("title"),
         lead: t("lead"),
         socialGithub: t("socialGithub"),

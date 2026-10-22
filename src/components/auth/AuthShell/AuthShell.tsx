@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { getTranslations } from "next-intl/server";
 import { SkipLink } from "@/components/ui/SkipLink";
+import { BrandMark } from "@/components/brand/BrandMark";
+import { BrandWord } from "@/components/brand/BrandWord";
 import { SITE_NAME } from "@/constants/seo";
 import css from "../auth.module.css";
 
@@ -27,11 +29,6 @@ export async function AuthShell({ children, aside, asideExtra }: AuthShellProps)
   return (
     <div className={css.page}>
       <SkipLink label={tCommon("skipToContent")} />
-      <div className={css.decor} aria-hidden>
-        <span className={css.decorGrid} />
-        <span className={css.decorOrbA} />
-        <span className={css.decorOrbB} />
-      </div>
 
       <div className={css.shell}>
         <div className={css.topbar}>
@@ -55,9 +52,11 @@ export async function AuthShell({ children, aside, asideExtra }: AuthShellProps)
 
           <Link href="/" className={css.brand} aria-label={SITE_NAME} translate="no">
             <span className={css.brandGlyph} aria-hidden>
-              ∑
+              <BrandMark />
             </span>
-            <span className={css.brandName}>{SITE_NAME}</span>
+            <span className={css.brandName}>
+              <BrandWord />
+            </span>
           </Link>
         </div>
 

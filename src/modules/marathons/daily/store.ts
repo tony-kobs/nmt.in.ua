@@ -3,9 +3,15 @@ import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { resolveMarathonDelivery } from "@/modules/notifications/channels";
 import { saveUserChannelPreference } from "@/modules/notifications/channelStore";
-import { evaluateDayAccess } from "./calendar";
+import { currentDayNumber, evaluateDayAccess } from "./calendar";
 import { isDeliveryChannel, type DeliveryChannel } from "./channel";
-import { selectHomeMarathonCards, type HomeMarathonCard } from "./homeCard";
+import {
+  selectFeaturedHomeMarathon,
+  selectHomeMarathonCards,
+  type HomeBoardRow,
+  type HomeMarathonCard,
+  type HomeMarathonSpotlight,
+} from "./homeCard";
 import { selectStudentMarathonShelf, type ShelfCard } from "./shelf";
 import {
   normalizeInviteAudience,
@@ -2027,10 +2033,52 @@ export async function declineMarathon(
   }, getConnection);
 }
 
+async function buildHomeSpotlight(
+  connection: SqlConnection,
+  card: HomeMarathonCard,
+  row: {
+    id: number;
+    start_date: string | null;
+    unlock_hour: string | null;
+    days_count: number | string | null;
+  },
+): Promise<HomeMarathonSpotlight> {
+  const daysCount = Math.max(1, Math.floor(Number(row.days_count)) || 1);
+  const dayNumber = currentDayNumber({
+    now: new Date(),
+    startDate: isoDate(row.start_date),
+    unlockHour: String(row.unlock_hour ?? "09:00").slice(0, 5),
+    daysCount,
+  }) ?? 1;
+  let board: HomeBoardRow[] = [];
+  try {
+    const lines = await composeBoard(connection, Number(row.id), false);
+    board = lines.map((line) => ({
+      userId: line.userId,
+      place: line.place,
+      name: line.name,
+      points: line.points,
+    }));
+  } catch (error) {
+    console.error("marathon home board", error);
+  }
+  return {
+    ...card,
+    imageUrl: null,
+    dayNumber,
+    daysCount,
+    board,
+  };
+}
+
 export async function loadMarathonHomeState(
   input: { userId: number | null; role: string | null },
   getConnection?: Conn,
-): Promise<{ cards: HomeMarathonCard[]; invites: MarathonInvite[] }> {
+): Promise<{
+  cards: HomeMarathonCard[];
+  invites: MarathonInvite[];
+  spotlight: HomeMarathonSpotlight | null;
+}> {
   return withConn(async (connection) => {
     const marathons = await connection.query<{
       id: number;
@@ -2038,8 +2086,11 @@ export async function loadMarathonHomeState(
       title: string;
       description: string | null;
       status: string;
+      start_date: string | null;
+      unlock_hour: string | null;
+      days_count: number | string | null;
     }>(
-      `SELECT id, slug, title, description, status
+      `SELECT id, slug, title, description, status, start_date, unlock_hour, days_count
        FROM marathons
        WHERE kind = 'daily' AND status = 'active'
        ORDER BY id DESC`,
@@ -2077,17 +2128,25 @@ export async function loadMarathonHomeState(
       );
       invitedIds = new Set(invited.map((row) => Number(row.marathon_id)));
     }
+    const cards = selectHomeMarathonCards({
+      marathons: marathons.map((row) => ({
+        slug: row.slug,
+        title: row.title,
+        description: String(row.description ?? ""),
+        status: row.status,
+      })),
+      joinedSlugs,
+      declinedSlugs,
+    });
+    const featured = selectFeaturedHomeMarathon(cards);
+    const featuredRow = featured
+      ? marathons.find((row) => row.slug === featured.slug) ?? null
+      : null;
     return {
-      cards: selectHomeMarathonCards({
-        marathons: marathons.map((row) => ({
-          slug: row.slug,
-          title: row.title,
-          description: String(row.description ?? ""),
-          status: row.status,
-        })),
-        joinedSlugs,
-        declinedSlugs,
-      }),
+      cards,
+      spotlight: featured && featuredRow
+        ? await buildHomeSpotlight(connection, featured, featuredRow)
+        : null,
       invites: selectMarathonInvites({
         marathons: marathons.map((row) => ({
           id: Number(row.id),

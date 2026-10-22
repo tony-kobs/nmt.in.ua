@@ -55,7 +55,15 @@
 
 .copy:hover,
 .copy:focus-visible {
-  transform: translateY(-1px);
+  border-color: var(--green);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.copy:active {
+  border-color: var(--ultimate);
+  background: var(--ultimate);
+  color: var(--on-accent);
 }
 
 .expires {
@@ -77,3 +85,4 @@
     transform: none;
   }
 }
+

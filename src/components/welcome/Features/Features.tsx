@@ -4,25 +4,15 @@ import { Reveal } from "@/components/ui/Reveal";
 import landing from "../landing.module.css";
 import css from "./Features.module.css";
 
-const FEATURE_KEYS = [
-  "topics",
-  "simulator",
-  "materials",
-  "results",
-  "recommendations",
-  "sessions",
+/** Clockwise from 12, so the dial reads like a clock around the mascot. */
+const FEATURES = [
+  ["marathon", "h12"],
+  ["topics", "h2"],
+  ["simulator", "h4"],
+  ["results", "h6"],
+  ["sessions", "h8"],
+  ["recommendations", "h10"],
 ] as const;
-
-const BOOK_SLOT = [
-  "slotA",
-  "slotB",
-  "slotC",
-  "slotD",
-  "slotE",
-  "slotF",
-] as const;
-
-const CLOSED_SLOTS = ["closedA", "closedB", "closedC", "closedD"] as const;
 
 export async function Features() {
   const t = await getTranslations("WelcomeLanding.features");
@@ -30,70 +20,64 @@ export async function Features() {
   return (
     <section
       id="features"
-      className={landing.section}
+      className={`${landing.section} ${css.section}`}
       aria-labelledby="features-title"
     >
       <div className={landing.container}>
-        <Reveal className={landing.sectionHead}>
-          <p className={landing.kicker}>{t("kicker")}</p>
+        <Reveal className={css.head}>
           <h2 id="features-title" className={landing.sectionTitle}>
-            {t("title")}
+            {t.rich("title", {
+              accent: (chunks) => (
+                <span className={css.titleAccent}>{chunks}</span>
+              ),
+            })}
           </h2>
           <p className={landing.sectionLead}>{t("lead")}</p>
         </Reveal>
 
         <Reveal className={css.stage}>
           <div className={css.layout}>
-            <div className={css.scatter} aria-hidden>
-              {CLOSED_SLOTS.map((slot) => (
-                <span key={slot} className={`${css.closedBook} ${css[slot]}`}>
-                  <span className={css.closedPages} />
-                  <span className={css.closedCover} />
-                </span>
-              ))}
+            <div className={css.studentWrap}>
+              <Image
+                className={css.student}
+                src="/landing/features-mascot.webp"
+                alt={t("imageAlt")}
+                width={578}
+                height={578}
+                sizes="(min-width: 1440px) 18rem, (min-width: 1240px) 16rem, 14rem"
+              />
             </div>
 
-            <div className={css.stationery} aria-hidden>
-              <span className={`${css.pencil} ${css.pencilA}`} />
-              <span className={`${css.pencil} ${css.pencilB}`} />
-              <span className={`${css.pen} ${css.penA}`} />
-              <span className={`${css.pen} ${css.penB}`} />
-              <span className={`${css.ruler} ${css.rulerA}`} />
-              <span className={`${css.triangle} ${css.triangleA}`} />
-              <span className={`${css.compass} ${css.compassA}`}>
+            <ul className={css.stickers}>
+              {FEATURES.map(([key, slot]) => (
+                <li key={key} className={`${css.sticker} ${css[key]} ${css[slot]}`}>
+                  <h3 className={css.stickerTitle}>{t(`items.${key}.title`)}</h3>
+                  <p className={css.stickerText}>{t(`items.${key}.text`)}</p>
+                </li>
+              ))}
+            </ul>
+
+            <div className={css.decos} aria-hidden>
+              <span className={`${css.deco} ${css.bookS} ${css.closedBook}`}>
+                <span className={css.closedPages} />
+                <span className={css.closedCover} />
+              </span>
+              <span className={`${css.deco} ${css.pencilH} ${css.pencil}`} />
+              <span className={`${css.deco} ${css.penS} ${css.pen}`} />
+              <span className={`${css.deco} ${css.rulerV} ${css.ruler}`} />
+              <span className={`${css.deco} ${css.penL} ${css.pen}`} />
+              <span
+                className={`${css.deco} ${css.bookM} ${css.closedBook} ${css.closedWarm}`}
+              >
+                <span className={css.closedPages} />
+                <span className={css.closedCover} />
+              </span>
+              <span className={`${css.deco} ${css.compassSlot} ${css.compass}`}>
                 <span className={css.compassLeg} />
                 <span className={css.compassLegAlt} />
                 <span className={css.compassKnob} />
               </span>
             </div>
-
-            <div className={css.studentWrap}>
-              <Image
-                className={css.student}
-                src="/landing/features-student-cut.webp"
-                alt={t("imageAlt")}
-                width={864}
-                height={1152}
-                sizes="(min-width: 1920px) 32rem, (min-width: 1440px) 29rem, (min-width: 1240px) 26rem, (min-width: 768px) 22rem, 1px"
-              />
-            </div>
-
-            <ul className={css.openBooks}>
-              {FEATURE_KEYS.map((key, index) => (
-                <li
-                  key={key}
-                  className={`${css.openBook} ${css[BOOK_SLOT[index]]}`}
-                >
-                  <div className={css.spread} aria-hidden>
-                    <span className={css.pageSheet} />
-                  </div>
-                  <div className={css.openBookCopy}>
-                    <h3 className={css.bookTitle}>{t(`items.${key}.title`)}</h3>
-                    <p className={css.bookText}>{t(`items.${key}.text`)}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
           </div>
         </Reveal>
       </div>

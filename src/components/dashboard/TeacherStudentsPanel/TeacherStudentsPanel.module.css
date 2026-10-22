@@ -81,7 +81,7 @@
 }
 
 .input:hover {
-  border-color: rgb(31 143 69 / 40%);
+  border-color: rgb(15 118 110 / 40%);
 }
 
 .input:focus-visible {
@@ -132,11 +132,17 @@
   color: var(--green-dark);
 }
 
-.submit:hover:not(:disabled),
-.submit:focus-visible:not(:disabled),
 .unlink:hover:not(:disabled),
 .unlink:focus-visible:not(:disabled) {
-  transform: translateY(-1px);
+  border-color: var(--green);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.unlink:active:not(:disabled) {
+  border-color: var(--ultimate);
+  background: var(--ultimate);
+  color: var(--on-accent);
 }
 
 .alert {
@@ -265,3 +271,4 @@
     transform: none;
   }
 }
+

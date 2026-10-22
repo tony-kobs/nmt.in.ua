@@ -218,10 +218,16 @@
 }
 
 .acknowledge:hover:not(:disabled),
-.close:hover:not(:disabled),
-.acknowledge:focus-visible:not(:disabled),
-.close:focus-visible:not(:disabled) {
-  transform: translateY(-1px);
+.acknowledge:focus-visible:not(:disabled) {
+  border-color: var(--green);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.acknowledge:active:not(:disabled) {
+  border-color: var(--ultimate);
+  background: var(--ultimate);
+  color: var(--on-accent);
 }
 
 .done {
@@ -287,3 +293,4 @@
     transform: none;
   }
 }
+

@@ -1,0 +1,16 @@
+.word {
+  display: inline-flex;
+  align-items: baseline;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+}
+
+.level {
+  color: var(--green);
+}
+
+.up {
+  color: var(--ultimate-dark);
+}
+

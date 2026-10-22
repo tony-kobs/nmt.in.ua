@@ -4,50 +4,7 @@
   min-height: 100dvh;
   overflow-x: clip;
   color: var(--ink-deep);
-  background: var(--grad-aurora);
-}
-
-.decor {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.decorGrid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgb(94 76 40 / 11%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(94 76 40 / 11%) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: linear-gradient(180deg, rgb(0 0 0 / 70%), rgb(0 0 0 / 18%) 72%);
-}
-
-.decorOrbA,
-.decorOrbB {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(10px);
-}
-
-.decorOrbA {
-  top: -12rem;
-  right: -8rem;
-  width: min(70vw, 32rem);
-  height: min(70vw, 32rem);
-  background: radial-gradient(circle, rgb(31 143 69 / 18%), transparent 68%);
-  animation: orbFloat 16s var(--ease) infinite alternate;
-}
-
-.decorOrbB {
-  top: 42%;
-  left: -10rem;
-  width: min(55vw, 24rem);
-  height: min(55vw, 24rem);
-  background: radial-gradient(circle, rgb(150 118 62 / 14%), transparent 70%);
-  animation: orbFloat 21s var(--ease) infinite alternate-reverse;
+  background: transparent;
 }
 
 .backdrop {
@@ -70,7 +27,8 @@
   gap: 0;
   width: min(100%, var(--container-max));
   margin-inline: auto;
-  padding: var(--space-md) var(--container-pad) var(--space-xl);
+  padding-block: var(--section-y);
+  padding-inline: var(--container-pad);
   margin-top: var(--header-h);
 }
 
@@ -108,16 +66,6 @@
   }
 }
 
-@keyframes orbFloat {
-  from {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-
-  to {
-    transform: translate3d(-20px, 22px, 0) scale(1.06);
-  }
-}
-
 @media (min-width: 768px) {
   .backdrop {
     display: none;
@@ -149,10 +97,6 @@
 }
 
 @media (min-width: 1240px) {
-  .body {
-    padding-block: var(--space-lg) var(--space-2xl);
-  }
-
   .sidebarSlotOpen {
     margin-inline-end: var(--space-xl);
   }
@@ -164,8 +108,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .decorOrbA,
-  .decorOrbB {
+  .backdrop {
     animation: none;
   }
 }
@@ -191,3 +134,4 @@
     margin: 0;
   }
 }
+

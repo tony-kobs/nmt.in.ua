@@ -9,7 +9,7 @@
     "showMenu": "Menü anzeigen",
     "goHome": "Über die Website",
     "goHomeShort": "Info",
-    "tagline": "Mathematik · Übung · Fortschritt",
+    "tagline": "Bring dein Wissen aufs nächste Level",
     "logout": "abmelden",
     "openAccount": "Persönliches Konto: {name}",
     "roles": {
@@ -17,7 +17,7 @@
       "teacher": "Lehrer",
       "admin": "Admin"
     },
-    "siteName": "NMT-Vorbereitung"
+    "siteName": "LevelUP"
   },
   "Notifications": {
     "bell": "Hinweise",
@@ -917,6 +917,10 @@
     "introContinue": "Weiter",
     "introAgain": "Regeln",
     "homeTitle": "Aktive Marathons",
+    "homeLead": "Auf der Plattform erscheinen ständig interessante Marathons zu verschiedenen Themen. Du kannst sie auch vom Handy aus machen — im Bot oder direkt auf der Seite.",
+    "homeMarathon": "Marathon",
+    "homeBoard": "Bestenliste",
+    "homeDay": "Tag {current} von {total}",
     "homeJoin": "Mitmachen",
     "homeContinue": "Weiter",
     "shelfLead": "Diese Kurse laufen jetzt. Trag dich ein, wenn du noch nicht dabei bist. Wenn du schon dabei bist, öffne die Beschreibung: Regeln, Tage und wo du ihn machst.",
@@ -1494,15 +1498,26 @@
       "cabinet": "Arbeitsbereich"
     },
     "hero": {
-      "badge": "NMT 2027 · Mathematik",
-      "titleStart": "Vorbereitung auf die NMT in Mathematik —",
-      "titleAccent": "systematisch und mit Ergebnis",
-      "lead": "Ein Online-Bereich, der Ihre Schwachstellen zeigt, im Prüfungsformat trainiert und einen klaren Plan für die nächsten Schritte gibt. Ohne verstreute PDFs und zufällige Tests.",
+      "titleStart": "Bereite dich auf die NMT in Mathematik",
+      "titleAccent": "ohne Stress",
+      "titleEnd": "und ohne Pauken vor",
+      "lead": "Löse echte NMT-Aufgaben, erhalte sofort Hinweise mit der mathematischen Logik, geh deine Fehler durch und steigere deine Punkte jeden Tag.",
       "diagnosticPrompt": "Du weißt nicht, wo du anfangen sollst? Prüfe dein Niveau",
-      "ctaDiagnostic": "Teste dein Wissen",
+      "ctaDiagnostic": "Diagnostik starten",
       "diagnosticHint": "Ein kurzer Test ohne Registrierung. Erfahre dein Niveau, deine starken und schwachen Themen und erhalte Empfehlungen für die weitere Vorbereitung.",
       "note": "Registrierung in einer Minute — ohne Karte und Zahlung",
-      "imageAlt": "Illustration: Funktionsgraph, Fortschrittsdiagramm und geometrische Formen",
+      "demo": {
+        "kicker": "Demoaufgabe 1",
+        "meta": "Algebra · 1 Punkt",
+        "topic": "Aufgabe zu Logarithmen:",
+        "prompt": "Berechne den Wert des Ausdrucks:",
+        "optionA": "A) 5",
+        "optionB": "B) 7",
+        "optionC": "C) 12",
+        "optionD": "D) 43",
+        "backA": "Demoaufgabe 2 · Geometrie",
+        "backB": "Demoaufgabe 3 · Prozente"
+      },
       "stats": {
         "topics": {
           "value": "20+",
@@ -1516,22 +1531,18 @@
           "value": "1",
           "label": "Lehrbuch nach Themen"
         }
-      },
-      "chipA": {
-        "title": "Themenfortschritt",
-        "text": "Funktionen — 78 % richtig"
-      },
-      "chipB": {
-        "title": "NMT-Simulator",
-        "text": "Variante · 60 Minuten"
       }
     },
     "features": {
       "kicker": "Funktionen",
-      "title": "Alles für regelmäßiges Üben an einem Ort",
-      "lead": "Vom ersten Themen-Test bis zur vollständigen Prüfungssimulation.",
-      "imageAlt": "Ein Schüler zwischen hingeworfenen Heften und Mathebüchern",
+      "title": "Alles für regelmäßiges Üben — <accent>in einem Konto</accent>",
+      "lead": "Vom ersten Themen-Test und täglichen Marathon bis zur vollständigen Prüfungssimulation.",
+      "imageAlt": "Das Maskottchen der Plattform zwischen den Funktionen des Kontos",
       "items": {
+        "marathon": {
+          "title": "Marathon",
+          "text": "Jeden Tag eine neue Lektion: kurze Erklärung, Aufgaben und dein Platz in der Tabelle. Auf der Website oder in Telegram, vom ersten Tag bis zum Ziel."
+        },
         "topics": {
           "title": "Thementests",
           "text": "Wähle ein Thema und die Anzahl der Aufgaben — und übe sofort. Jede Frage hat eine Erklärung."
@@ -1539,10 +1550,6 @@
         "simulator": {
           "title": "NMT-Simulator",
           "text": "Offizielle Varianten im UCEQA-Format mit Timer und Punktewertung — eine echte Prüfungsprobe."
-        },
-        "materials": {
-          "title": "Lehrbuch",
-          "text": "Theorie und Formeln nach Zertifizierungsthemen — ein Lehrbuch mit Inhaltsverzeichnis."
         },
         "results": {
           "title": "Ergebnisse und Analyse",
@@ -1611,8 +1618,9 @@
     },
     "teachers": {
       "kicker": "Lehrkräfte",
-      "title": "Lehrkräfte unserer Plattform",
-      "lead": "Öffentliche Lehrerkarten: Erfahrung, Beschreibung und Anzahl der Schüler.",
+      "title": "Lerne mit geprüften Fachleuten",
+      "lead": "Wähle eine Lehrkraft, sieh freie Stunden und vereinbare eine Stunde, wenn du Themen mit einer Mentorin oder einem Mentor besprechen willst.",
+      "stub": "Hier kann deine Visitenkarte stehen — tritt der Plattform bei",
       "verified": "Geprüfte Lehrkraft",
       "city": "Stadt",
       "education": "Ausbildung",
@@ -1712,10 +1720,6 @@
           "name": "Nataliia",
           "role": "Projektkoordinatorin"
         },
-        "oleksandr": {
-          "name": "Oleksandr Verba",
-          "role": "Fullstack Developer"
-        },
         "anton": {
           "name": "Anton",
           "role": "Fullstack Developer"
@@ -1741,10 +1745,10 @@
           "role": "Fullstack Developer"
         }
       },
-      "agencyName": "JOJØ",
-      "agencyTaglineJoin": "Join.",
-      "agencyTaglineRest": "Journey to web workflow",
-      "agencyLogoAlt": "Logo von JOJØ"
+      "agencyName": "Новий Рівень",
+      "agencyTaglineJoin": "Eine Stufe höher.",
+      "agencyTaglineRest": "Das Team von LevelUP",
+      "agencyLogoAlt": "Logo des Teams Новий Рівень"
     },
     "footer": {
       "tagline": "Online-Vorbereitung auf die NMT in Mathematik: Themen-Tests, Ergebnisanalyse, Prüfungssimulator und Lernsitzungen mit einer Lehrkraft.",
