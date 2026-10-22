@@ -64,7 +64,7 @@
   font-size: var(--fs-small);
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 8px 18px rgb(17 83 42 / 22%);
+  box-shadow: 0 8px 18px rgb(12 90 84 / 22%);
 }
 
 .swipeNavBtnDisabled {
@@ -354,3 +354,4 @@
     padding: 14px 16px;
   }
 }
+

@@ -9,7 +9,7 @@
     "showMenu": "Show menu",
     "goHome": "About the site",
     "goHomeShort": "About",
-    "tagline": "mathematics · practice · progress",
+    "tagline": "Level up your knowledge",
     "logout": "log out",
     "openAccount": "Personal account: {name}",
     "roles": {
@@ -17,7 +17,7 @@
       "teacher": "Teacher",
       "admin": "Admin"
     },
-    "siteName": "NMT Preparation"
+    "siteName": "LevelUP"
   },
   "Notifications": {
     "bell": "Notifications",
@@ -924,6 +924,10 @@
     "introContinue": "Continue",
     "introAgain": "Rules",
     "homeTitle": "Active marathons",
+    "homeLead": "Interesting marathons on different topics keep appearing. You can take them even from your phone — in the bot or right on the site.",
+    "homeMarathon": "Marathon",
+    "homeBoard": "Leaderboard",
+    "homeDay": "Day {current} of {total}",
     "homeJoin": "Join",
     "homeContinue": "Continue",
     "shelfLead": "These courses are running now. Join one if you are not in it yet. If you already joined, open the description: rules, days, and where to take it.",
@@ -1534,15 +1538,26 @@
       "cabinet": "Workspace"
     },
     "hero": {
-      "badge": "NMT 2027 · mathematics",
-      "titleStart": "Prepare for the NMT in maths —",
-      "titleAccent": "systematically, with results",
-      "lead": "An online workspace that shows your weak topics, trains you in exam format and gives a clear plan for the next steps. No scattered PDFs, no random tests.",
+      "titleStart": "Prepare for the NMT in maths",
+      "titleAccent": "without stress",
+      "titleEnd": "or cramming",
+      "lead": "Solve real NMT problems, get instant hints with the mathematical reasoning, review your mistakes and raise your score every day.",
       "diagnosticPrompt": "Not sure where to start? Check your level",
-      "ctaDiagnostic": "Test your knowledge",
+      "ctaDiagnostic": "Take the diagnostic",
       "diagnosticHint": "A short test, no sign-up needed. Find out your level and your strong and weak topics, and get recommendations for what to study next.",
       "note": "Sign up in a minute — no card, no payment",
-      "imageAlt": "Illustration: a function graph, a progress ring and geometric shapes",
+      "demo": {
+        "kicker": "Demo problem 1",
+        "meta": "Algebra · 1 point",
+        "topic": "Logarithm problem:",
+        "prompt": "Evaluate the expression:",
+        "optionA": "A) 5",
+        "optionB": "B) 7",
+        "optionC": "C) 12",
+        "optionD": "D) 43",
+        "backA": "Demo problem 2 · Geometry",
+        "backB": "Demo problem 3 · Percentages"
+      },
       "stats": {
         "topics": {
           "value": "20+",
@@ -1556,22 +1571,18 @@
           "value": "1",
           "label": "topic-based textbook"
         }
-      },
-      "chipA": {
-        "title": "Topic progress",
-        "text": "Functions — 78% correct"
-      },
-      "chipB": {
-        "title": "NMT simulator",
-        "text": "Paper · 60 minutes"
       }
     },
     "features": {
       "kicker": "Features",
-      "title": "Everything you need for regular practice in one place",
-      "lead": "From your first topic test to a full exam simulation.",
-      "imageAlt": "A student surrounded by tossed notebooks and math textbooks",
+      "title": "Everything for regular practice — <accent>in one workspace</accent>",
+      "lead": "From your first topic test and a daily marathon to a full exam simulation.",
+      "imageAlt": "The platform mascot among the workspace features",
       "items": {
+        "marathon": {
+          "title": "Marathon",
+          "text": "A new lesson every day: a short explanation, tasks, and your place on the board. Take it on the site or in Telegram, from the first day to the finish."
+        },
         "topics": {
           "title": "Topic tests",
           "text": "Pick a topic and how many tasks to run — then practise right away. Every question comes with an explanation."
@@ -1579,10 +1590,6 @@
         "simulator": {
           "title": "NMT simulator",
           "text": "Official papers in the UCEQA format with a timer and scoring — a full exam rehearsal."
-        },
-        "materials": {
-          "title": "Textbook",
-          "text": "Theory and formulas by certification topics — one textbook with a table of contents."
         },
         "results": {
           "title": "Results and analytics",
@@ -1651,9 +1658,10 @@
     },
     "teachers": {
       "kicker": "Teachers",
-      "title": "Teachers on our platform",
-      "lead": "Public teacher cards: experience, bio, and student count.",
-      "verified": "Verified tutor",
+      "title": "Learn with verified specialists",
+      "lead": "Pick a teacher, see open hours and agree on a lesson when you want to work through topics with a mentor.",
+      "stub": "This could be your visiting card — join the platform",
+      "verified": "Verified teacher",
       "city": "City",
       "education": "Education",
       "experience": "Experience",
@@ -1752,10 +1760,6 @@
           "name": "Nataliia",
           "role": "Project Coordinator"
         },
-        "oleksandr": {
-          "name": "Oleksandr Verba",
-          "role": "Fullstack Developer"
-        },
         "anton": {
           "name": "Anton",
           "role": "Fullstack Developer"
@@ -1781,10 +1785,10 @@
           "role": "Fullstack Developer"
         }
       },
-      "agencyName": "JOJØ",
-      "agencyTaglineJoin": "Join.",
-      "agencyTaglineRest": "Journey to web workflow",
-      "agencyLogoAlt": "JOJØ logo"
+      "agencyName": "Новий Рівень",
+      "agencyTaglineJoin": "A level higher.",
+      "agencyTaglineRest": "The LevelUP product team",
+      "agencyLogoAlt": "Новий Рівень team logo"
     },
     "footer": {
       "tagline": "Online NMT maths preparation: topic tests, result analytics, an exam simulator and learning sessions with a teacher.",

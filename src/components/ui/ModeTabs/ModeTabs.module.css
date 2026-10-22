@@ -29,17 +29,17 @@
 }
 
 .tab:hover:not(:disabled) {
-  border-color: rgb(31 143 69 / 40%);
+  border-color: rgb(15 118 110 / 40%);
   background: var(--surface);
 }
 
 .tab:focus-visible {
-  outline: 2px solid rgb(31 143 69 / 65%);
+  outline: 2px solid rgb(15 118 110 / 65%);
   outline-offset: 2px;
 }
 
 .tabActive {
-  border-color: rgb(31 143 69 / 70%);
+  border-color: rgb(15 118 110 / 70%);
   background: rgb(214 239 220);
   box-shadow: var(--shadow-sm);
   color: var(--green-dark);

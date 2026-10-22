@@ -27,7 +27,6 @@ export type DevTeamService = {
 export type DevTeamPanelLabels = {
   toggle: string;
   collapse: string;
-  kicker: string;
   title: string;
   lead: string;
   socialGithub: string;
@@ -45,6 +44,7 @@ export type DevTeamPanelProps = {
   members: DevTeamMemberCard[];
   services: DevTeamService[];
   labels: DevTeamPanelLabels;
+  nameFontClass: string;
 };
 
 const AUTO_SPEED_PX_PER_SEC = 36;
@@ -306,13 +306,18 @@ function DevTeamMarquee({
   );
 }
 
-export function DevTeamPanel({ members, services, labels }: DevTeamPanelProps) {
+export function DevTeamPanel({
+  members,
+  services,
+  labels,
+  nameFontClass,
+}: DevTeamPanelProps) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const titleId = useId();
 
   return (
-    <div className={css.root}>
+    <div className={`${css.root} ${nameFontClass}`}>
       <div className={css.toggleWrap}>
         <button
           type="button"
@@ -344,7 +349,6 @@ export function DevTeamPanel({ members, services, labels }: DevTeamPanelProps) {
       {open ? (
         <section id={panelId} className={css.panel} aria-labelledby={titleId}>
           <header className={css.head}>
-            <p className={css.kicker}>{labels.kicker}</p>
             <h2 id={titleId} className={css.title}>
               {labels.title}
             </h2>
@@ -359,15 +363,14 @@ export function DevTeamPanel({ members, services, labels }: DevTeamPanelProps) {
                   labels={labels}
                   panelId={panelId}
                 />
-                <div className={css.agency} aria-label={labels.agencyName}>
-                  {/* eslint-disable-next-line @next/next/no-img-element -- static brand mark */}
+                <div className={css.agency}>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- static public mark */}
                   <img
                     className={css.agencyLogo}
-                    src="/landing/jojo-logo.webp?v=3"
+                    src="/landing/team-mark.webp"
                     alt={labels.agencyLogoAlt}
-                    width={72}
-                    height={72}
-                    draggable={false}
+                    width={144}
+                    height={144}
                   />
                   <div className={css.agencyCopy}>
                     <p className={css.agencyName}>{labels.agencyName}</p>

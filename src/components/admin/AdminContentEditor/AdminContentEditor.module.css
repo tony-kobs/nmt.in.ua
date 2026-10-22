@@ -163,10 +163,17 @@
   opacity: 0.7;
 }
 
-.createBtn:hover:not(:disabled),
-.saveBtn:hover:not(:disabled),
-.cancelBtn:hover:not(:disabled) {
-  transform: translateY(-1px);
+.cancelBtn:hover:not(:disabled),
+.cancelBtn:focus-visible:not(:disabled) {
+  border-color: var(--green);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.cancelBtn:active:not(:disabled) {
+  border-color: var(--ultimate);
+  background: var(--ultimate);
+  color: var(--on-accent);
 }
 
 .empty {
@@ -209,8 +216,13 @@
   opacity: 0.55;
 }
 
-.bulkDeleteBtn:hover:not(:disabled) {
-  transform: translateY(-1px);
+.bulkDeleteBtn:hover:not(:disabled),
+.bulkDeleteBtn:focus-visible:not(:disabled) {
+  background: #a32e2e;
+}
+
+.bulkDeleteBtn:active:not(:disabled) {
+  background: #7f1d1d;
 }
 
 .colCheck {
@@ -319,7 +331,7 @@
 }
 
 .pagerBtn:hover {
-  border-color: rgb(31 143 69 / 45%);
+  border-color: rgb(15 118 110 / 45%);
 }
 
 .pagerBtnDisabled {
@@ -522,3 +534,4 @@
     transform: none;
   }
 }
+

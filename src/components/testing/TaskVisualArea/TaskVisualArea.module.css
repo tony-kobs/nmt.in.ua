@@ -11,7 +11,8 @@
   width: 100%;
   max-height: 360px;
   object-fit: contain;
-  background: var(--surface);
+  background-color: #e7e5e4;
+  background-image: var(--media-loading);
 }
 
 .tableScroll {
@@ -40,3 +41,4 @@
 .table tbody tr:last-child td {
   border-bottom: none;
 }
+

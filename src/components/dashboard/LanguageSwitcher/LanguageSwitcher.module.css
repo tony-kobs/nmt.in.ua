@@ -25,26 +25,35 @@
 
 .trigger:hover:not(:disabled),
 .trigger:focus-visible {
-  border-color: rgb(31 143 69 / 45%);
-  background: var(--surface);
+  border-color: var(--green);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.trigger:active:not(:disabled) {
+  border-color: var(--ultimate);
+  background: var(--ultimate-bg);
+  color: var(--ultimate-dark);
 }
 
 .trigger:disabled {
   cursor: wait;
 }
 
-.code {
-  display: grid;
+.flag {
+  display: block;
   flex: none;
-  place-items: center;
-  min-width: 1.75rem;
-  padding: 2px 6px;
-  border-radius: var(--radius-pill);
-  background: var(--grad-mint);
-  color: var(--green-dark);
-  font-size: var(--fs-kicker);
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  width: 22px;
+  height: 22px;
+  overflow: hidden;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgb(28 25 23 / 16%);
+}
+
+.flag svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .currentName {
@@ -109,18 +118,35 @@
 
 .option:hover,
 .option:focus-visible {
-  background: var(--surface-hover);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.option:active {
+  background: var(--ultimate);
+  color: var(--on-accent);
 }
 
 .optionActive {
-  background: var(--grad-mint);
+  background: var(--green-bg);
   color: var(--green-dark);
   font-weight: 700;
 }
 
 .optionActive:hover,
 .optionActive:focus-visible {
-  background: var(--grad-mint);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.check {
+  flex: none;
+  margin-inline-start: auto;
+  color: var(--green);
+}
+
+.option:active .check {
+  color: var(--on-accent);
 }
 
 @media (min-width: 768px) {
@@ -135,3 +161,4 @@
     transition: none;
   }
 }
+

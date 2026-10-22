@@ -2,11 +2,11 @@ import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { Reveal } from "@/components/ui/Reveal";
 import { DiagnosticPageTurnLink } from "@/components/welcome/DiagnosticPageTurnLink";
-import { ArrowRightIcon, CheckIcon, TimerIcon, TrendIcon } from "../icons";
+import { ArrowRightIcon } from "../icons";
 import css from "../landing.module.css";
 
-const STAT_KEYS = ["topics", "simulator", "materials"] as const;
 const STEP_KEYS = ["diagnose", "signup", "train", "track"] as const;
+const DEMO_OPTIONS = ["optionA", "optionB", "optionC", "optionD"] as const;
 
 export async function Hero() {
   const t = await getTranslations("WelcomeLanding.hero");
@@ -14,16 +14,22 @@ export async function Hero() {
 
   return (
     <section className={css.hero} aria-labelledby="hero-title">
+      <div className={css.heroBg} aria-hidden>
+        <Image
+          src="/landing/hero-classroom.webp"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className={css.heroBgImage}
+        />
+      </div>
       <div className={`${css.container} ${css.heroGrid}`}>
         <Reveal className={css.heroCopy}>
-          <p className={css.heroBadge}>
-            <span className={css.heroBadgeDot} aria-hidden />
-            {t("badge")}
-          </p>
-
           <h1 id="hero-title" className={css.heroTitle}>
             {t("titleStart")}{" "}
-            <span className={css.accent}>{t("titleAccent")}</span>
+            <span className={css.accent}>{t("titleAccent")}</span>{" "}
+            {t("titleEnd")}
           </h1>
 
           <p className={css.heroLead}>{t("lead")}</p>
@@ -68,56 +74,90 @@ export async function Hero() {
               </div>
             </div>
           </div>
-
-          <p className={css.heroNote}>
-            <CheckIcon size={16} className={css.heroNoteIcon} />
-            {t("note")}
-          </p>
-
-          <dl className={css.heroStats}>
-            {STAT_KEYS.map((key) => (
-              <div key={key}>
-                <dt className={css.heroStatValue}>{t(`stats.${key}.value`)}</dt>
-                <dd className={css.heroStatLabel}>{t(`stats.${key}.label`)}</dd>
-              </div>
-            ))}
-          </dl>
         </Reveal>
 
         <Reveal className={css.heroVisual} delay={140}>
-          <div className={css.heroFrame}>
-            <Image
-              src="/landing/hero-paper.webp"
-              alt={t("imageAlt")}
-              width={1024}
-              height={1024}
-              className={css.heroImage}
-              sizes="(min-width: 1240px) 38rem, (min-width: 768px) 30rem, 100vw"
-              priority
-            />
-          </div>
+          <div className={css.heroStack}>
+            <div className={`${css.heroStackSheet} ${css.heroStackSheetA}`} aria-hidden>
+              <p className={css.heroStackLabel}>
+                <DemoDots />
+                {t("demo.backA")}
+              </p>
+            </div>
+            <div className={`${css.heroStackSheet} ${css.heroStackSheetB}`} aria-hidden>
+              <p className={css.heroStackLabel}>
+                <DemoDots />
+                {t("demo.backB")}
+              </p>
+            </div>
 
-          <div className={`${css.heroChip} ${css.heroChipA}`}>
-            <span className={css.heroChipIcon} aria-hidden>
-              <TrendIcon size={16} />
-            </span>
-            <span>
-              <span className={css.heroChipTitle}>{t("chipA.title")}</span>
-              <span className={css.heroChipText}>{t("chipA.text")}</span>
-            </span>
-          </div>
+            <div className={css.heroDemo}>
+              <div className={css.heroDemoHead}>
+                <p className={css.heroDemoName}>
+                  <DemoDots />
+                  {t("demo.kicker")}
+                </p>
+                <p className={css.heroDemoMeta}>{t("demo.meta")}</p>
+              </div>
 
-          <div className={`${css.heroChip} ${css.heroChipB}`}>
-            <span className={css.heroChipIcon} aria-hidden>
-              <TimerIcon size={16} />
-            </span>
-            <span>
-              <span className={css.heroChipTitle}>{t("chipB.title")}</span>
-              <span className={css.heroChipText}>{t("chipB.text")}</span>
-            </span>
+              <p className={css.heroDemoTopic}>{t("demo.topic")}</p>
+
+              <div className={css.heroDemoPrompt}>
+                <p>{t("demo.prompt")}</p>
+                <p className={css.heroDemoExpr}>
+                  log<sub>2</sub> 16 + log<sub>3</sub> 27
+                </p>
+              </div>
+
+              <ul className={css.heroDemoOptions}>
+                {DEMO_OPTIONS.map((key) => (
+                  <li key={key}>{t(`demo.${key}`)}</li>
+                ))}
+              </ul>
+
+              <div className={css.heroDemoFoot}>
+                <p className={css.heroDemoHint}>
+                  <HintIcon />
+                  <span>
+                    log<sub>2</sub> 16 = 4, log<sub>3</sub> 27 = 3
+                  </span>
+                </p>
+                <p className={css.heroDemoAnswer}>4 + 3 = 7</p>
+              </div>
+            </div>
           </div>
         </Reveal>
       </div>
     </section>
+  );
+}
+
+function DemoDots() {
+  return (
+    <span className={css.heroDemoDots} aria-hidden>
+      <span className={css.heroDemoDotRose} />
+      <span className={css.heroDemoDotAmber} />
+    </span>
+  );
+}
+
+function HintIcon() {
+  return (
+    <svg
+      className={css.heroDemoHintIcon}
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      focusable="false"
+    >
+      <path d="M9 18h6M10 21h4" />
+      <path d="M12 3a6 6 0 0 0-3.4 10.9c.3.3.5.8.5 1.3V16h5.8v-.8c0-.5.2-1 .5-1.3A6 6 0 0 0 12 3z" />
+    </svg>
   );
 }

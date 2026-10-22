@@ -60,13 +60,10 @@
   background: var(--grad-mint);
 }
 
-.detailsToggle:hover {
-  transform: translateY(-1px);
-}
-
 .detailsToggle:active {
-  transform: translateY(1px);
-  box-shadow: 1px 1px 0 var(--green-lift);
+  background: var(--ultimate-bg);
+  color: var(--ultimate-dark);
+  box-shadow: none;
 }
 
 /* Mobile swipe carousel (<768). Remove `.swipeRoot` block to revert table-only. */
@@ -109,15 +106,10 @@
   font-size: var(--fs-small);
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 8px 18px rgb(17 83 42 / 22%);
+  box-shadow: 0 8px 18px rgb(12 90 84 / 22%);
   transition:
     transform var(--t) var(--ease),
     opacity var(--t) var(--ease);
-}
-
-.swipeNavBtn:hover,
-.swipeNavBtn:focus-visible {
-  transform: translateY(-1px);
 }
 
 .swipeNavBtnDisabled {
@@ -494,7 +486,7 @@
   max-width: 100%;
   min-height: 36px;
   padding: 4px 10px;
-  border: 1px dashed rgb(31 143 69 / 40%);
+  border: 1px dashed rgb(15 118 110 / 40%);
   border-radius: var(--radius-pill);
   background: var(--green-bg);
   color: var(--green-dark);
@@ -665,3 +657,4 @@
     width: 11%;
   }
 }
+

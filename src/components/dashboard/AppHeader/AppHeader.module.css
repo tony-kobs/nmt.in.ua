@@ -6,15 +6,9 @@
   z-index: 40;
   height: calc(var(--header-h) + env(safe-area-inset-top, 0px));
   padding-top: env(safe-area-inset-top, 0px);
-  border-bottom: 1px solid transparent;
-  background: rgb(241 234 216 / 88%);
-  backdrop-filter: blur(16px);
-}
-
-@supports not (backdrop-filter: blur(4px)) {
-  .header {
-    background: var(--paper);
-  }
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+  box-shadow: var(--shadow-sm);
 }
 
 .inner {
@@ -38,6 +32,7 @@
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-md);
   background: rgb(253 251 244 / 78%);
+  color: var(--ink);
   cursor: pointer;
   transition:
     transform var(--t) var(--ease),
@@ -47,9 +42,15 @@
 
 .toggle:hover,
 .toggle:focus-visible {
-  border-color: rgb(31 143 69 / 45%);
-  background: var(--surface);
-  transform: translateY(-1px);
+  border-color: var(--green);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.toggle:active {
+  border-color: var(--ultimate);
+  background: var(--ultimate-bg);
+  color: var(--ultimate-dark);
 }
 
 .toggleGlyph {
@@ -63,7 +64,7 @@
   display: block;
   height: 2px;
   border-radius: var(--radius-pill);
-  background: var(--ink);
+  background: currentColor;
   transition:
     transform var(--t) var(--ease),
     width var(--t) var(--ease),
@@ -100,26 +101,14 @@
 }
 
 .logo {
-  display: grid;
-  place-items: center;
+  display: block;
   flex: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
-  background: var(--grad-brand);
-  box-shadow: 0 6px 16px rgb(17 83 42 / 28%);
-}
-
-.logoEq {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 700;
-  line-height: 1;
-  color: #fdfbf4;
+  width: 42px;
+  height: 42px;
 }
 
 .brandCopy {
-  display: none;
+  display: grid;
   min-width: 0;
 }
 
@@ -167,16 +156,22 @@
   font-weight: 700;
   white-space: nowrap;
   transition:
-    transform var(--t) var(--ease),
     border-color var(--t) var(--ease),
-    background var(--t) var(--ease);
+    background-color var(--t) var(--ease),
+    color var(--t) var(--ease);
 }
 
 .homeLink:hover,
 .homeLink:focus-visible {
-  border-color: rgb(31 143 69 / 45%);
-  background: var(--surface);
-  transform: translateY(-1px);
+  border-color: var(--green);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.homeLink:active {
+  border-color: var(--ultimate);
+  background: var(--ultimate);
+  color: var(--on-accent);
 }
 
 .profile {
@@ -194,21 +189,23 @@
   color: inherit;
   cursor: pointer;
   transition:
-    transform var(--t) var(--ease),
     border-color var(--t) var(--ease),
-    background var(--t) var(--ease);
+    background-color var(--t) var(--ease),
+    color var(--t) var(--ease);
 }
 
 .profile:hover,
 .profile:focus-visible,
 .profileActive {
-  border-color: rgb(31 143 69 / 45%);
-  background: var(--surface);
+  border-color: var(--green);
+  background: var(--green-bg);
+  color: var(--green-dark);
 }
 
-.profile:hover,
-.profile:focus-visible {
-  transform: translateY(-1px);
+.profile:active {
+  border-color: var(--ultimate);
+  background: var(--ultimate-bg);
+  color: var(--ultimate-dark);
 }
 
 .avatar {
@@ -325,3 +322,4 @@
     transform: none;
   }
 }
+

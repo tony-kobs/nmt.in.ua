@@ -13,7 +13,21 @@ export async function CtaBanner() {
         <Reveal>
           <div className={css.ctaBanner}>
             <span className={css.ctaGlow} aria-hidden />
-            <span className={css.ctaPattern} aria-hidden />
+            <span className={css.ctaPattern} aria-hidden>
+              <span className={`${css.ctaMark} ${css.ctaMarkX}`}>x²</span>
+              <span className={`${css.ctaMark} ${css.ctaMarkPi}`}>π r²</span>
+              <span className={`${css.ctaMark} ${css.ctaMarkInt}`}>∫ f(x) dx</span>
+              <svg className={css.ctaMarkTri} viewBox="0 0 48 40">
+                <path
+                  d="M6 34h36V6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
 
             <h2 id="cta-title" className={css.ctaTitle}>
               {t("title")}

@@ -87,10 +87,11 @@
 }
 
 .pagerBtn:hover {
-  border-color: rgb(31 143 69 / 45%);
+  border-color: rgb(15 118 110 / 45%);
 }
 
 .pagerBtnDisabled {
   opacity: 0.45;
   pointer-events: none;
 }
+

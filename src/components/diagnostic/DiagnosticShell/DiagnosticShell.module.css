@@ -7,7 +7,7 @@
    * background — diagnostic bypasses those shells (see DashboardShell's
    * passthrough list) but should still read as the same product, not a
    * plain unstyled page. */
-  background: var(--grad-aurora);
+  background: transparent;
 }
 
 .decor {
@@ -18,37 +18,10 @@
   pointer-events: none;
 }
 
-.decorGrid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgb(94 76 40 / 11%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(94 76 40 / 11%) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: linear-gradient(180deg, rgb(0 0 0 / 65%), rgb(0 0 0 / 18%) 70%);
-}
-
+.decorGrid,
 .decorOrbA,
 .decorOrbB {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(10px);
-}
-
-.decorOrbA {
-  top: -12rem;
-  right: -7rem;
-  width: min(72vw, 30rem);
-  height: min(72vw, 30rem);
-  background: radial-gradient(circle, rgb(31 143 69 / 18%), transparent 68%);
-}
-
-.decorOrbB {
-  bottom: -10rem;
-  left: -8rem;
-  width: min(64vw, 26rem);
-  height: min(64vw, 26rem);
-  background: radial-gradient(circle, rgb(150 118 62 / 16%), transparent 70%);
+  display: none;
 }
 
 /* Subtle math watermark for the lower part of the page — a coordinate axis,
@@ -56,13 +29,7 @@
  * only reads in the area below the intro card. Reuses the sepia decor tone
  * (see .decorGrid) instead of introducing a new accent color. */
 .decorMath {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  width: 100%;
-  height: clamp(220px, 32vw, 380px);
-  color: rgb(94 76 40 / 60%);
-  mask-image: linear-gradient(180deg, transparent, rgb(0 0 0 / 100%) 45%);
+  display: none;
 }
 
 .decorAxis,
@@ -162,7 +129,7 @@
 .backLink:hover,
 .backLink:focus-visible {
   transform: translateX(-2px);
-  border-color: rgb(31 143 69 / 45%);
+  border-color: rgb(15 118 110 / 45%);
   background: var(--surface);
 }
 
@@ -175,16 +142,10 @@
 }
 
 .brandGlyph {
-  display: grid;
+  display: block;
   flex: none;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
-  background: var(--grad-brand);
-  color: #fdfbf4;
-  font-family: var(--font-display);
-  font-weight: 700;
+  width: 42px;
+  height: 42px;
 }
 
 .brandName {
@@ -212,3 +173,4 @@
     transform: none;
   }
 }
+

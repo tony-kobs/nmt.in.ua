@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { getTranslations } from "next-intl/server";
 import { SkipLink } from "@/components/ui/SkipLink";
+import { BrandMark } from "@/components/brand/BrandMark";
+import { BrandWord } from "@/components/brand/BrandWord";
 import { SITE_NAME } from "@/constants/seo";
 import css from "./DiagnosticShell.module.css";
 
@@ -129,9 +131,11 @@ export async function DiagnosticShell({
 
           <Link href="/" className={css.brand} aria-label={SITE_NAME} translate="no">
             <span className={css.brandGlyph} aria-hidden>
-              ∑
+              <BrandMark />
             </span>
-            <span className={css.brandName}>{SITE_NAME}</span>
+            <span className={css.brandName}>
+              <BrandWord />
+            </span>
           </Link>
         </div>
 

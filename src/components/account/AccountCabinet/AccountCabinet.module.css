@@ -200,7 +200,7 @@
 }
 
 .input:hover {
-  border-color: rgb(31 143 69 / 40%);
+  border-color: rgb(15 118 110 / 40%);
 }
 
 .input:focus-visible {
@@ -274,10 +274,16 @@
 }
 
 .logout:hover,
-.logout:focus-visible,
-.submit:hover:not(:disabled),
-.submit:focus-visible:not(:disabled) {
-  transform: translateY(-1px);
+.logout:focus-visible {
+  border-color: var(--green);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.logout:active {
+  border-color: var(--ultimate);
+  background: var(--ultimate);
+  color: var(--on-accent);
 }
 
 .alert {
@@ -332,3 +338,4 @@
     transform: none;
   }
 }
+

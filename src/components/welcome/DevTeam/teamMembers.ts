@@ -61,14 +61,6 @@ export const DEV_TEAM_MEMBERS: readonly DevTeamMemberMeta[] = [
     }),
   },
   {
-    id: "oleksandr",
-    photoSrc: "/landing/team/oleksandr.webp?v=2",
-    socials: socials({
-      telegram: "@Oleksandr_681",
-      github: "oleksandrVerba",
-    }),
-  },
-  {
     id: "anton",
     photoSrc: "/landing/team/anton.webp",
     socials: socials({

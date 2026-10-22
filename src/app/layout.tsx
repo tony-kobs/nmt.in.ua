@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Manrope } from "next/font/google";
 import {
   SITE_DESCRIPTION,
   SITE_KEYWORDS,
@@ -10,8 +11,21 @@ import {
   createPageMetadata,
   siteIcons,
 } from "@/constants/seo";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 import { getLocale } from "next-intl/server";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin", "cyrillic"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const manrope = Manrope({
+  subsets: ["latin", "cyrillic"],
+  variable: "--font-manrope",
+  display: "swap",
+});
 
 /**
  * Root shell only: html/body + global CSS.
@@ -62,8 +76,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getLocale();
 
   return (
-    <html lang={locale}>
-      <body>{children}</body>
+    <html lang={locale} className={`${inter.variable} ${manrope.variable}`}>
+      <body>
+        <QueryProvider>{children}</QueryProvider>
+      </body>
     </html>
   );
 }

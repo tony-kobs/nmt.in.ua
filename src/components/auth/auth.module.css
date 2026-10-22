@@ -12,48 +12,7 @@
   overflow-x: clip;
   color: var(--ink-deep);
   font-size: var(--fs-body);
-  background: var(--grad-aurora);
-}
-
-.decor {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.decorGrid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgb(94 76 40 / 11%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(94 76 40 / 11%) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: linear-gradient(180deg, rgb(0 0 0 / 65%), rgb(0 0 0 / 18%) 70%);
-}
-
-.decorOrbA,
-.decorOrbB {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(10px);
-}
-
-.decorOrbA {
-  top: -12rem;
-  right: -7rem;
-  width: min(72vw, 30rem);
-  height: min(72vw, 30rem);
-  background: radial-gradient(circle, rgb(31 143 69 / 18%), transparent 68%);
-}
-
-.decorOrbB {
-  bottom: -10rem;
-  left: -8rem;
-  width: min(64vw, 26rem);
-  height: min(64vw, 26rem);
-  background: radial-gradient(circle, rgb(150 118 62 / 16%), transparent 70%);
+  background: transparent;
 }
 
 .shell {
@@ -62,7 +21,8 @@
   width: 100%;
   max-width: var(--container-max);
   margin-inline: auto;
-  padding: var(--space-lg) var(--container-pad) var(--space-3xl);
+  padding-block: var(--section-y);
+  padding-inline: var(--container-pad);
 }
 
 .topbar {
@@ -94,7 +54,7 @@
 .backLink:hover,
 .backLink:focus-visible {
   transform: translateX(-2px);
-  border-color: rgb(31 143 69 / 45%);
+  border-color: rgb(15 118 110 / 45%);
   background: var(--surface);
 }
 
@@ -110,18 +70,10 @@
 }
 
 .brandGlyph {
-  display: grid;
+  display: block;
   flex: none;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
-  background: var(--grad-brand);
-  color: #fdfbf4;
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 700;
-  box-shadow: 0 6px 16px rgb(17 83 42 / 28%);
+  width: 42px;
+  height: 42px;
 }
 
 .brandName {
@@ -160,7 +112,7 @@
   justify-self: start;
   padding: 7px 14px;
   border-radius: var(--radius-pill);
-  border: 1px solid rgb(31 143 69 / 26%);
+  border: 1px solid rgb(15 118 110 / 26%);
   background: rgb(253 251 244 / 80%);
   color: var(--green-dark);
   font-size: var(--fs-kicker);
@@ -337,7 +289,7 @@
 }
 
 .input:hover {
-  border-color: rgb(31 143 69 / 40%);
+  border-color: rgb(15 118 110 / 40%);
 }
 
 .input:focus-visible {
@@ -363,31 +315,41 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-xs);
-  min-height: 50px;
+  min-height: 48px;
   margin-top: var(--space-2xs);
   padding: 12px 22px;
-  border: 0;
+  border: 1.5px solid var(--green-fill);
   border-radius: var(--radius-pill);
-  background: var(--grad-brand);
-  color: #fdfbf4;
+  background: var(--green-fill);
+  color: var(--on-accent);
+  font-family: var(--font-display);
   font-size: var(--fs-body);
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 12px 26px rgb(17 83 42 / 28%);
+  box-shadow: var(--shadow-sm);
   transition:
-    transform var(--t) var(--ease),
-    box-shadow var(--t) var(--ease),
-    opacity var(--t) var(--ease);
+    background-color var(--t) var(--ease),
+    border-color var(--t) var(--ease),
+    box-shadow var(--t) var(--ease);
 }
 
 .submit:hover:not(:disabled),
 .submit:focus-visible:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 18px 34px rgb(17 83 42 / 34%);
+  border-color: var(--green);
+  background: var(--green);
+  box-shadow: var(--shadow-md);
+}
+
+.submit:active:not(:disabled) {
+  border-color: var(--green-dark);
+  background: var(--green-dark);
 }
 
 .submit:disabled {
-  opacity: 0.7;
+  border-color: transparent;
+  background: var(--surface-muted);
+  color: var(--subtle);
+  box-shadow: none;
   cursor: not-allowed;
 }
 
@@ -421,7 +383,7 @@
 .submitQuiet:hover,
 .submitQuiet:focus-visible {
   color: var(--green-dark);
-  border-color: rgb(31 143 69 / 40%);
+  border-color: rgb(15 118 110 / 40%);
 }
 
 .alert {
@@ -439,13 +401,13 @@
 }
 
 .alertSuccess {
-  border: 1px solid rgb(31 143 69 / 30%);
+  border: 1px solid rgb(15 118 110 / 30%);
   background: var(--green-bg);
   color: var(--green-dark);
 }
 
 .alertNotice {
-  border: 1px solid rgb(31 143 69 / 30%);
+  border: 1px solid rgb(15 118 110 / 30%);
   background: var(--green-bg);
   color: var(--green-dark);
 }
@@ -454,7 +416,7 @@
   justify-self: start;
   margin: 0;
   padding: 7px 14px;
-  border: 1px solid rgb(31 143 69 / 26%);
+  border: 1px solid rgb(15 118 110 / 26%);
   border-radius: var(--radius-pill);
   background: var(--green-bg);
   color: var(--green-dark);
@@ -621,7 +583,7 @@
 .checkoutQuiet:hover:not(:disabled),
 .checkoutQuiet:focus-visible:not(:disabled) {
   color: var(--green-dark);
-  border-color: rgb(31 143 69 / 40%);
+  border-color: rgb(15 118 110 / 40%);
 }
 
 .testBypass {
@@ -630,7 +592,7 @@
   gap: var(--space-sm);
   margin-block: var(--space-md);
   padding: var(--space-md);
-  border: 1px dashed rgb(31 143 69 / 40%);
+  border: 1px dashed rgb(15 118 110 / 40%);
   border-radius: var(--radius-lg);
   background: var(--green-bg);
 }
@@ -649,7 +611,7 @@
   justify-content: center;
   min-height: 44px;
   padding: 10px 20px;
-  border: 1px solid rgb(31 143 69 / 40%);
+  border: 1px solid rgb(15 118 110 / 40%);
   border-radius: var(--radius-pill);
   background: var(--surface);
   color: var(--green-dark);
@@ -665,7 +627,6 @@
 
 .testBypassButton:hover:not(:disabled),
 .testBypassButton:focus-visible:not(:disabled) {
-  transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
 
@@ -673,3 +634,4 @@
   opacity: 0.7;
   cursor: not-allowed;
 }
+
