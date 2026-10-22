@@ -289,6 +289,22 @@ export async function migrateDailyMarathon(
     }
   }
 
+  try {
+    await connection.execute(
+      `CREATE TABLE IF NOT EXISTS marathon_button_labels (
+        marathon_id INT NOT NULL,
+        callback_data VARCHAR(32) NOT NULL,
+        label VARCHAR(64) NOT NULL,
+        PRIMARY KEY (marathon_id, callback_data, label),
+        CONSTRAINT fk_marathon_button_labels FOREIGN KEY (marathon_id)
+          REFERENCES marathons (id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+      [],
+    );
+  } catch (error) {
+    if (!isDuplicate(error)) throw error;
+  }
+
   const taskColumns = await columnNames(connection, "marathon_day_tasks");
   if (taskColumns.size > 0 && !taskColumns.has("inline_explanation")) {
     await addColumn(

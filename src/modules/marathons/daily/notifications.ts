@@ -13,6 +13,11 @@ export type NotifyKind = "day_open" | "reminder" | "tomorrow" | "final" | "nudge
 /** A missed-day nudge goes out only inside these Kyiv hours, so night cron stays quiet. */
 export const NUDGE_HOUR_FROM = 10;
 export const NUDGE_HOUR_UNTIL = 21;
+
+/** True only inside the hour after unlock. Reminder and nudge stay outside this interval. */
+export function inDayOpenWindow(unlockMs: number, nowMs: number): boolean {
+  return nowMs >= unlockMs && nowMs < unlockMs + DAY_OPEN_NOTIFY_WINDOW_MS;
+}
 export type NotifyChannel = "email" | "telegram";
 
 export type NotifyIntent = {
@@ -62,7 +67,7 @@ export function planSiteDayOpens(input: {
       unlockHour: input.unlockHour,
       dayNumber,
     }).getTime();
-    const openWindow = nowMs >= unlockMs && nowMs < unlockMs + DAY_OPEN_NOTIFY_WINDOW_MS;
+    const openWindow = inDayOpenWindow(unlockMs, nowMs);
     if (!openWindow) continue;
     for (const person of input.people) {
       if (person.declined) continue;
@@ -103,8 +108,7 @@ export function planNotifications(input: {
     });
     const unlockMs = unlockAt.getTime();
     const dayIsToday = kyivDateIso(unlockAt) === today;
-    const openWindow =
-      nowMs >= unlockMs && nowMs < unlockMs + DAY_OPEN_NOTIFY_WINDOW_MS;
+    const openWindow = inDayOpenWindow(unlockMs, nowMs);
     const remindAt = reminderAt({
       startDate: input.startDate,
       dayNumber,
@@ -115,8 +119,9 @@ export function planNotifications(input: {
       unlockHour: input.unlockHour,
       dayNumber: dayNumber + 1,
     }).getTime();
+    // The reminder waits out the day-open hour, even when reminder_hour sits inside it.
     const reminderWindow =
-      dayIsToday && nowMs >= remindAt && nowMs < nextUnlock;
+      dayIsToday && nowMs >= remindAt && nowMs < nextUnlock && !openWindow;
     if (!openWindow && !reminderWindow) continue;
     for (const person of input.people) {
       if (person.completedDayNumbers.includes(dayNumber)) continue;
@@ -139,7 +144,7 @@ export function planNotifications(input: {
 /**
  * A day is missed once the next day's unlock has passed and this one is still open.
  * One intent per channel; `marathon_notifications` keeps a later cron from repeating it.
- * The same-day 19:00 reminder stops at the next unlock, so the two windows do not overlap.
+ * The nudge also waits until that day's open hour has closed, so it never rides with day_open.
  */
 export function planNudges(input: {
   now: Date;
@@ -170,6 +175,17 @@ export function planNudges(input: {
       continue;
     }
     if (nowMs < nextUnlock) continue;
+    let missedUnlock = 0;
+    try {
+      missedUnlock = dayUnlockAt({
+        startDate: input.startDate,
+        unlockHour: input.unlockHour,
+        dayNumber,
+      }).getTime();
+    } catch {
+      continue;
+    }
+    if (inDayOpenWindow(missedUnlock, nowMs)) continue;
     for (const person of input.people) {
       if (person.completedDayNumbers.includes(dayNumber)) continue;
       pushChannel(intents, person, {

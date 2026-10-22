@@ -57,7 +57,7 @@ test("webhook reports acknowledgement, message delivery and JSON failures withou
       const response = await POST(request(body));
       assert.equal(response.status, 200);
       assert.equal(await response.text(), "");
-      assert.deepEqual(calls, kind.startsWith("ack") ? ["answerCallbackQuery"] : ["answerCallbackQuery", "sendMessage"]);
+      assert.deepEqual(calls, ["answerCallbackQuery", "sendMessage"]);
     }
     globalThis.fetch = async () => { assert.fail("must not send malformed updates"); };
     assert.equal((await POST(request("{"))).status, 400);

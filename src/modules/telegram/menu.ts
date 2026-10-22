@@ -4,7 +4,8 @@ import { nowUnixSec } from "@/modules/testing/sessionElapsed";
 import { getTelegramAccountProfile, type TelegramAccountProfile } from "./account";
 import {
   formatQuietHours, getNotificationPreferences, isPreferenceToggle, PREFERENCE_TOGGLES, QUIET_HOUR_PRESETS,
-  quietPresetIndex, setQuietHours, toggleNotificationPreference, togglesForRole, type PreferenceToggle,
+  quietPresetIndex, setQuietEdge, setQuietHours, toggleNotificationPreference, togglesForRole, type PreferenceToggle,
+  type NotificationPreferences,
 } from "./preferences";
 import { ensureTelegramSchema, loadTelegramConnection } from "./schema";
 import { loadStudentToday } from "@/modules/today/loadStudentToday";
@@ -17,6 +18,8 @@ import type { InlineKeyboard, TelegramReply } from "./taskInteraction";
 import { accountReplyKeyboard, collapsedMenuKeyboard } from "./replyKeyboard";
 import { UNLINK_NOTICE, unlinkTelegramAccount } from "./unlink";
 import { formatKyivDateTime, html, MENU, navRow, NOT_LINKED_TEXT, screen, siteButton, STALE_TEXT } from "./ui";
+import { renderResolved, resolveCopy, type CopyKey } from "@/modules/marathons/daily/copy";
+import type { MarathonPauseState } from "@/modules/marathons/daily/store";
 
 export type MenuScreen = "home" | "tasks" | "today" | "stats" | "notif" | "acct" | "help" | "stud";
 export type MenuAction =
@@ -24,6 +27,11 @@ export type MenuAction =
   | { kind: "toggle"; key: PreferenceToggle }
   | { kind: "quiet" }
   | { kind: "quietSet"; preset: number }
+  | { kind: "quietStart" }
+  | { kind: "quietEnd" }
+  | { kind: "quietHour"; edge: "start" | "end"; hour: number }
+  | { kind: "marathonConfirm"; mode: "pause" | "resume"; marathonId: number }
+  | { kind: "marathonApply"; mode: "pause" | "resume"; marathonId: number }
   | { kind: "unlink" }
   | { kind: "stale" };
 export type MenuRequest = { chatId: string; userId: string; queryId?: string; messageId?: number; action: MenuAction };
@@ -35,6 +43,9 @@ export type MenuDeps = TaskListDeps & {
   getConnection?: () => Promise<SqlConnection>;
   nowSec?: () => number;
   unlink?: (userId: number) => Promise<void>;
+  listMarathonPauses?: (userId: number) => Promise<MarathonPauseState[]>;
+  setMarathonPaused?: (marathonId: number, userId: number, paused: boolean) => Promise<boolean>;
+  marathonPauseCopy?: (marathonId: number) => Promise<Partial<Record<CopyKey, string>>>;
 };
 
 const SCREENS: Record<string, MenuScreen> = {
@@ -65,9 +76,34 @@ export function parseMenuData(data: string): MenuAction {
   if (screenMatch && Object.prototype.hasOwnProperty.call(SCREENS, screenMatch[1])) return { kind: "screen", screen: SCREENS[screenMatch[1]] };
   const toggle = /^p:t:([a-z]{2,4})$/.exec(data);
   if (toggle && isPreferenceToggle(toggle[1])) return { kind: "toggle", key: toggle[1] };
+  const marathonConfirm = /^p:mc:([pr]):(\d{1,10})$/.exec(data);
+  if (marathonConfirm?.[1] && marathonConfirm[2]) {
+    return {
+      kind: "marathonConfirm",
+      mode: marathonConfirm[1] === "p" ? "pause" : "resume",
+      marathonId: Number(marathonConfirm[2]),
+    };
+  }
+  const marathonApply = /^p:ok:([pr]):(\d{1,10})$/.exec(data);
+  if (marathonApply?.[1] && marathonApply[2]) {
+    return {
+      kind: "marathonApply",
+      mode: marathonApply[1] === "p" ? "pause" : "resume",
+      marathonId: Number(marathonApply[2]),
+    };
+  }
   if (data === "p:q") return { kind: "quiet" };
+  if (data === "p:qs") return { kind: "quietStart" };
+  if (data === "p:qe") return { kind: "quietEnd" };
   const quiet = /^p:q:([0-9])$/.exec(data);
   if (quiet && Number(quiet[1]) < QUIET_HOUR_PRESETS.length) return { kind: "quietSet", preset: Number(quiet[1]) };
+  const hour = /^p:h([se]):(\d{1,2})$/.exec(data);
+  if (hour?.[1] && hour[2]) {
+    const value = Number(hour[2]);
+    if (value >= 0 && value <= 23) {
+      return { kind: "quietHour", edge: hour[1] === "s" ? "start" : "end", hour: value };
+    }
+  }
   return { kind: "stale" };
 }
 
@@ -98,13 +134,55 @@ const HELP_TEXT = [
   "/stats — статистика цього тижня",
   "/settings — сповіщення",
   "/stop — відв’язати бота від акаунта",
-  "/top — таблиця місць марафону",
+  "Пауза сповіщень одного марафону — у «Сповіщення», з підтвердженням. Інші курси лишаються.",
+  "/top — таблиця цього марафону. «Загальні» — сума днів усіх курсів, як на сайті.",
   "",
   "Відповіді на завдання зберігайте в кабінеті на nmt.in.ua, а завершити сесію можна тут кнопкою «✅ Завершити».",
 ].join("\n");
 
 
-function notificationsScreen(chatId: string, profile: TelegramAccountProfile, prefs: Awaited<ReturnType<typeof getNotificationPreferences>>, messageId?: number): TelegramReply {
+function marathonPauseLabel(row: MarathonPauseState): string {
+  const title = Array.from(row.title).slice(0, 36).join("");
+  const text = row.paused ? `Увімкнути: ${title}` : `Пауза: ${title}`;
+  return Array.from(text).slice(0, 64).join("");
+}
+
+async function loadMarathonPauses(userId: number, deps: MenuDeps): Promise<MarathonPauseState[]> {
+  if (deps.listMarathonPauses) return deps.listMarathonPauses(userId);
+  if (!process.env.DB_HOST) return [];
+  try {
+    const { listMarathonPauseStates } = await import("@/modules/marathons/daily/store");
+    return await listMarathonPauseStates(userId);
+  } catch (error) {
+    (deps.logError ?? ((value: unknown) => console.error("marathon pause list", value)))(error);
+    return [];
+  }
+}
+
+async function loadPauseCopy(marathonId: number, deps: MenuDeps) {
+  if (deps.marathonPauseCopy) return deps.marathonPauseCopy(marathonId);
+  const { loadMarathonCopy } = await import("@/modules/marathons/daily/store");
+  return loadMarathonCopy(marathonId);
+}
+
+async function applyMarathonPause(
+  marathonId: number,
+  userId: number,
+  paused: boolean,
+  deps: MenuDeps,
+): Promise<boolean> {
+  if (deps.setMarathonPaused) return deps.setMarathonPaused(marathonId, userId, paused);
+  const { setMarathonNotificationsPaused } = await import("@/modules/marathons/daily/store");
+  return setMarathonNotificationsPaused(marathonId, userId, paused);
+}
+
+async function notificationsScreen(
+  chatId: string,
+  profile: TelegramAccountProfile,
+  prefs: Awaited<ReturnType<typeof getNotificationPreferences>>,
+  pauses: MarathonPauseState[],
+  messageId?: number,
+): Promise<TelegramReply> {
   if (!prefs) {
     return screen(chatId, "<b>🔔 Сповіщення</b>\n\nНалаштування сповіщень тимчасово недоступні. Спробуйте пізніше.", [navRow()], messageId);
   }
@@ -116,17 +194,107 @@ function notificationsScreen(chatId: string, profile: TelegramAccountProfile, pr
     text: `${prefs[PREFERENCE_TOGGLES[key].field] ? "✅" : "❌"} ${PREFERENCE_TOGGLES[key].label}`,
     callback_data: `p:t:${key}`,
   }]);
+  if (pauses.length > 0) {
+    lines.push("", "<b>Марафони</b>", "Пауза стосується лише обраного курсу. /stop відв’язує бота від акаунта.");
+    for (const row of pauses) {
+      lines.push(`${row.paused ? "⏸" : "▶"} ${html(row.title)} — ${row.paused ? "на паузі" : "сповіщення увімкнені"}`);
+      rows.push([{
+        text: marathonPauseLabel(row),
+        callback_data: `p:mc:${row.paused ? "r" : "p"}:${row.marathonId}`,
+      }]);
+    }
+  }
   rows.push([{ text: "🌙 Тихі години", callback_data: "p:q" }], navRow());
   return screen(chatId, lines.join("\n"), rows, messageId);
 }
 
-function quietScreen(chatId: string, current: number, messageId?: number): TelegramReply {
+async function openNotifications(
+  chatId: string,
+  profile: TelegramAccountProfile,
+  connection: SqlConnection,
+  deps: MenuDeps,
+  messageId?: number,
+): Promise<TelegramReply> {
+  const prefs = await getNotificationPreferences(connection, profile.accountId);
+  const pauses = prefs ? await loadMarathonPauses(profile.userId, deps) : [];
+  return notificationsScreen(chatId, profile, prefs, pauses, messageId);
+}
+
+async function marathonPauseFlow(
+  chatId: string,
+  profile: TelegramAccountProfile,
+  action: Extract<MenuAction, { kind: "marathonConfirm" | "marathonApply" }>,
+  deps: MenuDeps,
+  messageId?: number,
+): Promise<TelegramReply> {
+  const pauses = await loadMarathonPauses(profile.userId, deps);
+  const row = pauses.find((item) => item.marathonId === action.marathonId);
+  if (!row) return screen(chatId, STALE_TEXT, [navRow({ data: MENU.notifications })], messageId);
+  const copy = await loadPauseCopy(row.marathonId, deps);
+  const vars = { title: html(row.title), name: html(profile.displayName || "учаснику") };
+  if (action.kind === "marathonApply") {
+    const paused = action.mode === "pause";
+    const saved = await applyMarathonPause(row.marathonId, profile.userId, paused, deps);
+    if (!saved) return screen(chatId, STALE_TEXT, [navRow({ data: MENU.notifications })], messageId);
+    return screen(chatId, renderResolved(paused ? "bot_pause_done" : "bot_resume_done", copy, vars), [
+      [{ text: "🔔 Сповіщення", callback_data: MENU.notifications }],
+      navRow(),
+    ], messageId);
+  }
+  const askingPause = action.mode === "pause";
+  return screen(chatId, renderResolved(askingPause ? "bot_pause_ask" : "bot_resume_ask", copy, vars), [
+    [{
+      text: resolveCopy(askingPause ? "bot_pause_yes" : "bot_resume_yes", copy).slice(0, 64),
+      callback_data: `p:ok:${askingPause ? "p" : "r"}:${row.marathonId}`,
+    }],
+    [{ text: "Скасувати", callback_data: MENU.notifications }],
+  ], messageId);
+}
+
+function quietScreen(
+  chatId: string,
+  prefs: Pick<NotificationPreferences, "quietStart" | "quietEnd">,
+  messageId?: number,
+): TelegramReply {
+  const current = quietPresetIndex(prefs);
   const rows: InlineKeyboard["inline_keyboard"] = QUIET_HOUR_PRESETS.map((preset, index) => [{
     text: `${index === current ? "● " : ""}${preset ? formatQuietHours({ quietStart: preset[0], quietEnd: preset[1] }) : "Вимкнути"}`,
     callback_data: `p:q:${index}`,
   }]);
+  rows.push([
+    { text: "Початок", callback_data: "p:qs" },
+    { text: "Кінець", callback_data: "p:qe" },
+  ]);
   rows.push(navRow({ data: MENU.notifications }));
-  return screen(chatId, "<b>🌙 Тихі години</b>\n\nУ цей час бот не надсилатиме сповіщень; нові завдання прийдуть після завершення тихих годин. Кнопки, команди і відповіді на ваші дії приходять одразу.", rows, messageId);
+  return screen(chatId, `<b>🌙 Тихі години</b>\n\nЗараз: ${formatQuietHours(prefs)}.\n\nУ цей час бот не надсилатиме сповіщень; нові завдання прийдуть після завершення тихих годин. Кнопки, команди і відповіді на ваші дії приходять одразу. Свій діапазон — кнопки «Початок» і «Кінець», години за Києвом.`, rows, messageId);
+}
+
+function quietHourScreen(
+  chatId: string,
+  edge: "start" | "end",
+  prefs: Pick<NotificationPreferences, "quietStart" | "quietEnd">,
+  messageId?: number,
+): TelegramReply {
+  const selected = edge === "start" ? prefs.quietStart : prefs.quietEnd;
+  const mark = edge === "start" ? "s" : "e";
+  const rows: InlineKeyboard["inline_keyboard"] = [];
+  for (let hour = 0; hour < 24; hour += 4) {
+    rows.push([0, 1, 2, 3].map((offset) => {
+      const value = hour + offset;
+      return {
+        text: `${value === selected ? "● " : ""}${String(value).padStart(2, "0")}`,
+        callback_data: `p:h${mark}:${value}`,
+      };
+    }));
+  }
+  rows.push([{ text: "⬅️ До тихих годин", callback_data: "p:q" }]);
+  const which = edge === "start" ? "Початок" : "Кінець";
+  return screen(
+    chatId,
+    `<b>🌙 ${which}</b>\n\nЗараз: ${formatQuietHours(prefs)}. Оберіть годину за Києвом. Вікно працює, коли задані обидві години.`,
+    rows,
+    messageId,
+  );
 }
 
 export async function handleMenuRequest(request: MenuRequest, deps: MenuDeps = {}): Promise<TelegramReply> {
@@ -169,17 +337,30 @@ async function renderMenu(request: MenuRequest, deps: MenuDeps): Promise<Telegra
     try { return await work(connection); } finally { connection.release(); }
   };
   try {
-    if (action.kind === "toggle" || action.kind === "quietSet" || action.kind === "quiet") {
+    if (action.kind === "marathonConfirm" || action.kind === "marathonApply") {
+      return marathonPauseFlow(chatId, profile, action, deps, messageId);
+    }
+    if (
+      action.kind === "toggle" || action.kind === "quietSet" || action.kind === "quiet"
+      || action.kind === "quietStart" || action.kind === "quietEnd" || action.kind === "quietHour"
+    ) {
       if (action.kind === "toggle" && PREFERENCE_TOGGLES[action.key].role !== profile.role) {
         return screen(chatId, STALE_TEXT, [navRow({ data: MENU.notifications })]);
       }
       return await withConnection(async (connection) => {
         const prefs = await getNotificationPreferences(connection, profile.accountId);
-        if (!prefs) return notificationsScreen(chatId, profile, null, messageId);
-        if (action.kind === "quiet") return quietScreen(chatId, quietPresetIndex(prefs), messageId);
+        if (!prefs) return notificationsScreen(chatId, profile, null, [], messageId);
+        if (action.kind === "quiet") return quietScreen(chatId, prefs, messageId);
+        if (action.kind === "quietStart") return quietHourScreen(chatId, "start", prefs, messageId);
+        if (action.kind === "quietEnd") return quietHourScreen(chatId, "end", prefs, messageId);
+        if (action.kind === "quietHour") {
+          await setQuietEdge(connection, profile.accountId, action.edge, action.hour);
+          const next = await getNotificationPreferences(connection, profile.accountId);
+          return quietScreen(chatId, next ?? prefs, messageId);
+        }
         if (action.kind === "toggle") await toggleNotificationPreference(connection, profile.accountId, action.key);
         else await setQuietHours(connection, profile.accountId, action.preset);
-        return notificationsScreen(chatId, profile, await getNotificationPreferences(connection, profile.accountId), messageId);
+        return openNotifications(chatId, profile, connection, deps, messageId);
       });
     }
     switch (action.screen) {
@@ -209,8 +390,7 @@ async function renderMenu(request: MenuRequest, deps: MenuDeps): Promise<Telegra
         return screen(chatId, formatTelegramStudentStats(stats), [[siteButton("🌐 Детальні результати", "/results")], navRow()], messageId);
       }
       case "notif":
-        return await withConnection(async (connection) =>
-          notificationsScreen(chatId, profile, await getNotificationPreferences(connection, profile.accountId), messageId));
+        return await withConnection((connection) => openNotifications(chatId, profile, connection, deps, messageId));
       case "acct": {
         const lines = [
           "<b>👤 Мій акаунт</b>",

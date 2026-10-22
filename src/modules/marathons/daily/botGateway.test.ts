@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { callbackFrom, handleMarathonGateway, marathonUpdateKind } from "./botGateway";
+import { callbackFrom, callbackMessageId, handleMarathonGateway, marathonUpdateKind } from "./botGateway";
 
 test("leaderboard commands share the existing daily marathon top callback", () => {
   for (const text of ["/top", "/top@nmt_bot", "/leaderboard", "/leaderboard@nmt_bot", "/leaderboard  "]) {
@@ -18,6 +18,27 @@ test("leaderboard aliases reject group messages and a different chat owner befor
       assert.equal(await handleMarathonGateway({ message: { text, chat, from: { id: 123 } } }), null);
     }
   }
+});
+
+test("a reply-keyboard press is not edited onto the fake message", () => {
+  const real = {
+    callback_query: {
+      id: "abc",
+      data: "mh:today",
+      from: { id: 123 },
+      message: { message_id: 42, chat: { id: 123, type: "private" } },
+    },
+  };
+  assert.equal(callbackMessageId(real), 42);
+  assert.equal(callbackMessageId({
+    callback_query: {
+      id: "reply-keyboard",
+      data: "mh:today",
+      from: { id: 123 },
+      message: { message_id: 1, chat: { id: 123, type: "private" } },
+    },
+  }), null);
+  assert.equal(callbackMessageId({ message: { text: "Сьогодні", chat: { id: 123, type: "private" }, from: { id: 123 } } }), null);
 });
 
 test("daily marathon entry parsing preserves private chat ownership and deep links", () => {

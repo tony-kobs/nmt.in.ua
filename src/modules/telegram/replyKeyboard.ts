@@ -26,7 +26,7 @@ export function accountMenuRows(role: AccountMenuRole): MenuButton[][] {
   const button = ACCOUNT_MENU;
   if (role === "teacher") {
     return [
-      [button.students],
+      [button.marathon, button.students],
       [button.notifications, button.account],
       [button.help],
     ];

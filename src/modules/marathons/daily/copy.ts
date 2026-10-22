@@ -41,9 +41,16 @@ export const COPY_KEYS = [
   "bot_menu",
   "bot_btn_today",
   "bot_btn_top",
+  "bot_btn_overall",
   "bot_btn_map",
   "bot_btn_channel",
   "bot_btn_stop",
+  "bot_pause_ask",
+  "bot_pause_yes",
+  "bot_pause_done",
+  "bot_resume_ask",
+  "bot_resume_yes",
+  "bot_resume_done",
   "bot_btn_site",
   "bot_btn_telegram",
   "bot_locked",
@@ -51,6 +58,12 @@ export const COPY_KEYS = [
   "bot_registered",
   "bot_open_site",
   "bot_to_tasks",
+  "bot_btn_begin",
+  "bot_day_done",
+  "bot_finished",
+  "bot_archived",
+  "rank_course",
+  "rank_overall",
 ] as const;
 
 export type CopyKey = (typeof COPY_KEYS)[number];
@@ -63,26 +76,35 @@ export const COPY_GROUPS: Array<{
   { id: "intro", keys: ["intro_rules", "channel_prompt"] },
   {
     id: "day",
-    keys: ["notify_day_open", "review_intro", "bot_locked", "bot_to_tasks", "bot_open_site"],
+    keys: ["notify_day_open", "review_intro", "bot_locked", "bot_to_tasks", "bot_open_site", "bot_day_done"],
   },
   { id: "remind", keys: ["notify_reminder", "notify_tomorrow", "rank_nudge"] },
   {
     id: "rank",
-    keys: ["rank_up", "rank_down", "rank_same", "rank_first", "rank_board", "bot_btn_top"],
+    keys: ["rank_up", "rank_down", "rank_same", "rank_first", "rank_board", "rank_course", "rank_overall", "bot_btn_top"],
   },
-  { id: "final", keys: ["final_summary", "notify_final"] },
+  { id: "final", keys: ["final_summary", "notify_final", "bot_finished"] },
   {
     id: "bot",
     keys: [
       "bot_start",
       "bot_menu",
       "bot_btn_today",
+      "bot_btn_overall",
       "bot_btn_map",
       "bot_btn_channel",
       "bot_btn_stop",
+      "bot_pause_ask",
+      "bot_pause_yes",
+      "bot_pause_done",
+      "bot_resume_ask",
+      "bot_resume_yes",
+      "bot_resume_done",
       "bot_btn_site",
       "bot_btn_telegram",
       "bot_link_ok",
+      "bot_btn_begin",
+      "bot_archived",
     ],
   },
 ];
@@ -99,13 +121,17 @@ export const TELEGRAM_BUTTON_LIMIT = 64;
 const BUTTON_KEYS = new Set<CopyKey>([
   "bot_btn_today",
   "bot_btn_top",
+  "bot_btn_overall",
   "bot_btn_map",
   "bot_btn_channel",
   "bot_btn_stop",
+  "bot_pause_yes",
+  "bot_resume_yes",
   "bot_btn_site",
   "bot_btn_telegram",
   "bot_open_site",
   "bot_to_tasks",
+  "bot_btn_begin",
 ]);
 
 export const COPY_DEFAULTS: Record<CopyKey, string> = {
@@ -127,6 +153,8 @@ export const COPY_DEFAULTS: Record<CopyKey, string> = {
   rank_nudge:
     "Зараз місце {place}. Пропущений день ще можна здати.\n{link}",
   rank_board: "Таблиця марафону",
+  rank_course: "Цей марафон: {title}",
+  rank_overall: "Загальні — усі денні марафони",
   channel_prompt:
     "{name}, лист і Telegram вмикаються окремо. Повідомлення в Telegram ідуть, коли бот підключено.",
   bot_start:
@@ -134,9 +162,17 @@ export const COPY_DEFAULTS: Record<CopyKey, string> = {
   bot_menu: "Меню марафону. Оберіть дію.",
   bot_btn_today: "Сьогодні",
   bot_btn_top: "Таблиця",
+  bot_btn_overall: "Загальні",
   bot_btn_map: "Карта на сайті",
   bot_btn_channel: "Змінити канал",
   bot_btn_stop: "Зупинити сповіщення",
+  bot_pause_ask:
+    "Поставити сповіщення марафону «{title}» на паузу? Лист і Telegram цього курсу зупиняться. Інші курси не зміняться. Дні в боті лишаються.",
+  bot_pause_yes: "Так, на паузу",
+  bot_pause_done: "Сповіщення «{title}» на паузі. Увімкнути знову можна в «Сповіщення».",
+  bot_resume_ask: "Знову надсилати сповіщення марафону «{title}»?",
+  bot_resume_yes: "Увімкнути",
+  bot_resume_done: "Сповіщення «{title}» знову увімкнені.",
   bot_btn_site: "На сайті",
   bot_btn_telegram: "В Telegram",
   bot_locked: "День {day} ({topic}) ще закритий. Відкриється {unlock_time}.\n{link}",
@@ -145,6 +181,10 @@ export const COPY_DEFAULTS: Record<CopyKey, string> = {
     "Ви зареєструвалися на марафон «{title}». Старт: {start_date}. Завдання приходитимуть сюди.",
   bot_open_site: "Відкрити на сайті",
   bot_to_tasks: "До завдань",
+  bot_btn_begin: "Почати",
+  bot_day_done: "День {day} ({topic}) вже зданий.\n{link}",
+  bot_finished: "{name}, марафон «{title}» завершено. Таблиця і карта лишаються.\n{link}",
+  bot_archived: "Марафон «{title}» в архіві. Нові дні не надходять.",
 };
 
 export type CopyVars = Partial<Record<CopyPlaceholder, string | number | null>>;
