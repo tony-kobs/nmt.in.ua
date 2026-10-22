@@ -13,6 +13,7 @@ import {
   callbackFromTokenPayload,
   isQuizKeyboardText,
   linkOkText,
+  marathonButtonSnapshots,
   marathonCallbackFromText,
   marathonReplyKeyboard,
   parseBotCallback,
@@ -39,6 +40,7 @@ import { marathonDayUrl } from "./mailCopy";
 import {
   BOARD_TOP,
   formatBoardMessage,
+  publicLeaderName,
   visibleBoard,
 } from "./leaderboard";
 import { sendCompletedDayFollowUp, sendRankNotice } from "./notificationsJob";
@@ -56,7 +58,9 @@ import {
   markIntroSeen,
   markMaterialsViewed,
   listChatMarathons,
+  marathonCallbackFromStoredLabel,
   pauseMarathonNotifications,
+  rememberMarathonButtonLabels,
   replaceMarathonBotTokens,
   selectChatMarathon,
   savePartialAnswers,
@@ -133,6 +137,19 @@ function sectionReplies(
   stable: ReplyKeyboardMarkup,
 ): TelegramReply[] {
   return relocateSectionNavigation(toReplies(chatId, messages), stable);
+}
+
+async function stableKeyboard(
+  marathonId: number,
+  copy: Parameters<typeof marathonReplyKeyboard>[0],
+  options?: Parameters<typeof marathonReplyKeyboard>[1],
+) {
+  try {
+    await rememberMarathonButtonLabels(marathonId, marathonButtonSnapshots(copy));
+  } catch (error) {
+    console.error("marathon button labels", error);
+  }
+  return marathonReplyKeyboard(copy, options);
 }
 
 function pack(replies: TelegramReply[]): TelegramReply | null {
@@ -295,7 +312,14 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
       const linkedForText = await findParticipantByChat(parsed.chatId);
       if (!linkedForText) return null;
       const copyForText = await loadMarathonCopy(linkedForText.marathon.id);
-      const data = marathonCallbackFromText(parsed.text, copyForText);
+      let data = marathonCallbackFromText(parsed.text, copyForText);
+      if (!data) {
+        try {
+          data = await marathonCallbackFromStoredLabel(linkedForText.marathon.id, parsed.text);
+        } catch (error) {
+          console.error("marathon button label", error);
+        }
+      }
       if (data === "m:home") return null;
       if (data) callback = parseBotCallback(data);
       else {
@@ -333,7 +357,7 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
         buttons: [mainMenuDataButton()],
       }], homeReplyKeyboard());
     }
-    if (callback.kind === "menu" || callback.kind === "today" || callback.kind === "top" || callback.kind === "stop" || callback.kind === "pauseYes" || callback.kind === "list" || callback.kind === "map") {
+    if (callback.kind === "menu" || callback.kind === "today" || callback.kind === "top" || callback.kind === "overall" || callback.kind === "stop" || callback.kind === "pauseYes" || callback.kind === "list" || callback.kind === "map") {
       return sectionReplies(parsed.chatId, [{
         text: `Ви ще не в марафоні. На сайті можна долучитись до відкритого курсу.\n${absoluteUrl("/marathon")}`,
         buttons: [mainMenuDataButton()],
@@ -378,7 +402,7 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     const several = (await listChatMarathons(parsed.chatId)).length > 1;
     return sectionReplies(parsed.chatId, [{
       text: absoluteUrl(`/marathon/${encodeURIComponent(marathon.slug)}/map`),
-    }], marathonReplyKeyboard(copy, { others: several, closed }));
+    }], await stableKeyboard(marathon.id, copy, { others: several, closed }));
   }
   if (callback.kind === "token") {
     const payload = await consumeMarathonBotToken(callback.token, marathon.id, participant.userId);
@@ -394,7 +418,7 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
   if (callback.kind === "stop" || callback.kind === "pauseYes") {
     const pauseCopy = await loadMarathonCopy(marathon.id);
     const several = (await listChatMarathons(parsed.chatId)).length > 1;
-    const keyboard = marathonReplyKeyboard(pauseCopy, { others: several });
+    const keyboard = await stableKeyboard(marathon.id, pauseCopy, { others: several });
     const vars = { title: marathon.title, name: participant.displayName || "учаснику" };
     if (callback.kind === "pauseYes") {
       await pauseMarathonNotifications(marathon.id, participant.userId);
@@ -417,17 +441,45 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     const several = (await listChatMarathons(parsed.chatId)).length > 1;
     return sectionReplies(parsed.chatId, [{
       text: formatBoardMessage({
-        title: resolveCopy("rank_board", copy),
+        title: renderResolved("rank_course", copy, { title: marathon.title }),
         rows: view.top,
         self: view.self,
         selfOutside: view.selfOutside,
       }),
-    }], marathonReplyKeyboard(copy, { others: several, closed }));
+    }], await stableKeyboard(marathon.id, copy, { others: several, closed }));
+  }
+  if (callback.kind === "overall") {
+    const copy = await loadMarathonCopy(marathon.id);
+    const several = (await listChatMarathons(parsed.chatId)).length > 1;
+    let rows: Array<{ userId: number; place: number; name: string; points: number; streak: number }> = [];
+    try {
+      const { getMarathonLeaderboard } = await import("@/modules/marathons/getMarathonLeaderboard");
+      const view = await getMarathonLeaderboard(participant.userId, { marathonSlug: "all" });
+      rows = (view?.rows ?? []).map((row) => ({
+        userId: row.userId,
+        place: row.rank,
+        name: publicLeaderName(row.displayName),
+        points: row.points,
+        streak: 0,
+      }));
+    } catch (error) {
+      console.error("marathon overall board", error);
+    }
+    const board = visibleBoard(rows, participant.userId, BOARD_TOP);
+    return sectionReplies(parsed.chatId, [{
+      text: formatBoardMessage({
+        title: resolveCopy("rank_overall", copy),
+        rows: board.top,
+        self: board.self,
+        selfOutside: board.selfOutside,
+      }),
+      buttons: [{ text: resolveCopy("bot_btn_top", copy).slice(0, 64), data: "mh:top" }],
+    }], await stableKeyboard(marathon.id, copy, { others: several, closed }));
   }
   if (callback.kind === "channel" || callback.kind === "channels" || closed) {
     const earlyCopy = await loadMarathonCopy(marathon.id);
     const several = (await listChatMarathons(parsed.chatId)).length > 1;
-    const keyboard = marathonReplyKeyboard(earlyCopy, { others: several, closed });
+    const keyboard = await stableKeyboard(marathon.id, earlyCopy, { others: several, closed });
     if (callback.kind === "channel") {
       await setNotifyToggles(marathon.id, participant.userId, {
         notifyEmail: callback.channel === "site" ? true : participant.notifyEmail,
@@ -543,7 +595,7 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
   });
   if (rankNote) outgoing = [...outgoing, { text: rankNote }];
   return withDayEdit(
-    sectionReplies(parsed.chatId, outgoing, marathonReplyKeyboard(copy, { others: several, closed })),
+    sectionReplies(parsed.chatId, outgoing, await stableKeyboard(marathon.id, copy, { others: several, closed })),
     parsed.messageId,
     callback.kind,
     introFresh,

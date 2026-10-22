@@ -4,7 +4,8 @@ import { nowUnixSec } from "@/modules/testing/sessionElapsed";
 import { getTelegramAccountProfile, type TelegramAccountProfile } from "./account";
 import {
   formatQuietHours, getNotificationPreferences, isPreferenceToggle, PREFERENCE_TOGGLES, QUIET_HOUR_PRESETS,
-  quietPresetIndex, setQuietHours, toggleNotificationPreference, togglesForRole, type PreferenceToggle,
+  quietPresetIndex, setQuietEdge, setQuietHours, toggleNotificationPreference, togglesForRole, type PreferenceToggle,
+  type NotificationPreferences,
 } from "./preferences";
 import { ensureTelegramSchema, loadTelegramConnection } from "./schema";
 import { loadStudentToday } from "@/modules/today/loadStudentToday";
@@ -26,6 +27,9 @@ export type MenuAction =
   | { kind: "toggle"; key: PreferenceToggle }
   | { kind: "quiet" }
   | { kind: "quietSet"; preset: number }
+  | { kind: "quietStart" }
+  | { kind: "quietEnd" }
+  | { kind: "quietHour"; edge: "start" | "end"; hour: number }
   | { kind: "marathonConfirm"; mode: "pause" | "resume"; marathonId: number }
   | { kind: "marathonApply"; mode: "pause" | "resume"; marathonId: number }
   | { kind: "unlink" }
@@ -89,8 +93,17 @@ export function parseMenuData(data: string): MenuAction {
     };
   }
   if (data === "p:q") return { kind: "quiet" };
+  if (data === "p:qs") return { kind: "quietStart" };
+  if (data === "p:qe") return { kind: "quietEnd" };
   const quiet = /^p:q:([0-9])$/.exec(data);
   if (quiet && Number(quiet[1]) < QUIET_HOUR_PRESETS.length) return { kind: "quietSet", preset: Number(quiet[1]) };
+  const hour = /^p:h([se]):(\d{1,2})$/.exec(data);
+  if (hour?.[1] && hour[2]) {
+    const value = Number(hour[2]);
+    if (value >= 0 && value <= 23) {
+      return { kind: "quietHour", edge: hour[1] === "s" ? "start" : "end", hour: value };
+    }
+  }
   return { kind: "stale" };
 }
 
@@ -122,7 +135,7 @@ const HELP_TEXT = [
   "/settings — сповіщення",
   "/stop — відв’язати бота від акаунта",
   "Пауза сповіщень одного марафону — у «Сповіщення», з підтвердженням. Інші курси лишаються.",
-  "/top — таблиця місць марафону",
+  "/top — таблиця цього марафону. «Загальні» — сума днів усіх курсів, як на сайті.",
   "",
   "Відповіді на завдання зберігайте в кабінеті на nmt.in.ua, а завершити сесію можна тут кнопкою «✅ Завершити».",
 ].join("\n");
@@ -238,13 +251,50 @@ async function marathonPauseFlow(
   ], messageId);
 }
 
-function quietScreen(chatId: string, current: number, messageId?: number): TelegramReply {
+function quietScreen(
+  chatId: string,
+  prefs: Pick<NotificationPreferences, "quietStart" | "quietEnd">,
+  messageId?: number,
+): TelegramReply {
+  const current = quietPresetIndex(prefs);
   const rows: InlineKeyboard["inline_keyboard"] = QUIET_HOUR_PRESETS.map((preset, index) => [{
     text: `${index === current ? "● " : ""}${preset ? formatQuietHours({ quietStart: preset[0], quietEnd: preset[1] }) : "Вимкнути"}`,
     callback_data: `p:q:${index}`,
   }]);
+  rows.push([
+    { text: "Початок", callback_data: "p:qs" },
+    { text: "Кінець", callback_data: "p:qe" },
+  ]);
   rows.push(navRow({ data: MENU.notifications }));
-  return screen(chatId, "<b>🌙 Тихі години</b>\n\nУ цей час бот не надсилатиме сповіщень; нові завдання прийдуть після завершення тихих годин. Кнопки, команди і відповіді на ваші дії приходять одразу.", rows, messageId);
+  return screen(chatId, `<b>🌙 Тихі години</b>\n\nЗараз: ${formatQuietHours(prefs)}.\n\nУ цей час бот не надсилатиме сповіщень; нові завдання прийдуть після завершення тихих годин. Кнопки, команди і відповіді на ваші дії приходять одразу. Свій діапазон — кнопки «Початок» і «Кінець», години за Києвом.`, rows, messageId);
+}
+
+function quietHourScreen(
+  chatId: string,
+  edge: "start" | "end",
+  prefs: Pick<NotificationPreferences, "quietStart" | "quietEnd">,
+  messageId?: number,
+): TelegramReply {
+  const selected = edge === "start" ? prefs.quietStart : prefs.quietEnd;
+  const mark = edge === "start" ? "s" : "e";
+  const rows: InlineKeyboard["inline_keyboard"] = [];
+  for (let hour = 0; hour < 24; hour += 4) {
+    rows.push([0, 1, 2, 3].map((offset) => {
+      const value = hour + offset;
+      return {
+        text: `${value === selected ? "● " : ""}${String(value).padStart(2, "0")}`,
+        callback_data: `p:h${mark}:${value}`,
+      };
+    }));
+  }
+  rows.push([{ text: "⬅️ До тихих годин", callback_data: "p:q" }]);
+  const which = edge === "start" ? "Початок" : "Кінець";
+  return screen(
+    chatId,
+    `<b>🌙 ${which}</b>\n\nЗараз: ${formatQuietHours(prefs)}. Оберіть годину за Києвом. Вікно працює, коли задані обидві години.`,
+    rows,
+    messageId,
+  );
 }
 
 export async function handleMenuRequest(request: MenuRequest, deps: MenuDeps = {}): Promise<TelegramReply> {
@@ -290,14 +340,24 @@ async function renderMenu(request: MenuRequest, deps: MenuDeps): Promise<Telegra
     if (action.kind === "marathonConfirm" || action.kind === "marathonApply") {
       return marathonPauseFlow(chatId, profile, action, deps, messageId);
     }
-    if (action.kind === "toggle" || action.kind === "quietSet" || action.kind === "quiet") {
+    if (
+      action.kind === "toggle" || action.kind === "quietSet" || action.kind === "quiet"
+      || action.kind === "quietStart" || action.kind === "quietEnd" || action.kind === "quietHour"
+    ) {
       if (action.kind === "toggle" && PREFERENCE_TOGGLES[action.key].role !== profile.role) {
         return screen(chatId, STALE_TEXT, [navRow({ data: MENU.notifications })]);
       }
       return await withConnection(async (connection) => {
         const prefs = await getNotificationPreferences(connection, profile.accountId);
         if (!prefs) return notificationsScreen(chatId, profile, null, [], messageId);
-        if (action.kind === "quiet") return quietScreen(chatId, quietPresetIndex(prefs), messageId);
+        if (action.kind === "quiet") return quietScreen(chatId, prefs, messageId);
+        if (action.kind === "quietStart") return quietHourScreen(chatId, "start", prefs, messageId);
+        if (action.kind === "quietEnd") return quietHourScreen(chatId, "end", prefs, messageId);
+        if (action.kind === "quietHour") {
+          await setQuietEdge(connection, profile.accountId, action.edge, action.hour);
+          const next = await getNotificationPreferences(connection, profile.accountId);
+          return quietScreen(chatId, next ?? prefs, messageId);
+        }
         if (action.kind === "toggle") await toggleNotificationPreference(connection, profile.accountId, action.key);
         else await setQuietHours(connection, profile.accountId, action.preset);
         return openNotifications(chatId, profile, connection, deps, messageId);

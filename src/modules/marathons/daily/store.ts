@@ -2026,6 +2026,45 @@ export async function consumeMarathonBotToken(
   }, getConnection);
 }
 
+export async function rememberMarathonButtonLabels(
+  marathonId: number,
+  rows: Array<{ data: string; label: string }>,
+  getConnection?: Conn,
+): Promise<void> {
+  if (rows.length === 0) return;
+  await withConn(async (connection) => {
+    for (const row of rows) {
+      const label = row.label.trim().slice(0, 64);
+      const data = row.data.trim().slice(0, 32);
+      if (!label || !data) continue;
+      await connection.execute(
+        `INSERT IGNORE INTO marathon_button_labels (marathon_id, callback_data, label)
+         VALUES (?, ?, ?)`,
+        [marathonId, data, label],
+      );
+    }
+  }, getConnection);
+}
+
+export async function marathonCallbackFromStoredLabel(
+  marathonId: number,
+  label: string,
+  getConnection?: Conn,
+): Promise<string | null> {
+  const trimmed = label.trim().slice(0, 64);
+  if (!trimmed) return null;
+  return withConn(async (connection) => {
+    const rows = await connection.query<{ callback_data: string }>(
+      `SELECT callback_data FROM marathon_button_labels
+       WHERE marathon_id = ? AND label = ?
+       LIMIT 1`,
+      [marathonId, trimmed],
+    );
+    const data = rows[0]?.callback_data ?? "";
+    return /^mh:[a-z]+$/.test(data) ? data : null;
+  }, getConnection);
+}
+
 /** Drops every answer button for this participant, then stores the next task's set. */
 export async function replaceMarathonBotTokens(
   marathonId: number,
