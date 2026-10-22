@@ -306,7 +306,7 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
   }
   let linked = await findParticipantByChat(parsed.chatId);
   if (!linked) {
-    if (callback.kind === "menu" || callback.kind === "today" || callback.kind === "top" || callback.kind === "stop" || callback.kind === "list" || callback.kind === "map") {
+    if (callback.kind === "menu" || callback.kind === "today" || callback.kind === "top" || callback.kind === "stop" || callback.kind === "pauseYes" || callback.kind === "list" || callback.kind === "map") {
       return sectionReplies(parsed.chatId, [{
         text: `Ви ще не в марафоні. На сайті можна долучитись до відкритого курсу.\n${absoluteUrl("/marathon")}`,
         buttons: [mainMenuDataButton()],
@@ -357,8 +357,24 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     }
     callback = resolved;
   }
-  if (callback.kind === "stop") {
-    await pauseMarathonNotifications(marathon.id, participant.userId);
+  if (callback.kind === "stop" || callback.kind === "pauseYes") {
+    const pauseCopy = await loadMarathonCopy(marathon.id);
+    const several = (await listChatMarathons(parsed.chatId)).length > 1;
+    const keyboard = marathonReplyKeyboard(pauseCopy, { others: several });
+    const vars = { title: marathon.title, name: participant.displayName || "учаснику" };
+    if (callback.kind === "pauseYes") {
+      await pauseMarathonNotifications(marathon.id, participant.userId);
+      return sectionReplies(parsed.chatId, [{
+        text: renderResolved("bot_pause_done", pauseCopy, vars),
+      }], keyboard);
+    }
+    return sectionReplies(parsed.chatId, [{
+      text: renderResolved("bot_pause_ask", pauseCopy, vars),
+      buttons: [
+        { text: resolveCopy("bot_pause_yes", pauseCopy).slice(0, 64), data: "mh:py" },
+        { text: "Скасувати", data: "mh:pn" },
+      ],
+    }], keyboard);
   }
   if (callback.kind === "top") {
     const copy = await loadMarathonCopy(marathon.id);

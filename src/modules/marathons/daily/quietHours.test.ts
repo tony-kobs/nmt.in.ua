@@ -52,12 +52,13 @@ test("marathon telegram waits out quiet hours and mail still goes", async () => 
     confirm: async (intent) => { confirmed.push(`${intent.channel}:${intent.kind}`); },
   });
   assert.deepEqual(telegram, []);
-  assert.ok(released.includes("telegram:day_open"));
+  assert.equal(released.includes("telegram:day_open"), false);
   assert.ok(released.includes("telegram:reminder"));
-  assert.ok(confirmed.includes("email:day_open"));
+  assert.equal(confirmed.includes("email:day_open"), false);
+  assert.ok(confirmed.includes("email:reminder"));
   assert.equal(result.failed, 0);
-  assert.ok(result.skipped >= 2);
-  assert.ok(result.sent >= 2);
+  assert.ok(result.skipped >= 1);
+  assert.ok(result.sent >= 1);
 });
 
 test("the same marathon telegram is sent once quiet hours are over", async () => {

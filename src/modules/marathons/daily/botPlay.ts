@@ -54,6 +54,7 @@ export type BotCallback =
   | { kind: "today" }
   | { kind: "top" }
   | { kind: "stop" }
+  | { kind: "pauseYes" }
   | { kind: "channels" }
   | { kind: "channel"; channel: "site" | "telegram" }
   | { kind: "materials"; day: number }
@@ -150,6 +151,8 @@ export function parseBotCallback(data: string): BotCallback | null {
   if (data === "mh:today") return { kind: "today" };
   if (data === "mh:top") return { kind: "top" };
   if (data === "mh:stop") return { kind: "stop" };
+  if (data === "mh:py") return { kind: "pauseYes" };
+  if (data === "mh:pn") return { kind: "menu" };
   if (data === "mh:ch") return { kind: "channels" };
   if (data === "mh:ch:s") return { kind: "channel", channel: "site" };
   if (data === "mh:ch:t") return { kind: "channel", channel: "telegram" };
@@ -306,7 +309,7 @@ export function marathonReplyKeyboard(
 } {
   const rows: { text: string }[][] = [
     [{ text: buttonLabel(copy, "bot_btn_today") }, { text: buttonLabel(copy, "bot_btn_top") }],
-    [{ text: buttonLabel(copy, "bot_btn_map") }, { text: buttonLabel(copy, "bot_btn_stop") }],
+    [{ text: buttonLabel(copy, "bot_btn_map") }],
   ];
   if (options?.others) rows.push([{ text: MARATHON_OTHERS_LABEL }]);
   rows.push([{ text: MAIN_MENU_LABEL }]);
@@ -325,6 +328,7 @@ export function marathonCallbackFromText(
     { text: buttonLabel(copy, "bot_btn_top"), data: "mh:top" },
     { text: buttonLabel(copy, "bot_btn_map"), data: "mh:map" },
     { text: buttonLabel(copy, "bot_btn_stop"), data: "mh:stop" },
+    { text: buttonLabel(undefined, "bot_btn_stop"), data: "mh:stop" },
     { text: MARATHON_OTHERS_LABEL, data: "mh:list" },
     { text: "⬅️ Назад", data: "mh:menu" },
     { text: MAIN_MENU_LABEL, data: MENU.home },
@@ -370,7 +374,6 @@ export function menuMessages(
         { text: buttonLabel(copy, "bot_btn_today"), data: "mh:today" },
         { text: buttonLabel(copy, "bot_btn_top"), data: "mh:top" },
         { text: buttonLabel(copy, "bot_btn_map"), url: mapUrl },
-        { text: buttonLabel(copy, "bot_btn_stop"), data: "mh:stop" },
       ]),
     },
   ];
