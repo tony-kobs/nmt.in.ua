@@ -5,7 +5,7 @@
 <!-- changelog:entries -->
 ### 2026-10-22 — fix: формули Telegram-бота звичайним текстом (#240)
 
-- Для команди: Бот показує формули звичайним текстом: умова, варіанти, матеріали, пояснення, розбір і підпис кнопки (до 64 символів). Дроби, степені й корені більше не приходять сирим LaTeX. Формула з `\begin` лишається фото. Сайт і KaTeX без змін. Міграції немає. Екран каналу з #238 лишається. <div><a href="https://cursor.com/agents/bc-76f4ab04-06a8-55e4-992f-52d53781d670?cursor_ref=pr_footer&cursor_cta=open_in_web"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/assets/images/open-in-web-dark.png"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/assets/images/open-in-web-light.png"><img alt="Open in Web" width="114" height="28" src="https://cursor.com/assets/images/open-in-web-dark.png"></picture></a>&nbsp;<a href="https://cursor.com/background-agent?bcId=bc-76f4ab04-06a8-55e4-992f-52d53781d670&cursor_ref=pr_footer&cursor_cta=open_in_cursor"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/assets/images/open-in-cursor-dark.png"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/assets/images/open-in-cursor-light.png"><img alt="Open in Cursor" width="131" height="28" src="https://cursor.com/assets/images/open-in-cursor-dark.png"></picture></a>&nbsp;</div>
+- Для команди: Бот показує формули звичайним текстом: умова, варіанти, матеріали, пояснення, розбір і підпис кнопки (до 64 символів). Дроби, степені й корені більше не приходять сирим LaTeX. Формула з `\begin` лишається фото. Сайт і KaTeX без змін. Міграції немає. Екран каналу з #238 лишається.
 - Для людей: —
 - Скрінкаст: не потрібен
 - Запис: —
