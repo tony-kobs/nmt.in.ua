@@ -6,6 +6,8 @@ import {
 } from "@/modules/auth/userSessions";
 import type { UserRole } from "@/modules/auth/types";
 import { ensureAuthSchema } from "@/modules/auth/users";
+import { unlinkTelegramAccount } from "@/modules/telegram/unlink";
+import { mysqlErrno } from "@/modules/teacher-students/mysqlErrno";
 import { AdminProfilesError, ADMIN_PROFILES_PAGE_SIZE, type AdminProfile, type AdminProfilesPage, type AdminProfilesRoleCounts } from "./types";
 
 const SQL_PRESENCE = `
@@ -14,7 +16,7 @@ const SQL_PRESENCE = `
 
 const SQL_LIST_PROFILES = `
   SELECT id, login, display_name, email, email_verified_at, role, cabinet_scope,
-         is_banned, last_login_at, last_seen_at, created_at,
+         is_banned, last_login_at, last_seen_at, created_at, deletion_due_at,
 ${SQL_PRESENCE}
   FROM app_users
 `;
@@ -32,7 +34,7 @@ const SQL_ROLE_COUNTS = `
 
 const SQL_FIND_TARGET = `
   SELECT id, login, display_name, email, email_verified_at, role, cabinet_scope,
-         is_banned, last_login_at, last_seen_at, created_at,
+         is_banned, last_login_at, last_seen_at, created_at, deletion_due_at,
 ${SQL_PRESENCE}
   FROM app_users
   WHERE id = ?
@@ -65,6 +67,7 @@ type ProfileRow = {
   last_login_at: Date | string | null;
   last_seen_at: Date | string | null;
   created_at: Date | string;
+  deletion_due_at?: Date | string | null;
   is_online?: number | boolean | null;
   seen_minutes_ago?: number | string | null;
 };
@@ -144,7 +147,43 @@ function mapProfile(row: ProfileRow): AdminProfile {
     lastLoginAt,
     lastSeenAt,
     createdAt: formatTimestamp(row.created_at) ?? String(row.created_at),
+    deletionDueAt: formatTimestamp(row.deletion_due_at),
+    telegramLinked: false,
   };
+}
+
+function missingTelegramTable(error: unknown): boolean {
+  const errno = mysqlErrno(error);
+  return errno === 1146 || errno === 1054;
+}
+
+async function telegramLinkedIds(
+  connection: SqlConnection,
+  userIds: number[],
+): Promise<Set<number>> {
+  const linked = new Set<number>();
+  if (userIds.length === 0) return linked;
+  const marks = userIds.map(() => "?").join(", ");
+  try {
+    const accounts = await connection.query<{ user_id: number }>(
+      `SELECT user_id FROM user_telegram_accounts WHERE user_id IN (${marks})`,
+      userIds,
+    );
+    for (const row of accounts) linked.add(Number(row.user_id));
+  } catch (error) {
+    if (!missingTelegramTable(error)) throw error;
+  }
+  try {
+    const participants = await connection.query<{ user_id: number }>(
+      `SELECT DISTINCT user_id FROM marathon_participants
+       WHERE user_id IN (${marks}) AND telegram_chat_id IS NOT NULL AND telegram_chat_id > 0`,
+      userIds,
+    );
+    for (const row of participants) linked.add(Number(row.user_id));
+  } catch (error) {
+    if (!missingTelegramTable(error)) throw error;
+  }
+  return linked;
 }
 
 export type GetAdminProfilesOptions = {
@@ -196,8 +235,10 @@ export async function getAdminProfiles(
             listParams,
           );
 
+    const items = rows.map(mapProfile);
+    const linked = await telegramLinkedIds(connection, items.map((item) => item.id));
     return {
-      items: rows.map(mapProfile),
+      items: items.map((item) => ({ ...item, telegramLinked: linked.has(item.id) })),
       total,
       page,
       pageSize,
@@ -322,13 +363,19 @@ export type DeleteProfileInput = {
   targetUserId: number;
 };
 
-/** Removes related rows then deletes the user account. */
+export type { DeleteProfileResult } from "./accountDeletion";
+
+/** Banned accounts are removed now. Everyone else is scheduled 14 days out. */
 export async function deleteProfile(
   input: DeleteProfileInput,
-  deps: { getConnection: () => Promise<SqlConnection> } = {
+  deps: {
+    getConnection: () => Promise<SqlConnection>;
+    now?: () => Date;
+    sendMail?: (input: import("@/modules/mail/sendMail").SendMailInput) => Promise<import("@/modules/mail/sendMail").SendMailResult>;
+  } = {
     getConnection: loadDefaultConnection,
   },
-): Promise<AdminProfile> {
+): Promise<import("./accountDeletion").DeleteProfileResult> {
   assertValidIds(input.actorUserId, input.targetUserId);
 
   await ensureProfileSchema(deps);
@@ -337,45 +384,14 @@ export async function deleteProfile(
     const target = await loadTarget(connection, input.targetUserId);
     assertMutableTarget(input.actorUserId, target);
     await assertNotLastActiveAdmin(connection, target);
-
-    await connection.beginTransaction();
-    try {
-      const optionalDeletes = [
-        `DELETE FROM teacher_students
-         WHERE teacher_user_id = ? OR student_user_id = ?`,
-        `DELETE FROM teacher_profiles WHERE user_id = ?`,
-        `DELETE FROM user_avatars WHERE user_id = ?`,
-        `UPDATE site_feedback SET user_id = NULL WHERE user_id = ?`,
-        `UPDATE teacher_payments SET user_id = NULL WHERE user_id = ?`,
-      ] as const;
-
-      for (const sql of optionalDeletes) {
-        try {
-          const params = sql.includes("teacher_user_id")
-            ? [input.targetUserId, input.targetUserId]
-            : [input.targetUserId];
-          await connection.execute(sql, params);
-        } catch (error) {
-          const errno =
-            typeof error === "object" && error !== null && "errno" in error
-              ? Number((error as { errno?: number }).errno)
-              : undefined;
-          // ER_NO_SUCH_TABLE — related feature not migrated yet.
-          if (errno === 1146) continue;
-          throw error;
-        }
-      }
-
-      await connection.execute(`DELETE FROM app_users WHERE id = ?`, [
-        input.targetUserId,
-      ]);
-      await connection.commit();
-    } catch (error) {
-      await connection.rollback();
-      throw error;
-    }
-
-    return target;
+    const { applyDeletionSchedule } = await import("./accountDeletion");
+    return applyDeletionSchedule({
+      connection,
+      actorUserId: input.actorUserId,
+      target,
+      now: deps.now?.(),
+      sendMail: deps.sendMail,
+    });
   } catch (error) {
     if (error instanceof AdminProfilesError) throw error;
     console.error("deleteProfile: unexpected database error", error);
@@ -417,4 +433,40 @@ export async function promotePlatformStudent(
   } finally {
     connection.release();
   }
+}
+
+export type UnlinkProfileTelegramInput = {
+  actorUserId: number;
+  targetUserId: number;
+};
+
+/** Drops another user's Telegram link. Their own account is unlinked from `/account`. */
+export async function unlinkProfileTelegram(
+  input: UnlinkProfileTelegramInput,
+  deps: {
+    getConnection: () => Promise<SqlConnection>;
+    unlink?: (userId: number) => Promise<unknown>;
+  } = { getConnection: loadDefaultConnection },
+): Promise<AdminProfile> {
+  assertValidIds(input.actorUserId, input.targetUserId);
+  await ensureProfileSchema(deps);
+  const connection = await deps.getConnection();
+  let target: AdminProfile;
+  try {
+    target = await loadTarget(connection, input.targetUserId);
+    assertMutableTarget(input.actorUserId, target);
+  } catch (error) {
+    if (error instanceof AdminProfilesError) throw error;
+    console.error("unlinkProfileTelegram: unexpected database error", error);
+    throw new AdminProfilesError("Database operation failed.", "db_error");
+  } finally {
+    connection.release();
+  }
+  try {
+    await (deps.unlink ?? unlinkTelegramAccount)(input.targetUserId);
+  } catch (error) {
+    console.error("unlinkProfileTelegram: unlink failed", error);
+    throw new AdminProfilesError("Database operation failed.", "db_error");
+  }
+  return { ...target, telegramLinked: false };
 }

@@ -42,7 +42,7 @@ export default async function MarathonDayPage({ params, searchParams }: PageProp
   const { slug, n } = await params;
   const dayNumber = Number(n);
   const marathon = await getDailyBySlug(slug);
-  if (!marathon || marathon.status === "draft") notFound();
+  if (!marathon || marathon.status === "draft" || marathon.status === "archived") notFound();
   const participant = await getParticipant(marathon.id, user.id);
   if (!participant) notFound();
   const access = evaluateDayAccess({

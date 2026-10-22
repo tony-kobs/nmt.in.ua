@@ -5,6 +5,7 @@ import en from "../../../../messages/en.json";
 import uk from "../../../../messages/uk.json";
 import {
   COPY_DEFAULTS,
+  COPY_GROUPS,
   COPY_KEYS,
   COPY_PREVIEW_SAMPLE,
   copyLengthWarning,
@@ -61,12 +62,30 @@ test("admin preview warns when a template exceeds the Telegram limit", () => {
 });
 
 test("uk, en and de name every copy field and the placeholder error", () => {
+  const seen = new Set<string>();
+  for (const group of COPY_GROUPS) {
+    assert.equal(new Set(group.keys).size, group.keys.length, group.id);
+    for (const key of group.keys) {
+      assert.equal(seen.has(key), false, key);
+      seen.add(key);
+    }
+  }
+  assert.deepEqual([...seen].sort(), [...COPY_KEYS].sort());
   for (const catalog of [uk, en, de]) {
     const labels = catalog.Marathon.copy.labels;
+    const groups = catalog.Marathon.copy.groups;
     for (const key of COPY_KEYS) {
       assert.equal(typeof labels[key], "string", key);
       assert.ok(labels[key].trim(), key);
     }
+    for (const group of COPY_GROUPS) {
+      assert.equal(typeof groups[group.id], "string", group.id);
+      assert.ok(groups[group.id].trim(), group.id);
+    }
+    assert.ok(catalog.Marathon.copy.searchLabel.trim());
+    assert.ok(catalog.Marathon.copy.searchPlaceholder.trim());
+    assert.ok(catalog.Marathon.copy.searchEmpty.trim());
+    assert.ok(catalog.Marathon.copy.groupStats.includes("{total}"));
     assert.ok(catalog.Marathon.fieldErrors.body.placeholder.includes("name"));
     assert.ok(catalog.Marathon.fieldErrors.introVideo.format.trim());
     assert.ok(catalog.Marathon.fieldErrors.copyKey.unknown.trim());

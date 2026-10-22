@@ -31,7 +31,7 @@ export default async function MarathonFinalPage({ params }: PageProps) {
   const user = await requireUser();
   const { slug } = await params;
   const marathon = await getDailyBySlug(slug);
-  if (!marathon || marathon.status === "draft") notFound();
+  if (!marathon || marathon.status === "draft" || marathon.status === "archived") notFound();
   const participant = await getParticipant(marathon.id, user.id);
   if (!participant) notFound();
   const [days, progress, copy] = await Promise.all([

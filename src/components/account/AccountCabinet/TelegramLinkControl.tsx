@@ -2,10 +2,16 @@
 
 import { useActionState } from "react";
 import { useTranslations } from "next-intl";
-import { createTelegramLinkAction, type TelegramLinkActionState } from "@/modules/telegram/actions";
+import {
+  createTelegramLinkAction,
+  unlinkTelegramAction,
+  type TelegramLinkActionState,
+  type TelegramUnlinkActionState,
+} from "@/modules/telegram/actions";
 import css from "./AccountCabinet.module.css";
 
 const initialState: TelegramLinkActionState = { status: "idle" };
+const unlinkInitial: TelegramUnlinkActionState = { status: "idle" };
 
 export function TelegramLinkControl({
   linked,
@@ -16,14 +22,28 @@ export function TelegramLinkControl({
 }) {
   const t = useTranslations("AccountCabinet");
   const [state, action, pending] = useActionState(createTelegramLinkAction, initialState);
+  const [unlinkState, unlink, unlinkPending] = useActionState(unlinkTelegramAction, unlinkInitial);
   return (
     <section className={css.panel} aria-labelledby="account-telegram-title">
       <h2 id="account-telegram-title" className={css.panelTitle}>Telegram</h2>
       {linked ? (
-        <p className={css.panelLead}>
-          {t("telegramLinked")}
-          {username ? <span translate="no">{` @${username}`}</span> : null}
-        </p>
+        <>
+          <p className={css.panelLead}>
+            {t("telegramLinked")}
+            {username ? <span translate="no">{` @${username}`}</span> : null}
+          </p>
+          <form
+            action={unlink}
+            onSubmit={(event) => {
+              if (!window.confirm(t("telegramUnlinkConfirm"))) event.preventDefault();
+            }}
+          >
+            <button className={css.joinQuiet} disabled={unlinkPending} type="submit">
+              {unlinkPending ? t("telegramUnlinkPending") : t("telegramUnlink")}
+            </button>
+          </form>
+          {unlinkState.status === "error" ? <p role="alert">{t("telegramUnlinkError")}</p> : null}
+        </>
       ) : (
         <>
           <form action={action}>

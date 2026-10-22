@@ -8,13 +8,15 @@ import clsx from "clsx";
 import { roleLabel, type UserRole, USER_ROLES } from "@/modules/auth/client";
 import { queryHref } from "@/lib/queryHref";
 import {
+  cancelDeletionAction,
   deleteProfileAction,
   promotePlatformStudentAction,
   setProfileBannedAction,
+  unlinkProfileTelegramAction,
   type ProfileModerationActionState,
 } from "@/modules/admin-profiles/actions";
 import type { AdminProfile, AdminProfilesPage } from "@/modules/admin-profiles/types";
-import { presenceAgo } from "@/modules/auth/presenceRules";
+import { formatKyivDateTime, formatRelativeAgo } from "@/lib/relativeTime";
 import css from "./AdminProfilesPanel.module.css";
 
 const BAN_INITIAL: ProfileModerationActionState = { status: "idle" };
@@ -36,27 +38,14 @@ function formatCreatedAt(iso: string, locale: string): string {
   }).format(date);
 }
 
-function formatDateTime(iso: string, locale: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return new Intl.DateTimeFormat(locale, {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
-}
-
 function presenceText(
   profile: Pick<AdminProfile, "isOnline" | "seenMinutesAgo">,
-  t: (key: string, values?: { count: number }) => string,
+  locale: string,
+  onlineLabel: string,
+  neverLabel: string,
 ): string {
-  if (profile.isOnline) return t("online");
-  const ago = presenceAgo(profile.seenMinutesAgo);
-  if (ago.kind === "never") return t("never");
-  if (ago.kind === "just") return t("presenceJustNow");
-  if (ago.kind === "minutes") {
-    return t("presenceAgoMinutes", { count: ago.count });
-  }
-  return t("presenceAgoHours", { count: ago.count });
+  if (profile.isOnline) return onlineLabel;
+  return formatRelativeAgo(profile.seenMinutesAgo, locale) ?? neverLabel;
 }
 
 function profilesHref(role: RoleFilter, page: number): string {
@@ -85,14 +74,26 @@ export function AdminProfilesPanel({
     promotePlatformStudentAction,
     BAN_INITIAL,
   );
+  const [cancelState, cancelAction, cancelPending] = useActionState(
+    cancelDeletionAction,
+    BAN_INITIAL,
+  );
+  const [unlinkState, unlinkAction, unlinkPending] = useActionState(
+    unlinkProfileTelegramAction,
+    BAN_INITIAL,
+  );
 
-  const pending = banPending || deletePending || promotePending;
+  const pending = banPending || deletePending || promotePending || cancelPending || unlinkPending;
   const flash =
     banState.status !== "idle"
       ? banState
       : deleteState.status !== "idle"
         ? deleteState
-        : promoteState;
+        : cancelState.status !== "idle"
+          ? cancelState
+          : promoteState.status !== "idle"
+            ? promoteState
+            : unlinkState;
   const { items, page, totalPages, total, roleCounts } = profilesPage;
   const showPager = totalPages > 1;
 
@@ -100,11 +101,13 @@ export function AdminProfilesPanel({
     if (
       banState.status === "success" ||
       deleteState.status === "success" ||
-      promoteState.status === "success"
+      cancelState.status === "success" ||
+      promoteState.status === "success" ||
+      unlinkState.status === "success"
     ) {
       router.refresh();
     }
-  }, [banState, deleteState, promoteState, router]);
+  }, [banState, deleteState, cancelState, promoteState, unlinkState, router]);
 
   const locale =
     typeof document !== "undefined"
@@ -190,16 +193,32 @@ export function AdminProfilesPanel({
                               : css.presenceOffline,
                             !profile.isOnline && css.presenceAgo,
                           )}
-                          title={presenceText(profile, t)}
+                          title={
+                            profile.lastSeenAt
+                              ? formatKyivDateTime(profile.lastSeenAt, locale)
+                              : undefined
+                          }
                         >
                           <span className={css.presenceDot} aria-hidden />
-                          {presenceText(profile, t)}
+                          {presenceText(profile, locale, t("online"), t("never"))}
                         </span>
                         {isSelf ? (
                           <span className={css.you}>{t("you")}</span>
                         ) : null}
                         {profile.isBanned ? (
                           <span className={css.banned}>{t("bannedBadge")}</span>
+                        ) : null}
+                        {profile.deletionDueAt ? (
+                          <span className={css.deletionBadge}>
+                            {t("deletionScheduled", {
+                              date: new Intl.DateTimeFormat(locale, {
+                                timeZone: "Europe/Kyiv",
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              }).format(new Date(profile.deletionDueAt)),
+                            })}
+                          </span>
                         ) : null}
                         {profile.cabinetScope === "marathon" ? (
                           <span className={css.scopeBadge}>{t("marathonOnlyBadge")}</span>
@@ -215,19 +234,22 @@ export function AdminProfilesPanel({
                           ? t("emailVerified")
                           : t("emailUnverified")}
                       </p>
+                      {profile.telegramLinked ? (
+                        <p className={css.meta}>{t("telegramLinked")}</p>
+                      ) : null}
                       <p className={css.meta}>
                         {t("roleMeta", { role: roleLabel(profile.role) })}
                         {" · "}
                         {t("lastLoginMeta", {
                           date: profile.lastLoginAt
-                            ? formatDateTime(profile.lastLoginAt, locale)
+                            ? formatKyivDateTime(profile.lastLoginAt, locale)
                             : t("never"),
                         })}
                       </p>
                       <p className={css.meta}>
                         {t("lastSeenMeta", {
                           date: profile.lastSeenAt
-                            ? formatDateTime(profile.lastSeenAt, locale)
+                            ? formatKyivDateTime(profile.lastSeenAt, locale)
                             : t("never"),
                         })}
                         {" · "}
@@ -303,33 +325,79 @@ export function AdminProfilesPanel({
                             </button>
                           </form>
                         ) : null}
-                        <form
-                          action={deleteAction}
-                          onSubmit={(event) => {
-                            if (
-                              !window.confirm(
-                                t("deleteConfirm", {
-                                  name: profile.displayName,
-                                }),
-                              )
-                            ) {
-                              event.preventDefault();
-                            }
-                          }}
-                        >
-                          <input
-                            type="hidden"
-                            name="userId"
-                            value={profile.id}
-                          />
-                          <button
-                            type="submit"
-                            className={clsx(css.actionBtn, css.actionDelete)}
-                            disabled={pending}
+                        {profile.telegramLinked ? (
+                          <form
+                            action={unlinkAction}
+                            onSubmit={(event) => {
+                              if (
+                                !window.confirm(
+                                  t("unlinkTelegramConfirm", {
+                                    name: profile.displayName,
+                                  }),
+                                )
+                              ) {
+                                event.preventDefault();
+                              }
+                            }}
                           >
-                            {t("delete")}
-                          </button>
-                        </form>
+                            <input type="hidden" name="userId" value={profile.id} />
+                            <button
+                              type="submit"
+                              className={css.actionBtn}
+                              disabled={pending}
+                            >
+                              {t("unlinkTelegram")}
+                            </button>
+                          </form>
+                        ) : null}
+                        {profile.deletionDueAt ? (
+                          <form
+                            action={cancelAction}
+                            onSubmit={(event) => {
+                              if (
+                                !window.confirm(
+                                  t("cancelDeletionConfirm", { name: profile.displayName }),
+                                )
+                              ) {
+                                event.preventDefault();
+                              }
+                            }}
+                          >
+                            <input type="hidden" name="userId" value={profile.id} />
+                            <input type="hidden" name="displayName" value={profile.displayName} />
+                            <button
+                              type="submit"
+                              className={clsx(css.actionBtn, css.actionUnban)}
+                              disabled={pending}
+                            >
+                              {t("cancelDeletion")}
+                            </button>
+                          </form>
+                        ) : (
+                          <form
+                            action={deleteAction}
+                            onSubmit={(event) => {
+                              if (
+                                !window.confirm(
+                                  t("deleteConfirm", {
+                                    name: profile.displayName,
+                                  }),
+                                )
+                              ) {
+                                event.preventDefault();
+                              }
+                            }}
+                          >
+                            <input type="hidden" name="userId" value={profile.id} />
+                            <button
+                              type="submit"
+                              className={clsx(css.actionBtn, css.actionDelete)}
+                              disabled={pending}
+                            >
+                              {t("delete")}
+                            </button>
+                          </form>
+                        )}
                       </div>
                     ) : (
                       <p className={css.lockedHint}>
@@ -377,7 +445,19 @@ export function AdminProfilesPanel({
 
         {flash.status === "success" ? (
           <p className={clsx(css.alert, css.alertSuccess)} role="status">
-            {t(`success.${flash.action}`, { name: flash.displayName })}
+            {flash.action === "schedule"
+              ? t(flash.mailWarning ? "success.scheduleMailFailed" : "success.schedule", {
+                  name: flash.displayName,
+                  date: flash.dueAt
+                    ? new Intl.DateTimeFormat(locale, {
+                        timeZone: "Europe/Kyiv",
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      }).format(new Date(flash.dueAt))
+                    : "",
+                })
+              : t(`success.${flash.action}`, { name: flash.displayName })}
           </p>
         ) : null}
         {flash.status === "error" ? (

@@ -7,6 +7,7 @@ import {
   COPY_DEFAULTS,
   COPY_GROUPS,
   COPY_PREVIEW_SAMPLE,
+  copyFieldMatches,
   copyLengthWarning,
   renderCopy,
   telegramLimit,
@@ -81,29 +82,67 @@ export function CopyEditor({
   overrides: Partial<Record<CopyKey, string>>;
 }) {
   const t = useTranslations("Marathon");
+  const [query, setQuery] = useState("");
+  const storageKey = marathonSectionStorageKey(String(marathonId));
   const customCount = Object.keys(overrides).length;
+  const searching = query.trim().length > 0;
+  const groups = COPY_GROUPS.map((group) => {
+    const label = t(`copy.groups.${group.id}`);
+    const groupHit = copyFieldMatches(query, [label]);
+    const keys = group.keys.filter((key) => groupHit || copyFieldMatches(query, [
+      key,
+      t(`copy.labels.${key}`),
+      overrides[key] ?? COPY_DEFAULTS[key],
+    ]));
+    return { ...group, label, keys };
+  }).filter((group) => !searching || group.keys.length > 0);
   return (
     <AccordionSection
       id="texts"
       title={t("sections.texts")}
       summary={customCount > 0 ? t("sections.textsCustom", { count: customCount }) : t("sections.textsDefault")}
-      storageKey={marathonSectionStorageKey(String(marathonId))}
+      storageKey={storageKey}
     >
       <p className={css.lead}>{t("copy.lead")}</p>
-      {COPY_GROUPS.map((group) => (
-        <div key={group.id} className={css.stack}>
-          <h3>{t(`copy.groups.${group.id}`)}</h3>
-          {group.keys.map((key) => (
-            <CopyField
-              key={key}
-              marathonId={marathonId}
-              copyKey={key}
-              initial={overrides[key] ?? COPY_DEFAULTS[key]}
-              custom={Boolean(overrides[key])}
-            />
-          ))}
-        </div>
-      ))}
+      <label className={css.field}>
+        <span>{t("copy.searchLabel")}</span>
+        <input
+          className={css.input}
+          type="search"
+          value={query}
+          placeholder={t("copy.searchPlaceholder")}
+          autoComplete="off"
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </label>
+      {groups.length === 0 ? <p className={css.hint}>{t("copy.searchEmpty")}</p> : null}
+      {groups.map((group) => {
+        const source = COPY_GROUPS.find((item) => item.id === group.id);
+        const custom = source?.keys.filter((key) => overrides[key]).length ?? 0;
+        const total = source?.keys.length ?? group.keys.length;
+        return (
+          <AccordionSection
+            key={group.id}
+            id={`copy-${group.id}`}
+            title={group.label}
+            summary={t("copy.groupStats", { total, custom, plain: total - custom })}
+            keepSummary
+            forceOpen={searching}
+            headingLevel="h3"
+            storageKey={storageKey}
+          >
+            {group.keys.map((key) => (
+              <CopyField
+                key={key}
+                marathonId={marathonId}
+                copyKey={key}
+                initial={overrides[key] ?? COPY_DEFAULTS[key]}
+                custom={Boolean(overrides[key])}
+              />
+            ))}
+          </AccordionSection>
+        );
+      })}
     </AccordionSection>
   );
 }

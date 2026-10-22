@@ -13,7 +13,7 @@ import { optionalTelegramBot } from "./botLink";
 import { personNotifyChannels } from "./channel";
 import { dayUnlockAt, formatKyivWhen } from "./calendar";
 import { shouldFinishDailyMarathon } from "./lifecycle";
-import { renderResolved, resolveCopy, type CopyKey } from "./copy";
+import { renderCopy, renderResolved, resolveCopy, type CopyKey, type CopyVars } from "./copy";
 import { publicLeaderName, rankNoticeText, type BoardLine } from "./leaderboard";
 import { expandSources, materialSources } from "./telegramContent";
 import { marathonDayUrl, wrapMarathonMail } from "./mailCopy";
@@ -29,6 +29,20 @@ import {
   type NotifyKind,
   type TelegramAttempt,
 } from "./notifications";
+import {
+  decideSlot,
+  findSlotOverride,
+  gateIntents,
+  overrideWindowOpen,
+  type SlotOverride,
+  type TimelineChannel,
+} from "./messageTimeline";
+import {
+  deliverDueMessageJobs,
+  enqueueMessageJob,
+  loadOverridesSafe,
+  markNotificationOutcome,
+} from "./messageOverrides";
 import {
   claimNotification,
   confirmNotification,
@@ -61,7 +75,7 @@ export function isMarathonCronAuthorized(header: string | null): boolean {
 }
 
 /** Proactive Telegram only. A lookup failure does not hold the send. */
-async function quietHoldForChat(chatId: string, now = new Date()): Promise<boolean> {
+export async function quietHoldForChat(chatId: string, now = new Date()): Promise<boolean> {
   let connection: Awaited<ReturnType<typeof loadTelegramConnection>> | undefined;
   try {
     connection = await loadTelegramConnection();
@@ -93,14 +107,73 @@ type Delivery = {
   html: string;
 };
 
+function postponedExtras(
+  marathon: NotifyAudienceMarathon,
+  overrides: SlotOverride[],
+  now: Date,
+): NotifyIntent[] {
+  const days = marathon.contentDayNumbers;
+  const last = days.length > 0 ? Math.max(...days) : 0;
+  const known = new Set(days);
+  const extras: NotifyIntent[] = [];
+  for (const override of overrides) {
+    if (override.marathonId != null && override.marathonId !== marathon.marathonId) continue;
+    if (!override.sendAt || override.cancelled) continue;
+    if (!overrideWindowOpen(override.sendAt, now)) continue;
+    if (override.kind === "rank") continue;
+    if (override.channel !== "email" && override.channel !== "telegram") continue;
+    const dayNumber = override.dayNumber;
+    const kind = override.kind;
+    if (kind !== "day_open" && kind !== "reminder" && kind !== "nudge" && kind !== "tomorrow" && kind !== "final") {
+      continue;
+    }
+    if (kind === "final") {
+      if (dayNumber !== last) continue;
+    } else if (!known.has(dayNumber)) continue;
+    for (const person of marathon.people) {
+      if (!personNotifyChannels(person).includes(override.channel)) continue;
+      const done = person.completedDayNumbers;
+      if (kind === "tomorrow") {
+        if (!done.includes(dayNumber - 1)) continue;
+      } else if (kind === "final") {
+        if (!done.includes(last)) continue;
+      } else if (done.includes(dayNumber)) continue;
+      extras.push({
+        marathonId: marathon.marathonId,
+        userId: person.userId,
+        dayNumber,
+        kind,
+        channel: override.channel,
+      });
+    }
+  }
+  return extras;
+}
+
+function renderedBody(
+  marathon: NotifyAudienceMarathon,
+  intent: NotifyIntent,
+  vars: CopyVars,
+  overrides: SlotOverride[],
+): string {
+  const override = findSlotOverride(overrides, intent.marathonId, intent.dayNumber, intent.kind, intent.channel);
+  const custom = override?.body?.trim();
+  if (custom) return renderCopy(custom, vars);
+  const rawName = vars.name == null ? "" : String(vars.name);
+  const name = intent.kind === "nudge" ? publicLeaderName(rawName) : rawName;
+  return renderResolved(kindKey(intent.kind), marathon.copy, { ...vars, name });
+}
+
 async function buildDeliveries(
   audience: NotifyAudienceMarathon[],
   now: Date,
   secret: string | null,
   loadBoard: (marathonId: number) => Promise<BoardLine[]>,
+  overrides: SlotOverride[],
 ): Promise<Delivery[]> {
   const deliveries: Delivery[] = [];
   for (const marathon of audience) {
+    if (marathon.status != null && marathon.status !== "active") continue;
     if (shouldFinishDailyMarathon(now, marathon)) continue;
     const dayNumbers = marathon.contentDayNumbers;
     if (dayNumbers.length === 0) continue;
@@ -112,7 +185,7 @@ async function buildDeliveries(
       nudgeUntil: marathon.nudgeUntil,
       dayNumbers,
     };
-    const intents = [
+    const natural = [
       ...planNotifications({
         now,
         marathonId: marathon.marathonId,
@@ -141,6 +214,12 @@ async function buildDeliveries(
         people: marathon.people,
       }),
     ];
+    const intents = gateIntents(
+      natural,
+      overrides,
+      now,
+      postponedExtras(marathon, overrides, now),
+    );
     for (const intent of intents) {
       const person = marathon.people.find((item) => item.userId === intent.userId);
       if (!person) continue;
@@ -161,8 +240,8 @@ async function buildDeliveries(
       }
       const row = standing.get(person.userId);
       const place = row?.place ?? Math.max(board.length, 1);
-      const rendered = renderResolved(kindKey(intent.kind), marathon.copy, {
-        name: intent.kind === "nudge" ? publicLeaderName(person.displayName) : person.displayName,
+      const rendered = renderedBody(marathon, intent, {
+        name: person.displayName,
         day: intent.dayNumber,
         topic,
         unlock_time: unlockLabel,
@@ -171,7 +250,7 @@ async function buildDeliveries(
         prev_place: row?.prevPlace ?? place,
         delta: row?.prevPlace == null ? 0 : Math.abs(row.prevPlace - place),
         total: row?.points ?? 0,
-      });
+      }, overrides);
       const unsub = secret
         ? absoluteUrl(
             `/api/marathon/unsubscribe?m=${marathon.marathonId}&u=${person.userId}&t=${unsubscribeToken(marathon.marathonId, person.userId, secret)}`,
@@ -219,10 +298,15 @@ async function queueOpenedDay(
   if (!bot) return false;
   const days = await listDays(marathon.marathonId);
   const day = days.find((item) => item.dayNumber === dayNumber);
-  const announce = { chatId, text: announcement, trigger: "system" as const };
+  const announce = {
+    chatId,
+    text: announcement,
+    trigger: "system" as const,
+    schedule: { dayNumber, kind: "day_open" },
+  };
   if (!day) {
     if (!includeAnnouncement) return true;
-    await rememberDeferred([announce], "system");
+    await rememberDeferred([announce], "system", marathon.marathonId);
     return true;
   }
   const materials = await listMaterials(day.id);
@@ -239,7 +323,7 @@ async function queueOpenedDay(
   }
   const queued = includeAnnouncement ? [announce, ...replies] : replies;
   if (queued.length === 0) return true;
-  await rememberDeferred(queued, "system");
+  await rememberDeferred(queued, "system", marathon.marathonId);
   return true;
 }
 
@@ -282,8 +366,17 @@ export async function runMarathonNotifications(deps: {
   loadBoard?: (marathonId: number) => Promise<BoardLine[]>;
   /** Unit tests skip the in-site bell, which needs the database. */
   skipSiteDay?: boolean;
+  /** When set, skips the database. Production loads marathon_message_overrides. */
+  overrides?: SlotOverride[];
 } = {}): Promise<{ sent: number; skipped: number; failed: number }> {
   const now = deps.now?.() ?? new Date();
+  if (!deps.load && process.env.DB_HOST) {
+    try {
+      await deliverDueMessageJobs(now);
+    } catch (error) {
+      console.error("marathon message jobs", error);
+    }
+  }
   if (!deps.load) {
     try {
       await finishElapsedDailyMarathons(now);
@@ -301,11 +394,13 @@ export async function runMarathonNotifications(deps: {
   }
   const secret = deps.secret === undefined ? unsubscribeSecret() : deps.secret;
   const telegramEnabled = deps.telegramEnabled ?? Boolean(optionalTelegramBot());
+  const overrides = deps.overrides ?? await loadOverridesSafe();
   const deliveries = (await buildDeliveries(
     audience,
     now,
     secret,
     deps.loadBoard ?? loadMarathonBoard,
+    overrides,
   )).filter(
     (item) => item.intent.channel === "email" || telegramEnabled,
   );
@@ -329,6 +424,15 @@ export async function runMarathonNotifications(deps: {
       send: async (intent) => {
         const item = byKey.get(intentKey(intent));
         if (!item) return false;
+        const decision = decideSlot(
+          findSlotOverride(overrides, intent.marathonId, intent.dayNumber, intent.kind, intent.channel),
+          now,
+        );
+        if (decision === "cancel") {
+          await markNotificationOutcome(intent, "cancelled");
+          return "skip";
+        }
+        if (decision === "wait") return "defer";
         if (intent.channel === "email") {
           if (!item.email) return false;
           return sendEmail({
@@ -382,6 +486,7 @@ async function deliverSiteDayNotifications(
 ): Promise<void> {
   const { notifyUser } = await import("@/modules/notifications/store");
   for (const marathon of audience) {
+    if (marathon.status != null && marathon.status !== "active") continue;
     if (shouldFinishDailyMarathon(now, marathon)) continue;
     const opens = planSiteDayOpens({
       now,
@@ -426,26 +531,54 @@ export async function sendCompletedDayFollowUp(input: {
   skipTelegram?: boolean;
   /** Test hook. Production reads the account's quiet hours. */
   holdTelegram?: (chatId: string) => Promise<boolean>;
+  now?: Date;
+  slotOverrides?: SlotOverride[];
 }): Promise<{ sent: number; skipped: number; failed: number }> {
   void input.title;
+  const now = input.now ?? new Date();
   const secret = unsubscribeSecret();
   const dayNumbers = await listContentDayNumbers(input.marathonId);
+  const person = { ...input.person, completedDayNumbers: [input.completedDay] };
   const planned = planFollowUps({
     marathonId: input.marathonId,
     daysCount: input.daysCount,
     dayNumbers,
-    people: [{ ...input.person, completedDayNumbers: [input.completedDay] }],
+    people: [person],
   });
+  const overrides = input.slotOverrides ?? await loadOverridesSafe(input.marathonId);
+  const course: NotifyAudienceMarathon = {
+    marathonId: input.marathonId,
+    slug: input.slug,
+    title: input.title,
+    startDate: input.startDate,
+    unlockHour: input.unlockHour,
+    reminderHour: "19:00",
+    nudgeFrom: 10,
+    nudgeUntil: 21,
+    daysCount: input.daysCount,
+    contentDayNumbers: dayNumbers,
+    topics: input.topics,
+    copy: input.copy,
+    people: [person],
+  };
   if (input.skipTelegram) {
     for (const intent of planned.filter((item) => item.channel === "telegram")) {
+      const decision = decideSlot(
+        findSlotOverride(overrides, intent.marathonId, intent.dayNumber, intent.kind, intent.channel),
+        now,
+      );
+      if (decision === "wait") continue;
       try {
-        if ((await claimNotification(intent)) === "claimed") await confirmNotification(intent);
+        if ((await claimNotification(intent)) !== "claimed") continue;
+        if (decision === "cancel") await markNotificationOutcome(intent, "cancelled");
+        await confirmNotification(intent);
       } catch (error) {
         console.error("marathon follow-up claim", error);
       }
     }
   }
-  const intents = planned.filter((item) => !(input.skipTelegram && item.channel === "telegram"));
+  const gated = gateIntents(planned, overrides, now, postponedExtras(course, overrides, now));
+  const intents = gated.filter((item) => !(input.skipTelegram && item.channel === "telegram"));
   const deliveries: Delivery[] = [];
   for (const intent of intents) {
     const topic = input.topics[intent.dayNumber] ?? `День ${intent.dayNumber}`;
@@ -460,13 +593,13 @@ export async function sendCompletedDayFollowUp(input: {
       }),
       "uk-UA",
     );
-    const rendered = renderResolved(kindKey(intent.kind), input.copy, {
+    const rendered = renderedBody(course, intent, {
       name: input.person.displayName,
       day: intent.dayNumber,
       topic,
       unlock_time: unlockLabel,
       link: dayUrl,
-    });
+    }, overrides);
     const unsub = secret
       ? absoluteUrl(
           `/api/marathon/unsubscribe?m=${input.marathonId}&u=${input.person.userId}&t=${unsubscribeToken(input.marathonId, input.person.userId, secret)}`,
@@ -495,6 +628,15 @@ export async function sendCompletedDayFollowUp(input: {
       send: async (intent) => {
         const item = byKey.get(intentKey(intent));
         if (!item) return false;
+        const decision = decideSlot(
+          findSlotOverride(overrides, intent.marathonId, intent.dayNumber, intent.kind, intent.channel),
+          now,
+        );
+        if (decision === "cancel") {
+          await markNotificationOutcome(intent, "cancelled");
+          return "skip";
+        }
+        if (decision === "wait") return "defer";
         if (intent.channel === "email") {
           if (!item.email) return false;
           const result = await sendMail({
@@ -529,7 +671,19 @@ export async function sendRankNotice(input: {
   /** Test hook. Production reads the account's quiet hours. */
   holdTelegram?: (chatId: string) => Promise<boolean>;
   enqueueTelegram?: typeof rememberDeferred;
+  now?: Date;
+  slotOverrides?: SlotOverride[];
+  enqueueJob?: (job: {
+    marathonId: number;
+    userId: number;
+    dayNumber: number;
+    kind: string;
+    channel: TimelineChannel;
+    body: string;
+    sendAt: Date;
+  }) => Promise<void>;
 }): Promise<string> {
+  const now = input.now ?? new Date();
   const link = marathonDayUrl(input.slug, input.dayNumber);
   const rendered = rankNoticeText(input.copy, {
     name: input.person.displayName,
@@ -539,41 +693,123 @@ export async function sendRankNotice(input: {
     day: input.dayNumber,
     link,
   });
+  const overrides = input.slotOverrides ?? await loadOverridesSafe(input.marathonId);
+  const vars = {
+    name: input.person.displayName,
+    day: input.dayNumber,
+    topic: "",
+    link,
+    place: input.place,
+    prev_place: input.prevPlace ?? input.place,
+    delta: input.prevPlace == null ? 0 : Math.abs(input.prevPlace - input.place),
+    total: input.points,
+  };
+  const textFor = (channel: TimelineChannel) => {
+    const custom = findSlotOverride(overrides, input.marathonId, input.dayNumber, "rank", channel)?.body?.trim();
+    return custom ? renderCopy(custom, vars) : rendered;
+  };
   const secret = unsubscribeSecret();
   const unsub = secret
     ? absoluteUrl(
         `/api/marathon/unsubscribe?m=${input.marathonId}&u=${input.person.userId}&t=${unsubscribeToken(input.marathonId, input.person.userId, secret)}`,
       )
     : null;
-  const mail = wrapMarathonMail({ rendered, unsubscribeUrl: unsub });
   const channels = personNotifyChannels(input.person);
+  const queueJob = input.enqueueJob ?? enqueueMessageJob;
   if (channels.includes("email") && input.person.email) {
+    const emailText = textFor("email");
+    const decision = decideSlot(
+      findSlotOverride(overrides, input.marathonId, input.dayNumber, "rank", "email"),
+      now,
+    );
     try {
-      await sendMail({
-        to: input.person.email,
-        subject: mail.subject,
-        html: mail.html,
-        text: mail.text,
-      });
+      if (decision === "cancel") {
+        await markNotificationOutcome({
+          marathonId: input.marathonId,
+          userId: input.person.userId,
+          dayNumber: input.dayNumber,
+          kind: "rank",
+          channel: "email",
+        }, "cancelled");
+      } else if (decision === "wait") {
+        const sendAt = findSlotOverride(overrides, input.marathonId, input.dayNumber, "rank", "email")?.sendAt;
+        if (sendAt) {
+          await queueJob({
+            marathonId: input.marathonId,
+            userId: input.person.userId,
+            dayNumber: input.dayNumber,
+            kind: "rank",
+            channel: "email",
+            body: emailText,
+            sendAt,
+          });
+        }
+      } else {
+        const mail = wrapMarathonMail({ rendered: emailText, unsubscribeUrl: unsub });
+        await sendMail({
+          to: input.person.email,
+          subject: mail.subject,
+          html: mail.html,
+          text: mail.text,
+        });
+      }
     } catch (error) {
       console.error("marathon rank mail", error);
     }
   }
-  if (channels.includes("telegram") && !input.skipTelegram && input.person.telegramChatId) {
+  let shown = rendered;
+  if (channels.includes("telegram") && input.person.telegramChatId) {
     const chatId = input.person.telegramChatId;
+    const telegramText = textFor("telegram");
+    const decision = decideSlot(
+      findSlotOverride(overrides, input.marathonId, input.dayNumber, "rank", "telegram"),
+      now,
+    );
+    shown = telegramText;
     try {
-      const hold = input.holdTelegram ?? quietHoldForChat;
-      if (await hold(chatId)) {
-        await (input.enqueueTelegram ?? rememberDeferred)(
-          [{ chatId, text: rendered, trigger: "system" }],
-          "system",
-        );
-      } else {
-        await classifyTelegramSend(chatId, rendered);
+      if (decision === "cancel") {
+        shown = "";
+        await markNotificationOutcome({
+          marathonId: input.marathonId,
+          userId: input.person.userId,
+          dayNumber: input.dayNumber,
+          kind: "rank",
+          channel: "telegram",
+        }, "cancelled");
+      } else if (decision === "wait") {
+        shown = "";
+        const sendAt = findSlotOverride(overrides, input.marathonId, input.dayNumber, "rank", "telegram")?.sendAt;
+        if (sendAt) {
+          await queueJob({
+            marathonId: input.marathonId,
+            userId: input.person.userId,
+            dayNumber: input.dayNumber,
+            kind: "rank",
+            channel: "telegram",
+            body: telegramText,
+            sendAt,
+          });
+        }
+      } else if (!input.skipTelegram) {
+        const hold = input.holdTelegram ?? quietHoldForChat;
+        if (await hold(chatId)) {
+          await (input.enqueueTelegram ?? rememberDeferred)(
+            [{
+              chatId,
+              text: telegramText,
+              trigger: "system",
+              schedule: { dayNumber: input.dayNumber, kind: "rank" },
+            }],
+            "system",
+            input.marathonId,
+          );
+        } else {
+          await classifyTelegramSend(chatId, telegramText);
+        }
       }
     } catch (error) {
       console.error("marathon rank telegram", error);
     }
   }
-  return rendered;
+  return shown;
 }

@@ -1,3 +1,5 @@
+import { relativeAgo, type RelativeAgo } from "@/lib/relativeTime";
+
 /** Online window. Compared in SQL against `CURRENT_TIMESTAMP`, same clock as the write. */
 export const ONLINE_WINDOW_MINUTES = 5;
 export const ONLINE_WINDOW_MS = ONLINE_WINDOW_MINUTES * 60 * 1000;
@@ -5,11 +7,7 @@ export const ONLINE_WINDOW_MS = ONLINE_WINDOW_MINUTES * 60 * 1000;
 /** Skip a presence write when this session was touched more recently than this. */
 export const PRESENCE_TOUCH_GAP_SEC = 60;
 
-export type PresenceAgo =
-  | { kind: "never" }
-  | { kind: "just" }
-  | { kind: "minutes"; count: number }
-  | { kind: "hours"; count: number };
+export type PresenceAgo = RelativeAgo;
 
 /**
  * Live only when the login row is still open, not past `expires_at`,
@@ -31,12 +29,9 @@ export function isLivePresence(input: {
   return age >= 0 && age <= ONLINE_WINDOW_MS;
 }
 
+/** Same buckets as `relativeAgo`. Admin copy goes through `formatRelativeAgo`. */
 export function presenceAgo(minutes: number | null | undefined): PresenceAgo {
-  if (minutes == null || !Number.isFinite(minutes)) return { kind: "never" };
-  if (minutes < 1) return { kind: "just" };
-  const whole = Math.floor(minutes);
-  if (whole < 60) return { kind: "minutes", count: whole };
-  return { kind: "hours", count: Math.floor(whole / 60) };
+  return relativeAgo(minutes);
 }
 
 /** Correlated predicate for admin profile queries. `userIdExpr` is SQL, not user input. */

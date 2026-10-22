@@ -213,7 +213,8 @@ export async function sendMail(
       }
     } catch (error) {
       console.error("sendMail: unexpected error", { to, attempt, error });
-      lastError = "send_failed";
+      const message = error instanceof Error ? error.message : "";
+      lastError = /timed out/i.test(message) ? "timeout" : "send_failed";
       if (attempt === BREVO_ATTEMPTS) {
         return { ok: false, error: "send_failed" };
       }

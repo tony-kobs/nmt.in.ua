@@ -53,7 +53,7 @@ export {
   updateRiddle,
 } from "./riddleStore";
 
-export type DailyStatus = "draft" | "active" | "finished";
+export type DailyStatus = "draft" | "active" | "finished" | "archived";
 export type MaterialType = "loom" | "youtube" | "text";
 
 export type DailyMarathon = {
@@ -199,7 +199,12 @@ function mapMarathon(row: {
   landing_riddle_count?: number | null;
   status: string;
 }): DailyMarathon | null {
-  if (row.status !== "draft" && row.status !== "active" && row.status !== "finished") {
+  if (
+    row.status !== "draft" &&
+    row.status !== "active" &&
+    row.status !== "finished" &&
+    row.status !== "archived"
+  ) {
     return null;
   }
   const startDate = isoDate(row.start_date);
@@ -1421,6 +1426,8 @@ export type NotifyAudienceMarathon = {
   contentDayNumbers: number[];
   topics: Record<number, string>;
   copy: Partial<Record<CopyKey, string>>;
+  /** Absent in older fixtures. A set value other than active must not be sent. */
+  status?: DailyStatus;
   people: Array<{
     userId: number;
     email: string | null;
@@ -1533,7 +1540,7 @@ export async function loadNotifyAudience(
        LEFT JOIN marathon_days d ON d.marathon_id = m.id
        LEFT JOIN marathon_day_progress pr
          ON pr.marathon_id = m.id AND pr.user_id = p.user_id AND pr.day_id = d.id
-       WHERE m.kind = 'daily' AND m.status = 'active'`,
+       WHERE m.kind = 'daily' AND m.status = 'active' AND u.deletion_due_at IS NULL`,
       [],
     );
     const grouped = new Map<number, NotifyAudienceMarathon>();
@@ -1558,6 +1565,7 @@ export async function loadNotifyAudience(
           contentDayNumbers: [],
           topics: {},
           copy: {},
+          status: "active",
           people: [],
         };
         grouped.set(row.marathon_id, marathon);
@@ -1739,7 +1747,7 @@ async function readStandings(
      INNER JOIN app_users u ON u.id = p.user_id
      LEFT JOIN marathon_day_progress pr
        ON pr.marathon_id = p.marathon_id AND pr.user_id = p.user_id
-     WHERE p.marathon_id = ? AND u.is_banned = 0
+     WHERE p.marathon_id = ? AND u.is_banned = 0 AND u.deletion_due_at IS NULL
      GROUP BY p.user_id, u.display_name, p.streak, p.joined_at`,
     [marathonId],
   );
@@ -1798,7 +1806,7 @@ async function saveRanks(
 export const STALE_NOTIFICATION_CLAIM_MINUTES = 10;
 
 type NotifyKey = Pick<NotifyIntent, "marathonId" | "userId" | "dayNumber" | "channel"> & {
-  kind: NotifyKind | "registered";
+  kind: NotifyKind | "registered" | "rank";
 };
 
 function notifyKeyParams(intent: NotifyKey): unknown[] {
@@ -1956,7 +1964,7 @@ export type TelegramOutboxRow = {
 };
 
 export async function enqueueMarathonTelegram(
-  jobs: Array<{ chatId: string; payload: string }>,
+  jobs: Array<{ chatId: string; payload: string; marathonId?: number | null }>,
   getConnection?: Conn,
 ): Promise<void> {
   if (jobs.length === 0) return;
@@ -1966,8 +1974,8 @@ export async function enqueueMarathonTelegram(
     try {
       for (const job of jobs) {
         await connection.execute(
-          `INSERT INTO marathon_telegram_outbox (chat_id, payload) VALUES (?, ?)`,
-          [job.chatId, job.payload],
+          `INSERT INTO marathon_telegram_outbox (chat_id, marathon_id, payload) VALUES (?, ?, ?)`,
+          [job.chatId, job.marathonId ?? null, job.payload],
         );
       }
       await connection.commit();
@@ -1992,10 +2000,13 @@ export async function claimMarathonTelegram(
       payload: string;
       attempts: number;
     }>(
-      `SELECT id, chat_id, payload, attempts
-       FROM marathon_telegram_outbox
-       WHERE status = 'pending' AND (not_before IS NULL OR not_before <= CURRENT_TIMESTAMP)
-       ORDER BY id
+      `SELECT o.id, o.chat_id, o.payload, o.attempts
+       FROM marathon_telegram_outbox o
+       LEFT JOIN marathons m ON m.id = o.marathon_id
+       WHERE o.status = 'pending'
+         AND (o.not_before IS NULL OR o.not_before <= CURRENT_TIMESTAMP)
+         AND (o.marathon_id IS NULL OR m.status IS NULL OR m.status <> 'archived')
+       ORDER BY o.id
        LIMIT ${size}`,
       [],
     );
@@ -2175,6 +2186,47 @@ export async function postponeMarathonTelegram(
        WHERE id = ?`,
       [notBefore, id],
     );
+    try {
+      await connection.execute(
+        `UPDATE marathon_telegram_outbox
+         SET hold_reason = 'quiet', error_text = NULL
+         WHERE id = ?`,
+        [id],
+      );
+    } catch (error) {
+      if ((error as { errno?: number }).errno !== 1054) throw error;
+    }
+  }, getConnection);
+}
+
+/** Writes a short stored reason. Missing columns (before migration 047) are ignored. */
+export async function noteMarathonTelegram(
+  id: number,
+  detail: { errorText?: string | null; holdReason?: "quiet" | "postpone" | null },
+  getConnection?: Conn,
+): Promise<void> {
+  const sets: string[] = [];
+  const params: unknown[] = [];
+  if (detail.errorText !== undefined) {
+    sets.push("error_text = ?");
+    params.push(detail.errorText);
+  }
+  if (detail.holdReason !== undefined) {
+    sets.push("hold_reason = ?");
+    params.push(detail.holdReason);
+  }
+  if (sets.length === 0) return;
+  params.push(id);
+  await withConn(async (connection) => {
+    try {
+      await connection.execute(
+        `UPDATE marathon_telegram_outbox SET ${sets.join(", ")} WHERE id = ?`,
+        params,
+      );
+    } catch (error) {
+      if ((error as { errno?: number }).errno === 1054) return;
+      throw error;
+    }
   }, getConnection);
 }
 

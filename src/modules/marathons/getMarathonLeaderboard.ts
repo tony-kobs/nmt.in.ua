@@ -258,7 +258,7 @@ type ListedMarathon = {
 const LIST_SQL = `
   SELECT id, slug, title, description, status, starts_at, ends_at, min_tasks_per_session, kind
   FROM marathons
-  WHERE (kind = 'daily' AND status IN ('active', 'finished'))
+  WHERE (kind = 'daily' AND status IN ('active', 'finished', 'archived'))
      OR (kind = 'leaderboard' AND status = 'active')
 `;
 
@@ -280,7 +280,9 @@ export async function getMarathonLeaderboard(
     const choices = sortBoardChoices(
       listed
         .filter((row) => {
-          if (row.kind === "daily") return row.status === "active" || row.status === "finished";
+          if (row.kind === "daily") {
+            return row.status === "active" || row.status === "finished" || row.status === "archived";
+          }
           return (
             row.kind === "leaderboard" &&
             row.status === "active" &&

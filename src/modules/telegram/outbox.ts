@@ -1,10 +1,12 @@
 import "server-only";
 
 import { optionalTelegramBot } from "@/modules/marathons/daily/botLink";
+import { deliveryErrorText } from "@/modules/marathons/daily/messageTimeline";
 import {
   claimMarathonTelegram,
   enqueueMarathonTelegram,
   finishMarathonTelegram,
+  noteMarathonTelegram,
   postponeMarathonTelegram,
   recordMaterialsDelivered,
 } from "@/modules/marathons/daily/store";
@@ -36,10 +38,12 @@ function readReply(payload: string): TelegramReply | null {
 export async function rememberDeferred(
   replies: TelegramReply[],
   trigger: TelegramSendTrigger = "user",
+  marathonId?: number | null,
 ): Promise<void> {
   if (replies.length === 0) return;
   await enqueueMarathonTelegram(replies.map((reply) => ({
     chatId: reply.chatId,
+    marathonId: marathonId ?? null,
     payload: serializeReply({ ...reply, trigger: reply.trigger ?? trigger }),
   })));
 }
@@ -79,6 +83,8 @@ export async function drainTelegramOutbox(options: {
     holdSystem?: (chatIds: string[]) => Promise<Set<string>>;
     /** Puts a system row back without counting the quiet wait as a failed attempt. */
     postpone?: (id: number, notBefore: Date) => Promise<void>;
+    /** Stores a short failure reason. Tests that inject finish skip the database. */
+    note?: (id: number, errorText: string) => Promise<void>;
   };
 } = {}): Promise<number> {
   const deps = options.deps ?? {};
@@ -92,6 +98,12 @@ export async function drainTelegramOutbox(options: {
     ?? (options.deps?.finish
       ? async (id: number, notBefore: Date) => { await finish(id, "pending", notBefore); }
       : postponeMarathonTelegram);
+  const note = deps.note
+    ?? (options.deps?.finish
+      ? async () => {}
+      : async (id: number, errorText: string) => {
+        await noteMarathonTelegram(id, { errorText, holdReason: null });
+      });
   const holdSystem = deps.holdSystem
     ?? (options.deps
       ? undefined
@@ -137,6 +149,7 @@ export async function drainTelegramOutbox(options: {
       }
       if (!reply) {
         await finish(row.id, "failed", null);
+        await note(row.id, deliveryErrorText({ channel: "telegram", invalidPayload: true }));
         continue;
       }
       const result = await deliver([reply], token, {
@@ -166,6 +179,11 @@ export async function drainTelegramOutbox(options: {
       if (row.attempts >= 5) {
         console.error("marathon telegram outbox gave up", { id: row.id, chatId: row.chatId });
         await finish(row.id, "failed", null);
+        await note(row.id, deliveryErrorText({
+          channel: "telegram",
+          errorCode: result.errorCode,
+          gaveUp: result.errorCode == null,
+        }));
         blockedChats.delete(row.chatId);
         continue;
       }

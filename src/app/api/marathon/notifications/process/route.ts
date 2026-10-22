@@ -1,3 +1,5 @@
+import { processDueAccountDeletions } from "@/modules/admin-profiles/accountDeletion";
+import { ensureAuthSchema } from "@/modules/auth/users";
 import { isMarathonCronAuthorized, runMarathonNotifications } from "@/modules/marathons/daily/notificationsJob";
 import { drainTelegramOutbox } from "@/modules/telegram/outbox";
 
@@ -10,6 +12,11 @@ export async function POST(request: Request): Promise<Response> {
     return new Response(null, { status: 401 });
   }
   const started = Date.now();
+  try {
+    await ensureAuthSchema();
+  } catch (error) {
+    console.error("account deletion schema", error);
+  }
   let result: Awaited<ReturnType<typeof runMarathonNotifications>> | null = null;
   try {
     result = await runMarathonNotifications();
@@ -25,9 +32,22 @@ export async function POST(request: Request): Promise<Response> {
     drainFailed = true;
     console.error("marathon telegram outbox", error);
   }
+  let deletion = { deleted: 0, reminded: 0 };
+  try {
+    const { getConnection } = await import("@/lib/db/mysql");
+    deletion = await processDueAccountDeletions({ getConnection });
+  } catch (error) {
+    console.error("account deletion cron", error);
+  }
   if (!result) return new Response(null, { status: 500 });
   return Response.json(
-    { ...result, telegramQueued: queued, ...(drainFailed ? { outboxFailed: true } : {}) },
+    {
+      ...result,
+      telegramQueued: queued,
+      deletionDeleted: deletion.deleted,
+      deletionReminded: deletion.reminded,
+      ...(drainFailed ? { outboxFailed: true } : {}),
+    },
     { headers: { "cache-control": "no-store" } },
   );
 }

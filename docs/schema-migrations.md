@@ -43,5 +43,6 @@ node scripts/migrate.mjs --check
 | `037_telegram_task_notifications.sql` | журнал задач Telegram |
 | `040_daily_marathon.sql` | повна форма `dailySchema.ts`, включно з прапорцем опису |
 | `045_cabinet_scope_full.sql` | `cabinet_scope = 'full'` для колишніх marathon-кабінетів |
+| `048_account_deletion_grace.sql` | колонки відкладеного видалення на `app_users`. Перед продом — бекап бази |
 
 Два файли з префіксом `044` — різні версії: `044_notification_channels_and_invites.sql` і `044_user_sessions.sql`. Ключ журналу — повне ім’я файлу.

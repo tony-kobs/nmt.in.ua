@@ -99,6 +99,8 @@ function isMarketingPath(pathname: string): boolean {
     pathname.startsWith("/register/") ||
     pathname === "/verify-email" ||
     pathname.startsWith("/verify-email/") ||
+    pathname === "/keep-account" ||
+    pathname.startsWith("/keep-account/") ||
     pathname === "/forgot-password" ||
     pathname.startsWith("/forgot-password/") ||
     pathname === "/reset-password" ||

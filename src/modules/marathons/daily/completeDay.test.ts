@@ -39,6 +39,7 @@ const versions = [
   { version: "044_notification_channels_and_invites.sql" },
   { version: "045_cabinet_scope_full.sql" },
   { version: "046_riddle_bank.sql" },
+  { version: "047_marathon_message_timeline.sql" },
 ];
 
 function harness(options?: { failInsert?: boolean }) {
