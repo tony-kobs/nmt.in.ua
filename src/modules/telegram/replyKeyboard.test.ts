@@ -67,7 +67,7 @@ test("marathon bottom buttons use the same labels as the inline menu", () => {
   assert.equal(keyboard.resize_keyboard, true);
   assert.equal(keyboard.is_persistent, true);
   assert.deepEqual(keyboard.keyboard.flat().map((button) => button.text), [
-    "День", "Топ", "Загальні", "Карта на сайті", "Змінити канал", "🏠 Головне меню",
+    "День", "Топ", "Загальні", "Карта на сайті", "Змінити канал", "❓ Допомога", "🏠 Головне меню",
   ]);
   assert.equal(keyboard.keyboard.flat().some((button) => button.text === "Зупинити сповіщення"), false);
   const closed = marathonReplyKeyboard(undefined, { closed: true });

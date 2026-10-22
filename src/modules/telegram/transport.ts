@@ -2,7 +2,7 @@ import "server-only";
 import type { TelegramReply } from "./taskInteraction";
 
 export type TelegramSendResult = { status: "sent"; messageId: number }
-  | { status: "rejected" | "unknown"; context: { httpStatus?: number; errorCode?: number; errorName?: string; retryAfter?: number; notModified?: true } };
+  | { status: "rejected" | "unknown"; context: { httpStatus?: number; errorCode?: number; errorName?: string; retryAfter?: number; notModified?: true; migrateToChatId?: string } };
 
 function readRetryAfter(body: unknown): number | undefined {
   if (!body || typeof body !== "object") return undefined;
@@ -10,12 +10,23 @@ function readRetryAfter(body: unknown): number | undefined {
   return typeof retryAfter === "number" && Number.isFinite(retryAfter) ? retryAfter : undefined;
 }
 
+/** Group → supergroup. The new id is a number (or a numeric string). The API text stays out of the result. */
+export function readMigrateToChatId(body: unknown): string | undefined {
+  if (!body || typeof body !== "object") return undefined;
+  const raw = (body as { parameters?: { migrate_to_chat_id?: unknown } }).parameters?.migrate_to_chat_id;
+  const value = typeof raw === "number" && Number.isSafeInteger(raw)
+    ? String(raw)
+    : typeof raw === "string" ? raw.trim() : "";
+  return /^-?[1-9]\d{0,18}$/.test(value) ? value : undefined;
+}
+
 function interpret(response: Response, body: unknown): TelegramSendResult {
   if (body && typeof body === "object") {
     const payload = body as { ok?: unknown; error_code?: unknown; description?: unknown; result?: { message_id?: unknown } | boolean };
     const retryAfter = readRetryAfter(body);
+    const migrateToChatId = readMigrateToChatId(body);
     if (payload.ok === false && typeof payload.error_code === "number") {
-      // Only a flag is kept; the API description itself is never returned or logged.
+      // Only flags and the numeric migrate id are kept. The API description is never returned or logged.
       const notModified = payload.error_code === 400 && typeof payload.description === "string"
         && payload.description.includes("message is not modified");
       return {
@@ -25,6 +36,7 @@ function interpret(response: Response, body: unknown): TelegramSendResult {
           errorCode: payload.error_code,
           ...(retryAfter != null ? { retryAfter } : {}),
           ...(notModified ? { notModified: true as const } : {}),
+          ...(migrateToChatId ? { migrateToChatId } : {}),
         },
       };
     }

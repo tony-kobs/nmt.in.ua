@@ -171,6 +171,8 @@ npm run dev
 | `CONTENT_IMPORT_API_KEY` | Bearer для `POST /api/import` |
 | `ADMIN_API_KEY` | Bearer для `POST /api/admin/sessions` |
 | `MAX_BODY_BYTES` | ліміт тіла HTTP на `server.js` (дефолт 8 МіБ) |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` | бот; без пари токен+username канал Telegram вимкнено |
+| `TELEGRAM_SUPPORT_CHAT_ID` | необов’язково, чат команди для звернень; той самий `.env.production` на хості |
 
 Порожній ключ імпорту або адмін-API відхиляє всі такі запити (`401`).
 
