@@ -111,6 +111,8 @@ export type MarathonInput = {
   inviteAudience: InviteAudience;
   /** How many riddles the landing draws from the bank on each visit. */
   landingRiddleCount: number;
+  /** Optional link to the public participant chat. Empty when unset. */
+  publicChatUrl: string;
 };
 
 export function parseMarathonInput(formData: FormData): ParseResult<MarathonInput> {
@@ -136,6 +138,8 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
   const inviteAudience: InviteAudience = isInviteAudience(audienceRaw) ? audienceRaw : "none";
   const riddleCountRaw = readText(formData.get("landingRiddleCount"), 2);
   const landingRiddleCount = riddleCountRaw ? readInt(riddleCountRaw) : 3;
+  const publicChatRaw = readText(formData.get("publicChatUrl"), 500);
+  const publicChatUrl = publicChatRaw ? normalizeCtaUrl(publicChatRaw) : "";
   if (!slug) issue(issues, "slug", "required");
   else if (!isSlug(slug)) issue(issues, "slug", "format");
   if (title.length < 2) issue(issues, "title", "required");
@@ -165,6 +169,7 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
   if (landingRiddleCount == null || landingRiddleCount < 1 || landingRiddleCount > 12) {
     issue(issues, "landingRiddleCount", "range");
   }
+  if (publicChatRaw && !publicChatUrl) issue(issues, "publicChatUrl", "format");
   if (
     issues.length > 0 ||
     !finalCtaUrl ||
@@ -193,6 +198,7 @@ export function parseMarathonInput(formData: FormData): ParseResult<MarathonInpu
       introVideoUrl,
       inviteAudience,
       landingRiddleCount,
+      publicChatUrl: publicChatUrl || "",
     },
   };
 }

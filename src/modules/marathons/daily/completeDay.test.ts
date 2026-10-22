@@ -23,6 +23,7 @@ const marathon: DailyMarathon = {
   introVideoUrl: "",
   inviteAudience: "none",
   landingRiddleCount: 3,
+  publicChatUrl: "",
   status: "active",
 };
 
@@ -40,6 +41,7 @@ const versions = [
   { version: "045_cabinet_scope_full.sql" },
   { version: "046_riddle_bank.sql" },
   { version: "047_marathon_message_timeline.sql" },
+  { version: "051_support_tickets.sql" },
 ];
 
 function harness(options?: { failInsert?: boolean }) {

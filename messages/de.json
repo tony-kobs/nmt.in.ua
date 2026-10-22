@@ -59,7 +59,8 @@
       "assign": "Thementest zuweisen",
       "leaderboard": "Marathon-Rangliste",
       "marathons": "Marathon",
-      "marathon": "Marathon"
+      "marathon": "Marathon",
+      "support": "Anfragen"
     }
   },
   "RecentResults": {
@@ -1066,6 +1067,7 @@
       "passThreshold": "Schwelle, %",
       "finalCtaText": "Button-Text",
       "finalCtaUrl": "Button-Link",
+      "publicChatUrl": "Teilnehmer-Chat",
       "introVideo": "Einführungsvideo",
       "inviteAudience": "Wen benachrichtigen",
       "landingRiddleCount": "Rätsel auf der Seite",
@@ -1128,6 +1130,7 @@
       "daysCount": "Ganze Zahl von 1 bis 14.",
       "passThreshold": "Ganze Zahl von 0 bis 100.",
       "finalCtaUrl": "Pfad mit / oder volle Adresse http:// bzw. https://.",
+      "publicChatUrl": "Optional. Wenn gesetzt, zeigt der Bot den Link in der Hilfe und in der Einführung.",
       "introVideo": "Optional. Ein YouTube- oder Loom-Link. Wird einmal am Anfang gezeigt.",
       "inviteAudience": "Einmal, wenn der Marathon aktiv wird. Ein Entwurf benachrichtigt niemanden. Erneutes Speichern sendet keine zweite Einladung. Die Karte auf der Startseite bleibt für alle sichtbar.",
       "landingRiddleCount": "Wie viele Rätsel die Seite zufällig zeigt. Ganze Zahl von 1 bis 12. Standard ist 3.",
@@ -1141,7 +1144,8 @@
       "slug": "math-5",
       "unlockHour": "09:00",
       "reminderHour": "19:00",
-      "finalCtaUrl": "/"
+      "finalCtaUrl": "/",
+      "publicChatUrl": "https://t.me/"
     },
     "fieldErrors": {
       "form": {
@@ -1184,6 +1188,9 @@
       },
       "finalCtaUrl": {
         "required": "Gib den Button-Link an.",
+        "format": "Der Link muss mit / oder mit http:// bzw. https:// beginnen."
+      },
+      "publicChatUrl": {
         "format": "Der Link muss mit / oder mit http:// bzw. https:// beginnen."
       },
       "order": {
@@ -1264,6 +1271,7 @@
       },
       "labels": {
         "intro_rules": "Regeln",
+        "bot_help_chat": "Teilnehmer-Chat",
         "review_intro": "Text vor der Auswertung",
         "final_summary": "Text der Zusammenfassung",
         "notify_day_open": "Tag geöffnet",
@@ -1301,6 +1309,9 @@
         "bot_open_site": "Button Auf der Website öffnen",
         "bot_to_tasks": "Button Zu den Aufgaben",
         "bot_btn_begin": "Button Start",
+        "bot_btn_support": "Button An das Team schreiben",
+        "bot_support_ask": "Supportanfrage",
+        "bot_support_thanks": "Anfrage angekommen",
         "bot_day_done": "Tag bereits abgegeben",
         "bot_finished": "Marathon beendet",
         "bot_archived": "Marathon im Archiv"
@@ -2188,9 +2199,45 @@
       "title": "Marathons",
       "description": "Mathe-Marathons, Teilnehmer und Trichter verwalten."
     },
+    "supportAdmin": {
+      "title": "Anfragen",
+      "description": "Nachrichten der Teilnehmer aus dem Bot und Antworten in Telegram."
+    },
     "assign": {
       "title": "Thementest zuweisen",
       "description": "Thementests an Schüler mit Frist und Fortschrittsstatus zuweisen."
+    }
+  },
+  "Support": {
+    "kicker": "Admin",
+    "title": "Anfragen",
+    "lead": "Nachrichten aus dem Bot. Die Antwort geht an den Teilnehmer in Telegram.",
+    "filterLabel": "Status der Anfragen",
+    "listTitle": "Liste",
+    "empty": "Keine Anfragen.",
+    "noName": "Teilnehmer",
+    "noMarathon": "Kein Marathon",
+    "day": "Tag {day}",
+    "statusLegend": "Status",
+    "reply": "Antwort",
+    "replyPlaceholder": "Text für den Teilnehmer",
+    "save": "Speichern",
+    "saved": "Gespeichert",
+    "filters": {
+      "all": "Alle",
+      "new": "Neu",
+      "in_progress": "In Arbeit",
+      "closed": "Geschlossen"
+    },
+    "status": {
+      "new": "Neu",
+      "in_progress": "In Arbeit",
+      "closed": "Geschlossen"
+    },
+    "errors": {
+      "invalid": "Speichern fehlgeschlagen. Seite neu laden.",
+      "missing": "Anfrage nicht gefunden.",
+      "send_failed": "Antwort in Telegram nicht gesendet. Der Status blieb unverändert."
     }
   },
   "SettingsPage": {
