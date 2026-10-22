@@ -18,7 +18,7 @@ import type { InlineKeyboard, TelegramReply } from "./taskInteraction";
 import { accountReplyKeyboard, collapsedMenuKeyboard } from "./replyKeyboard";
 import { UNLINK_NOTICE, unlinkTelegramAccount } from "./unlink";
 import { formatKyivDateTime, html, MENU, navRow, NOT_LINKED_TEXT, screen, siteButton, STALE_TEXT } from "./ui";
-import { renderResolved, resolveCopy, type CopyKey } from "@/modules/marathons/daily/copy";
+import { renderResolved, type CopyKey } from "@/modules/marathons/daily/copy";
 import type { MarathonPauseState } from "@/modules/marathons/daily/store";
 
 export type MenuScreen = "home" | "tasks" | "today" | "stats" | "notif" | "acct" | "help" | "stud";
@@ -244,7 +244,7 @@ async function marathonPauseFlow(
   const askingPause = action.mode === "pause";
   return screen(chatId, renderResolved(askingPause ? "bot_pause_ask" : "bot_resume_ask", copy, vars), [
     [{
-      text: resolveCopy(askingPause ? "bot_pause_yes" : "bot_resume_yes", copy).slice(0, 64),
+      text: renderResolved(askingPause ? "bot_pause_yes" : "bot_resume_yes", copy, vars).slice(0, 64),
       callback_data: `p:ok:${askingPause ? "p" : "r"}:${row.marathonId}`,
     }],
     [{ text: "Скасувати", callback_data: MENU.notifications }],
