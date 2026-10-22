@@ -217,6 +217,22 @@ export function currentDayNumber(input: {
   }
 }
 
+/** True the Kyiv day after the last unlock. The last calendar day itself stays playable. */
+export function marathonCalendarClosed(input: {
+  now: Date;
+  startDate: string;
+  unlockHour: string;
+  daysCount: number;
+}): boolean {
+  if (!Number.isInteger(input.daysCount) || input.daysCount < 1) return false;
+  try {
+    const last = dayUnlockAt({ ...input, dayNumber: input.daysCount });
+    return kyivDateIso(input.now) > kyivDateIso(last);
+  } catch {
+    return false;
+  }
+}
+
 export function listDayAccess(input: {
   now: Date;
   startDate: string;

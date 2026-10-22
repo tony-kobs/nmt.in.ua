@@ -27,13 +27,19 @@ test("malformed callback envelopes are ignored without acknowledgement or servic
   }
 });
 
-test("acknowledgement failure stops callback processing", async () => {
-  await assert.rejects(handleTelegramUpdate(callback(`a:${reference}`), {
+test("acknowledgement failure still returns the callback reply", async () => {
+  const calls: string[] = [];
+  const reply = await handleTelegramUpdate(callback(`a:${reference}`), {
     consume: async () => false, referenceSecret: secret,
-    acknowledgeCallback: async () => { throw new Error("ack failed"); },
-    getDetails: async () => { assert.fail("must not read"); },
-    completeTask: async () => { assert.fail("must not complete"); },
-  }), /ack failed/);
+    acknowledgeCallback: async () => { calls.push("ack"); throw new Error("ack failed"); },
+    getDetails: async () => {
+      calls.push("details");
+      return { status: "success", task: { title: "Алгебра", state: "available", expiresAt: null } };
+    },
+    logError: () => { calls.push("log"); },
+  });
+  assert.deepEqual(calls, ["ack", "log", "details"]);
+  assert.match(reply!.text, /Алгебра/);
 });
 
 test("unexpected callback service failure returns a safe reply after acknowledgement", async () => {

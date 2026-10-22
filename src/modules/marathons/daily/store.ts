@@ -835,6 +835,29 @@ export async function findParticipantByChat(
   }, getConnection);
 }
 
+/** Archived course still linked to this chat, when no active or finished course is. */
+export async function findArchivedMarathonByChat(
+  chatId: string,
+  getConnection?: Conn,
+): Promise<{ id: number; title: string; displayName: string } | null> {
+  if (!/^[1-9][0-9]{0,19}$/.test(chatId)) return null;
+  return withConn(async (connection) => {
+    const rows = await connection.query<{ id: number; title: string; display_name: string | null }>(
+      `SELECT m.id, m.title, u.display_name
+       FROM marathon_participants p
+       INNER JOIN marathons m ON m.id = p.marathon_id
+       INNER JOIN app_users u ON u.id = p.user_id
+       WHERE p.telegram_chat_id = ? AND m.kind = 'daily' AND m.status = 'archived'
+       ORDER BY p.joined_at DESC
+       LIMIT 1`,
+      [chatId],
+    );
+    const row = rows[0];
+    if (!row) return null;
+    return { id: Number(row.id), title: row.title, displayName: String(row.display_name ?? "") };
+  }, getConnection);
+}
+
 export async function listChatMarathons(
   chatId: string,
   getConnection?: Conn,
@@ -1972,36 +1995,65 @@ export async function listStudentMarathonShelf(
   }, getConnection);
 }
 
-export async function saveMarathonBotTokens(
-  rows: Array<{ token: string; marathonId: number; userId: number; payload: string }>,
-  getConnection?: Conn,
-): Promise<void> {
-  if (rows.length === 0) return;
-  await withConn(async (connection) => {
-    for (const row of rows) {
-      await connection.execute(
-        `INSERT INTO marathon_bot_tokens (token, marathon_id, user_id, payload)
-         VALUES (?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE payload = VALUES(payload)`,
-        [row.token, row.marathonId, row.userId, row.payload.slice(0, 240)],
-      );
-    }
-  }, getConnection);
-}
-
-export async function readMarathonBotToken(
+/** Reads an answer token and deletes it, so the same button cannot be used again. */
+export async function consumeMarathonBotToken(
   token: string,
   marathonId: number,
   userId: number,
   getConnection?: Conn,
 ): Promise<string | null> {
   return withConn(async (connection) => {
-    const rows = await connection.query<{ payload: string }>(
-      `SELECT payload FROM marathon_bot_tokens
-       WHERE token = ? AND marathon_id = ? AND user_id = ?`,
-      [token, marathonId, userId],
-    );
-    return rows[0]?.payload ?? null;
+    await connection.beginTransaction();
+    try {
+      const rows = await connection.query<{ payload: string }>(
+        `SELECT payload FROM marathon_bot_tokens
+         WHERE token = ? AND marathon_id = ? AND user_id = ?`,
+        [token, marathonId, userId],
+      );
+      await connection.execute(
+        `DELETE FROM marathon_bot_tokens
+         WHERE token = ? AND marathon_id = ? AND user_id = ?`,
+        [token, marathonId, userId],
+      );
+      await connection.commit();
+      return rows[0]?.payload ?? null;
+    } catch (error) {
+      try {
+        await connection.rollback();
+      } catch {}
+      throw error;
+    }
+  }, getConnection);
+}
+
+/** Drops every answer button for this participant, then stores the next task's set. */
+export async function replaceMarathonBotTokens(
+  marathonId: number,
+  userId: number,
+  rows: Array<{ token: string; payload: string }>,
+  getConnection?: Conn,
+): Promise<void> {
+  await withConn(async (connection) => {
+    await connection.beginTransaction();
+    try {
+      await connection.execute(
+        `DELETE FROM marathon_bot_tokens WHERE marathon_id = ? AND user_id = ?`,
+        [marathonId, userId],
+      );
+      for (const row of rows) {
+        await connection.execute(
+          `INSERT INTO marathon_bot_tokens (token, marathon_id, user_id, payload)
+           VALUES (?, ?, ?, ?)`,
+          [row.token, marathonId, userId, row.payload.slice(0, 240)],
+        );
+      }
+      await connection.commit();
+    } catch (error) {
+      try {
+        await connection.rollback();
+      } catch {}
+      throw error;
+    }
   }, getConnection);
 }
 

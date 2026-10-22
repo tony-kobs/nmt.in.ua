@@ -201,8 +201,7 @@ export async function handleTelegramUpdate(
     }
   }
   if (isMarathonCallbackData(callbackData) || isMarathonMenu(update)) {
-    const queryId = callbackQueryId(update);
-    if (queryId && deps.acknowledgeCallback) await deps.acknowledgeCallback(queryId);
+    await acknowledgeQuietly(deps, callbackQueryId(update));
     try {
       const handler = deps.marathon ?? (await import("@/modules/marathons/daily/botGateway")).handleMarathonGateway;
       return packReplies(await handler(update));
@@ -214,7 +213,7 @@ export async function handleTelegramUpdate(
   }
   const menuCallback = parseMenuCallback(update);
   if (menuCallback) {
-    if (deps.acknowledgeCallback) await deps.acknowledgeCallback(menuCallback.queryId!);
+    await acknowledgeQuietly(deps, menuCallback.queryId);
     try {
       return await handleMenuRequest(menuCallback, menuDeps);
     } catch (error) {
@@ -224,7 +223,7 @@ export async function handleTelegramUpdate(
   }
   const callback = parseTaskCallback(update);
   if (callback) {
-    if (deps.acknowledgeCallback) await deps.acknowledgeCallback(callback.queryId);
+    await acknowledgeQuietly(deps, callback.queryId);
     try {
       return await handleTaskCallback(callback, {
         secret: deps.referenceSecret ?? process.env.TELEGRAM_WEBHOOK_SECRET ?? "",
@@ -374,6 +373,18 @@ function callbackDataOf(update: unknown): string | undefined {
   if (!update || typeof update !== "object") return undefined;
   const data = (update as { callback_query?: { data?: unknown } }).callback_query?.data;
   return typeof data === "string" ? data : undefined;
+}
+
+async function acknowledgeQuietly(
+  deps: { acknowledgeCallback?: (queryId: string) => Promise<void>; logError?: (error: unknown) => void },
+  queryId: string | null | undefined,
+): Promise<void> {
+  if (!queryId || !deps.acknowledgeCallback) return;
+  try {
+    await deps.acknowledgeCallback(queryId);
+  } catch (error) {
+    (deps.logError ?? ((value) => console.error("telegram callback acknowledgement failed", value)))(error);
+  }
 }
 
 function callbackQueryId(update: unknown): string | null {

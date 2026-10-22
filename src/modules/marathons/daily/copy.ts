@@ -57,6 +57,10 @@ export const COPY_KEYS = [
   "bot_registered",
   "bot_open_site",
   "bot_to_tasks",
+  "bot_btn_begin",
+  "bot_day_done",
+  "bot_finished",
+  "bot_archived",
 ] as const;
 
 export type CopyKey = (typeof COPY_KEYS)[number];
@@ -69,14 +73,14 @@ export const COPY_GROUPS: Array<{
   { id: "intro", keys: ["intro_rules", "channel_prompt"] },
   {
     id: "day",
-    keys: ["notify_day_open", "review_intro", "bot_locked", "bot_to_tasks", "bot_open_site"],
+    keys: ["notify_day_open", "review_intro", "bot_locked", "bot_to_tasks", "bot_open_site", "bot_day_done"],
   },
   { id: "remind", keys: ["notify_reminder", "notify_tomorrow", "rank_nudge"] },
   {
     id: "rank",
     keys: ["rank_up", "rank_down", "rank_same", "rank_first", "rank_board", "bot_btn_top"],
   },
-  { id: "final", keys: ["final_summary", "notify_final"] },
+  { id: "final", keys: ["final_summary", "notify_final", "bot_finished"] },
   {
     id: "bot",
     keys: [
@@ -95,6 +99,8 @@ export const COPY_GROUPS: Array<{
       "bot_btn_site",
       "bot_btn_telegram",
       "bot_link_ok",
+      "bot_btn_begin",
+      "bot_archived",
     ],
   },
 ];
@@ -120,6 +126,7 @@ const BUTTON_KEYS = new Set<CopyKey>([
   "bot_btn_telegram",
   "bot_open_site",
   "bot_to_tasks",
+  "bot_btn_begin",
 ]);
 
 export const COPY_DEFAULTS: Record<CopyKey, string> = {
@@ -166,6 +173,10 @@ export const COPY_DEFAULTS: Record<CopyKey, string> = {
     "Ви зареєструвалися на марафон «{title}». Старт: {start_date}. Завдання приходитимуть сюди.",
   bot_open_site: "Відкрити на сайті",
   bot_to_tasks: "До завдань",
+  bot_btn_begin: "Почати",
+  bot_day_done: "День {day} ({topic}) вже зданий.\n{link}",
+  bot_finished: "{name}, марафон «{title}» завершено. Таблиця і карта лишаються.\n{link}",
+  bot_archived: "Марафон «{title}» в архіві. Нові дні не надходять.",
 };
 
 export type CopyVars = Partial<Record<CopyPlaceholder, string | number | null>>;
