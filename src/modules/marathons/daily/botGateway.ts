@@ -44,6 +44,7 @@ import {
   visibleBoard,
 } from "./leaderboard";
 import { sendCompletedDayFollowUp, sendRankNotice } from "./notificationsJob";
+import { answerSurvey, openFinalSurvey } from "./surveyStore";
 import {
   completeParticipantDay,
   consumeMarathonBotToken,
@@ -366,6 +367,25 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     const bare = await marathonBareStart(parsed.chatId);
     return bare ? [bare] : null;
   }
+  if (callback.kind === "surveyRate" || callback.kind === "surveyRecommend" || callback.kind === "surveySkip") {
+    const copy = await loadMarathonCopy(linked.marathon.id);
+    const event = callback.kind === "surveyRate"
+      ? { type: "rate" as const, rating: callback.rating }
+      : callback.kind === "surveyRecommend"
+        ? { type: "recommend" as const, yes: callback.yes }
+        : { type: "skip" as const };
+    const prompt = await answerSurvey(linked.marathon.id, linked.participant.userId, event, copy);
+    const text = prompt?.text ?? "Опитування вже завершене.";
+    const several = (await listChatMarathons(parsed.chatId)).length > 1;
+    return sectionReplies(
+      parsed.chatId,
+      [{ text, ...(prompt?.buttons.length ? { buttons: prompt.buttons } : {}) }],
+      await stableKeyboard(linked.marathon.id, copy, {
+        others: several,
+        closed: linked.marathon.status !== "active",
+      }),
+    );
+  }
   if (callback.kind === "list") {
     const rows = await listChatMarathons(parsed.chatId);
     return sectionReplies(parsed.chatId, [{
@@ -594,6 +614,14 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     now,
   });
   if (rankNote) outgoing = [...outgoing, { text: rankNote }];
+  if (presented.completedNow && day && day.dayNumber >= marathon.daysCount) {
+    try {
+      const prompt = await openFinalSurvey(marathon.id, participant.userId, copy);
+      if (prompt) outgoing = [...outgoing, { text: prompt.text, buttons: prompt.buttons }];
+    } catch (error) {
+      console.error("marathon survey open", error);
+    }
+  }
   return withDayEdit(
     sectionReplies(parsed.chatId, outgoing, await stableKeyboard(marathon.id, copy, { others: several, closed })),
     parsed.messageId,

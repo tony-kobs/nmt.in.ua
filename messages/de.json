@@ -987,6 +987,14 @@
     "cardStatDayOf": "{current} von {total}",
     "cardStatNext": "Weiter",
     "cardStatEmpty": "—",
+    "cardSurveyTitle": "Umfrage",
+    "cardSurveyAverage": "Durchschnitt",
+    "cardSurveyRecommend": "Weiterempfehlen",
+    "cardSurveyRecommendValue": "{yes} von {total}",
+    "cardSurveyYes": "Ja",
+    "cardSurveyNo": "Nein",
+    "cardSurveySkipped": "Übersprungen",
+    "cardSurveyMore": "und {count} weitere",
     "addRiddle": "Rätsel hinzufügen",
     "addDay": "Tag hinzufügen",
     "addMaterial": "Material hinzufügen",
@@ -1303,7 +1311,15 @@
         "bot_btn_begin": "Button Start",
         "bot_day_done": "Tag bereits abgegeben",
         "bot_finished": "Marathon beendet",
-        "bot_archived": "Marathon im Archiv"
+        "bot_archived": "Marathon im Archiv",
+        "survey_rating": "Bewertung 1–5",
+        "survey_improve": "Was verbessern",
+        "survey_recommend": "Weiterempfehlen",
+        "survey_thanks": "Danke für die Antworten",
+        "survey_skipped": "Umfrage übersprungen",
+        "survey_skip": "Button Überspringen",
+        "survey_yes": "Button Ja",
+        "survey_no": "Button Nein"
       }
     },
     "status": {

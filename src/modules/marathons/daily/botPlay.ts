@@ -68,7 +68,10 @@ export type BotCallback =
   | { kind: "quizResume" }
   | { kind: "quizReview" }
   | { kind: "quizAnswer"; sessionId: number; mappingId: number; option: number; attempt: 1 | 2 }
-  | { kind: "map" };
+  | { kind: "map" }
+  | { kind: "surveyRate"; rating: 1 | 2 | 3 | 4 | 5 }
+  | { kind: "surveyRecommend"; yes: boolean }
+  | { kind: "surveySkip" };
 
 export type Outgoing = {
   text: string;
@@ -152,6 +155,11 @@ export function parseBotCallback(data: string): BotCallback | null {
   if (data === "mh:top") return { kind: "top" };
   if (data === "mh:all") return { kind: "overall" };
   if (data === "mh:stop") return { kind: "stop" };
+  const surveyRate = /^mh:sv:([1-5])$/.exec(data);
+  if (surveyRate?.[1]) return { kind: "surveyRate", rating: Number(surveyRate[1]) as 1 | 2 | 3 | 4 | 5 };
+  if (data === "mh:sv:y") return { kind: "surveyRecommend", yes: true };
+  if (data === "mh:sv:n") return { kind: "surveyRecommend", yes: false };
+  if (data === "mh:sv:x") return { kind: "surveySkip" };
   if (data === "mh:py") return { kind: "pauseYes" };
   if (data === "mh:pn") return { kind: "menu" };
   if (data === "mh:ch") return { kind: "channels" };

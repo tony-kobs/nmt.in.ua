@@ -40,6 +40,7 @@ const versions = [
   { version: "045_cabinet_scope_full.sql" },
   { version: "046_riddle_bank.sql" },
   { version: "047_marathon_message_timeline.sql" },
+  { version: "052_marathon_survey.sql" },
 ];
 
 function harness(options?: { failInsert?: boolean }) {

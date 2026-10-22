@@ -64,6 +64,14 @@ export const COPY_KEYS = [
   "bot_archived",
   "rank_course",
   "rank_overall",
+  "survey_rating",
+  "survey_improve",
+  "survey_recommend",
+  "survey_thanks",
+  "survey_skipped",
+  "survey_skip",
+  "survey_yes",
+  "survey_no",
 ] as const;
 
 export type CopyKey = (typeof COPY_KEYS)[number];
@@ -83,7 +91,22 @@ export const COPY_GROUPS: Array<{
     id: "rank",
     keys: ["rank_up", "rank_down", "rank_same", "rank_first", "rank_board", "rank_course", "rank_overall", "bot_btn_top"],
   },
-  { id: "final", keys: ["final_summary", "notify_final", "bot_finished"] },
+  {
+    id: "final",
+    keys: [
+      "final_summary",
+      "notify_final",
+      "bot_finished",
+      "survey_rating",
+      "survey_improve",
+      "survey_recommend",
+      "survey_thanks",
+      "survey_skipped",
+      "survey_skip",
+      "survey_yes",
+      "survey_no",
+    ],
+  },
   {
     id: "bot",
     keys: [
@@ -132,6 +155,9 @@ const BUTTON_KEYS = new Set<CopyKey>([
   "bot_open_site",
   "bot_to_tasks",
   "bot_btn_begin",
+  "survey_skip",
+  "survey_yes",
+  "survey_no",
 ]);
 
 export const COPY_DEFAULTS: Record<CopyKey, string> = {
@@ -185,6 +211,14 @@ export const COPY_DEFAULTS: Record<CopyKey, string> = {
   bot_day_done: "День {day} ({topic}) вже зданий.\n{link}",
   bot_finished: "{name}, марафон «{title}» завершено. Таблиця і карта лишаються.\n{link}",
   bot_archived: "Марафон «{title}» в архіві. Нові дні не надходять.",
+  survey_rating: "Оцініть марафон від 1 до 5.",
+  survey_improve: "Що варто покращити?",
+  survey_recommend: "Порадили б марафон знайомим?",
+  survey_thanks: "Дякуємо за відповіді.",
+  survey_skipped: "Добре, опитування пропущено.",
+  survey_skip: "Пропустити",
+  survey_yes: "Так",
+  survey_no: "Ні",
 };
 
 export type CopyVars = Partial<Record<CopyPlaceholder, string | number | null>>;

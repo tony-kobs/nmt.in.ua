@@ -14,6 +14,7 @@ import { loadTelegramConnection } from "./schema";
 import { buildTaskListReply } from "./taskList";
 import { handleMenuRequest, parseMenuCallback, parseMenuCommand, parseMenuData, type MenuDeps } from "./menu";
 import { accountCallbackFromText, attachReplyKeyboard, collapsedMenuKeyboard, expandedMenuKeyboard, MENU_CLOSE_LABEL, MENU_OPEN_LABEL, parsePrivateMenuText } from "./replyKeyboard";
+import { readSurveyNote, type SurveyPrompt } from "@/modules/marathons/daily/survey";
 
 type TelegramMessage = {
   chat?: { id?: number; type?: string };
@@ -85,6 +86,9 @@ export async function handleTelegramUpdate(
     ) => Promise<boolean | { ok: boolean; code?: string }>;
     getProfile?: typeof getTelegramAccountProfile;
     menu?: Omit<MenuDeps, "getProfile" | "getTasks" | "getTodayTasks" | "referenceSecret" | "logError">;
+    survey?: {
+      takeText?: (chatId: string, body: string) => Promise<SurveyPrompt | null>;
+    };
   } = { consume: consumeTelegramLink },
 ): Promise<TelegramReply | null> {
   const menuDeps: MenuDeps = {
@@ -113,6 +117,8 @@ export async function handleTelegramUpdate(
       return { chatId: unlinkRequest.chatId, text: "Не вдалося відв’язати бота. Спробуйте в кабінеті на nmt.in.ua." };
     }
   }
+  const captured = await captureSurvey(update, deps, log);
+  if (captured) return captured;
   async function accountKeyboard(userId: string) {
     try {
       const profile = await (deps.getProfile ?? getTelegramAccountProfile)(userId, {
@@ -409,4 +415,44 @@ function isMarathonMenu(update: unknown): boolean {
   if (!update || typeof update !== "object") return false;
   const text = (update as { message?: { text?: unknown } }).message?.text;
   return typeof text === "string" && /^\/(menu|top|leaderboard)(?:@\w+)?\s*$/.test(text);
+}
+
+async function captureSurvey(
+  update: unknown,
+  deps: {
+    survey?: {
+      takeText?: (chatId: string, body: string) => Promise<SurveyPrompt | null>;
+    };
+  },
+  log: (error: unknown) => void,
+): Promise<TelegramReply | null> {
+  const note = readSurveyNote(update);
+  if (!note || note.navigation) return null;
+  try {
+    let prompt: SurveyPrompt | null = null;
+    if (deps.survey?.takeText) {
+      prompt = await deps.survey.takeText(note.chatId, note.body);
+    } else if (process.env.DB_HOST) {
+      const { takeSurveyText } = await import("@/modules/marathons/daily/surveyStore");
+      prompt = await takeSurveyText(note.chatId, note.body);
+    }
+    if (!prompt) return null;
+    return {
+      chatId: note.chatId,
+      text: prompt.text,
+      ...(prompt.buttons.length
+        ? {
+            replyMarkup: {
+              inline_keyboard: prompt.buttons.map((button) => [{
+                text: button.text,
+                callback_data: button.data,
+              }]),
+            },
+          }
+        : {}),
+    };
+  } catch (error) {
+    log(error);
+    return null;
+  }
 }
