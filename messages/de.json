@@ -2223,6 +2223,7 @@
     "replyPlaceholder": "Text für den Teilnehmer",
     "save": "Speichern",
     "saved": "Gespeichert",
+    "migratedChat": "Telegram hat den Team-Chat nach {chatId} verschoben. Tragen Sie diesen Wert in TELEGRAM_SUPPORT_CHAT_ID in der Umgebungsdatei auf dem Host ein und starten Sie die Seite neu.",
     "filters": {
       "all": "Alle",
       "new": "Neu",

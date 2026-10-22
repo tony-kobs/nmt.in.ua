@@ -338,6 +338,12 @@ export async function migrateDailyMarathon(
       PRIMARY KEY (chat_id),
       CONSTRAINT fk_support_waits_user FOREIGN KEY (user_id) REFERENCES app_users (id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    `CREATE TABLE IF NOT EXISTS support_forward_state (
+      id TINYINT UNSIGNED NOT NULL,
+      migrated_chat_id VARCHAR(32) NOT NULL,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
   ]) {
     try {
       await connection.execute(sql, []);

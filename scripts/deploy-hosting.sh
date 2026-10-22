@@ -214,6 +214,10 @@ find "$RELEASES" -mindepth 1 -maxdepth 1 -type d \
   -exec rm -rf {} + 2>/dev/null || true
 mkdir -p "$STAGE"
 
+# App secrets stay in ENV_STORE. This function copies that file and only
+# rewrites MAX_BODY_BYTES and the site URL lines. TELEGRAM_BOT_TOKEN,
+# TELEGRAM_SUPPORT_CHAT_ID and the other bot variables are not injected here
+# or by the GitHub Actions workflow.
 ensure_env() {
   local dest="$1"
   local src=""

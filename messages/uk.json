@@ -2223,6 +2223,7 @@
     "replyPlaceholder": "Текст для учасника",
     "save": "Зберегти",
     "saved": "Збережено",
+    "migratedChat": "Telegram переніс чат команди на {chatId}. Запишіть це значення в TELEGRAM_SUPPORT_CHAT_ID у файлі оточення на хості і перезапустіть сайт.",
     "filters": {
       "all": "Усі",
       "new": "Нові",

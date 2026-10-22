@@ -8,6 +8,7 @@ import {
   publicChatNotice,
   readPrivateNote,
   readSupportChatId,
+  supportMigrationNotice,
   teamTicketHtml,
 } from "./text";
 
@@ -76,4 +77,12 @@ test("the public chat line is shown only when the marathon has a url", () => {
   assert.equal(parseTicketFilter("closed"), "closed");
   assert.equal(parseTicketFilter("nope"), "all");
   assert.equal(parseTicketFilter(undefined), "all");
+});
+
+test("the admin banner keeps the migrated chat id until the env uses it", () => {
+  assert.equal(supportMigrationNotice(null, undefined), null);
+  assert.equal(supportMigrationNotice("chat", "-1001"), null);
+  assert.equal(supportMigrationNotice("-1009876543210", undefined), "-1009876543210");
+  assert.equal(supportMigrationNotice("-1009876543210", "-2001"), "-1009876543210");
+  assert.equal(supportMigrationNotice("-1009876543210", "-1009876543210"), null);
 });

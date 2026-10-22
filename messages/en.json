@@ -2223,6 +2223,7 @@
     "replyPlaceholder": "Text for the participant",
     "save": "Save",
     "saved": "Saved",
+    "migratedChat": "Telegram moved the team chat to {chatId}. Set TELEGRAM_SUPPORT_CHAT_ID to this value in the host environment file and restart the site.",
     "filters": {
       "all": "All",
       "new": "New",

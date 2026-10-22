@@ -162,6 +162,7 @@ Google-вхід **немає**. На формі лишається TODO: дод�
 | `TELEGRAM_BOT_TOKEN` | Токен бота від BotFather. Без пари з username кнопка «Прив’язати» показує, що бот вимкнено, а cron пропускає канал Telegram. |
 | `TELEGRAM_BOT_USERNAME` | Username бота без `@`. |
 | `TELEGRAM_WEBHOOK_SECRET` | Секрет заголовка `X-Telegram-Bot-Api-Secret-Token` для `POST /api/telegram/webhook`. |
+| `TELEGRAM_SUPPORT_CHAT_ID` | Необов’язково. Id чату команди, куди бот пересилає звернення. Той самий файл, що й `TELEGRAM_BOT_TOKEN`: store `/home/levelhst/nmt.in.ua/.env.production` (деплой копіює його в реліз і нічого не дописує). Локально — `.env.local`. Без змінної тікет лишається в адмінці. |
 
 ### Cron
 
@@ -219,6 +220,8 @@ curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" 
 ## Звернення
 
 «❓ Допомога» є в меню кабінету і в нижньому меню марафону. На екрані допомоги — «Написати команді». Наступне повідомлення (текст або підпис до фото; фото без підпису стає «Фото») пишеться в `support_tickets` зі статусом `new`. Команда отримує його в чат `TELEGRAM_SUPPORT_CHAT_ID`, якщо змінна задана; без неї тікет лишається лише в адмінці. Команди і підписи кнопок меню тікетом не стають.
+
+Якщо звичайна група стала супергрупою, Telegram відповідає `parameters.migrate_to_chat_id`. Бот пише цей id у лог (`support forward migrate_to_chat_id`) і в рядок `support_forward_state`. На `/admin/support` з’являється попередження з новим id. Замініть значення `TELEGRAM_SUPPORT_CHAT_ID` у store-файлі на нього і перезапустіть сайт (або дочекайтесь деплою, який копіює store). Поки змінна вже дорівнює цьому id, попередження не показується. Токен бота і текст звернення в лог не потрапляють.
 
 Адмін відповідає на `/admin/support` (дозвіл `marathon:manage`): список, фільтр статусу (`new` / `in_progress` / `closed`), відповідь іде учасником у той самий бот. Якщо відправка не вдалась, статус не змінюється.
 

@@ -24,15 +24,20 @@ export async function SupportAdmin({
   filter,
   saved,
   error,
+  migratedChatId,
 }: {
   tickets: SupportTicket[];
   filter: TicketStatus | "all";
   saved: boolean;
   error: string | null;
+  migratedChatId: string | null;
 }) {
   const t = await getTranslations("Support");
   return (
     <PageFrame kicker={t("kicker")} title={t("title")} lead={t("lead")}>
+      {migratedChatId ? (
+        <p className={css.alert} role="alert">{t("migratedChat", { chatId: migratedChatId })}</p>
+      ) : null}
       {saved ? <p className={css.note} role="status">{t("saved")}</p> : null}
       {error ? (
         <p className={css.alert} role="alert">

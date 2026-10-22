@@ -5,10 +5,11 @@ import { currentDayNumber } from "@/modules/marathons/daily/calendar";
 import { isCopyKey, resolveCopy, type CopyKey } from "@/modules/marathons/daily/copy";
 import { resolvePublicChatUrl } from "@/modules/marathons/daily/publicChat";
 import { optionalTelegramBot } from "@/modules/marathons/daily/botLink";
-import { sendTelegramMessage } from "@/modules/telegram/transport";
+import { sendTelegramMessage, type TelegramSendResult } from "@/modules/telegram/transport";
 import {
   publicChatNotice,
   readSupportChatId,
+  supportMigrationNotice,
   teamTicketHtml,
   type TicketStatus,
 } from "./text";
@@ -177,14 +178,46 @@ export async function cancelSupportWait(chatId: string): Promise<void> {
   }
 }
 
-async function forwardTicket(input: {
-  id: number;
-  displayName: string;
-  marathonTitle: string | null;
-  dayNumber: number | null;
-  chatId: string;
-  body: string;
-}): Promise<void> {
+const SAVE_MIGRATED_CHAT = `INSERT INTO support_forward_state (id, migrated_chat_id)
+  VALUES (1, ?)
+  ON DUPLICATE KEY UPDATE migrated_chat_id = VALUES(migrated_chat_id)`;
+
+function missingRelation(error: unknown): boolean {
+  const errno = (error as { errno?: number }).errno;
+  return errno === 1146 || errno === 1054;
+}
+
+/** Log a group→supergroup id and keep it for the admin banner. The token and the ticket body stay out of the log. */
+export async function reportSupportForward(
+  result: TelegramSendResult,
+  connection: Pick<SqlConnection, "execute">,
+  log: (...args: unknown[]) => void = console.error,
+): Promise<void> {
+  if (result.status === "sent") return;
+  const chatId = result.context.migrateToChatId;
+  if (chatId && readSupportChatId(chatId)) {
+    log("support forward migrate_to_chat_id", chatId);
+    try {
+      await connection.execute(SAVE_MIGRATED_CHAT, [chatId]);
+    } catch (error) {
+      if (!missingRelation(error)) log("support forward notice", error);
+    }
+    return;
+  }
+  log("support forward", result.status);
+}
+
+async function forwardTicket(
+  connection: SqlConnection,
+  input: {
+    id: number;
+    displayName: string;
+    marathonTitle: string | null;
+    dayNumber: number | null;
+    chatId: string;
+    body: string;
+  },
+): Promise<void> {
   const team = readSupportChatId(process.env.TELEGRAM_SUPPORT_CHAT_ID);
   const bot = optionalTelegramBot();
   if (!team || !bot) return;
@@ -195,7 +228,7 @@ async function forwardTicket(input: {
       parseMode: "HTML",
       disablePreview: true,
     }, bot.token);
-    if (result.status !== "sent") console.error("support forward", result.status);
+    await reportSupportForward(result, connection);
   } catch (error) {
     console.error("support forward", error);
   }
@@ -233,7 +266,7 @@ export async function acceptSupportMessage(input: {
         [wait.user_id, input.chatId, wait.marathon_id, day, input.body],
       );
       await connection.execute(`DELETE FROM support_waits WHERE chat_id = ?`, [input.chatId]);
-      await forwardTicket({
+      await forwardTicket(connection, {
         id: inserted.insertId,
         displayName: String(wait.display_name ?? ""),
         marathonTitle: wait.title,
@@ -269,6 +302,22 @@ function stamp(value: unknown): string {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString();
   const date = new Date(String(value ?? ""));
   return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+}
+
+export async function loadSupportMigrationNotice(): Promise<string | null> {
+  if (!process.env.DB_HOST) return null;
+  try {
+    return await withConn(async (connection) => {
+      const rows = await connection.query<{ migrated_chat_id: string }>(
+        `SELECT migrated_chat_id FROM support_forward_state WHERE id = 1 LIMIT 1`,
+        [],
+      );
+      return supportMigrationNotice(rows[0]?.migrated_chat_id, process.env.TELEGRAM_SUPPORT_CHAT_ID);
+    });
+  } catch (error) {
+    if (!missingRelation(error)) console.error("support migration notice", error);
+    return null;
+  }
 }
 
 export async function listSupportTickets(status: TicketStatus | "all"): Promise<SupportTicket[]> {

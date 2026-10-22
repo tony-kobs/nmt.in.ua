@@ -4,7 +4,7 @@ import { SupportAdmin } from "@/components/support/SupportAdmin";
 import { createPageMetadata } from "@/constants/seo";
 import { requireUser } from "@/modules/auth/getCurrentUser";
 import { hasPermission } from "@/modules/auth/permissions";
-import { listSupportTickets } from "@/modules/support/store";
+import { listSupportTickets, loadSupportMigrationNotice } from "@/modules/support/store";
 import { parseTicketFilter } from "@/modules/support/text";
 
 export const dynamic = "force-dynamic";
@@ -32,13 +32,17 @@ export default async function AdminSupportPage({
   if (!hasPermission(user.role, "marathon:manage")) redirect("/");
   const query = await searchParams;
   const filter = parseTicketFilter(first(query.status));
-  const tickets = await listSupportTickets(filter);
+  const [tickets, migratedChatId] = await Promise.all([
+    listSupportTickets(filter),
+    loadSupportMigrationNotice(),
+  ]);
   return (
     <SupportAdmin
       tickets={tickets}
       filter={filter}
       saved={first(query.saved) === "1"}
       error={first(query.error) ?? null}
+      migratedChatId={migratedChatId}
     />
   );
 }

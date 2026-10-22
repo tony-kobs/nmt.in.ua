@@ -87,6 +87,17 @@ export function readSupportChatId(raw: string | undefined): string | null {
   return value;
 }
 
+/** Show the id Telegram returned until the env already uses that same chat. */
+export function supportMigrationNotice(
+  stored: string | null | undefined,
+  configured: string | null | undefined,
+): string | null {
+  const next = readSupportChatId(stored ?? undefined);
+  if (!next) return null;
+  if (readSupportChatId(configured ?? undefined) === next) return null;
+  return next;
+}
+
 export const TICKET_STATUSES = ["new", "in_progress", "closed"] as const;
 export type TicketStatus = (typeof TICKET_STATUSES)[number];
 
