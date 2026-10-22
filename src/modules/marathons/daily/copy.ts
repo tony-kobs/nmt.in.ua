@@ -41,6 +41,7 @@ export const COPY_KEYS = [
   "bot_menu",
   "bot_btn_today",
   "bot_btn_top",
+  "bot_btn_overall",
   "bot_btn_map",
   "bot_btn_channel",
   "bot_btn_stop",
@@ -61,6 +62,8 @@ export const COPY_KEYS = [
   "bot_day_done",
   "bot_finished",
   "bot_archived",
+  "rank_course",
+  "rank_overall",
 ] as const;
 
 export type CopyKey = (typeof COPY_KEYS)[number];
@@ -78,7 +81,7 @@ export const COPY_GROUPS: Array<{
   { id: "remind", keys: ["notify_reminder", "notify_tomorrow", "rank_nudge"] },
   {
     id: "rank",
-    keys: ["rank_up", "rank_down", "rank_same", "rank_first", "rank_board", "bot_btn_top"],
+    keys: ["rank_up", "rank_down", "rank_same", "rank_first", "rank_board", "rank_course", "rank_overall", "bot_btn_top"],
   },
   { id: "final", keys: ["final_summary", "notify_final", "bot_finished"] },
   {
@@ -87,6 +90,7 @@ export const COPY_GROUPS: Array<{
       "bot_start",
       "bot_menu",
       "bot_btn_today",
+      "bot_btn_overall",
       "bot_btn_map",
       "bot_btn_channel",
       "bot_btn_stop",
@@ -117,6 +121,7 @@ export const TELEGRAM_BUTTON_LIMIT = 64;
 const BUTTON_KEYS = new Set<CopyKey>([
   "bot_btn_today",
   "bot_btn_top",
+  "bot_btn_overall",
   "bot_btn_map",
   "bot_btn_channel",
   "bot_btn_stop",
@@ -148,6 +153,8 @@ export const COPY_DEFAULTS: Record<CopyKey, string> = {
   rank_nudge:
     "Зараз місце {place}. Пропущений день ще можна здати.\n{link}",
   rank_board: "Таблиця марафону",
+  rank_course: "Цей марафон: {title}",
+  rank_overall: "Загальні — усі денні марафони",
   channel_prompt:
     "{name}, лист і Telegram вмикаються окремо. Повідомлення в Telegram ідуть, коли бот підключено.",
   bot_start:
@@ -155,6 +162,7 @@ export const COPY_DEFAULTS: Record<CopyKey, string> = {
   bot_menu: "Меню марафону. Оберіть дію.",
   bot_btn_today: "Сьогодні",
   bot_btn_top: "Таблиця",
+  bot_btn_overall: "Загальні",
   bot_btn_map: "Карта на сайті",
   bot_btn_channel: "Змінити канал",
   bot_btn_stop: "Зупинити сповіщення",

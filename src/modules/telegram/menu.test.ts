@@ -208,6 +208,7 @@ test("notification preferences are scoped to the account, validated and atomical
   assert.deepEqual(parseMenuData("p:mc:r:4"), { kind: "marathonConfirm", mode: "resume", marathonId: 4 });
   assert.deepEqual(parseMenuData("p:ok:p:4"), { kind: "marathonApply", mode: "pause", marathonId: 4 });
   assert.deepEqual(parseMenuData("p:ok:r:4"), { kind: "marathonApply", mode: "resume", marathonId: 4 });
+  assert.deepEqual(parseMenuData("p:hs:7"), { kind: "quietHour", edge: "start", hour: 7 });
   assert.deepEqual(parseMenuData("p:q:3"), { kind: "quietSet", preset: 3 });
   assert.deepEqual(parseMenuData("p:q:4"), { kind: "stale" });
   assert.deepEqual(parseMenuData("p:t:new"), { kind: "toggle", key: "new" });
@@ -275,8 +276,16 @@ test("quiet hours handle windows across midnight and same-day windows", () => {
   assert.equal(shouldHoldForQuietHours(overnight, 8, "system"), false);
   assert.equal(shouldHoldForQuietHours(undefined, 23, "system"), false);
   assert.equal(quietPresetIndex({ quietStart: 23, quietEnd: 7 }), 2);
-  assert.equal(quietPresetIndex({ quietStart: 5, quietEnd: 6 }), 0);
+  assert.equal(quietPresetIndex({ quietStart: null, quietEnd: null }), 0);
+  assert.equal(quietPresetIndex({ quietStart: 5, quietEnd: 6 }), -1);
+  assert.equal(quietPresetIndex({ quietStart: 5, quietEnd: null }), -1);
   assert.equal(formatQuietHours({ quietStart: 21, quietEnd: 9 }), "21:00–09:00");
+  assert.equal(formatQuietHours({ quietStart: 5, quietEnd: null }), "з 05:00");
+  assert.deepEqual(parseMenuData("p:qs"), { kind: "quietStart" });
+  assert.deepEqual(parseMenuData("p:qe"), { kind: "quietEnd" });
+  assert.deepEqual(parseMenuData("p:hs:5"), { kind: "quietHour", edge: "start", hour: 5 });
+  assert.deepEqual(parseMenuData("p:he:23"), { kind: "quietHour", edge: "end", hour: 23 });
+  assert.deepEqual(parseMenuData("p:hs:24"), { kind: "stale" });
 });
 
 test("menu commands parse only private messages from the chat owner", () => {

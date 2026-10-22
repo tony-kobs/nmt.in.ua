@@ -52,6 +52,7 @@ export type BotCallback =
   | { kind: "pick"; marathonId: number }
   | { kind: "today" }
   | { kind: "top" }
+  | { kind: "overall" }
   | { kind: "stop" }
   | { kind: "pauseYes" }
   | { kind: "channels" }
@@ -149,6 +150,7 @@ export function parseBotCallback(data: string): BotCallback | null {
   if (data === "mh:map") return { kind: "map" };
   if (data === "mh:today") return { kind: "today" };
   if (data === "mh:top") return { kind: "top" };
+  if (data === "mh:all") return { kind: "overall" };
   if (data === "mh:stop") return { kind: "stop" };
   if (data === "mh:py") return { kind: "pauseYes" };
   if (data === "mh:pn") return { kind: "menu" };
@@ -307,13 +309,47 @@ export function marathonReplyKeyboard(
   is_persistent: true;
 } {
   const rows: { text: string }[][] = [];
-  if (options?.closed) rows.push([{ text: buttonLabel(copy, "bot_btn_top") }]);
-  else rows.push([{ text: buttonLabel(copy, "bot_btn_today") }, { text: buttonLabel(copy, "bot_btn_top") }]);
+  if (options?.closed) {
+    rows.push([
+      { text: buttonLabel(copy, "bot_btn_top") },
+      { text: buttonLabel(copy, "bot_btn_overall") },
+    ]);
+  } else {
+    rows.push([{ text: buttonLabel(copy, "bot_btn_today") }, { text: buttonLabel(copy, "bot_btn_top") }]);
+    rows.push([{ text: buttonLabel(copy, "bot_btn_overall") }]);
+  }
   rows.push([{ text: buttonLabel(copy, "bot_btn_map") }]);
   rows.push([{ text: buttonLabel(copy, "bot_btn_channel") }]);
   if (options?.others) rows.push([{ text: MARATHON_OTHERS_LABEL }]);
   rows.push([{ text: MAIN_MENU_LABEL }]);
   return { keyboard: rows, resize_keyboard: true, is_persistent: true };
+}
+
+const BUTTON_BINDINGS: Array<{ key: CopyKey; data: string }> = [
+  { key: "bot_btn_today", data: "mh:today" },
+  { key: "bot_btn_top", data: "mh:top" },
+  { key: "bot_btn_overall", data: "mh:all" },
+  { key: "bot_btn_map", data: "mh:map" },
+  { key: "bot_btn_channel", data: "mh:ch" },
+  { key: "bot_btn_stop", data: "mh:stop" },
+  { key: "bot_btn_begin", data: "mh:today" },
+];
+
+/** Current label and the shipped default, so a renamed button still matches an old keyboard. */
+export function marathonButtonSnapshots(
+  copy: Partial<Record<CopyKey, string>> | undefined,
+): Array<{ data: string; label: string }> {
+  const seen = new Set<string>();
+  const rows: Array<{ data: string; label: string }> = [];
+  for (const binding of BUTTON_BINDINGS) {
+    for (const label of [buttonLabel(copy, binding.key), buttonLabel(undefined, binding.key)]) {
+      const key = `${binding.data}\n${label}`;
+      if (!label || seen.has(key)) continue;
+      seen.add(key);
+      rows.push({ data: binding.data, label });
+    }
+  }
+  return rows;
 }
 
 /** Label of a marathon bottom button → the same callback the inline button uses. */
@@ -323,18 +359,15 @@ export function marathonCallbackFromText(
 ): string | null {
   const trimmed = text.trim();
   if (!trimmed) return null;
-  const rows = [
-    { text: buttonLabel(copy, "bot_btn_today"), data: "mh:today" },
-    { text: buttonLabel(copy, "bot_btn_top"), data: "mh:top" },
-    { text: buttonLabel(copy, "bot_btn_map"), data: "mh:map" },
-    { text: buttonLabel(copy, "bot_btn_channel"), data: "mh:ch" },
-    { text: buttonLabel(copy, "bot_btn_stop"), data: "mh:stop" },
-    { text: buttonLabel(undefined, "bot_btn_stop"), data: "mh:stop" },
-    { text: MARATHON_OTHERS_LABEL, data: "mh:list" },
-    { text: "⬅️ Назад", data: "mh:menu" },
-    { text: MAIN_MENU_LABEL, data: MENU.home },
-  ];
-  return rows.find((button) => button.text.trim() === trimmed)?.data ?? null;
+  if (trimmed === MARATHON_OTHERS_LABEL) return "mh:list";
+  if (trimmed === "⬅️ Назад") return "mh:menu";
+  if (trimmed === MAIN_MENU_LABEL) return MENU.home;
+  for (const binding of BUTTON_BINDINGS) {
+    if (trimmed === buttonLabel(copy, binding.key) || trimmed === buttonLabel(undefined, binding.key)) {
+      return binding.data;
+    }
+  }
+  return null;
 }
 
 const QUIZ_KEYBOARD_LABELS = [
