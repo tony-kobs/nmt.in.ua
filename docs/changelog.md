@@ -3,6 +3,17 @@
 Опис pull request — єдине місце, де це пишуть. Після мерджу в `dev` звідси оновлюється блок «Останні зміни» в [гіді](./nmt-in-ua-onboarding-dev.md). Рядки для учня і викладача збираються в новини, коли реліз потрапляє в `main`. Посилання на скрінкаст з’являється лише після галочки «схвалено показувати».
 
 <!-- changelog:entries -->
+### 2026-10-22 — fix: формули Telegram-бота звичайним текстом (#240)
+
+- Для команди: Бот показує формули звичайним текстом: умова, варіанти, матеріали, пояснення, розбір і підпис кнопки (до 64 символів). Дроби, степені й корені більше не приходять сирим LaTeX. Формула з `\begin` лишається фото. Сайт і KaTeX без змін. Міграції немає. <div><a href="https://cursor.com/agents/bc-76f4ab04-06a8-55e4-992f-52d53781d670?cursor_ref=pr_footer&cursor_cta=open_in_web"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/assets/images/open-in-web-dark.png"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/assets/images/open-in-web-light.png"><img alt="Open in Web" width="114" height="28" src="https://cursor.com/assets/images/open-in-web-dark.png"></picture></a>&nbsp;<a href="https://cursor.com/background-agent?bcId=bc-76f4ab04-06a8-55e4-992f-52d53781d670&cursor_ref=pr_footer&cursor_cta=open_in_cursor"><picture><source media="(prefers-color-scheme: dark)" srcset="https://cursor.com/assets/images/open-in-cursor-dark.png"><source media="(prefers-color-scheme: light)" srcset="https://cursor.com/assets/images/open-in-cursor-light.png"><img alt="Open in Cursor" width="131" height="28" src="https://cursor.com/assets/images/open-in-cursor-dark.png"></picture></a>&nbsp;</div>
+- Для людей: —
+- Скрінкаст: не потрібен
+- Запис: —
+- Схвалено: ні
+- Автор: groteskzp
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/240
+<!-- released: no -->
+
 ### 2026-10-22 — fix: ім’я і позначка на екрані каналу бота (#238)
 
 - Для команди: Екран «Змінити канал» (`mh:ch`) підставляє `{name}` у `channel_prompt`. Увімкнений лист і Telegram позначені «✓» на кнопках («✓ На сайті», «✓ В Telegram»); обидва можуть лишатися увімкненими. Після вибору бот підтверджує позначений канал і показує кнопки з оновленими позначками. Інші тексти бота теж ідуть через `renderResolved`, тож відомий плейсхолдер не лишається сирим. Тест рендерить кожен шаблон зі зразком і проходить екрани бота. Міграції немає. У гілку змерджено `origin/dev` зі зверненнями (#235, `cee88eb`): тікети, `051_support_tickets.sql` і екран каналу лишаються разом. Перевірки після злиття: `npm test` 1457 pass / 0 fail / 3 skipped, `npx tsc --noEmit`, eslint по змінених файлах, `npm run build` (Next 16.3.3). Адмінку `/admin/support` у браузері не відкривали.
