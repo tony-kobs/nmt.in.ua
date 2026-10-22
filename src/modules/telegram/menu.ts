@@ -18,7 +18,7 @@ import type { InlineKeyboard, TelegramReply } from "./taskInteraction";
 import { accountReplyKeyboard, collapsedMenuKeyboard } from "./replyKeyboard";
 import { UNLINK_NOTICE, unlinkTelegramAccount } from "./unlink";
 import { formatKyivDateTime, html, MENU, navRow, NOT_LINKED_TEXT, screen, siteButton, STALE_TEXT } from "./ui";
-import { renderResolved, resolveCopy, type CopyKey } from "@/modules/marathons/daily/copy";
+import { renderResolved, type CopyKey } from "@/modules/marathons/daily/copy";
 import type { MarathonPauseState } from "@/modules/marathons/daily/store";
 
 export type MenuScreen = "home" | "tasks" | "today" | "stats" | "notif" | "acct" | "help" | "stud";
@@ -33,6 +33,7 @@ export type MenuAction =
   | { kind: "marathonConfirm"; mode: "pause" | "resume"; marathonId: number }
   | { kind: "marathonApply"; mode: "pause" | "resume"; marathonId: number }
   | { kind: "unlink" }
+  | { kind: "support" }
   | { kind: "stale" };
 export type MenuRequest = { chatId: string; userId: string; queryId?: string; messageId?: number; action: MenuAction };
 
@@ -46,6 +47,8 @@ export type MenuDeps = TaskListDeps & {
   listMarathonPauses?: (userId: number) => Promise<MarathonPauseState[]>;
   setMarathonPaused?: (marathonId: number, userId: number, paused: boolean) => Promise<boolean>;
   marathonPauseCopy?: (marathonId: number) => Promise<Partial<Record<CopyKey, string>>>;
+  loadSupportHelp?: (chatId: string, userId: number) => Promise<{ button: string; chatLine: string | null }>;
+  armSupport?: (chatId: string, userId: number) => Promise<{ ok: true; ask: string } | { ok: false }>;
 };
 
 const SCREENS: Record<string, MenuScreen> = {
@@ -72,6 +75,7 @@ export function parseMenuCallback(update: unknown): MenuRequest | null {
 export function parseMenuData(data: string): MenuAction {
   if (data.length > 64) return { kind: "stale" };
   if (data === "m:unlink") return { kind: "unlink" };
+  if (data === "m:support") return { kind: "support" };
   const screenMatch = /^m:([a-z]{2,8})$/.exec(data);
   if (screenMatch && Object.prototype.hasOwnProperty.call(SCREENS, screenMatch[1])) return { kind: "screen", screen: SCREENS[screenMatch[1]] };
   const toggle = /^p:t:([a-z]{2,4})$/.exec(data);
@@ -244,7 +248,7 @@ async function marathonPauseFlow(
   const askingPause = action.mode === "pause";
   return screen(chatId, renderResolved(askingPause ? "bot_pause_ask" : "bot_resume_ask", copy, vars), [
     [{
-      text: resolveCopy(askingPause ? "bot_pause_yes" : "bot_resume_yes", copy).slice(0, 64),
+      text: renderResolved(askingPause ? "bot_pause_yes" : "bot_resume_yes", copy, vars).slice(0, 64),
       callback_data: `p:ok:${askingPause ? "p" : "r"}:${row.marathonId}`,
     }],
     [{ text: "Скасувати", callback_data: MENU.notifications }],
@@ -337,6 +341,11 @@ async function renderMenu(request: MenuRequest, deps: MenuDeps): Promise<Telegra
     try { return await work(connection); } finally { connection.release(); }
   };
   try {
+    if (action.kind === "support") {
+      const armed = await (deps.armSupport ?? armSupportWait)(chatId, profile.userId);
+      if (!armed.ok) return screen(chatId, "Не вдалося відкрити звернення. Спробуйте пізніше.", [navRow()], messageId);
+      return screen(chatId, html(armed.ask), [navRow()], messageId);
+    }
     if (action.kind === "marathonConfirm" || action.kind === "marathonApply") {
       return marathonPauseFlow(chatId, profile, action, deps, messageId);
     }
@@ -407,8 +416,15 @@ async function renderMenu(request: MenuRequest, deps: MenuDeps): Promise<Telegra
           navRow(),
         ], messageId);
       }
-      case "help":
-        return screen(chatId, HELP_TEXT, [navRow()], messageId);
+      case "help": {
+        const extra = await (deps.loadSupportHelp ?? loadSupportHelp)(chatId, profile.userId);
+        const chat = extra.chatLine ? `\n\n${html(extra.chatLine)}` : "";
+        const label = Array.from(extra.button.trim() || "Написати команді").slice(0, 64).join("");
+        return screen(chatId, `${HELP_TEXT}${chat}`, [
+          [{ text: label, callback_data: "m:support" }],
+          navRow(),
+        ], messageId);
+      }
       case "stud": {
         if (profile.role !== "teacher") return screen(chatId, "Цей розділ доступний лише вчителям.", [navRow()], messageId);
         const now = (deps.nowSec ?? nowUnixSec)();
@@ -421,4 +437,14 @@ async function renderMenu(request: MenuRequest, deps: MenuDeps): Promise<Telegra
     log(error);
     return screen(chatId, "Не вдалося виконати дію. Спробуйте пізніше.", [navRow()]);
   }
+}
+
+async function loadSupportHelp(chatId: string, userId: number) {
+  const { loadSupportHelp: load } = await import("@/modules/support/store");
+  return load(chatId, userId);
+}
+
+async function armSupportWait(chatId: string, userId: number) {
+  const { armSupportWait: arm } = await import("@/modules/support/store");
+  return arm(chatId, userId);
 }

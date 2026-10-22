@@ -15,5 +15,6 @@ test("only the landing and join form are public", () => {
 test("admin marathon routes are the manage surface", () => {
   assert.equal(isMarathonManagePath("/admin/marathons"), true);
   assert.equal(isMarathonManagePath("/admin/marathons/4"), true);
+  assert.equal(isMarathonManagePath("/admin/support"), true);
   assert.equal(isMarathonManagePath("/marathon/math-5"), false);
 });
