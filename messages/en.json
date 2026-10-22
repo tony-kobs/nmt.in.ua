@@ -1130,7 +1130,7 @@
       "daysCount": "An integer from 1 to 14.",
       "passThreshold": "An integer from 0 to 100.",
       "finalCtaUrl": "A path starting with / or a full http:// or https:// URL.",
-      "publicChatUrl": "Optional. When set, the bot shows the link in Help and in the intro.",
+      "publicChatUrl": "Optional. When set, the bot shows the link in Help and in the intro. For onemath an empty field means https://t.me/nmt_onemath.",
       "introVideo": "Optional. A YouTube or Loom link. Shown once at the start.",
       "inviteAudience": "Sent once, when the marathon becomes active. A draft notifies nobody. Saving again does not send another invitation. The home card stays visible to everyone.",
       "landingRiddleCount": "How many riddles to draw at random on the landing page. An integer from 1 to 12. Default is 3.",

@@ -2,6 +2,7 @@ import type { SqlConnection } from "@/lib/db/mysql";
 import { applyChannelPreferencesSchema } from "@/modules/notifications/channelSchema";
 import { createUserNotificationsTable } from "@/modules/notifications/schema";
 import { backfillTelegramLinks } from "@/modules/telegram/linkSync";
+import { ONEMATH_PUBLIC_CHAT } from "./daily/publicChat";
 
 const CHILD_TABLES = [
   `CREATE TABLE IF NOT EXISTS marathon_riddles (
@@ -248,6 +249,12 @@ export async function migrateDailyMarathon(
         await addColumn(connection, "marathons", name, definition);
       }
     }
+    await connection.execute(
+      `UPDATE marathons
+       SET public_chat_url = ?
+       WHERE slug = ? AND (public_chat_url IS NULL OR public_chat_url = '')`,
+      [ONEMATH_PUBLIC_CHAT.url, ONEMATH_PUBLIC_CHAT.slug],
+    );
     const statusRows = await connection.query<{
       COLUMN_TYPE?: string;
       column_type?: string;

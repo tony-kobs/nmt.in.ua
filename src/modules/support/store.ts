@@ -3,6 +3,7 @@ import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { currentDayNumber } from "@/modules/marathons/daily/calendar";
 import { isCopyKey, resolveCopy, type CopyKey } from "@/modules/marathons/daily/copy";
+import { resolvePublicChatUrl } from "@/modules/marathons/daily/publicChat";
 import { optionalTelegramBot } from "@/modules/marathons/daily/botLink";
 import { sendTelegramMessage } from "@/modules/telegram/transport";
 import {
@@ -35,6 +36,7 @@ async function withConn<T>(
 
 type CourseRow = {
   id: number;
+  slug: string;
   title: string;
   start_date: unknown;
   unlock_hour: string;
@@ -49,7 +51,7 @@ async function selectedCourse(
 ): Promise<CourseRow | null> {
   if (!/^[1-9]\d{0,19}$/.test(chatId)) return null;
   const rows = await connection.query<CourseRow>(
-    `SELECT m.id, m.title, m.start_date, m.unlock_hour, m.days_count, m.public_chat_url
+    `SELECT m.id, m.slug, m.title, m.start_date, m.unlock_hour, m.days_count, m.public_chat_url
      FROM marathon_participants p
      INNER JOIN marathons m ON m.id = p.marathon_id
      WHERE p.telegram_chat_id = ? AND p.user_id = ? AND m.kind = 'daily'
@@ -103,7 +105,13 @@ export async function loadSupportHelp(
       const copy = await copyFor(connection, course?.id ?? null);
       const button = resolveCopy("bot_btn_support", copy).trim().slice(0, 64)
         || fallback.button;
-      return { button, chatLine: publicChatNotice(course?.public_chat_url, copy) };
+      return {
+        button,
+        chatLine: publicChatNotice(
+          course ? resolvePublicChatUrl(course.slug, course.public_chat_url) : "",
+          copy,
+        ),
+      };
     });
   } catch (error) {
     console.error("support help", error);

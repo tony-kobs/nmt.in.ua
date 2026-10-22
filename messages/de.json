@@ -1130,7 +1130,7 @@
       "daysCount": "Ganze Zahl von 1 bis 14.",
       "passThreshold": "Ganze Zahl von 0 bis 100.",
       "finalCtaUrl": "Pfad mit / oder volle Adresse http:// bzw. https://.",
-      "publicChatUrl": "Optional. Wenn gesetzt, zeigt der Bot den Link in der Hilfe und in der Einführung.",
+      "publicChatUrl": "Optional. Wenn gesetzt, zeigt der Bot den Link in der Hilfe und in der Einführung. Bei onemath bedeutet ein leeres Feld https://t.me/nmt_onemath.",
       "introVideo": "Optional. Ein YouTube- oder Loom-Link. Wird einmal am Anfang gezeigt.",
       "inviteAudience": "Einmal, wenn der Marathon aktiv wird. Ein Entwurf benachrichtigt niemanden. Erneutes Speichern sendet keine zweite Einladung. Die Karte auf der Startseite bleibt für alle sichtbar.",
       "landingRiddleCount": "Wie viele Rätsel die Seite zufällig zeigt. Ganze Zahl von 1 bis 12. Standard ist 3.",

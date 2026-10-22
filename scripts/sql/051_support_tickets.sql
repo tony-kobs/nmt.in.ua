@@ -4,6 +4,12 @@
 ALTER TABLE marathons
   ADD COLUMN public_chat_url VARCHAR(500) NULL AFTER landing_riddle_count;
 
+-- Launch course. A value the admin already saved is left alone.
+UPDATE marathons
+SET public_chat_url = 'https://t.me/nmt_onemath'
+WHERE slug = 'onemath'
+  AND (public_chat_url IS NULL OR public_chat_url = '');
+
 CREATE TABLE IF NOT EXISTS support_tickets (
   id BIGINT NOT NULL AUTO_INCREMENT,
   user_id INT NOT NULL,

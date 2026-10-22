@@ -21,6 +21,7 @@ import {
 } from "./invite";
 import { shouldFinishDailyMarathon } from "./lifecycle";
 import { isCopyKey, type CopyKey } from "./copy";
+import { resolvePublicChatUrl } from "./publicChat";
 import type { NotifyIntent, NotifyKind } from "./notifications";
 import {
   parseStoredAnswers,
@@ -230,7 +231,7 @@ function mapMarathon(row: {
     introVideoUrl: row.intro_video_url ?? "",
     inviteAudience: normalizeInviteAudience(row.invite_audience),
     landingRiddleCount: clampLandingRiddleCount(row.landing_riddle_count),
-    publicChatUrl: String(row.public_chat_url ?? "").trim(),
+    publicChatUrl: resolvePublicChatUrl(row.slug, row.public_chat_url),
     status: row.status,
   };
 }
