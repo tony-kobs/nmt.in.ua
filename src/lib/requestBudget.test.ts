@@ -97,6 +97,16 @@ test("presence is per user; a webhook only hits the IP ceiling", () => {
     }),
     [{ key: `api:ip:${ip}`, limit: LIMIT_API_IP }],
   );
+  assert.deepEqual(
+    budgetCharges({
+      method: "GET",
+      pathname: "/api/marathon/stats",
+      headers: headers(),
+      ip,
+      userId: 7,
+    }),
+    [{ key: `api:ip:${ip}`, limit: LIMIT_API_IP }],
+  );
 });
 
 test("two students on one IP each get 180 page hits", () => {

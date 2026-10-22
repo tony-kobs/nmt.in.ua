@@ -5,6 +5,7 @@ import { createPageMetadata } from "@/constants/seo";
 import { requireUser } from "@/modules/auth/getCurrentUser";
 import { hasPermission } from "@/modules/auth/permissions";
 import { loadMarathonCardStats } from "@/modules/marathons/daily/cardStats";
+import { loadDailyFunnels } from "@/modules/marathons/daily/dailyStatsStore";
 import { listDailyMarathons } from "@/modules/marathons/daily/store";
 
 export const dynamic = "force-dynamic";
@@ -32,11 +33,15 @@ export default async function AdminMarathonsPage({
   if (!hasPermission(user.role, "marathon:manage")) redirect("/");
   const query = await searchParams;
   const marathons = await listDailyMarathons();
-  const stats = await loadMarathonCardStats(marathons);
+  const [stats, funnels] = await Promise.all([
+    loadMarathonCardStats(marathons),
+    loadDailyFunnels(marathons),
+  ]);
   return (
     <MarathonAdminList
       marathons={marathons}
       stats={stats}
+      funnels={funnels}
       error={first(query.error)}
       savedToken={first(query.saved)}
     />

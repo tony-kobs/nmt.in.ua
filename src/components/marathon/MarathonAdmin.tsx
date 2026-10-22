@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
 import type { CardStats } from "@/modules/marathons/daily/cardStats";
+import type { DailyFunnel } from "@/modules/marathons/daily/dailyStats";
 import { formatKyivWhen, kyivDateIso } from "@/modules/marathons/daily/calendar";
 import { activationBlockers, marathonIsReady } from "@/modules/marathons/daily/readiness";
 import { loadMarathonBoard, loadMarathonCopy } from "@/modules/marathons/daily/store";
@@ -106,9 +107,11 @@ function kyivDayLabel(locale: string, isoDate: string): string {
 async function MarathonAdminCard({
   marathon,
   stats,
+  funnel,
 }: {
   marathon: DailyMarathon;
   stats: CardStats | null;
+  funnel: DailyFunnel | null;
 }) {
   const t = await getTranslations("Marathon");
   const locale = await getLocale();
@@ -185,6 +188,38 @@ async function MarathonAdminCard({
           ) : null}
         </dl>
       ) : null}
+      {funnel ? (
+        <section className={css.cardFunnel} aria-labelledby={`funnel-${marathon.id}`}>
+          <h3 id={`funnel-${marathon.id}`} className={css.cardFunnelTitle}>{t("cardFunnelTitle")}</h3>
+          <dl className={css.cardStats}>
+            <div>
+              <dt>{t("cardFunnelTickets")}</dt>
+              <dd>{funnel.ticketsOpen}</dd>
+            </div>
+            <div>
+              <dt>{t("cardFunnelErrors")}</dt>
+              <dd>{funnel.deliveryErrors24h}</dd>
+            </div>
+          </dl>
+          {funnel.days.length > 0 ? (
+            <ul className={css.cardFunnelDays}>
+              {funnel.days.map((day) => (
+                <li key={day.day}>
+                  <span>{t("cardStatDay", { day: day.day })}</span>
+                  <span>{t("cardFunnelOpened", { count: day.opened })}</span>
+                  <span>{t("cardFunnelCompleted", { count: day.completed })}</span>
+                  <span>
+                    {day.avgScore == null
+                      ? t("cardFunnelAverageEmpty")
+                      : t("cardFunnelAverage", { value: day.avgScore })}
+                  </span>
+                  <span>{t("cardFunnelDropoff", { count: day.dropoff })}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+      ) : null}
       <div className={css.actions}>
         {marathon.status === "draft" ? (
           <StatusConfirm
@@ -233,11 +268,13 @@ async function MarathonAdminCard({
 export async function MarathonAdminList({
   marathons,
   stats,
+  funnels,
   error,
   savedToken,
 }: {
   marathons: DailyMarathon[];
   stats: Map<number, CardStats>;
+  funnels?: Map<number, DailyFunnel>;
   error?: string;
   savedToken?: string;
 }) {
@@ -248,7 +285,12 @@ export async function MarathonAdminList({
   const cards = (items: DailyMarathon[]) => (
     <ul className={css.stack}>
       {items.map((marathon) => (
-        <MarathonAdminCard key={marathon.id} marathon={marathon} stats={stats.get(marathon.id) ?? null} />
+        <MarathonAdminCard
+          key={marathon.id}
+          marathon={marathon}
+          stats={stats.get(marathon.id) ?? null}
+          funnel={funnels?.get(marathon.id) ?? null}
+        />
       ))}
     </ul>
   );
