@@ -21,6 +21,7 @@ import {
 } from "./invite";
 import { shouldFinishDailyMarathon } from "./lifecycle";
 import { isCopyKey, type CopyKey } from "./copy";
+import { resolvePublicChatUrl } from "./publicChat";
 import type { NotifyIntent, NotifyKind } from "./notifications";
 import {
   parseStoredAnswers,
@@ -76,6 +77,8 @@ export type DailyMarathon = {
   inviteAudience: InviteAudience;
   /** How many bank riddles the public landing draws on each visit. */
   landingRiddleCount: number;
+  /** Public participant chat. Empty when the marathon has none. */
+  publicChatUrl: string;
   status: DailyStatus;
 };
 
@@ -197,6 +200,7 @@ function mapMarathon(row: {
   intro_video_url?: string | null;
   invite_audience?: string | null;
   landing_riddle_count?: number | null;
+  public_chat_url?: string | null;
   status: string;
 }): DailyMarathon | null {
   if (
@@ -227,13 +231,14 @@ function mapMarathon(row: {
     introVideoUrl: row.intro_video_url ?? "",
     inviteAudience: normalizeInviteAudience(row.invite_audience),
     landingRiddleCount: clampLandingRiddleCount(row.landing_riddle_count),
+    publicChatUrl: resolvePublicChatUrl(row.slug, row.public_chat_url),
     status: row.status,
   };
 }
 
 const MARATHON_SELECT = `id, slug, title, description, subject, start_date, unlock_hour, reminder_hour,
   nudge_from, nudge_until, days_count, pass_threshold, final_cta_text, final_cta_url,
-  intro_video_url, invite_audience, landing_riddle_count, status`;
+  intro_video_url, invite_audience, landing_riddle_count, public_chat_url, status`;
 
 export async function listDailyMarathons(getConnection?: Conn): Promise<DailyMarathon[]> {
   return withConn(async (connection) => {
@@ -287,8 +292,8 @@ export async function insertDailyMarathon(
         (slug, title, description, status, starts_at, ends_at, min_tasks_per_session,
          kind, subject, start_date, unlock_hour, reminder_hour, nudge_from, nudge_until,
          days_count, pass_threshold, final_cta_text, final_cta_url, intro_video_url,
-         invite_audience, landing_riddle_count)
-       VALUES (?, ?, ?, 'draft', ?, ?, 5, 'daily', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         invite_audience, landing_riddle_count, public_chat_url)
+       VALUES (?, ?, ?, 'draft', ?, ?, 5, 'daily', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         input.slug,
         input.title,
@@ -308,6 +313,7 @@ export async function insertDailyMarathon(
         input.introVideoUrl || null,
         normalizeInviteAudience(input.inviteAudience),
         input.landingRiddleCount,
+        input.publicChatUrl.trim() || null,
       ],
     );
     return result.insertId;
@@ -325,7 +331,8 @@ export async function updateDailyMarathon(
        SET slug = ?, title = ?, description = ?, subject = ?, start_date = ?, unlock_hour = ?,
            reminder_hour = ?, nudge_from = ?, nudge_until = ?,
            days_count = ?, pass_threshold = ?, final_cta_text = ?, final_cta_url = ?,
-           intro_video_url = ?, invite_audience = ?, landing_riddle_count = ?, starts_at = ?, ends_at = ?
+           intro_video_url = ?, invite_audience = ?, landing_riddle_count = ?, public_chat_url = ?,
+           starts_at = ?, ends_at = ?
        WHERE id = ? AND kind = 'daily'`,
       [
         input.slug,
@@ -344,6 +351,7 @@ export async function updateDailyMarathon(
         input.introVideoUrl || null,
         normalizeInviteAudience(input.inviteAudience),
         input.landingRiddleCount,
+        input.publicChatUrl.trim() || null,
         input.startsAt,
         input.endsAt,
         id,

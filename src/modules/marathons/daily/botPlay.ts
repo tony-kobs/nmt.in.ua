@@ -1,4 +1,5 @@
 import { composeRichText, composeTelegramTask } from "@/modules/telegram/taskRender";
+import { ACCOUNT_MENU } from "@/modules/telegram/replyKeyboard";
 import { MAIN_MENU_LABEL, MENU, mainMenuDataButton } from "@/modules/telegram/ui";
 import { isDayPassed, scorePercent } from "./score";
 import {
@@ -329,6 +330,7 @@ export function marathonReplyKeyboard(
   rows.push([{ text: buttonLabel(copy, "bot_btn_map") }]);
   rows.push([{ text: buttonLabel(copy, "bot_btn_channel") }]);
   if (options?.others) rows.push([{ text: MARATHON_OTHERS_LABEL }]);
+  rows.push([{ text: ACCOUNT_MENU.help.text }]);
   rows.push([{ text: MAIN_MENU_LABEL }]);
   return { keyboard: rows, resize_keyboard: true, is_persistent: true };
 }

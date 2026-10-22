@@ -2,6 +2,7 @@ import type { SqlConnection } from "@/lib/db/mysql";
 import { applyChannelPreferencesSchema } from "@/modules/notifications/channelSchema";
 import { createUserNotificationsTable } from "@/modules/notifications/schema";
 import { backfillTelegramLinks } from "@/modules/telegram/linkSync";
+import { ONEMATH_PUBLIC_CHAT } from "./daily/publicChat";
 
 const CHILD_TABLES = [
   `CREATE TABLE IF NOT EXISTS marathon_riddles (
@@ -176,6 +177,7 @@ const MARATHON_COLUMNS: Array<[string, string]> = [
   ["intro_video_url", "VARCHAR(500) NULL AFTER final_cta_url"],
   ["invite_audience", "ENUM('none','students','all') NOT NULL DEFAULT 'none' AFTER intro_video_url"],
   ["landing_riddle_count", "TINYINT UNSIGNED NOT NULL DEFAULT 3 AFTER invite_audience"],
+  ["public_chat_url", "VARCHAR(500) NULL AFTER landing_riddle_count"],
 ];
 
 const PARTICIPANT_COLUMNS: Array<[string, string]> = [
@@ -247,6 +249,12 @@ export async function migrateDailyMarathon(
         await addColumn(connection, "marathons", name, definition);
       }
     }
+    await connection.execute(
+      `UPDATE marathons
+       SET public_chat_url = ?
+       WHERE slug = ? AND (public_chat_url IS NULL OR public_chat_url = '')`,
+      [ONEMATH_PUBLIC_CHAT.url, ONEMATH_PUBLIC_CHAT.slug],
+    );
     const statusRows = await connection.query<{
       COLUMN_TYPE?: string;
       column_type?: string;
@@ -341,6 +349,45 @@ export async function migrateDailyMarathon(
     );
   } catch (error) {
     if (!isDuplicate(error)) throw error;
+  }
+
+  for (const sql of [
+    `CREATE TABLE IF NOT EXISTS support_tickets (
+      id BIGINT NOT NULL AUTO_INCREMENT,
+      user_id INT NOT NULL,
+      telegram_chat_id VARCHAR(32) NOT NULL,
+      marathon_id INT NULL,
+      day_number TINYINT UNSIGNED NULL,
+      body VARCHAR(4000) NOT NULL,
+      status ENUM('new', 'in_progress', 'closed') NOT NULL DEFAULT 'new',
+      reply_text VARCHAR(4000) NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_support_tickets_status (status, id),
+      CONSTRAINT fk_support_tickets_user FOREIGN KEY (user_id) REFERENCES app_users (id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    `CREATE TABLE IF NOT EXISTS support_waits (
+      chat_id VARCHAR(32) NOT NULL,
+      user_id INT NOT NULL,
+      marathon_id INT NULL,
+      day_number TINYINT UNSIGNED NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (chat_id),
+      CONSTRAINT fk_support_waits_user FOREIGN KEY (user_id) REFERENCES app_users (id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    `CREATE TABLE IF NOT EXISTS support_forward_state (
+      id TINYINT UNSIGNED NOT NULL,
+      migrated_chat_id VARCHAR(32) NOT NULL,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  ]) {
+    try {
+      await connection.execute(sql, []);
+    } catch (error) {
+      if (!isDuplicate(error)) throw error;
+    }
   }
 
   const taskColumns = await columnNames(connection, "marathon_day_tasks");

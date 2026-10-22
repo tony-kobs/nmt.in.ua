@@ -49,6 +49,7 @@ test("a platform student sees the marathon shelf beside the usual sections", () 
   assert.ok(hrefs.includes("/marathon"));
   assert.equal(hrefs.filter((href) => href === "/marathon").length, 1);
   assert.ok(!hrefs.includes("/admin/marathons"));
+  assert.ok(!hrefs.includes("/admin/support"));
   assert.ok(!hrefs.includes("/assign"));
 });
 
@@ -62,6 +63,7 @@ test("teachers and admins keep their menus when a marathon href is present", () 
   assert.ok(teacher.includes("/students"));
   assert.ok(!teacher.includes("/"));
   assert.ok(!teacher.includes("/marathon"));
+  assert.ok(!teacher.includes("/admin/support"));
   assert.ok(!teacher.includes(MAP));
 
   const admin = visibleSidebar({

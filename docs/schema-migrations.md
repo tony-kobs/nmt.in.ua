@@ -46,6 +46,7 @@ node scripts/migrate.mjs --check
 | `048_account_deletion_grace.sql` | колонки відкладеного видалення на `app_users`. Перед продом — бекап бази |
 | `049_marathon_button_labels.sql` | старі підписи кнопок бота. Перед продом — бекап бази |
 | `050_marathon_cron_heartbeat.sql` | один рядок останнього успішного крону розсилки. Перед продом — бекап бази |
-| `052_marathon_survey.sql` | відповіді фінального опитування бота (`marathon_surveys`). Перед продом — бекап бази. `050` уже в `dev`. `051` лишається за відкритим PR звернень |
+| `051_support_tickets.sql` | `support_tickets`, `support_waits`, `support_forward_state` (новий id чату після `migrate_to_chat_id`), `marathons.public_chat_url`. Для slug `onemath` порожній чат стає `https://t.me/nmt_onemath`. Перед продом — бекап бази |
+| `052_marathon_survey.sql` | відповіді фінального опитування бота (`marathon_surveys`). Перед продом — бекап бази. `050` і `051` уже в `dev` |
 
 Два файли з префіксом `044` — різні версії: `044_notification_channels_and_invites.sql` і `044_user_sessions.sql`. Ключ журналу — повне ім’я файлу.

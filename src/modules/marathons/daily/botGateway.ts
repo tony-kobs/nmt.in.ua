@@ -45,6 +45,7 @@ import {
 } from "./leaderboard";
 import { sendCompletedDayFollowUp, sendRankNotice } from "./notificationsJob";
 import { answerSurvey, openFinalSurvey } from "./surveyStore";
+import { publicChatNotice } from "@/modules/support/text";
 import {
   completeParticipantDay,
   consumeMarathonBotToken,
@@ -590,13 +591,16 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
   const introFresh = !participant.introSeen;
   if (introFresh) {
     const mapUrl = absoluteUrl(`/marathon/${encodeURIComponent(marathon.slug)}/map`);
+    const rules = introFor(marathon.introVideoUrl, renderResolved("intro_rules", copy, {
+      name: participant.displayName || "учаснику",
+      day: day?.dayNumber,
+      topic: day?.topic ?? marathon.title,
+      link: mapUrl,
+    }));
+    const chat = publicChatNotice(marathon.publicChatUrl, copy);
     outgoing = [
-      ...introFor(marathon.introVideoUrl, renderResolved("intro_rules", copy, {
-        name: participant.displayName || "учаснику",
-        day: day?.dayNumber,
-        topic: day?.topic ?? marathon.title,
-        link: mapUrl,
-      })),
+      ...rules,
+      ...(chat ? [{ text: chat }] : []),
       ...outgoing,
     ];
     await markIntroSeen(marathon.id, participant.userId, now);

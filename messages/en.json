@@ -59,7 +59,8 @@
       "assign": "Assign topic test",
       "leaderboard": "Marathon leaderboard",
       "marathons": "Marathon",
-      "marathon": "Marathon"
+      "marathon": "Marathon",
+      "support": "Messages"
     }
   },
   "RecentResults": {
@@ -1078,6 +1079,7 @@
       "passThreshold": "Threshold, %",
       "finalCtaText": "Button label",
       "finalCtaUrl": "Button link",
+      "publicChatUrl": "Participant chat",
       "introVideo": "Intro video",
       "inviteAudience": "Who to notify",
       "landingRiddleCount": "Riddles on the page",
@@ -1140,6 +1142,7 @@
       "daysCount": "An integer from 1 to 14.",
       "passThreshold": "An integer from 0 to 100.",
       "finalCtaUrl": "A path starting with / or a full http:// or https:// URL.",
+      "publicChatUrl": "Optional. When set, the bot shows the link in Help and in the intro. For onemath an empty field means https://t.me/nmt_onemath.",
       "introVideo": "Optional. A YouTube or Loom link. Shown once at the start.",
       "inviteAudience": "Sent once, when the marathon becomes active. A draft notifies nobody. Saving again does not send another invitation. The home card stays visible to everyone.",
       "landingRiddleCount": "How many riddles to draw at random on the landing page. An integer from 1 to 12. Default is 3.",
@@ -1153,7 +1156,8 @@
       "slug": "math-5",
       "unlockHour": "09:00",
       "reminderHour": "19:00",
-      "finalCtaUrl": "/"
+      "finalCtaUrl": "/",
+      "publicChatUrl": "https://t.me/"
     },
     "fieldErrors": {
       "form": {
@@ -1196,6 +1200,9 @@
       },
       "finalCtaUrl": {
         "required": "Enter the button link.",
+        "format": "The link must start with / or with http:// or https://."
+      },
+      "publicChatUrl": {
         "format": "The link must start with / or with http:// or https://."
       },
       "order": {
@@ -1276,6 +1283,7 @@
       },
       "labels": {
         "intro_rules": "Rules",
+        "bot_help_chat": "Participant chat",
         "review_intro": "Text before the review",
         "final_summary": "Summary text",
         "notify_day_open": "Day opened",
@@ -1313,6 +1321,9 @@
         "bot_open_site": "Open on the site button",
         "bot_to_tasks": "To the tasks button",
         "bot_btn_begin": "Start button",
+        "bot_btn_support": "Write to the team button",
+        "bot_support_ask": "Support request",
+        "bot_support_thanks": "Request received",
         "bot_day_done": "Day already submitted",
         "bot_finished": "Marathon finished",
         "bot_archived": "Marathon archived",
@@ -2208,9 +2219,46 @@
       "title": "Marathons",
       "description": "Manage math marathons, participants, and the funnel."
     },
+    "supportAdmin": {
+      "title": "Messages",
+      "description": "Participant messages from the bot, and replies in Telegram."
+    },
     "assign": {
       "title": "Assign topic test",
       "description": "Assign topic tests to your students with a deadline and progress statuses."
+    }
+  },
+  "Support": {
+    "kicker": "Admin",
+    "title": "Messages",
+    "lead": "Messages from the bot. A reply is sent to the participant in Telegram.",
+    "filterLabel": "Ticket status",
+    "listTitle": "List",
+    "empty": "No messages.",
+    "noName": "Participant",
+    "noMarathon": "No marathon",
+    "day": "Day {day}",
+    "statusLegend": "Status",
+    "reply": "Reply",
+    "replyPlaceholder": "Text for the participant",
+    "save": "Save",
+    "saved": "Saved",
+    "migratedChat": "Telegram moved the team chat to {chatId}. Set TELEGRAM_SUPPORT_CHAT_ID to this value in the host environment file and restart the site.",
+    "filters": {
+      "all": "All",
+      "new": "New",
+      "in_progress": "In progress",
+      "closed": "Closed"
+    },
+    "status": {
+      "new": "New",
+      "in_progress": "In progress",
+      "closed": "Closed"
+    },
+    "errors": {
+      "invalid": "Could not save. Refresh the page.",
+      "missing": "Message not found.",
+      "send_failed": "Could not send the reply in Telegram. The status was not changed."
     }
   },
   "SettingsPage": {
