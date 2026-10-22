@@ -1218,22 +1218,71 @@ export async function markIntroSeen(
   }, getConnection);
 }
 
+export type MarathonPauseState = {
+  marathonId: number;
+  title: string;
+  paused: boolean;
+  status: "active" | "finished";
+};
+
+/**
+ * Pause or resume one course. The account-wide «Марафони» toggles stay as they are,
+ * so another marathon this person joined keeps sending.
+ */
+export async function setMarathonNotificationsPaused(
+  marathonId: number,
+  userId: number,
+  paused: boolean,
+  getConnection?: Conn,
+): Promise<boolean> {
+  return withConn(async (connection) => {
+    const result = await connection.execute(
+      `UPDATE marathon_participants
+       SET notify_paused = ?
+       WHERE marathon_id = ? AND user_id = ?`,
+      [paused ? 1 : 0, marathonId, userId],
+    );
+    return result.affectedRows === 1;
+  }, getConnection);
+}
+
 export async function pauseMarathonNotifications(
   marathonId: number,
   userId: number,
   getConnection?: Conn,
 ): Promise<void> {
-  await withConn(async (connection) => {
-    await saveUserChannelPreference(connection, userId, "marathon", {
-      email: false,
-      telegram: false,
-    });
-    await connection.execute(
-      `UPDATE marathon_participants
-       SET notify_paused = 1
-       WHERE marathon_id = ? AND user_id = ?`,
-      [marathonId, userId],
+  await setMarathonNotificationsPaused(marathonId, userId, true, getConnection);
+}
+
+/** Active and finished courses this account joined, for the bot's notification screen. */
+export async function listMarathonPauseStates(
+  userId: number,
+  getConnection?: Conn,
+): Promise<MarathonPauseState[]> {
+  return withConn(async (connection) => {
+    const rows = await connection.query<{
+      id: number;
+      title: string;
+      status: string;
+      notify_paused: number;
+    }>(
+      `SELECT m.id, m.title, m.status, p.notify_paused
+       FROM marathon_participants p
+       INNER JOIN marathons m ON m.id = p.marathon_id
+       WHERE p.user_id = ? AND m.kind = 'daily' AND m.status IN ('active', 'finished')
+       ORDER BY (m.status = 'active') DESC, m.start_date DESC, m.id DESC`,
+      [userId],
     );
+    return rows.flatMap((row) => {
+      if (row.status !== "active" && row.status !== "finished") return [];
+      const title = String(row.title ?? "").trim();
+      return [{
+        marathonId: Number(row.id),
+        title: title || `Марафон ${row.id}`,
+        paused: flag(row.notify_paused),
+        status: row.status,
+      }];
+    });
   }, getConnection);
 }
 

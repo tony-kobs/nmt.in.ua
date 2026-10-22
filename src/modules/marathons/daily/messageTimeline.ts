@@ -1,4 +1,4 @@
-import { DAY_OPEN_NOTIFY_WINDOW_MS, dayUnlockAt, formatKyivWhen, kyivDateIso, kyivHour, reminderAt, zonedWallTimeToUtc, addCalendarDays } from "./calendar";
+import { OVERRIDE_SEND_WINDOW_MS, dayUnlockAt, formatKyivWhen, kyivDateIso, kyivHour, reminderAt, zonedWallTimeToUtc, addCalendarDays } from "./calendar";
 import { personNotifyChannels, type NotifyPersonFlags } from "./channel";
 import { COPY_DEFAULTS, renderCopy, type CopyKey, type CopyVars } from "./copy";
 import type { NotifyKind } from "./notifications";
@@ -189,7 +189,7 @@ export function decideSlot(
 export function overrideWindowOpen(sendAt: Date, now: Date): boolean {
   const at = sendAt.getTime();
   const current = now.getTime();
-  return current >= at && current < at + DAY_OPEN_NOTIFY_WINDOW_MS;
+  return current >= at && current < at + OVERRIDE_SEND_WINDOW_MS;
 }
 
 type ScheduleInput = {

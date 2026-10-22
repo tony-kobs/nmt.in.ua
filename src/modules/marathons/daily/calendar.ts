@@ -7,7 +7,14 @@ export const REMINDER_HOUR = 19;
  * Day-open mail is sent at unlock and retried if cron was late, but not as a
  * backlog for people who join days later.
  */
-export const DAY_OPEN_NOTIFY_WINDOW_MS = 36 * 60 * 60 * 1000;
+/** Natural day-open announcements. One hour, so the evening reminder and the next day's nudge never share it. */
+export const DAY_OPEN_NOTIFY_WINDOW_MS = 60 * 60 * 1000;
+
+/**
+ * How long a postponed slot stays eligible after the time an admin set.
+ * Longer than the day-open window: a late cron should still send a moved message.
+ */
+export const OVERRIDE_SEND_WINDOW_MS = 36 * 60 * 60 * 1000;
 
 type DateParts = { year: number; month: number; day: number };
 

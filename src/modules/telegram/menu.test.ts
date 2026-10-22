@@ -204,12 +204,64 @@ test("notification preferences are scoped to the account, validated and atomical
   const quiet = await handleMenuRequest({ chatId: "123", userId: "123", action: { kind: "quietSet", preset: 1 } }, deps);
   assert.match(quiet.text, /Тихі години: 22:00–08:00/);
   assert.ok(prefs.writes.every((write) => write.params[0] === 1), "only the verified account id is written");
+  assert.deepEqual(parseMenuData("p:mc:p:4"), { kind: "marathonConfirm", mode: "pause", marathonId: 4 });
+  assert.deepEqual(parseMenuData("p:mc:r:4"), { kind: "marathonConfirm", mode: "resume", marathonId: 4 });
+  assert.deepEqual(parseMenuData("p:ok:p:4"), { kind: "marathonApply", mode: "pause", marathonId: 4 });
+  assert.deepEqual(parseMenuData("p:ok:r:4"), { kind: "marathonApply", mode: "resume", marathonId: 4 });
   assert.deepEqual(parseMenuData("p:q:3"), { kind: "quietSet", preset: 3 });
   assert.deepEqual(parseMenuData("p:q:4"), { kind: "stale" });
   assert.deepEqual(parseMenuData("p:t:new"), { kind: "toggle", key: "new" });
   assert.deepEqual(parseMenuData("p:t:constructor"), { kind: "stale" });
   assert.deepEqual(parseMenuData("m:toString"), { kind: "stale" });
   assert.deepEqual(parseMenuData("m:unlink"), { kind: "unlink" });
+});
+
+test("marathon pause confirms one course and does not write account toggles", async () => {
+  const prefs = prefsConnection();
+  const writes: Array<{ id: number; paused: boolean }> = [];
+  const courses = [{ marathonId: 4, title: "Весна", paused: false, status: "active" as const }];
+  const deps = {
+    getProfile: async () => student,
+    getConnection: prefs.getConnection,
+    listMarathonPauses: async (userId: number) => {
+      assert.equal(userId, 7);
+      return courses;
+    },
+    setMarathonPaused: async (marathonId: number, userId: number, paused: boolean) => {
+      assert.equal(userId, 7);
+      writes.push({ id: marathonId, paused });
+      courses[0] = { ...courses[0]!, paused };
+      return true;
+    },
+    marathonPauseCopy: async () => ({}),
+  };
+  const listed = await handleMenuRequest({ chatId: "123", userId: "123", messageId: 9, action: { kind: "screen", screen: "notif" } }, deps);
+  assert.match(listed.text, /Весна — сповіщення увімкнені/);
+  const ask = await handleMenuRequest({
+    chatId: "123", userId: "123", messageId: 9,
+    action: { kind: "marathonConfirm", mode: "pause", marathonId: 4 },
+  }, deps);
+  assert.match(ask.text, /«Весна»/);
+  assert.equal(ask.replyMarkup?.inline_keyboard[0]?.[0]?.callback_data, "p:ok:p:4");
+  assert.equal(writes.length, 0);
+  assert.equal(prefs.writes.length, 0);
+  const done = await handleMenuRequest({
+    chatId: "123", userId: "123", messageId: 9,
+    action: { kind: "marathonApply", mode: "pause", marathonId: 4 },
+  }, deps);
+  assert.match(done.text, /на паузі/);
+  assert.deepEqual(writes, [{ id: 4, paused: true }]);
+  assert.equal(prefs.writes.length, 0);
+  const resume = await handleMenuRequest({
+    chatId: "123", userId: "123", messageId: 9,
+    action: { kind: "marathonConfirm", mode: "resume", marathonId: 4 },
+  }, deps);
+  assert.match(resume.text, /Знову надсилати/);
+  const stranger = await handleMenuRequest({
+    chatId: "123", userId: "123",
+    action: { kind: "marathonApply", mode: "pause", marathonId: 9 },
+  }, deps);
+  assert.match(stranger.text, /застаріла/);
 });
 
 test("quiet hours handle windows across midnight and same-day windows", () => {
