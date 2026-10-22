@@ -11,6 +11,8 @@ import { isQuizCallback, presentBotQuiz, quizDataFromText, quizSectionKeyboard }
 import {
   blankPlay,
   callbackFromTokenPayload,
+  channelChoiceLabel,
+  channelScreen,
   isQuizKeyboardText,
   linkOkText,
   marathonButtonSnapshots,
@@ -24,7 +26,7 @@ import {
   type Outgoing,
   type PlayState,
 } from "./botPlay";
-import { renderCopy, renderResolved, resolveCopy } from "./copy";
+import { renderCopy, renderResolved } from "./copy";
 import { decideSlot, findSlotOverride } from "./messageTimeline";
 import { loadOverridesSafe } from "./messageOverrides";
 import { expandSources, introSources } from "./telegramContent";
@@ -261,11 +263,12 @@ export async function marathonBareStart(chatId: string): Promise<TelegramReply |
   const mapUrl = linked
     ? absoluteUrl(`/marathon/${encodeURIComponent(linked.marathon.slug)}/map`)
     : absoluteUrl("/");
-  const messages = startText(copy, Boolean(linked), mapUrl);
+  const name = linked?.participant.displayName || "учаснику";
+  const messages = startText(copy, Boolean(linked), mapUrl, linked ? name : "");
   if (!linked) return pack(toReplies(chatId, messages));
   if (linked && !linked.participant.introSeen) {
     const rules = renderResolved("intro_rules", copy, {
-      name: linked.participant.displayName || "учаснику",
+      name,
       link: mapUrl,
     });
     messages.unshift(...introFor(linked.marathon.introVideoUrl, rules));
@@ -280,23 +283,24 @@ export async function marathonWelcome(chatId: string): Promise<TelegramReply | n
   const mapUrl = linked
     ? absoluteUrl(`/marathon/${encodeURIComponent(linked.marathon.slug)}/map`)
     : absoluteUrl("/");
-  const messages: Outgoing[] = [{ text: linkOkText(copy) }];
+  const name = linked?.participant.displayName || "";
+  const messages: Outgoing[] = [{ text: linkOkText(copy, name) }];
   if (linked && !linked.participant.introSeen) {
     const rules = renderResolved("intro_rules", copy, {
-      name: linked.participant.displayName || "учаснику",
+      name: name || "учаснику",
       link: mapUrl,
     });
     messages.push(...introFor(linked.marathon.introVideoUrl, rules));
     await markIntroSeen(linked.marathon.id, linked.participant.userId, new Date());
   }
-  if (linked) messages.push(...startText(copy, true, mapUrl));
+  if (linked) messages.push(...startText(copy, true, mapUrl, name));
   return pack(toReplies(chatId, messages));
 }
 
 export async function marathonLinkText(chatId: string): Promise<string> {
   const linked = await findParticipantByChat(chatId);
   const copy = linked ? await loadMarathonCopy(linked.marathon.id) : {};
-  return linkOkText(copy);
+  return linkOkText(copy, linked?.participant.displayName || "");
 }
 
 export async function handleMarathonGateway(update: unknown): Promise<TelegramReply[] | null> {
@@ -430,7 +434,7 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     return sectionReplies(parsed.chatId, [{
       text: renderResolved("bot_pause_ask", pauseCopy, vars),
       buttons: [
-        { text: resolveCopy("bot_pause_yes", pauseCopy).slice(0, 64), data: "mh:py" },
+        { text: renderResolved("bot_pause_yes", pauseCopy, vars).slice(0, 64), data: "mh:py" },
         { text: "Скасувати", data: "mh:pn" },
       ],
     }], keyboard);
@@ -469,22 +473,37 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     const board = visibleBoard(rows, participant.userId, BOARD_TOP);
     return sectionReplies(parsed.chatId, [{
       text: formatBoardMessage({
-        title: resolveCopy("rank_overall", copy),
+        title: renderResolved("rank_overall", copy, {
+          title: marathon.title,
+          name: participant.displayName || "учаснику",
+        }),
         rows: board.top,
         self: board.self,
         selfOutside: board.selfOutside,
       }),
-      buttons: [{ text: resolveCopy("bot_btn_top", copy).slice(0, 64), data: "mh:top" }],
+      buttons: [{
+        text: renderResolved("bot_btn_top", copy, {
+          title: marathon.title,
+          name: participant.displayName || "учаснику",
+        }).slice(0, 64),
+        data: "mh:top",
+      }],
     }], await stableKeyboard(marathon.id, copy, { others: several, closed }));
   }
+  const personName = participant.displayName || "учаснику";
+  let channelMarks: { site: boolean; telegram: boolean } | undefined;
   if (callback.kind === "channel" || callback.kind === "channels" || closed) {
     const earlyCopy = await loadMarathonCopy(marathon.id);
     const several = (await listChatMarathons(parsed.chatId)).length > 1;
     const keyboard = await stableKeyboard(marathon.id, earlyCopy, { others: several, closed });
     if (callback.kind === "channel") {
+      channelMarks = {
+        site: callback.channel === "site" ? true : participant.notifyEmail,
+        telegram: callback.channel === "telegram" ? true : participant.notifyBot,
+      };
       await setNotifyToggles(marathon.id, participant.userId, {
-        notifyEmail: callback.channel === "site" ? true : participant.notifyEmail,
-        notifyBot: callback.channel === "telegram" ? true : participant.notifyBot,
+        notifyEmail: channelMarks.site,
+        notifyBot: channelMarks.telegram,
       });
       if (callback.channel === "telegram") {
         await notifyMarathonRegistration({
@@ -496,23 +515,28 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
         });
       }
       if (closed) {
+        const screen = channelScreen({
+          copy: earlyCopy,
+          name: personName,
+          site: channelMarks.site,
+          telegram: channelMarks.telegram,
+        });
         return sectionReplies(parsed.chatId, [{
-          text: `${callback.channel === "site" ? resolveCopy("bot_btn_site", earlyCopy) : resolveCopy("bot_btn_telegram", earlyCopy)}\n${renderResolved("bot_finished", earlyCopy, {
-            name: participant.displayName || "учаснику",
+          text: `${channelChoiceLabel(earlyCopy, callback.channel, personName)}\n${renderResolved("bot_finished", earlyCopy, {
+            name: personName,
             title: marathon.title,
             link: absoluteUrl(`/marathon/${encodeURIComponent(marathon.slug)}`),
           })}`,
+          buttons: screen.buttons,
         }], keyboard);
       }
     } else if (callback.kind === "channels") {
-      return sectionReplies(parsed.chatId, [{
-        text: resolveCopy("channel_prompt", earlyCopy),
-        buttons: [
-          { text: resolveCopy("bot_btn_site", earlyCopy).slice(0, 64), data: "mh:ch:s" },
-          { text: resolveCopy("bot_btn_telegram", earlyCopy).slice(0, 64), data: "mh:ch:t" },
-          mainMenuDataButton(),
-        ],
-      }], keyboard);
+      return sectionReplies(parsed.chatId, [channelScreen({
+        copy: earlyCopy,
+        name: personName,
+        site: participant.notifyEmail,
+        telegram: participant.notifyBot,
+      })], keyboard);
     } else if (
       callback.kind === "menu" || callback.kind === "today" || callback.kind === "open"
       || callback.kind === "materials" || callback.kind === "answer"
@@ -544,9 +568,10 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     callback,
     day,
     state: before,
-    name: participant.displayName || "учаснику",
+    name: personName,
     mapUrl: absoluteUrl(`/marathon/${encodeURIComponent(marathon.slug)}/map`),
-    followUp: await botFollowUp(marathon.id, day, participant.displayName || "учаснику", callback, now),
+    channels: channelMarks,
+    followUp: await botFollowUp(marathon.id, day, personName, callback, now),
     tokenFor: (action) => {
       const token = randomBytes(12).toString("base64url");
       minted.push({
