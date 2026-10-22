@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
 import type { CardStats } from "@/modules/marathons/daily/cardStats";
+import type { CronHealth } from "@/modules/marathons/daily/cronHeartbeat";
 import { formatKyivWhen, kyivDateIso } from "@/modules/marathons/daily/calendar";
 import { activationBlockers, marathonIsReady } from "@/modules/marathons/daily/readiness";
 import { loadMarathonBoard, loadMarathonCopy } from "@/modules/marathons/daily/store";
@@ -230,16 +231,39 @@ async function MarathonAdminCard({
   );
 }
 
+function cronBadge(t: Awaited<ReturnType<typeof getTranslations<"Marathon">>>, cron: CronHealth | null) {
+  if (!cron) {
+    return <p className={css.badgeStale} role="status">{t("cronUnknown")}</p>;
+  }
+  if (cron.lastRunAt == null || cron.ageMinutes == null) {
+    return <p className={css.badgeStale} role="status">{t("cronNever")}</p>;
+  }
+  if (cron.ok) {
+    return (
+      <p className={css.badgeOn} role="status">
+        {t("cronOk", { minutes: cron.ageMinutes })}
+      </p>
+    );
+  }
+  return (
+    <p className={css.badgeStale} role="status">
+      {t("cronStale", { minutes: cron.ageMinutes })}
+    </p>
+  );
+}
+
 export async function MarathonAdminList({
   marathons,
   stats,
   error,
   savedToken,
+  cron = null,
 }: {
   marathons: DailyMarathon[];
   stats: Map<number, CardStats>;
   error?: string;
   savedToken?: string;
+  cron?: CronHealth | null;
 }) {
   const t = await getTranslations("Marathon");
   const message = marathonErrorText(t, error);
@@ -260,6 +284,7 @@ export async function MarathonAdminList({
         savedText={t("saved")}
         error={message}
       >
+        {cronBadge(t, cron)}
         <form action={seedMarathonAction}>
           <SubmitButton className={css.buttonQuiet} pendingLabel={t("working")}>
             {t("seed")}
