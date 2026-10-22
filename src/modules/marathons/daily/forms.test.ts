@@ -149,6 +149,20 @@ test("marathon input lowercases a valid slug and keeps the typed values' meaning
   assert.equal(parsed.value.inviteAudience, "none");
 });
 
+test("a public chat link is optional, and a bad one is named", () => {
+  const blank = parseMarathonInput(data(validMarathon));
+  assert.equal(blank.ok, true);
+  if (blank.ok) assert.equal(blank.value.publicChatUrl, "");
+  const kept = parseMarathonInput(data({ ...validMarathon, publicChatUrl: "https://t.me/nmt_math" }));
+  assert.equal(kept.ok, true);
+  if (kept.ok) assert.equal(kept.value.publicChatUrl, "https://t.me/nmt_math");
+  const parsed = parseMarathonInput(data({ ...validMarathon, publicChatUrl: "javascript:alert(1)" }));
+  assert.equal(parsed.ok, false);
+  if (parsed.ok) return;
+  assert.deepEqual(codes(parsed.issues), ["publicChatUrl.format"]);
+  assertCopy(parsed.issues);
+});
+
 test("a blank invite audience stays nobody, and an unknown value is named", () => {
   const kept = parseMarathonInput(data({ ...validMarathon, inviteAudience: "students" }));
   assert.equal(kept.ok, true);
