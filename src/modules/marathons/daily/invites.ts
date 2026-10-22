@@ -1,7 +1,7 @@
 import "server-only";
 
 import { notifyUser } from "@/modules/notifications/store";
-import type { HomeMarathonCard } from "./homeCard";
+import type { HomeMarathonCard, HomeMarathonSpotlight } from "./homeCard";
 import type { MarathonInvite } from "./invite";
 import { loadMarathonHomeState } from "./store";
 
@@ -22,7 +22,11 @@ export function inviteNotification(invite: MarathonInvite): {
 /** Creates one in-site invitation per active marathon the student has not answered. */
 export async function ensureStudentMarathonInvites(
   userId: number,
-): Promise<{ cards: HomeMarathonCard[]; invites: MarathonInvite[] }> {
+): Promise<{
+  cards: HomeMarathonCard[];
+  invites: MarathonInvite[];
+  spotlight: HomeMarathonSpotlight | null;
+}> {
   const state = await loadMarathonHomeState({ userId, role: "student" });
   for (const invite of state.invites) {
     const note = inviteNotification(invite);
