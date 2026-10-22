@@ -3,6 +3,17 @@
 Опис pull request — єдине місце, де це пишуть. Після мерджу в `dev` звідси оновлюється блок «Останні зміни» в [гіді](./nmt-in-ua-onboarding-dev.md). Рядки для учня і викладача збираються в новини, коли реліз потрапляє в `main`. Посилання на скрінкаст з’являється лише після галочки «схвалено показувати».
 
 <!-- changelog:entries -->
+### 2026-10-22 — feat: пульс крону розсилки марафону (#234)
+
+- Для команди: Успішний `POST /api/marathon/notifications/process` пише час і лічильники планувальника в `marathon_cron_heartbeat`. Якщо планування впало (відповідь 500), час не оновлюється. Збій запису пульсу не ламає саму розсилку. `GET /api/marathon/notifications/health` з тим самим `Authorization: Bearer <MARATHON_CRON_SECRET>`. Без секрету — 401 і порожнє тіло. Успіх, `cache-control: no-store`: ```json { "lastRunAt": "2026-10-26T06:10:00.000Z", "ageMinutes": 8, "ok": true, "lastCounts": { "processed": 4, "sent": 3, "failed": 1 }, "pendingOutbox": 0, "failedLast24h": 1 } ``` `ok` — true, коли останній успішний запуск не старіший за 25 хвилин (крон кожні 10). Немає запуску: `lastRunAt`, `ageMinutes` і `lastCounts` — null, `ok` — false. `processed` — сума sent + skipped + failed цього тіку. `pendingOutbox` — черга Telegram зі статусом pending. `failedLast24h` — зірвані за 24 години рядки черги Telegram, черги повідомлень і `marathon_notifications` з outcome failed. На `/admin/marathons` зверху пілюля: зелена «Крон працює» або рожева «Крон мовчить» / «ще не запускався». Міграція `scripts/sql/050_marathon_cron_heartbeat.sql`. Перед продом потрібен бекап бази. Та сама таблиця створюється ліниво в `migrateDailyMarathon`. Перевірки: `npm test` 1442 pass / 0 fail / 3 skipped, `npx tsc --noEmit`, eslint по змінених файлах, `npm run build` (Next 16.3.3).
+- Для людей: Адмін на списку марафонів бачить, чи розсилка недавно запускалась.
+- Скрінкаст: не потрібен
+- Запис: —
+- Схвалено: ні
+- Автор: groteskzp
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/234
+<!-- released: no -->
+
 ### 2026-10-22 — feat: тихі години, загальна таблиця і старі кнопки бота (#232)
 
 - Для команди: Свій початок і кінець тихих годин (0–23). Довільна пара годин більше не скидається на «вимкнено»; вікно діє, коли задані обидва краї. «Таблиця» — цей курс (`rank_course`). «Загальні» (`mh:all`) — сума днів усіх денних курсів, як «Загальні» на сайті. Обидві таблиці в меню. Старий підпис нижньої кнопки лишається дійсним: збіг із поточним текстом, типовим текстом і підписами в `marathon_button_labels`. У меню викладача є «Марафон». Нові тексти адмінки: `bot_btn_overall`, `rank_course`, `rank_overall`. Статуси хронології не змінювались. Міграція `scripts/sql/049_marathon_button_labels.sql`. Перед продом потрібен бекап бази. Та сама таблиця створюється ліниво в `migrateDailyMarathon`. Перевірки: `npm test` 1439 pass / 0 fail / 3 skipped, `npx tsc --noEmit`, eslint по змінених файлах, `npm run build` (Next 16.3.3).
