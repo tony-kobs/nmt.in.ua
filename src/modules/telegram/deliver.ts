@@ -3,6 +3,7 @@ import "server-only";
 import type { DeliveryPiece } from "@/modules/marathons/daily/telegramContent";
 import type { InlineKeyboard, TelegramReply } from "./taskInteraction";
 import { renderFormulaPng, type FormulaRenderer } from "./formulaImage";
+import { latexToTelegramPlain } from "./latexPlain";
 import { sendThrottled, sharedTelegramPace, type SendOutcome } from "./throttle";
 import { sendTelegramMessage, sendTelegramPayload, type TelegramSendResult } from "./transport";
 
@@ -20,12 +21,13 @@ export function piecesToReplies(chatId: string, pieces: DeliveryPiece[]): Telegr
   for (const piece of pieces) {
     const buttons: { text: string; callback_data?: string; url?: string }[] = [];
     for (const button of piece.buttons ?? []) {
-      const label = button.text.trim().slice(0, 64);
+      const label = latexToTelegramPlain(button.text).slice(0, 64);
       if (!label) continue;
       if (button.url) buttons.push({ text: label, url: button.url });
       else if (button.data && button.data.length <= 64) buttons.push({ text: label, callback_data: button.data });
     }
-    const text = piece.html ? piece.text : piece.text.trim().slice(0, 4096);
+    const plain = latexToTelegramPlain(piece.text);
+    const text = piece.html ? plain : plain.slice(0, 4096);
     const reply: TelegramReply = {
       chatId,
       text,

@@ -18,6 +18,7 @@ import {
 } from "@/modules/sessions/types";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
 import { toReplyKeyboard } from "@/modules/telegram/replyKeyboard";
+import { latexToTelegramPlain } from "@/modules/telegram/latexPlain";
 import { composeTelegramTask } from "@/modules/telegram/taskRender";
 import { MAIN_MENU_LABEL, mainMenuDataButton } from "@/modules/telegram/ui";
 import type { BotCallback, Outgoing } from "./botPlay";
@@ -103,7 +104,7 @@ export async function quizDataFromText(text: string): Promise<string | null> {
 }
 
 function plainTask(value: string): string {
-  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  return latexToTelegramPlain(value.replace(/<[^>]+>/g, " "));
 }
 
 async function connection(): Promise<SqlConnection> {
