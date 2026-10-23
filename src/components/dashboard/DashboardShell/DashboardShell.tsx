@@ -18,6 +18,7 @@ type DashboardShellProps = {
   user: AuthUser | null;
   cabinetScope?: CabinetScope;
   marathonHref?: string | null;
+  footer?: React.ReactNode;
 };
 
 const listeners = new Set<() => void>();
@@ -38,15 +39,23 @@ function subscribeSidebar(listener: () => void) {
   };
 }
 
+function subscribeMobile(listener: () => void) {
+  const mq = window.matchMedia("(max-width: 767px)");
+  mq.addEventListener("change", listener);
+  return () => mq.removeEventListener("change", listener);
+}
+
+function readMobile() {
+  return window.matchMedia("(max-width: 767px)").matches;
+}
+
+/** `1` pins the desktop rail open and opens the mobile drawer. */
 function readSidebarOpen(): boolean {
-  const saved = window.localStorage.getItem(STORAGE_KEY);
-  if (saved === "0") return false;
-  if (saved === "1") return true;
-  return window.matchMedia("(min-width: 768px)").matches;
+  return window.localStorage.getItem(STORAGE_KEY) === "1";
 }
 
 function getServerSidebarOpen() {
-  return true;
+  return false;
 }
 
 function setSidebarOpen(next: boolean | ((prev: boolean) => boolean)) {
@@ -60,27 +69,28 @@ export function DashboardShell({
   user,
   cabinetScope = "full",
   marathonHref = null,
+  footer = null,
 }: DashboardShellProps) {
   const t = useTranslations("Dashboard");
   const tCommon = useTranslations("Common");
 
   const pathname = usePathname();
 
-  const isTasksPage =
-    pathname === "/tasks" ||
-    pathname.startsWith("/tasks/") ||
-    (user?.role === "admin" && pathname === "/");
-
   const sidebarOpen = useSyncExternalStore(
     subscribeSidebar,
     readSidebarOpen,
     getServerSidebarOpen,
   );
+  const isMobile = useSyncExternalStore(subscribeMobile, readMobile, () => false);
 
   useEffect(() => {
-    if (!sidebarOpen) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSidebarOpen(false);
+      if (event.key !== "Escape") return;
+      const aside = document.getElementById("dashboard-sidebar");
+      if (aside?.contains(document.activeElement)) {
+        (document.activeElement as HTMLElement).blur();
+      }
+      if (sidebarOpen) setSidebarOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -151,6 +161,7 @@ export function DashboardShell({
       <div className={css.noPrint}>
         <AppHeader
           sidebarOpen={sidebarOpen}
+          sidebarMode={isMobile ? "drawer" : "rail"}
           onToggleSidebar={() => setSidebarOpen((open) => !open)}
           user={user}
         />
@@ -165,13 +176,7 @@ export function DashboardShell({
         ) : null}
       </div>
 
-      <div
-        className={clsx(
-          css.body,
-          isTasksPage && css.stableContent,
-          sidebarOpen ? css.sidebarOpen : css.sidebarClosed,
-        )}
-      >
+      <div className={css.body}>
         <div
           className={clsx(
             css.sidebarSlot,
@@ -181,6 +186,7 @@ export function DashboardShell({
         >
           <AppSidebar
             open={sidebarOpen}
+            conceal={isMobile && !sidebarOpen}
             role={user.role}
             cabinetScope={cabinetScope}
             marathonHref={marathonHref}
@@ -198,6 +204,7 @@ export function DashboardShell({
           </main>
         </div>
       </div>
+      {footer ? <div className={css.noPrint}>{footer}</div> : null}
     </div>
   );
 }

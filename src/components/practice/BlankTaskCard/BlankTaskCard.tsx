@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { useTranslations } from "next-intl";
 import { MathText } from "@/components/ui/MathText";
+import { TestTaskCard } from "@/components/testing/TestTaskCard";
 import { parseMathText } from "@/components/ui/MathText/parseMathText";
 import { getBlankTaskAction, submitBlankTaskAction } from "@/modules/stage2/actions";
 import type { BlankReveal, BlankTaskPresentation } from "@/modules/stage2/blankTask";
@@ -115,17 +116,28 @@ export function BlankTaskCard({ taskId, roundId, diagnostic = false, quiet = fal
     );
   }
 
+  const note = !result || quiet
+    ? undefined
+    : diagnostic
+      ? t("answerSaved")
+      : result.correct
+        ? undefined
+        : result.retryAvailable
+          ? t("retryPrompt")
+          : t("incorrectLocked");
+
   return (
-    <div className={css.wrap}>
-      <h3>{task.name}</h3>
-      <form
-        className={css.form}
-        onSubmit={(event) => {
-          event.preventDefault();
-          void handleCheck();
-        }}
-      >
-        <div className={css.sentence}>
+    <form
+      className={css.form}
+      onSubmit={(event) => {
+        event.preventDefault();
+        void handleCheck();
+      }}
+    >
+      <TestTaskCard
+        heading="h3"
+        title={<MathText text={task.name} />}
+        prompt={<div className={css.sentence}>
           {lines.map((line, lineIndex) => {
             const parts = parseMathText(line);
             return (
@@ -156,18 +168,19 @@ export function BlankTaskCard({ taskId, roundId, diagnostic = false, quiet = fal
               </div>
             );
           })}
-        </div>
-
-        {result && !quiet ? (
-          <p role="status">
-            {diagnostic ? t("answerSaved") : result.correct
-              ? t("correct")
-              : result.retryAvailable
-                ? t("retryPrompt")
-                : t("incorrectLocked")}
-          </p>
-        ) : null}
-        {result?.revealed?.explanation && !quiet ? <MathText text={result.revealed.explanation} /> : null}
+        </div>}
+        hint={
+          note || (result?.revealed?.explanation && !quiet) ? (
+            <>
+              {note ? <span role="status">{note}</span> : null}
+              {result?.revealed?.explanation && !quiet ? (
+                <MathText text={result.revealed.explanation} />
+              ) : null}
+            </>
+          ) : undefined
+        }
+        result={!quiet && result?.correct && !diagnostic ? t("correct") : undefined}
+      >
         {result?.retryAvailable && !diagnostic && !quiet ? <Stage2Hints format="blank" taskId={taskId} roundId={roundId} /> : null}
         {error ? <p role="alert">{error}</p> : null}
 
@@ -176,7 +189,7 @@ export function BlankTaskCard({ taskId, roundId, diagnostic = false, quiet = fal
             {checking ? t("checking") : submitLabel ?? t("check")}
           </button>
         ) : null}
-      </form>
-    </div>
+      </TestTaskCard>
+    </form>
   );
 }

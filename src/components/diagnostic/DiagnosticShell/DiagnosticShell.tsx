@@ -1,6 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 import { SkipLink } from "@/components/ui/SkipLink";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { BrandWord } from "@/components/brand/BrandWord";
@@ -29,12 +31,12 @@ type DiagnosticShellProps = {
  * Uses `--content-narrow` (46rem), not the wide `--container-max` — the same
  * choice `TopicTestStart` makes for its single-column start screen.
  */
-export async function DiagnosticShell({
+export function DiagnosticShell({
   children,
   mathDecor,
 }: DiagnosticShellProps) {
-  const t = await getTranslations("AuthShared");
-  const tCommon = await getTranslations("Common");
+  const t = useTranslations("AuthShared");
+  const tCommon = useTranslations("Common");
 
   return (
     <div className={css.page}>
@@ -112,7 +114,7 @@ export async function DiagnosticShell({
 
       <div className={css.inner}>
         <div className={css.topbar}>
-          <Link href="/" className={css.backLink}>
+          <Link href="/welcome" className={css.backLink}>
             <svg
               width="16"
               height="16"
@@ -129,7 +131,7 @@ export async function DiagnosticShell({
             {t("backHome")}
           </Link>
 
-          <Link href="/" className={css.brand} aria-label={SITE_NAME} translate="no">
+          <Link href="/welcome" className={css.brand} aria-label={SITE_NAME} translate="no">
             <span className={css.brandGlyph} aria-hidden>
               <BrandMark />
             </span>

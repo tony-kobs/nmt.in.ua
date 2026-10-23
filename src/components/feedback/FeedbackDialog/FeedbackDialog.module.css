@@ -213,19 +213,20 @@
 .sidebarTrigger {
   width: 100%;
   justify-content: flex-start;
-  padding: 10px 14px;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-md);
-  background: rgb(253 251 244 / 78%);
-  color: var(--green-dark);
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink);
   font-size: var(--fs-small);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .sidebarTrigger:hover,
 .sidebarTrigger:focus-visible {
-  border-color: rgb(15 118 110 / 40%);
-  background: var(--green-hover);
+  border: 0;
+  outline: none;
+  background: rgb(28 25 23 / 5%);
 }
 
 @media (min-width: 768px) {

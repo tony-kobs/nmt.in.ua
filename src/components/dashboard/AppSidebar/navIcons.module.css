@@ -1,0 +1,64 @@
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+}
+
+.glyph {
+  display: block;
+  width: 34px;
+  height: 34px;
+}
+
+.tile[data-nav-icon="mail"] {
+  background: var(--sticker-sky);
+}
+
+.tile[data-nav-icon="cap"] {
+  background: var(--sticker-mint);
+}
+
+.tile[data-nav-icon="flame"] {
+  background: var(--sticker-peach);
+}
+
+.tile[data-nav-icon="chart"] {
+  background: var(--sticker-lilac);
+}
+
+.tile[data-nav-icon="book"] {
+  background: var(--sticker-sun);
+}
+
+.tile[data-nav-icon="notebook"] {
+  background: var(--sticker-sky);
+}
+
+.tile[data-nav-icon="spark"] {
+  background: var(--sticker-sun);
+}
+
+.tile[data-nav-icon="bolt"] {
+  background: var(--sticker-lilac);
+}
+
+.tile[data-nav-icon="target"] {
+  background: var(--sticker-rose);
+}
+
+.tile[data-nav-icon="timer"] {
+  background: var(--sticker-mint);
+}
+
+.tile[data-nav-icon="trophy"] {
+  background: var(--sticker-peach);
+}

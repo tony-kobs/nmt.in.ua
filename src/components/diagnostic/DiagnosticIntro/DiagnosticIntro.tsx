@@ -1,42 +1,57 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useActionState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useState } from "react";
 import {
   startDiagnosticAction,
   type StartDiagnosticActionState,
 } from "@/modules/diagnostic/actions";
 import { Icon } from "@/components/ui/Icon/Icon";
+import { DiagnosticInlineBoard } from "./DiagnosticInlineBoard";
 import css from "./DiagnosticIntro.module.css";
 
 const INITIAL_STATE: StartDiagnosticActionState = { status: "idle" };
 
 type DiagnosticIntroProps = {
-  contentAvailable: boolean;
+  contentAvailable?: boolean;
+  /** Resolves in the background so the intro can paint before the catalog check. */
+  availability?: Promise<boolean>;
 };
 
-export function DiagnosticIntro({ contentAvailable }: DiagnosticIntroProps) {
+export function DiagnosticIntro({
+  contentAvailable = true,
+  availability,
+}: DiagnosticIntroProps) {
   const t = useTranslations("Diagnostic");
-  const router = useRouter();
+  const [available, setAvailable] = useState(contentAvailable);
+
+  useEffect(() => {
+    if (!availability) return;
+    let cancelled = false;
+    availability.then(
+      (ok) => {
+        if (!cancelled) setAvailable(ok);
+      },
+      () => {
+        if (!cancelled) setAvailable(true);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [availability]);
 
   const [state, formAction, pending] = useActionState(
     startDiagnosticAction,
     INITIAL_STATE,
   );
 
-  useEffect(() => {
-    if (state.status === "success") {
-      router.replace(`/diagnostic/session/${state.sessionId}`);
-    }
-  }, [state, router]);
-
-  const isRedirecting = state.status === "success";
-  const controlsDisabled = !contentAvailable || pending || isRedirecting;
+  const started = state.status === "success" ? state : null;
+  const controlsDisabled = !available || pending;
 
   return (
     <section className={css.hero} aria-labelledby="diagnostic-title">
-      <div className={css.grid}>
+      <div className={started ? `${css.grid} ${css.gridLive}` : css.grid}>
         <div className={css.content}>
           <p className={css.kicker}>{t("kicker")}</p>
 
@@ -47,23 +62,21 @@ export function DiagnosticIntro({ contentAvailable }: DiagnosticIntroProps) {
 
           <p className={css.lead}>{t("lead")}</p>
 
-          <form className={css.form} action={formAction}>
-            <button
-              type="submit"
-              className={css.start}
-              disabled={controlsDisabled}
-            >
-              {isRedirecting
-                ? t("redirecting")
-                : pending
-                  ? t("loading")
-                  : t("start")}
+          {started ? null : (
+            <form className={css.form} action={formAction}>
+              <button
+                type="submit"
+                className={css.start}
+                disabled={controlsDisabled}
+              >
+                {pending ? t("loading") : t("start")}
 
-              <Icon sprite="diagnostic" name="move-right" size={20} />
-            </button>
-          </form>
+                <Icon sprite="diagnostic" name="move-right" size={20} />
+              </button>
+            </form>
+          )}
 
-          {!contentAvailable ? (
+          {!available ? (
             <p className={css.error} role="status">
               {t("unavailable")}
             </p>
@@ -93,13 +106,20 @@ export function DiagnosticIntro({ contentAvailable }: DiagnosticIntroProps) {
           </div>
         </div>
 
-        <div className={css.visual}>
-          <div className={css.placeholder}>
-            <span className={css.placeholderIcon} aria-hidden="true">
-              ∑
-            </span>
-            <p>Тут з’являться завдання тесту</p>
-          </div>
+        <div className={started ? `${css.visual} ${css.visualLive}` : css.visual}>
+          {started ? (
+            <DiagnosticInlineBoard
+              sessionId={started.sessionId}
+              isGuest={started.isGuest}
+            />
+          ) : (
+            <div className={css.placeholder}>
+              <span className={css.placeholderIcon} aria-hidden="true">
+                ∑
+              </span>
+              <p>{t("slot")}</p>
+            </div>
+          )}
         </div>
       </div>
     </section>

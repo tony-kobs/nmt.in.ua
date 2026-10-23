@@ -8,13 +8,6 @@
   margin-top: var(--space-xl);
 }
 
-.accent {
-  background: var(--grad-brand);
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-}
-
 .formTitle {
   margin: 0;
   font-family: var(--font-display);

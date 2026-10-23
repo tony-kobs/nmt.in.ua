@@ -19,6 +19,8 @@ import type { RecommendedAction } from "@/modules/recommendations";
 import { TopicTrainerSummary } from "@/components/testing/TopicTrainerSummary";
 import { MathText } from "@/components/ui/MathText";
 import { Select } from "@/components/ui/Select";
+import { TestTaskCard, optionLetter, taskKicker } from "@/components/testing/TestTaskCard";
+import cardCss from "@/components/testing/TestTaskCard/TestTaskCard.module.css";
 
 import styles from "./NmtTrainer.module.css";
 
@@ -49,7 +51,7 @@ function TaskBody({
   className?: string;
   imageAlt: string;
 }) {
-  const parts = text.split(/!\[\]\(([^)]+)\)/g);
+  const parts = text.split(/!\[\s*\]\s*\(([^)]+)\)/g);
   return (
     <div className={className}>
       {parts.map((part, index) => {
@@ -58,7 +60,7 @@ function TaskBody({
             <span key={index} className={styles.taskImageWrap}>
               {/* External/local static under /nmt/osvita — sized fluidly */}
               <Image
-                src={part}
+                src={part.trim()}
                 alt={imageAlt}
                 width={604}
                 height={340}
@@ -232,6 +234,7 @@ export function NmtTrainer({
   const selectedAnswer = answered[currentTask.mappingId];
   const pending = pendingMappingId === currentTask.mappingId;
   const locked = Boolean(selectedAnswer) || pending;
+  const kicker = taskKicker(currentTask.name, currentTask.taskText);
 
   return (
     <section className={styles.wrapper}>
@@ -291,26 +294,28 @@ export function NmtTrainer({
         </div>
       </div>
 
-      <div className={styles.task}>
-        <p className={styles.taskName}>{currentTask.name}</p>
-        <TaskBody
-          text={currentTask.taskText}
-          className={styles.taskText}
-          imageAlt={t("taskImageAlt", { n: currentIndex + 1 })}
-        />
-
+      <TestTaskCard
+        titleId="nmt-task-title"
+        title={t("taskHeading", { number: currentIndex + 1 })}
+        kicker={kicker ? <MathText text={kicker} /> : undefined}
+        prompt={
+          <TaskBody
+            text={currentTask.taskText}
+            imageAlt={t("taskImageAlt", { n: currentIndex + 1 })}
+          />
+        }
+      >
         {kind === "mcq" ? (
-          <div className={styles.answers}>
+          <div className={cardCss.answers} role="group" aria-label={t("tasks")}>
             {currentTask.answers.map((answer) => {
-              const letter =
-                MATCH_LETTERS[answer.number - 1] ?? String(answer.number);
               const isSelected = selectedAnswer === String(answer.number);
               return (
                 <button
                   key={answer.number}
                   type="button"
-                  className={`${styles.answer} ${isSelected ? styles.selected : ""}`}
+                  className={`${cardCss.option} ${isSelected ? cardCss.optionSelected : ""}`}
                   disabled={locked}
+                  aria-pressed={isSelected}
                   onClick={() =>
                     void submitAnswer({
                       answerNumber: answer.number,
@@ -318,10 +323,16 @@ export function NmtTrainer({
                     })
                   }
                 >
-                  <span className={styles.answerNumber}>
-                    {letter.toUpperCase()}
+                  <span className={cardCss.mark}>
+                    {optionLetter(answer.number - 1)})
                   </span>
-                  <MathText text={answer.text} />
+                  <TaskBody
+                    className={cardCss.optionText}
+                    text={answer.text}
+                    imageAlt={t("taskImageAlt", {
+                      n: currentIndex + 1,
+                    })}
+                  />
                 </button>
               );
             })}
@@ -419,7 +430,7 @@ export function NmtTrainer({
             </button>
           </form>
         ) : null}
-      </div>
+      </TestTaskCard>
 
       <footer className={styles.footer}>
         <button

@@ -14,6 +14,7 @@ function connection(query: SqlConnection["query"]): SqlConnection {
     commit: async () => undefined,
     rollback: async () => undefined,
     release: () => undefined,
+    discard: () => undefined,
     query,
     execute: async () => ({ insertId: 0, affectedRows: 1 }),
   };
@@ -79,6 +80,49 @@ test("ensureSchemaOnce throws when the advisory lock is busy", async () => {
     /Schema migration lock is busy/,
   );
   assert.equal(migrated, 0);
+});
+
+test("ensureSchemaOnce drops the socket when the schema lock stays held", async () => {
+  let released = 0;
+  let discarded = 0;
+  const conn = connection(async <T,>(sql: string) => {
+    if (sql.includes("schema_migrations")) return [] as T[];
+    if (sql.includes("RELEASE_LOCK")) return [{ released: 0 }] as T[];
+    return [{ got: 1 }] as T[];
+  });
+  conn.release = () => {
+    released += 1;
+  };
+  conn.discard = () => {
+    discarded += 1;
+  };
+  await ensureSchemaOnce(
+    "leaked",
+    ["001_app_users.sql"],
+    async () => conn,
+    async () => undefined,
+  );
+  assert.equal(discarded, 1);
+  assert.equal(released, 0);
+});
+
+test("ensureSchemaOnce drops the socket when releasing the schema lock throws", async () => {
+  let discarded = 0;
+  const conn = connection(async <T,>(sql: string) => {
+    if (sql.includes("schema_migrations")) return [] as T[];
+    if (sql.includes("RELEASE_LOCK")) throw new Error("gone");
+    return [{ got: 1 }] as T[];
+  });
+  conn.discard = () => {
+    discarded += 1;
+  };
+  await ensureSchemaOnce(
+    "release-threw",
+    ["001_app_users.sql"],
+    async () => conn,
+    async () => undefined,
+  );
+  assert.equal(discarded, 1);
 });
 
 test("ensureSchemaOnce still migrates once when the driver does not report the lock", async () => {

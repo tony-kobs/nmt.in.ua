@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { useTranslations } from "next-intl";
 import { MathText } from "@/components/ui/MathText";
+import { TestTaskCard } from "@/components/testing/TestTaskCard";
 import { getGraphTaskAction, submitGraphTaskAction } from "@/modules/stage2/actions";
 import type { GraphTaskPresentation, GraphTaskReveal } from "@/modules/stage2/graphTask";
 import { Stage2Hints } from "../Stage2Hints";
@@ -102,10 +103,31 @@ export function GraphTaskCard({ taskId, roundId, diagnostic = false, quiet = fal
   const numberLine = task.points.length > 0 && task.points.every((point) => Number(point.y) === Number(task.points[0]?.y));
   const zeroInside = min <= 0 && max >= 0;
 
+  const note = !result || quiet
+    ? undefined
+    : diagnostic
+      ? t("answerSaved")
+      : result.correct
+        ? undefined
+        : result.retryAvailable
+          ? t("retryPrompt")
+          : t("incorrectLocked");
+
   return (
-    <div className={css.wrap}>
-      <h3>{task.name}</h3>
-      <MathText text={task.taskText} />
+    <TestTaskCard
+      heading="h3"
+      title={<MathText text={task.name} />}
+      prompt={<MathText as="div" text={task.taskText} />}
+      hint={
+        note || (revealed?.explanation && !quiet) ? (
+          <>
+            {note ? <span role="status">{note}</span> : null}
+            {revealed?.explanation && !quiet ? <MathText text={revealed.explanation} /> : null}
+          </>
+        ) : undefined
+      }
+      result={!quiet && result?.correct && !diagnostic ? t("correct") : undefined}
+    >
 
       <p className={css.graphHelp}>{t("graphClick")}</p>
       <div className={css.plotScroll}>
@@ -172,16 +194,6 @@ export function GraphTaskCard({ taskId, roundId, diagnostic = false, quiet = fal
       </div>
       </div>
 
-      {result && !quiet ? (
-        <p role="status">
-          {diagnostic ? t("answerSaved") : result.correct
-            ? t("correct")
-            : result.retryAvailable
-              ? t("retryPrompt")
-              : t("incorrectLocked")}
-        </p>
-      ) : null}
-      {revealed?.explanation && !quiet ? <MathText text={revealed.explanation} /> : null}
       {result?.retryAvailable && !diagnostic && !quiet ? <Stage2Hints format="graph" taskId={taskId} roundId={roundId} /> : null}
       {error ? <p role="alert">{error}</p> : null}
 
@@ -190,6 +202,6 @@ export function GraphTaskCard({ taskId, roundId, diagnostic = false, quiet = fal
           {checking ? t("checking") : submitLabel ?? t("check")}
         </button>
       ) : null}
-    </div>
+    </TestTaskCard>
   );
 }

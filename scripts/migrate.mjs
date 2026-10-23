@@ -17,6 +17,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import mysql from "mysql2/promise";
 import { isIgnorableMigrationErrno, splitSqlStatements } from "./migrate-sql.mjs";
+import {
+  classifySchemaLockHolder,
+  formatSchemaLockHolder,
+  lockDenied,
+  lockGranted,
+} from "./schema-lock.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sqlDir = path.join(root, "scripts", "sql");
@@ -95,6 +101,92 @@ function errnoOf(error) {
   return undefined;
 }
 
+const SCHEMA_LOCK = "nmt_schema";
+const SCHEMA_LOCK_WAIT_SEC = 10;
+const SCHEMA_LOCK_BUDGET_MS = 12 * 60 * 1000;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function schemaLockHolder(conn) {
+  const [lockRows] = await conn.query("SELECT IS_USED_LOCK(?) AS owner", [SCHEMA_LOCK]);
+  const owner = Array.isArray(lockRows) ? lockRows[0]?.owner : undefined;
+  if (owner == null) return null;
+  const id = Number(owner);
+  if (!Number.isSafeInteger(id) || id <= 0) return { id: owner, command: "missing", timeSec: 0 };
+  const [procs] = await conn.query(
+    `SELECT ID, COMMAND, TIME, STATE, LEFT(INFO, 120) AS INFO
+     FROM information_schema.PROCESSLIST WHERE ID = ?`,
+    [id],
+  );
+  const row = Array.isArray(procs) ? procs[0] : undefined;
+  if (!row) return { id, command: "missing", timeSec: 0 };
+  return {
+    id,
+    command: String(row.COMMAND ?? ""),
+    timeSec: Number(row.TIME) || 0,
+    state: row.STATE ?? "",
+    info: row.INFO ?? null,
+  };
+}
+
+async function dropSchemaLockHolder(conn, holder) {
+  const id = Number(holder?.id);
+  if (!Number.isSafeInteger(id) || id <= 0) return;
+  const [selfRows] = await conn.query("SELECT CONNECTION_ID() AS id");
+  const selfId = Number(Array.isArray(selfRows) ? selfRows[0]?.id : undefined);
+  if (id === selfId) return;
+  const fresh = await schemaLockHolder(conn);
+  const ageSec = fresh?.id === id ? 15 : 0;
+  if (!fresh || fresh.id !== id || classifySchemaLockHolder(fresh, ageSec) !== "drop") return;
+  console.error(
+    `dropping session ${id} that holds ${SCHEMA_LOCK} without a migration (${formatSchemaLockHolder(fresh)})`,
+  );
+  try {
+    await conn.query(`KILL ${id}`);
+  } catch (error) {
+    console.error(`could not drop session ${id}`, error instanceof Error ? error.message : error);
+  }
+}
+
+async function acquireSchemaLock(conn) {
+  const started = Date.now();
+  let watched = null;
+  let lastHolder = null;
+  while (Date.now() - started < SCHEMA_LOCK_BUDGET_MS) {
+    const attemptStarted = Date.now();
+    const [lockRows] = await conn.query(
+      `SELECT GET_LOCK(?, ${SCHEMA_LOCK_WAIT_SEC}) AS got`,
+      [SCHEMA_LOCK],
+    );
+    const got = Array.isArray(lockRows) ? lockRows[0]?.got : undefined;
+    if (lockGranted(got)) return;
+    if (!lockDenied(got)) {
+      throw new Error(`GET_LOCK(${SCHEMA_LOCK}) returned ${String(got)}`);
+    }
+    const holder = await schemaLockHolder(conn);
+    lastHolder = holder;
+    const watchedAgeSec =
+      holder && watched && watched.id === holder.id ? (Date.now() - watched.since) / 1000 : 0;
+    const action = classifySchemaLockHolder(holder, watchedAgeSec);
+    console.error(
+      `schema lock busy (${Math.round((Date.now() - started) / 1000)}s): ${formatSchemaLockHolder(holder)} -> ${action}`,
+    );
+    if (action === "drop") {
+      await dropSchemaLockHolder(conn, holder);
+      watched = null;
+      continue;
+    }
+    if (action === "busy" || action === "retry" || !holder) watched = null;
+    else if (!watched || watched.id !== holder.id) watched = { id: holder.id, since: Date.now() };
+    if (Date.now() - attemptStarted < 1000) await sleep(2000);
+  }
+  throw new Error(
+    `schema lock is busy; another migration is running. Last holder: ${formatSchemaLockHolder(lastHolder)}`,
+  );
+}
+
 const conn = await mysql.createConnection({
   host: required("DB_HOST"),
   port: Number(process.env.DB_PORT ?? 3306),
@@ -119,11 +211,7 @@ try {
     (Array.isArray(appliedRows) ? appliedRows : []).map((row) => String(row.version)),
   );
 
-  const [lockRows] = await conn.query(`SELECT GET_LOCK('nmt_schema', 30) AS got`);
-  const got = Array.isArray(lockRows) ? lockRows[0]?.got : undefined;
-  if (got === 0 || got === "0") {
-    throw new Error("schema lock is busy; another migration is running.");
-  }
+  await acquireSchemaLock(conn);
 
   try {
     for (const file of files) {
@@ -151,7 +239,7 @@ try {
       applied.add(file);
     }
   } finally {
-    await conn.query(`SELECT RELEASE_LOCK('nmt_schema')`);
+    await conn.query(`SELECT RELEASE_LOCK(?)`, [SCHEMA_LOCK]);
   }
   console.log(`migrate ok (${applied.size} versions)`);
 } finally {

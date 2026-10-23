@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useActionState, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import clsx from "clsx";
 import {
@@ -15,14 +14,12 @@ import {
 } from "@/modules/auth/validateRegistration";
 import type { RegisterRole } from "../RegisterRolePicker/RegisterRolePicker";
 import { focusNamedControl } from "../focusFormError";
+import { PasswordInput } from "../PasswordInput/PasswordInput";
 import css from "../auth.module.css";
 
 const REGISTER_ERROR_FIELD: Record<string, string> = {
   requiredFields: "displayName",
   invalidDisplayName: "displayName",
-  invalidLogin: "login",
-  loginTaken: "login",
-  reservedLogin: "login",
   invalidEmail: "email",
   emailTaken: "email",
   passwordTooShort: "password",
@@ -35,18 +32,12 @@ const INITIAL: RegisterActionState = { status: "idle" };
 type RegisterFormProps = {
   nextPath: string;
   role: RegisterRole;
-  rolePicker: ReactNode;
   /** Set when arriving via `/register?from=diagnostic` — lets `registerAction`
    * claim the guest's diagnostic progress after a successful signup. */
   from?: "diagnostic";
 };
 
-export function RegisterForm({
-  nextPath,
-  role,
-  rolePicker,
-  from,
-}: RegisterFormProps) {
+export function RegisterForm({ nextPath, role, from }: RegisterFormProps) {
   const t = useTranslations("RegisterForm");
   const [state, formAction, pending] = useActionState(registerAction, INITIAL);
   const isTeacher = role === "teacher";
@@ -79,11 +70,8 @@ export function RegisterForm({
   }, [state]);
 
   return (
-    <div className={css.card}>
-      {rolePicker}
-
+    <>
       <header className={css.intro}>
-        <p className={css.kicker}>{t("kicker")}</p>
         <h1 className={css.title}>
           {isTeacher ? t("titleTeacher") : t("title")}
         </h1>
@@ -115,23 +103,6 @@ export function RegisterForm({
         </label>
 
         <label className={css.field}>
-          <span className={css.label}>{t("login")}</span>
-          <input
-            className={css.input}
-            name="login"
-            autoComplete="username"
-            spellCheck={false}
-            required
-            minLength={3}
-            maxLength={50}
-            pattern="[A-Za-z0-9][A-Za-z0-9._-]{1,48}[A-Za-z0-9]|[A-Za-z0-9]{3,50}"
-            title={t("loginHint")}
-            disabled={pending}
-          />
-          <span className={css.hint}>{t("loginHint")}</span>
-        </label>
-
-        <label className={css.field}>
           <span className={css.label}>{t("email")}</span>
           <input
             className={css.input}
@@ -152,9 +123,7 @@ export function RegisterForm({
 
         <label className={css.field}>
           <span className={css.label}>{t("password")}</span>
-          <input
-            className={css.input}
-            type="password"
+          <PasswordInput
             name="password"
             autoComplete="new-password"
             required
@@ -169,9 +138,7 @@ export function RegisterForm({
 
         <label className={css.field}>
           <span className={css.label}>{t("passwordConfirm")}</span>
-          <input
-            className={css.input}
-            type="password"
+          <PasswordInput
             name="passwordConfirm"
             autoComplete="new-password"
             required
@@ -202,13 +169,6 @@ export function RegisterForm({
               : t("submit")}
         </button>
       </form>
-
-      <p className={css.switch}>
-        {t("haveAccount")}{" "}
-        <Link href="/login" className={css.switchLink}>
-          {t("signInLink")}
-        </Link>
-      </p>
-    </div>
+    </>
   );
 }

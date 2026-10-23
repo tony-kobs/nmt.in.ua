@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import clsx from "clsx";
 import css from "../auth.module.css";
@@ -9,19 +8,21 @@ export type RegisterRole = "student" | "teacher";
 
 type RegisterRolePickerProps = {
   role: RegisterRole;
-  studentHref: string;
-  teacherHref: string;
-  /** `aside` — under marketing copy (1240+). `card` — mobile form. */
+  onSelect: (role: RegisterRole) => void;
+  /** `aside` — under marketing copy (1240+). `card` — inside the form. */
   placement: "aside" | "card";
 };
 
 export function RegisterRolePicker({
   role,
-  studentHref,
-  teacherHref,
+  onSelect,
   placement,
 }: RegisterRolePickerProps) {
   const t = useTranslations("RegisterForm");
+  const options: { id: RegisterRole; label: string }[] = [
+    { id: "student", label: t("roleStudent") },
+    { id: "teacher", label: t("roleTeacher") },
+  ];
 
   return (
     <div
@@ -34,26 +35,20 @@ export function RegisterRolePicker({
     >
       <p className={css.rolePickerLabel}>{t("roleLabel")}</p>
       <div className={css.rolePickerTabs}>
-        <Link
-          href={studentHref}
-          className={clsx(
-            css.roleTab,
-            role === "student" && css.roleTabActive,
-          )}
-          aria-current={role === "student" ? "page" : undefined}
-        >
-          {t("roleStudent")}
-        </Link>
-        <Link
-          href={teacherHref}
-          className={clsx(
-            css.roleTab,
-            role === "teacher" && css.roleTabActive,
-          )}
-          aria-current={role === "teacher" ? "page" : undefined}
-        >
-          {t("roleTeacher")}
-        </Link>
+        {options.map((option) => {
+          const selected = role === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              className={clsx(css.roleTab, selected && css.roleTabActive)}
+              aria-pressed={selected}
+              onClick={() => onSelect(option.id)}
+            >
+              {option.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

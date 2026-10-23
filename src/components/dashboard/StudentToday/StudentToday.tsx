@@ -31,7 +31,7 @@ export async function StudentToday({ displayName, model }: StudentTodayProps) {
       title={t("title")}
       lead={
         <>
-          {t("hello")} <span className={css.accent}>{displayName}</span>
+          {t("hello")} {displayName}
         </>
       }
     >

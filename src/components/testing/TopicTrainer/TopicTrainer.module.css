@@ -5,6 +5,15 @@
   min-width: 0;
 }
 
+.embed {
+  width: 100%;
+  gap: var(--space-md);
+}
+
+.embed .header {
+  justify-content: flex-start;
+}
+
 .header {
   display: flex;
   flex-wrap: wrap;
@@ -113,141 +122,9 @@
   font-weight: 700;
 }
 
-.card {
-  display: grid;
-  gap: 14px;
-  padding: 18px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: 5px 6px 0 rgb(22 22 22 / 6%);
-}
-
-.taskName {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 750;
-}
-
-.taskText {
-  margin: 0;
-  font-size: 1.1rem;
-  line-height: 1.45;
-}
-
-.answers {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-.answer {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 56px;
-  padding: 14px 16px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-muted);
-  text-align: left;
-  font-size: 1rem;
-  cursor: pointer;
-  transition:
-    border-color var(--t) var(--ease),
-    background-color var(--t) var(--ease),
-    transform var(--t) var(--ease),
-    box-shadow var(--t) var(--ease);
-}
-
-.answerBadge {
-  display: grid;
-  flex-shrink: 0;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: var(--surface-hover);
-  color: var(--muted);
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-.answerText {
-  flex: 1;
-  min-width: 0;
-}
-
 .answerIcon {
   flex-shrink: 0;
   color: currentColor;
-}
-
-.answer:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--green) 55%, var(--border));
-  background: color-mix(in srgb, var(--green-bg) 70%, var(--surface-muted));
-}
-
-.answer:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--green) 45%, transparent);
-  outline-offset: 2px;
-}
-
-/* Neutral "picked, not graded" state — must never look like `.answerCorrect`
-   (green) or `.answerWrong` (crimson). Diagnostic mode stays in this state
-   for the rest of the session, since it never reveals correctness. */
-.answerSelected {
-  border-color: var(--blue);
-  background: var(--blue-soft);
-  color: var(--blue);
-  font-weight: 700;
-}
-
-.answerSelected .answerBadge {
-  background: var(--blue);
-  color: var(--surface);
-}
-
-.answerCorrect {
-  border-color: var(--green);
-  background: var(--green-bg);
-  color: var(--green-dark);
-  font-weight: 700;
-}
-
-.answerCorrect .answerBadge {
-  background: var(--green);
-  color: var(--surface);
-}
-
-.answerWrong {
-  border-color: color-mix(in srgb, crimson 55%, var(--border));
-  background: color-mix(in srgb, crimson 10%, var(--surface));
-  color: crimson;
-  font-weight: 700;
-}
-
-.answerWrong .answerBadge {
-  background: crimson;
-  color: var(--surface);
-}
-
-.answer:disabled {
-  cursor: default;
-}
-
-.answer:disabled:not(.answerSelected):not(.answerCorrect):not(.answerWrong) {
-  opacity: 0.75;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .answer {
-    transition: none;
-  }
-
-  .answer:hover:not(:disabled) {
-    transform: none;
-  }
 }
 
 .actions {
@@ -346,11 +223,5 @@
   border-color: color-mix(in srgb, crimson 45%, var(--border));
   background: color-mix(in srgb, crimson 10%, var(--surface));
   color: crimson;
-}
-
-@media (min-width: 768px) {
-  .answers {
-    grid-template-columns: 1fr 1fr;
-  }
 }
 

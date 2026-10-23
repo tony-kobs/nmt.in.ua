@@ -73,7 +73,10 @@
 
 .lead {
   margin: 0;
-  color: var(--muted);
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: rgb(253 251 244 / 92%);
+  color: var(--ink);
   font-size: var(--fs-lead);
   line-height: 1.55;
   text-wrap: pretty;

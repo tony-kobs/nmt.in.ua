@@ -30,6 +30,11 @@ type DiagnosticSessionRunnerProps = {
   /** From `getDiagnosticNextStep`: whether answering the last listed task
    * may be followed by another task/topic (`true`) or is final (`false`). */
   continueAfterLast: boolean;
+  /** When the attempt stays on the intro page, reload tasks here instead of
+   * refreshing a separate session route. */
+  onReload?: () => Promise<boolean>;
+  /** Cards sit inside the intro layout, so the trainer skips its page title. */
+  embed?: boolean;
 };
 
 /**
@@ -48,6 +53,8 @@ export function DiagnosticSessionRunner({
   initialIndex,
   progressTotal,
   continueAfterLast,
+  onReload,
+  embed = false,
 }: DiagnosticSessionRunnerProps) {
   const router = useRouter();
 
@@ -55,9 +62,14 @@ export function DiagnosticSessionRunner({
     const result = await advanceDiagnosticAction({ sessionId });
     if (result.status !== "success") return "error" as const;
     if (result.next === "complete") return "finish" as const;
-    router.refresh();
+    if (onReload) {
+      const ok = await onReload();
+      if (!ok) return "error" as const;
+    } else {
+      router.refresh();
+    }
     return "continue" as const;
-  }, [router, sessionId]);
+  }, [onReload, router, sessionId]);
 
   return (
     <TopicTrainer
@@ -75,6 +87,7 @@ export function DiagnosticSessionRunner({
       initialIndex={initialIndex}
       progressTotal={progressTotal}
       onContinue={continueAfterLast ? handleContinue : undefined}
+      embed={embed}
     />
   );
 }

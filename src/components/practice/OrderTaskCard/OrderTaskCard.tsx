@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { useTranslations } from "next-intl";
 import { MathText } from "@/components/ui/MathText";
+import { TestTaskCard } from "@/components/testing/TestTaskCard";
+import cardCss from "@/components/testing/TestTaskCard/TestTaskCard.module.css";
 import {
   getOrderTaskAction,
   submitOrderTaskAction,
@@ -102,12 +104,33 @@ export function OrderTaskCard({ taskId, roundId, diagnostic = false, quiet = fal
     setOrder([]);
   }
 
+  const note = !result || quiet
+    ? undefined
+    : diagnostic
+      ? t("answerSaved")
+      : result.correct
+        ? undefined
+        : result.retryAvailable
+          ? t("retryPrompt")
+          : t("incorrectLocked");
+
   return (
-    <div className={css.wrap}>
-      <h3>{task.name}</h3>
-      <MathText text={task.taskText} />
+    <TestTaskCard
+      heading="h3"
+      title={<MathText text={task.name} />}
+      prompt={<MathText as="div" text={task.taskText} />}
+      hint={
+        note || (revealed?.explanation && !quiet) ? (
+          <>
+            {note ? <span role="status">{note}</span> : null}
+            {revealed?.explanation && !quiet ? <MathText text={revealed.explanation} /> : null}
+          </>
+        ) : undefined
+      }
+      result={!quiet && result?.correct && !diagnostic ? t("correct") : undefined}
+    >
       <p className={css.help}>{t("orderHelp")}</p>
-      <div className={css.list} role="group" aria-label={t("orderHelp")}>
+      <div className={`${cardCss.answers} ${cardCss.answersStack}`} role="group" aria-label={t("orderHelp")}>
         {displaySteps.map((step) => {
           const position = order.indexOf(step.id);
           const picked = position >= 0;
@@ -119,30 +142,25 @@ export function OrderTaskCard({ taskId, roundId, diagnostic = false, quiet = fal
               key={step.id}
               type="button"
               disabled={isLocked || checking}
-              className={clsx(css.step, picked && css.picked, ok && css.ok, bad && css.bad)}
+              className={clsx(
+                cardCss.option,
+                picked && !ok && !bad && cardCss.optionSelected,
+                ok && cardCss.optionCorrect,
+                bad && cardCss.optionWrong,
+              )}
               onClick={() => toggleStep(step.id)}
               aria-pressed={picked}
             >
-              <span className={css.num} aria-hidden="true">
+              <span className={cardCss.mark} aria-hidden="true">
                 {picked ? position + 1 : "·"}
               </span>
-              <span className={css.stepText}>
+              <span className={cardCss.optionText}>
                 <MathText text={step.text} />
               </span>
             </button>
           );
         })}
       </div>
-
-      {result && !quiet ? (
-        <p className={css.statusText} role="status">
-          {diagnostic ? t("answerSaved") : result.correct
-            ? t("correct")
-            : result.retryAvailable
-              ? t("retryPrompt")
-              : t("incorrectLocked")}
-        </p>
-      ) : null}
 
       {result?.retryAvailable && !quiet ? (
         <div className={css.hintPanel}>
@@ -164,8 +182,6 @@ export function OrderTaskCard({ taskId, roundId, diagnostic = false, quiet = fal
         </div>
       ) : null}
 
-      {revealed?.explanation && !quiet ? <MathText text={revealed.explanation} /> : null}
-
       {error ? <p role="alert">{error}</p> : null}
 
       {!isLocked ? (
@@ -184,6 +200,6 @@ export function OrderTaskCard({ taskId, roundId, diagnostic = false, quiet = fal
           {t("resetOrder")}
         </button>
       ) : null}
-    </div>
+    </TestTaskCard>
   );
 }

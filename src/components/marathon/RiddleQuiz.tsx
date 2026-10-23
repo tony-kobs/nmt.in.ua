@@ -4,6 +4,8 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { useTranslations } from "next-intl";
 import { checkRiddleAction } from "@/modules/marathons/daily/actions";
 import type { PublicRiddle } from "@/modules/marathons/daily/riddleQuiz";
+import { TestTaskCard, optionLetter } from "@/components/testing/TestTaskCard";
+import cardCss from "@/components/testing/TestTaskCard/TestTaskCard.module.css";
 import css from "./marathon.module.css";
 
 function useIsClient(): boolean {
@@ -49,11 +51,14 @@ function RiddleCard({ riddle }: { riddle: PublicRiddle }) {
 
   if (riddle.mode === "text") {
     return (
-      <article className={css.card} aria-labelledby={titleId}>
-        <h3 id={titleId}>{riddle.title}</h3>
-        <p>{riddle.body}</p>
-        <p className={css.meta}>{t("riddleTextOnly")}</p>
-      </article>
+      <TestTaskCard
+        heading="h3"
+        titleId={titleId}
+        title={riddle.title}
+        badge={t("riddlesTitle")}
+        prompt={<p>{riddle.body}</p>}
+        hint={t("riddleTextOnly")}
+      />
     );
   }
 
@@ -82,35 +87,43 @@ function RiddleCard({ riddle }: { riddle: PublicRiddle }) {
     }
   }
 
-  let tone: "ok" | "wrong" | undefined;
   let status = "";
   if (pending) status = t("riddleChecking");
-  else if (solved) {
-    tone = "ok";
-    status = t("riddleCorrect");
-  } else if (mounted && waiting && seconds > 0) {
-    tone = "wrong";
+  else if (mounted && waiting && seconds > 0) {
     status = wrongId != null
       ? t("riddleWrong", { seconds })
       : t("riddleLocked", { seconds });
   } else if (failed) {
-    tone = "wrong";
     status = t("riddleError");
   }
 
   return (
-    <article className={css.card} aria-labelledby={titleId}>
-      <h3 id={titleId}>{riddle.title}</h3>
-      <p>{riddle.body}</p>
-      <div role="group" aria-labelledby={titleId} className={css.options}>
-        {riddle.options.map((option) => {
+    <TestTaskCard
+      heading="h3"
+      titleId={titleId}
+      title={riddle.title}
+      badge={t("riddlesTitle")}
+      prompt={<p>{riddle.body}</p>}
+      hint={
+        solved && hint ? (
+          <span>
+            <span className={css.fieldLabel}>{t("riddleExplanation")}. </span>
+            {hint}
+          </span>
+        ) : !solved && status ? (
+          <span role="status" aria-live="polite">{status}</span>
+        ) : undefined
+      }
+      result={solved ? t("riddleCorrect") : undefined}
+    >
+      <div role="group" aria-labelledby={titleId} className={cardCss.answers}>
+        {riddle.options.map((option, index) => {
           const right = solved && option.id === choiceId;
           const wrong = !solved && option.id === wrongId && waiting;
           const className = [
-            css.option,
-            css.riddleChoice,
-            right ? css.optionRight : "",
-            wrong ? css.optionWrong : "",
+            cardCss.option,
+            right ? cardCss.optionCorrect : "",
+            wrong ? cardCss.optionWrong : "",
           ].filter(Boolean).join(" ");
           return (
             <button
@@ -121,23 +134,13 @@ function RiddleCard({ riddle }: { riddle: PublicRiddle }) {
               aria-pressed={right}
               onClick={() => void choose(option.id)}
             >
-              {option.label}
+              <span className={cardCss.mark}>{optionLetter(index)})</span>
+              <span className={cardCss.optionText}>{option.label}</span>
             </button>
           );
         })}
       </div>
-      {status ? (
-        <p className={css.riddleStatus} role="status" aria-live="polite" data-tone={tone}>
-          {status}
-        </p>
-      ) : null}
-      {solved && hint ? (
-        <p className={css.reviewNote}>
-          <span className={css.fieldLabel}>{t("riddleExplanation")}. </span>
-          {hint}
-        </p>
-      ) : null}
-    </article>
+    </TestTaskCard>
   );
 }
 

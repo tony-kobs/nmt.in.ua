@@ -3,19 +3,6 @@
   max-width: none;
 }
 
-.accent {
-  color: var(--green-dark);
-}
-
-@supports ((background-clip: text) or (-webkit-background-clip: text)) {
-  .accent {
-    background: var(--grad-brand);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-  }
-}
-
 .note {
   margin: 0;
   max-width: 40rem;

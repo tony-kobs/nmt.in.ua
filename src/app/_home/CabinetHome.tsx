@@ -3,6 +3,7 @@ import { getMessages, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { AdminContentEditor } from "@/components/admin/AdminContentEditor";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { LandingFooter } from "@/components/welcome/LandingFooter";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { StudentToday } from "@/components/dashboard/StudentToday";
 import { MarathonHomeCards } from "@/components/marathon/MarathonHomeCards";
@@ -82,7 +83,7 @@ export async function CabinetHome({
     return (
       <NextIntlClientProvider locale={locale} messages={messages}>
         {needsCookieUpgrade ? <UpgradeSessionCookie /> : null}
-        <DashboardShell user={user}>
+        <DashboardShell user={user} footer={<LandingFooter variant="cabinet" />}>
           <SavedToast active={saved} text={savedText} />
           <PageFrame
             kicker={t("kicker")}
@@ -119,6 +120,7 @@ export async function CabinetHome({
       <DashboardShell
         user={user}
         cabinetScope={cabinetScope}
+        footer={<LandingFooter variant="cabinet" />}
       >
         <SavedToast active={saved} text={savedText} />
         <MarathonInviteBanner invites={home.invites} />

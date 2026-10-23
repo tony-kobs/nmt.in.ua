@@ -4,6 +4,7 @@ import { useId, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { PageFrame, PagePanel } from "@/components/dashboard/PageFrame";
+import { TestTaskCard } from "@/components/testing/TestTaskCard";
 import { ModeTabs } from "@/components/ui/ModeTabs";
 import type { FractionAdditionDifficulty } from "@/modules/problemGenerators";
 import {
@@ -341,6 +342,18 @@ export function FractionPracticeTrainer() {
             {t("scoreLine", { correct: correctCount, answered: answeredCount })}
           </p>
 
+          <TestTaskCard
+            title={t("taskHeading", { number: Math.min(answeredCount + 1, taskCount) })}
+            badge={t("levelBadge", { level })}
+            hint={
+              feedbackKind === "incorrect"
+                ? t("feedbackIncorrect")
+                : feedbackKind === "reductionRequired"
+                  ? t("feedbackReductionRequired")
+                  : undefined
+            }
+            result={feedbackKind === "correct" ? t("feedbackCorrect") : undefined}
+          >
           <form
             className={css.answerForm}
             onSubmit={(event) => {
@@ -440,6 +453,7 @@ export function FractionPracticeTrainer() {
               {errorMessage}
             </p>
           ) : null}
+          </TestTaskCard>
         </PagePanel>
       </PageFrame>
     );
