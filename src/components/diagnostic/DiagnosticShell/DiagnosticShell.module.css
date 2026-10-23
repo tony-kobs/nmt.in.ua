@@ -3,11 +3,27 @@
   isolation: isolate;
   min-height: 100dvh;
   overflow-x: clip;
-  /* Same token + notebook-grid decor AuthShell/DashboardShell use for their
-   * background — diagnostic bypasses those shells (see DashboardShell's
-   * passthrough list) but should still read as the same product, not a
-   * plain unstyled page. */
-  background: transparent;
+  background: var(--page);
+}
+
+.page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+
+  background-image:
+    linear-gradient(
+      100deg,
+      color-mix(in srgb, var(--page) 90%, transparent) 0%,
+      color-mix(in srgb, var(--page) 74%, transparent) 40%,
+      color-mix(in srgb, var(--page) 35%, transparent) 100%
+    ),
+    url("/landing/hero-classroom.webp");
+
+  background-size: cover;
+  background-position: center 42%;
 }
 
 .decor {
@@ -90,7 +106,7 @@
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: var(--content-narrow);
+  max-width: var(--container-max);
   margin-inline: auto;
   padding: var(--space-lg) var(--container-pad) var(--space-3xl);
 }
@@ -173,4 +189,3 @@
     transform: none;
   }
 }
-
