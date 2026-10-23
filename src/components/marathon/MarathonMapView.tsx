@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { joinMarathonAction } from "@/modules/marathons/daily/actions";
 import { formatKyivWhen } from "@/modules/marathons/daily/calendar";
-import { durationLocale, formatMarathonDuration, totalKnownSeconds } from "@/modules/marathons/daily/durationText";
+import { durationLocale, formatMarathonDurationOrDash, totalKnownSeconds } from "@/modules/marathons/daily/durationText";
 import { loomEmbedSrc, youtubeEmbedSrc } from "@/modules/marathons/daily/richText";
 import type { DailyMarathon, DayProgress, Participant } from "@/modules/marathons/daily/store";
 import { DeliveryToggles } from "./DeliveryToggles";
@@ -55,9 +55,7 @@ export async function MarathonMapView({
   const totalSeconds = totalKnownSeconds(finished.map((day) => day.progress?.durationSeconds ?? null));
   const totalLabel = finished.length === 0
     ? null
-    : totalSeconds == null
-      ? t("totalTimeUnknown")
-      : t("totalTime", { time: formatMarathonDuration(totalSeconds, uiLocale) });
+    : t("totalTime", { time: formatMarathonDurationOrDash(totalSeconds, uiLocale) });
   const message = marathonErrorText(t, error);
   const video = marathon.introVideoUrl;
   const src = video ? youtubeEmbedSrc(video) ?? loomEmbedSrc(video) : null;
@@ -132,13 +130,9 @@ export async function MarathonMapView({
                               when: day.unlockAt ? formatKyivWhen(day.unlockAt, locale) : "",
                             })}
                       {day.progress?.completedAt != null
-                        ? ` · ${
-                          day.progress.durationSeconds == null
-                            ? t("dayTimeUnknown")
-                            : t("dayTime", {
-                              time: formatMarathonDuration(day.progress.durationSeconds, uiLocale),
-                            })
-                        }`
+                        ? ` · ${t("dayTime", {
+                          time: formatMarathonDurationOrDash(day.progress.durationSeconds, uiLocale),
+                        })}`
                         : ""}
                     </span>
                   </>

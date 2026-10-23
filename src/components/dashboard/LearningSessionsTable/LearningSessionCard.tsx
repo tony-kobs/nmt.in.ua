@@ -10,7 +10,7 @@ import {
   formatPercent as formatResultPercent,
   getScoreLevel,
 } from "@/modules/results/types";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { SessionActions } from "./LearningSessionActions";
 import { SessionStatusBlock } from "./LearningSessionStatus";
 import css from "./LearningSessionsTable.module.css";
@@ -45,6 +45,7 @@ export function LearningSessionCard({
   readOnly,
 }: LearningSessionCardProps) {
   const t = useTranslations("LearningSessionsTable");
+  const locale = useLocale();
 
   return (
     <article className={css.card}>
@@ -79,7 +80,7 @@ export function LearningSessionCard({
             </div>
             <div>
               <dt>{t("timeSeconds")}</dt>
-              <dd>{formatDurationSeconds(row.timeSec)}</dd>
+              <dd>{formatDurationSeconds(row.timeSec, locale)}</dd>
             </div>
             <div>
               <dt>{t("startDate")}</dt>

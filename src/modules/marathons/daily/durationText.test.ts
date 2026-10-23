@@ -5,6 +5,7 @@ import {
   botDayTimeNote,
   durationSeconds,
   formatMarathonDuration,
+  formatMarathonDurationOrDash,
   totalKnownSeconds,
 } from "./durationText";
 
@@ -29,12 +30,16 @@ test("average and median ignore nothing and stay whole seconds", () => {
   assert.deepEqual(averageAndMedian([10, 20, 90]), { avg: 40, median: 20 });
 });
 
-test("duration reads as minutes and seconds", () => {
+test("duration reads as minutes and seconds, and hours without leftover seconds", () => {
+  assert.equal(formatMarathonDuration(725, "uk"), "12 хв 05 с");
   assert.equal(formatMarathonDuration(750, "uk"), "12 хв 30 с");
-  assert.equal(formatMarathonDuration(45, "uk"), "45 с");
-  assert.equal(formatMarathonDuration(120, "uk"), "2 хв");
-  assert.equal(formatMarathonDuration(0, "uk"), "0 с");
-  assert.equal(formatMarathonDuration(3661, "en"), "1 h 1 min 1 s");
+  assert.equal(formatMarathonDuration(45, "uk"), "0 хв 45 с");
+  assert.equal(formatMarathonDuration(120, "uk"), "2 хв 00 с");
+  assert.equal(formatMarathonDuration(0, "uk"), "0 хв 00 с");
+  assert.equal(formatMarathonDuration(3600 + 3 * 60, "uk"), "1 год 03 хв");
+  assert.equal(formatMarathonDuration(3661, "en"), "1 h 01 min");
+  assert.equal(formatMarathonDuration(3661, "de"), "1 Std. 01 Min.");
   assert.equal(formatMarathonDuration(null, "uk"), "");
-  assert.equal(botDayTimeNote(750, null), "Час цього дня: 12 хв 30 с\nЗагальний час: невідомий");
+  assert.equal(formatMarathonDurationOrDash(null, "uk"), "—");
+  assert.equal(botDayTimeNote(725, null), "Час цього дня: 12 хв 05 с\nЗагальний час: —");
 });

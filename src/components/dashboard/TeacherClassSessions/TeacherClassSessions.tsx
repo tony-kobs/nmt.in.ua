@@ -14,7 +14,7 @@ import Link from "next/link";
 import clsx from "clsx";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Pagination } from "@/components/ui/Pagination";
 import { paginateSlice } from "@/lib/pagination";
 import {
@@ -114,6 +114,7 @@ function filterValue(
   key: ColumnKey,
   labelCreated: (by: TeacherLearningSessionRow["createdBy"]) => string,
   labelStatus: (status: TeacherLearningSessionRow["status"]) => string,
+  locale: string,
 ): string {
   switch (key) {
     case "student":
@@ -125,7 +126,7 @@ function filterValue(
     case "percent":
       return formatPercent(row.percent);
     case "time":
-      return formatDurationSeconds(row.timeSec);
+      return formatDurationSeconds(row.timeSec, locale);
     case "speed":
       return formatTimePerTask(row.timePerTaskSec);
     case "when":
@@ -405,6 +406,7 @@ export function TeacherClassSessions({
   paginationQueryParams = {},
 }: TeacherClassSessionsProps) {
   const t = useTranslations("TeacherStudentSessions");
+  const locale = useLocale();
   const router = useRouter();
   const isDesktop = useMinWidth(768);
   const [sort, setSort] = useState<SortState>({ key: "when", dir: "desc" });
@@ -448,12 +450,12 @@ export function TeacherClassSessions({
     for (const col of columns) {
       const set = new Set<string>();
       for (const row of rows) {
-        set.add(filterValue(row, col.key, labelCreated, labelStatus));
+        set.add(filterValue(row, col.key, labelCreated, labelStatus, locale));
       }
       map[col.key] = [...set].sort((a, b) => a.localeCompare(b, "uk"));
     }
     return map;
-  }, [columns, rows, labelCreated, labelStatus]);
+  }, [columns, rows, labelCreated, labelStatus, locale]);
 
   const visible = useMemo(() => {
     let list = rows.slice();
@@ -461,12 +463,12 @@ export function TeacherClassSessions({
       const selected = filters[col.key];
       if (!selected) continue;
       list = list.filter((row) =>
-        selected.has(filterValue(row, col.key, labelCreated, labelStatus)),
+        selected.has(filterValue(row, col.key, labelCreated, labelStatus, locale)),
       );
     }
     list.sort((a, b) => compareRows(a, b, sort));
     return list;
-  }, [rows, columns, filters, sort, labelCreated, labelStatus]);
+  }, [rows, columns, filters, sort, labelCreated, labelStatus, locale]);
 
   const paginated = useMemo(
     () => paginateSlice(visible, page),
@@ -595,7 +597,7 @@ export function TeacherClassSessions({
                     </div>
                     <div>
                       <dt>{t("time")}</dt>
-                      <dd>{formatDurationSeconds(row.timeSec)}</dd>
+                      <dd>{formatDurationSeconds(row.timeSec, locale)}</dd>
                     </div>
                     <div>
                       <dt>{t("speed")}</dt>
@@ -668,7 +670,7 @@ export function TeacherClassSessions({
                           </span>
                         </td>
                         <td className={css.colNarrow}>
-                          {formatDurationSeconds(row.timeSec)}
+                          {formatDurationSeconds(row.timeSec, locale)}
                         </td>
                         <td className={css.colNarrow}>
                           {formatTimePerTask(row.timePerTaskSec)}

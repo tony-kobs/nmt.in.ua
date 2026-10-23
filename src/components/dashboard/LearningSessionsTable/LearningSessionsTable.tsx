@@ -9,7 +9,7 @@ import {
   formatTimePerTask,
 } from "@/modules/sessions/types";
 import { formatPercent as formatResultPercent } from "@/modules/results/types";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Pagination } from "@/components/ui/Pagination";
 import { paginateSlice } from "@/lib/pagination";
 import { queryHref } from "@/lib/queryHref";
@@ -49,6 +49,7 @@ export function LearningSessionsTable({
   pathname = "/sessions",
 }: LearningSessionsTableProps) {
   const t = useTranslations("LearningSessionsTable");
+  const locale = useLocale();
   const router = useRouter();
   const showExtendedInfo = extended;
   const paginated = useMemo(() => paginateSlice(rows, page), [rows, page]);
@@ -196,7 +197,7 @@ export function LearningSessionsTable({
                     </td>
                     {showExtendedInfo ? (
                       <td className={css.colNarrow}>
-                        {formatDurationSeconds(row.timeSec)}
+                        {formatDurationSeconds(row.timeSec, locale)}
                       </td>
                     ) : null}
                     <td className={css.colTimePer}>

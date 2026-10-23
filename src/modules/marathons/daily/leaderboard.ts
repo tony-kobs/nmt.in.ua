@@ -3,7 +3,7 @@ import {
   type CopyKey,
   type CopyVars,
 } from "./copy";
-import { formatMarathonDuration } from "./durationText";
+import { formatMarathonDurationOrDash } from "./durationText";
 
 /** How many rows the participant sees before their own line. */
 export const BOARD_TOP = 10;
@@ -172,9 +172,7 @@ export function formatBoardMessage(input: {
   selfOutside: boolean;
 }): string {
   const line = (row: { place: number; name: string; points: number; streak: number; totalTimeSec?: number | null }) => {
-    const time = row.totalTimeSec == null
-      ? (row.points > 0 ? " · час невідомий" : "")
-      : ` · ${formatMarathonDuration(row.totalTimeSec, "uk")}`;
+    const time = ` · ${formatMarathonDurationOrDash(row.totalTimeSec ?? null, "uk")}`;
     const streak = row.streak > 0 ? ` · серія ${row.streak}` : "";
     return `${row.place}. ${row.name} — ${row.points}${time}${streak}`;
   };

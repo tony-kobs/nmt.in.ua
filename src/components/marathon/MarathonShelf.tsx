@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { MarathonPicker } from "@/components/marathons/MarathonPicker";
 import { ALL_MARATHONS_SLUG, boardShowsSpeed } from "@/modules/marathons/boardStats";
 import { joinMarathonAction } from "@/modules/marathons/daily/actions";
 import type { ShelfCard } from "@/modules/marathons/daily/shelf";
 import type { MarathonLeaderboardRow, MarathonLeaderboardView } from "@/modules/marathons/types";
+import { durationLocale, formatMarathonDurationOrDash } from "@/modules/marathons/daily/durationText";
 import { formatPercent, formatSpeed } from "@/modules/results/types";
 import board from "./MarathonHomeCards.module.css";
 import css from "./marathon.module.css";
@@ -19,6 +20,7 @@ export async function MarathonShelf({
 }) {
   const t = await getTranslations("Marathon");
   const boardT = await getTranslations("MarathonLeaderboard");
+  const uiLocale = durationLocale(await getLocale());
   const allTime = leaderboard?.marathon.slug === ALL_MARATHONS_SLUG;
   const daily = leaderboard?.marathon.kind === "daily";
   const showSpeed = leaderboard
@@ -155,6 +157,7 @@ export async function MarathonShelf({
                           days: boardT("days"),
                           percent: boardT("avgPercent"),
                           points: t("boardPoints", { count: row.points }),
+                          time: formatMarathonDurationOrDash(row.totalTimeSec, uiLocale),
                           sessions: boardT("sessions"),
                           speed: boardT("speed"),
                         })}
@@ -174,7 +177,7 @@ export async function MarathonShelf({
 function standingStats(
   row: Pick<
     MarathonLeaderboardRow,
-    "daysDone" | "avgPercent" | "sessionsCount" | "avgSecPerTask"
+    "daysDone" | "avgPercent" | "sessionsCount" | "avgSecPerTask" | "totalTimeSec"
   >,
   labels: {
     daily: boolean;
@@ -182,6 +185,7 @@ function standingStats(
     days: string;
     percent: string;
     points: string;
+    time: string;
     sessions: string;
     speed: string;
   },
@@ -189,7 +193,7 @@ function standingStats(
   const parts: string[] = [];
   if (labels.daily) parts.push(`${labels.days} ${row.daysDone}`);
   parts.push(`${labels.percent} ${formatPercent(row.avgPercent)}`);
-  if (labels.daily) parts.push(labels.points);
+  if (labels.daily) parts.push(`${labels.points} · ${labels.time}`);
   else parts.push(`${labels.sessions} ${row.sessionsCount}`);
   if (labels.showSpeed) {
     parts.push(`${labels.speed} ${formatSpeed(row.avgSecPerTask)}`);

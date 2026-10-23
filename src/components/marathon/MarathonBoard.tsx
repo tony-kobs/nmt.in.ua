@@ -1,5 +1,5 @@
 import { getLocale, getTranslations } from "next-intl/server";
-import { durationLocale, formatMarathonDuration } from "@/modules/marathons/daily/durationText";
+import { durationLocale, formatMarathonDurationOrDash } from "@/modules/marathons/daily/durationText";
 import { visibleBoard, type BoardLine } from "@/modules/marathons/daily/leaderboard";
 import css from "./marathon.module.css";
 
@@ -38,7 +38,7 @@ export async function MarathonBoard({
               row={row}
               you={row.userId === selfId}
               pointsLabel={t("boardPoints", { count: row.points })}
-              timeLabel={boardTimeLabel(t, uiLocale, row)}
+              timeLabel={boardTimeLabel(uiLocale, row)}
               streakLabel={row.streak > 0 ? t("boardStreak", { count: row.streak }) : ""}
               youLabel={t("boardYou")}
             />
@@ -51,7 +51,7 @@ export async function MarathonBoard({
               row={view.self}
               you
               pointsLabel={t("boardPoints", { count: view.self.points })}
-              timeLabel={boardTimeLabel(t, uiLocale, view.self)}
+              timeLabel={boardTimeLabel(uiLocale, view.self)}
               streakLabel={view.self.streak > 0 ? t("boardStreak", { count: view.self.streak }) : ""}
               youLabel={t("boardYou")}
             />
@@ -63,13 +63,10 @@ export async function MarathonBoard({
 }
 
 function boardTimeLabel(
-  t: Awaited<ReturnType<typeof getTranslations>>,
   locale: ReturnType<typeof durationLocale>,
   row: BoardLine,
 ): string {
-  if (row.totalTimeSec != null) return formatMarathonDuration(row.totalTimeSec, locale);
-  if (row.points > 0) return t("boardTimeUnknown");
-  return "";
+  return formatMarathonDurationOrDash(row.totalTimeSec, locale);
 }
 
 function BoardRow({
