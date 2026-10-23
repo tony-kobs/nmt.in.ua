@@ -1244,7 +1244,7 @@
       },
       "body": {
         "required": "Gib den Text an.",
-        "placeholder": "Unbekannter Platzhalter. Erlaubt sind nur name, day, topic, unlock_time, link, place, prev_place, delta, total, title und start_date in geschweiften Klammern."
+        "placeholder": "Unbekannter Platzhalter. Erlaubt sind nur name, day, topic, unlock_time, link, place, prev_place, delta, total, title, start_date und id in geschweiften Klammern."
       },
       "introVideo": {
         "format": "Das Einführungsvideo muss ein YouTube- oder Loom-Link sein."
@@ -1364,6 +1364,11 @@
         "bot_btn_support": "Button An das Team schreiben",
         "bot_support_ask": "Supportanfrage",
         "bot_support_thanks": "Anfrage angekommen",
+        "bot_support_reply_header": "Kopfzeile der Support-Antwort",
+        "bot_support_reply_photo": "Fotozitat ohne Beschriftung",
+        "bot_support_reply_btn": "Button Antworten",
+        "bot_support_follow_ask": "Nachfrage zum Ticket",
+        "bot_support_follow_thanks": "Nachfrage angenommen",
         "bot_day_done": "Tag bereits abgegeben",
         "bot_finished": "Marathon beendet",
         "bot_archived": "Marathon im Archiv",
@@ -2241,7 +2246,10 @@
   "Support": {
     "kicker": "Admin",
     "title": "Anfragen",
-    "lead": "Nachrichten aus dem Bot. Die Antwort geht an den Teilnehmer in Telegram.",
+    "lead": "Nachrichten aus dem Bot. Die Antwort in Telegram enthält eine Überschrift, ein Zitat der Anfrage und Ihren Text.",
+    "threadLabel": "Verlauf",
+    "threadStudent": "Teilnehmer",
+    "threadStaff": "Team",
     "filterLabel": "Status der Anfragen",
     "listTitle": "Liste",
     "empty": "Keine Anfragen.",

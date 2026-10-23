@@ -16,7 +16,7 @@ import { handleMenuRequest, parseMenuCallback, parseMenuCommand, parseMenuData, 
 import { accountCallbackFromText, attachReplyKeyboard, collapsedMenuKeyboard, expandedMenuKeyboard, MENU_CLOSE_LABEL, MENU_OPEN_LABEL, parsePrivateMenuText } from "./replyKeyboard";
 import { readSurveyNote, type SurveyPrompt } from "@/modules/marathons/daily/survey";
 import { dispatchTeamChat } from "@/modules/support/teamBroadcast";
-import { intakeDecision, readPrivateNote } from "@/modules/support/text";
+import { intakeDecision, readPrivateNote, readSupportReplyPress } from "@/modules/support/text";
 
 type TelegramMessage = {
   chat?: { id?: number; type?: string };
@@ -93,8 +93,17 @@ export async function handleTelegramUpdate(
     };
     support?: {
       peek?: (chatId: string) => Promise<boolean>;
+      peekFollow?: (chatId: string) => Promise<boolean>;
       cancel?: (chatId: string) => Promise<void>;
-      accept?: (input: { chatId: string; body: string }) => Promise<{ text: string } | null>;
+      cancelFollow?: (chatId: string) => Promise<void>;
+      accept?: (input: { chatId: string; body: string; kind?: "text" | "photo" }) => Promise<{ text: string } | null>;
+      acceptFollowup?: (input: {
+        chatId: string;
+        body: string;
+        kind: "text" | "photo";
+        replyToMessageId: number | null;
+      }) => Promise<{ text: string } | null>;
+      armFollowup?: (chatId: string, ticketId: number) => Promise<{ text: string } | null>;
     };
     teamChat?: (update: unknown) => Promise<{ handled: boolean; reply: TelegramReply | null }>;
   } = { consume: consumeTelegramLink },
@@ -131,7 +140,10 @@ export async function handleTelegramUpdate(
     }
   }
   const supportCaptured = await captureSupport(update, deps, log);
-  if (supportCaptured) return supportCaptured;
+  if (supportCaptured) {
+    await acknowledgeQuietly(deps, callbackQueryId(update));
+    return supportCaptured;
+  }
   const captured = await captureSurvey(update, deps, log);
   if (captured) return captured;
   async function accountKeyboard(userId: string) {
@@ -452,32 +464,66 @@ async function captureSupport(
   deps: {
     support?: {
       peek?: (chatId: string) => Promise<boolean>;
+      peekFollow?: (chatId: string) => Promise<boolean>;
       cancel?: (chatId: string) => Promise<void>;
-      accept?: (input: { chatId: string; body: string }) => Promise<{ text: string } | null>;
+      cancelFollow?: (chatId: string) => Promise<void>;
+      accept?: (input: { chatId: string; body: string; kind?: "text" | "photo" }) => Promise<{ text: string } | null>;
+      acceptFollowup?: (input: {
+        chatId: string;
+        body: string;
+        kind: "text" | "photo";
+        replyToMessageId: number | null;
+      }) => Promise<{ text: string } | null>;
+      armFollowup?: (chatId: string, ticketId: number) => Promise<{ text: string } | null>;
     };
   },
   log: (error: unknown) => void,
 ): Promise<TelegramReply | null> {
-  const note = readPrivateNote(update);
-  if (!note) return null;
+  const press = readSupportReplyPress(update);
+  const note = press ? null : readPrivateNote(update);
+  if (!press && !note) return null;
   try {
-    const store = deps.support?.peek && deps.support.cancel && deps.support.accept
-      ? null
-      : await import("@/modules/support/store");
+    const injected = Boolean(deps.support?.peek && deps.support.cancel && deps.support.accept);
+    const store = injected ? null : await import("@/modules/support/store");
+    if (press) {
+      const arm = deps.support?.armFollowup ?? store?.armSupportFollow;
+      const armed = arm ? await arm(press.chatId, press.ticketId) : null;
+      return {
+        chatId: press.chatId,
+        text: armed?.text ?? "Це звернення вже недоступне.",
+        disablePreview: true,
+      };
+    }
+    if (!note) return null;
+    const followWaiting = deps.support?.peekFollow
+      ? await deps.support.peekFollow(note.chatId)
+      : store
+        ? await store.peekSupportFollow(note.chatId)
+        : false;
     const waiting = deps.support?.peek
       ? await deps.support.peek(note.chatId)
       : await store!.peekSupportWait(note.chatId);
-    const decision = intakeDecision(note, waiting);
-    if (decision === "ignore") return null;
+    const decision = intakeDecision(note, waiting || followWaiting);
     if (decision === "cancel") {
       if (deps.support?.cancel) await deps.support.cancel(note.chatId);
       else await store!.cancelSupportWait(note.chatId);
+      if (deps.support?.cancelFollow) await deps.support.cancelFollow(note.chatId);
       return null;
     }
-    if (!note.body) return null;
+    const acceptFollow = deps.support?.acceptFollowup ?? store?.acceptSupportFollowup;
+    if (acceptFollow && note.body && !note.navigation && (note.replyToMessageId || followWaiting)) {
+      const followed = await acceptFollow({
+        chatId: note.chatId,
+        body: note.body,
+        kind: note.kind,
+        replyToMessageId: note.replyToMessageId,
+      });
+      if (followed) return { chatId: note.chatId, text: followed.text, disablePreview: true };
+    }
+    if (decision !== "ticket" || !note.body) return null;
     const accepted = deps.support?.accept
-      ? await deps.support.accept({ chatId: note.chatId, body: note.body })
-      : await store!.acceptSupportMessage({ chatId: note.chatId, body: note.body });
+      ? await deps.support.accept({ chatId: note.chatId, body: note.body, kind: note.kind })
+      : await store!.acceptSupportMessage({ chatId: note.chatId, body: note.body, kind: note.kind });
     return accepted ? { chatId: note.chatId, text: accepted.text, disablePreview: true } : null;
   } catch (error) {
     log(error);

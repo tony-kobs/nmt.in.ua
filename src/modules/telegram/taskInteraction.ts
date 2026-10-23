@@ -36,6 +36,8 @@ export type TelegramReply = {
   editMessageId?: number;
   /** Suppress the website preview card under the text. */
   disablePreview?: boolean;
+  /** Quote an earlier message in this chat. Ignored when the bubble is an edit. */
+  replyToMessageId?: number;
   /** Further messages. Not sent as part of the Telegram payload. */
   continuation?: TelegramReply[];
   /** Recorded after this message is delivered. Not sent to Telegram. */

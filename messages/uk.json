@@ -1244,7 +1244,7 @@
       },
       "body": {
         "required": "Вкажіть текст.",
-        "placeholder": "Невідомий плейсхолдер. Дозволені лише name, day, topic, unlock_time, link, place, prev_place, delta, total, title і start_date у фігурних дужках."
+        "placeholder": "Невідомий плейсхолдер. Дозволені лише name, day, topic, unlock_time, link, place, prev_place, delta, total, title, start_date і id у фігурних дужках."
       },
       "introVideo": {
         "format": "Вступне відео має бути посиланням YouTube або Loom."
@@ -1364,6 +1364,11 @@
         "bot_btn_support": "Кнопка «Написати команді»",
         "bot_support_ask": "Запит звернення",
         "bot_support_thanks": "Звернення прийнято",
+        "bot_support_reply_header": "Заголовок відповіді на звернення",
+        "bot_support_reply_photo": "Цитата фото без підпису",
+        "bot_support_reply_btn": "Кнопка «Відповісти»",
+        "bot_support_follow_ask": "Запит продовження звернення",
+        "bot_support_follow_thanks": "Продовження прийнято",
         "bot_day_done": "День уже зданий",
         "bot_finished": "Марафон завершено",
         "bot_archived": "Марафон в архіві",
@@ -2241,7 +2246,10 @@
   "Support": {
     "kicker": "Адмін",
     "title": "Звернення",
-    "lead": "Повідомлення з бота. Відповідь іде учаснику в Telegram.",
+    "lead": "Повідомлення з бота. Відповідь іде учаснику в Telegram: заголовок, цитата звернення і текст.",
+    "threadLabel": "Переписка",
+    "threadStudent": "Учасник",
+    "threadStaff": "Команда",
     "filterLabel": "Статус звернень",
     "listTitle": "Список",
     "empty": "Звернень немає.",

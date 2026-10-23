@@ -1244,7 +1244,7 @@
       },
       "body": {
         "required": "Enter the text.",
-        "placeholder": "Unknown placeholder. Only name, day, topic, unlock_time, link, place, prev_place, delta, total, title and start_date are allowed, each in curly braces."
+        "placeholder": "Unknown placeholder. Only name, day, topic, unlock_time, link, place, prev_place, delta, total, title, start_date and id are allowed, each in curly braces."
       },
       "introVideo": {
         "format": "The intro video must be a YouTube or Loom link."
@@ -1364,6 +1364,11 @@
         "bot_btn_support": "Write to the team button",
         "bot_support_ask": "Support request",
         "bot_support_thanks": "Request received",
+        "bot_support_reply_header": "Support reply header",
+        "bot_support_reply_photo": "Photo quote without a caption",
+        "bot_support_reply_btn": "Reply button",
+        "bot_support_follow_ask": "Follow-up prompt",
+        "bot_support_follow_thanks": "Follow-up received",
         "bot_day_done": "Day already submitted",
         "bot_finished": "Marathon finished",
         "bot_archived": "Marathon archived",
@@ -2241,7 +2246,10 @@
   "Support": {
     "kicker": "Admin",
     "title": "Messages",
-    "lead": "Messages from the bot. A reply is sent to the participant in Telegram.",
+    "lead": "Messages from the bot. A reply in Telegram includes a header, a quote of the request, and your text.",
+    "threadLabel": "Thread",
+    "threadStudent": "Participant",
+    "threadStaff": "Team",
     "filterLabel": "Ticket status",
     "listTitle": "List",
     "empty": "No messages.",

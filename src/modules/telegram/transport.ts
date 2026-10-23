@@ -60,6 +60,13 @@ function interpret(response: Response, body: unknown): TelegramSendResult {
 function messageJson(reply: TelegramReply, markup: unknown): Record<string, unknown> {
   const body: Record<string, unknown> = { chat_id: reply.chatId, text: reply.text };
   if (reply.parseMode) body.parse_mode = reply.parseMode;
+  if (
+    reply.editMessageId === undefined
+    && Number.isSafeInteger(reply.replyToMessageId)
+    && (reply.replyToMessageId ?? 0) > 0
+  ) {
+    body.reply_to_message_id = reply.replyToMessageId;
+  }
   if (markup) body.reply_markup = markup;
   if (reply.linkPreviewUrl) {
     body.link_preview_options = {
