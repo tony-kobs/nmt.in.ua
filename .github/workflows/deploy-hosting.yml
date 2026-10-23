@@ -19,6 +19,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Require panel API secrets
+        env:
+          ADM_TOOLS_TOKEN: ${{ secrets.ADM_TOOLS_TOKEN }}
+          ADM_TOOLS_HOST_ID: ${{ secrets.ADM_TOOLS_HOST_ID }}
+        run: |
+          if [ -z "$ADM_TOOLS_TOKEN" ] || [ -z "$ADM_TOOLS_HOST_ID" ]; then
+            echo "Add repo secrets ADM_TOOLS_TOKEN and ADM_TOOLS_HOST_ID." >&2
+            echo "The panel Node manager restarts the site. This job does not nohup its own copy." >&2
+            exit 1
+          fi
+          case "$ADM_TOOLS_HOST_ID" in
+            *[!0-9]*)
+              echo "ADM_TOOLS_HOST_ID must be digits (site host_id)." >&2
+              exit 1
+              ;;
+          esac
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -66,11 +83,14 @@ jobs:
           chmod 600 "$HOME/.ssh/hosting_key"
           ssh-keyscan -H levelhst.ftp.tools >> "$HOME/.ssh/known_hosts"
 
-      # Host runs npm install, then npm run migrate, and only then stops Node and swaps www.
+      # Host runs npm install, then npm run migrate, then stops the legacy
+      # listener, swaps www, and asks the panel to reload Node.
       - name: Upload release, migrate, then swap www
         env:
           RELEASE_ID: ${{ github.sha }}
           NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
+          ADM_TOOLS_TOKEN: ${{ secrets.ADM_TOOLS_TOKEN }}
+          ADM_TOOLS_HOST_ID: ${{ secrets.ADM_TOOLS_HOST_ID }}
         run: |
           export SSH_KEY="$HOME/.ssh/hosting_key"
           if [ -n "${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-}" ]; then
