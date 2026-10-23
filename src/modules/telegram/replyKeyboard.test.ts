@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { marathonCallbackFromText, marathonReplyKeyboard } from "@/modules/marathons/daily/botPlay";
+import { marathonButtonSnapshots, marathonCallbackFromText, marathonReplyKeyboard, menuMessages } from "@/modules/marathons/daily/botPlay";
+import { expandSources } from "@/modules/marathons/daily/telegramContent";
+import { piecesToReplies } from "./deliver";
 import { handleMenuRequest } from "./menu";
 import {
   accountCallbackFromText,
@@ -12,6 +14,7 @@ import {
   MENU_CLOSE_LABEL,
   MENU_OPEN_LABEL,
   parsePrivateMenuText,
+  relocateSectionNavigation,
 } from "./replyKeyboard";
 import type { TelegramAccountResult } from "./account";
 import { handleTelegramUpdate } from "./webhook";
@@ -67,7 +70,7 @@ test("marathon bottom buttons use the same labels as the inline menu", () => {
   assert.equal(keyboard.resize_keyboard, true);
   assert.equal(keyboard.is_persistent, true);
   assert.deepEqual(keyboard.keyboard.flat().map((button) => button.text), [
-    "День", "Топ", "Загальні", "Карта на сайті", "Змінити канал", "❓ Допомога", "🏠 Головне меню",
+    "День", "Топ", "🌐 Загальний рейтинг", "Карта на сайті", "Змінити канал", "❓ Допомога", "🏠 Головне меню",
   ]);
   assert.equal(keyboard.keyboard.flat().some((button) => button.text === "Зупинити сповіщення"), false);
   const closed = marathonReplyKeyboard(undefined, { closed: true });
@@ -80,12 +83,68 @@ test("marathon bottom buttons use the same labels as the inline menu", () => {
   assert.equal(marathonCallbackFromText("Загальні", { bot_btn_overall: "Усі" }), "mh:all");
   assert.equal(marathonCallbackFromText("Усі", { bot_btn_overall: "Усі" }), "mh:all");
   assert.equal(marathonCallbackFromText("Топ", { bot_btn_top: "Топ" }), "mh:top");
+  assert.equal(marathonCallbackFromText("Таблиця", { bot_btn_top: "Топ" }), "mh:top");
+  assert.equal(marathonCallbackFromText("🏆 Таблиця марафону", { bot_btn_top: "Топ" }), "mh:top");
+  assert.equal(marathonCallbackFromText("🌐 Загальний рейтинг", { bot_btn_overall: "Усі" }), "mh:all");
   assert.equal(marathonCallbackFromText("Карта на сайті", undefined), "mh:map");
   assert.equal(marathonCallbackFromText("Зупинити сповіщення", undefined), "mh:stop");
   assert.equal(marathonCallbackFromText("Зупинити сповіщення", { bot_btn_stop: "Тиша" }), "mh:stop");
   assert.equal(marathonCallbackFromText("Тиша", { bot_btn_stop: "Тиша" }), "mh:stop");
   assert.equal(marathonCallbackFromText("🏠 Головне меню", undefined), "m:home");
   assert.equal(marathonCallbackFromText("Пройти тестування", undefined), null);
+  const remembered = marathonButtonSnapshots({ bot_btn_top: "Топ", bot_btn_overall: "Усі" });
+  assert.equal(remembered.some((row) => row.data === "mh:top" && row.label === "Таблиця"), true);
+  assert.equal(remembered.some((row) => row.data === "mh:top" && row.label === "🏆 Таблиця марафону"), true);
+  assert.equal(remembered.some((row) => row.data === "mh:all" && row.label === "Загальні"), true);
+  assert.equal(remembered.some((row) => row.data === "mh:all" && row.label === "🌐 Загальний рейтинг"), true);
+});
+
+function inlineButtons(replies: { replyMarkup?: { inline_keyboard: { text: string; callback_data?: string; url?: string }[][] } }[]) {
+  return replies.flatMap((reply) => reply.replyMarkup?.inline_keyboard.flat() ?? []);
+}
+
+test("the marathon menu keeps the leaderboard inline when the bottom keyboard is the cabinet one", () => {
+  const sent = () => piecesToReplies("1", expandSources(menuMessages(undefined, "https://nmt.in.ua/marathon/math/map", "Іра")));
+  const againstMarathon = relocateSectionNavigation(sent(), marathonReplyKeyboard(undefined));
+  const marathonButtons = inlineButtons(againstMarathon);
+  assert.equal(marathonButtons.find((button) => button.callback_data === "mh:top")?.text, "🏆 Таблиця марафону");
+  assert.equal(marathonButtons.find((button) => button.callback_data === "mh:all")?.text, "🌐 Загальний рейтинг");
+  assert.equal(marathonButtons.some((button) => button.url === "https://nmt.in.ua/marathon/math/map"), true);
+  assert.equal(marathonButtons.find((button) => button.callback_data === "mh:ch")?.text, "Змінити канал");
+  assert.equal(againstMarathon.some((reply) => reply.replyKeyboard), false);
+
+  const againstCabinet = relocateSectionNavigation(sent(), expandedMenuKeyboard("student"));
+  const cabinetButtons = inlineButtons(againstCabinet);
+  assert.equal(cabinetButtons.find((button) => button.callback_data === "mh:top")?.text, "🏆 Таблиця марафону");
+  assert.equal(cabinetButtons.find((button) => button.callback_data === "mh:all")?.text, "🌐 Загальний рейтинг");
+  assert.equal(againstCabinet.some((reply) => reply.replyKeyboard), false);
+});
+
+test("an inline nav button is dropped only when its label is on the keyboard this message sets", () => {
+  const homeOnly = [{
+    chatId: "1",
+    text: "Меню",
+    replyMarkup: { inline_keyboard: [[{ text: "🏠 Головне меню", callback_data: "m:home" }]] },
+  }];
+  const replaced = relocateSectionNavigation(homeOnly, marathonReplyKeyboard(undefined));
+  assert.equal(replaced[0]?.replyMarkup, undefined);
+  assert.equal(replaced[0]?.replyKeyboard?.keyboard.flat().some((button) => button.text === "🏠 Головне меню"), true);
+
+  const onCabinet = relocateSectionNavigation([{
+    chatId: "1",
+    text: "Меню",
+    replyMarkup: { inline_keyboard: [[{ text: "🏁 Марафон", callback_data: "mh:menu" }]] },
+  }], expandedMenuKeyboard("student"));
+  assert.equal(onCabinet[0]?.replyMarkup, undefined);
+  assert.equal(onCabinet[0]?.replyKeyboard?.keyboard.flat().some((button) => button.text === "🏁 Марафон"), true);
+
+  const missing = relocateSectionNavigation([{
+    chatId: "1",
+    text: "Меню",
+    replyMarkup: { inline_keyboard: [[{ text: "🏆 Таблиця марафону", callback_data: "mh:top" }]] },
+  }], expandedMenuKeyboard("student"));
+  assert.equal(missing[0]?.replyMarkup?.inline_keyboard[0]?.[0]?.callback_data, "mh:top");
+  assert.equal(missing[0]?.replyKeyboard, undefined);
 });
 
 test("the bottom menu is attached without dropping an inline keyboard on another message", () => {
