@@ -59,7 +59,8 @@
       "assign": "Assign topic test",
       "leaderboard": "Marathon leaderboard",
       "marathons": "Marathon",
-      "marathon": "Marathon"
+      "marathon": "Marathon",
+      "support": "Messages"
     }
   },
   "RecentResults": {
@@ -956,6 +957,10 @@
     "badgePartial": "You can still catch up",
     "adminTitle": "Marathons",
     "adminLead": "Create a marathon, fill the days, and launch it. A day unlocks for every participant at the same Kyiv time.",
+    "cronOk": "Cron is running · {minutes} min ago",
+    "cronStale": "Cron is quiet · {minutes} min",
+    "cronNever": "Cron has not run yet",
+    "cronUnknown": "Cron: no data",
     "seed": "Add the sample: 5 days of math",
     "create": "New marathon",
     "delete": "Delete",
@@ -987,6 +992,22 @@
     "cardStatDayOf": "{current} of {total}",
     "cardStatNext": "Next",
     "cardStatEmpty": "—",
+    "cardFunnelTitle": "Funnel",
+    "cardFunnelOpened": "opened {count}",
+    "cardFunnelCompleted": "completed {count}",
+    "cardFunnelAverage": "avg {value}%",
+    "cardFunnelAverageEmpty": "avg —",
+    "cardFunnelDropoff": "dropoff {count}",
+    "cardFunnelTickets": "Open tickets",
+    "cardFunnelErrors": "Delivery errors, 24h",
+    "cardSurveyTitle": "Survey",
+    "cardSurveyAverage": "Average rating",
+    "cardSurveyRecommend": "Would recommend",
+    "cardSurveyRecommendValue": "{yes} of {total}",
+    "cardSurveyYes": "Yes",
+    "cardSurveyNo": "No",
+    "cardSurveySkipped": "Skipped",
+    "cardSurveyMore": "and {count} more",
     "addRiddle": "Add a riddle",
     "addDay": "Add a day",
     "addMaterial": "Add material",
@@ -1066,6 +1087,7 @@
       "passThreshold": "Threshold, %",
       "finalCtaText": "Button label",
       "finalCtaUrl": "Button link",
+      "publicChatUrl": "Participant chat",
       "introVideo": "Intro video",
       "inviteAudience": "Who to notify",
       "landingRiddleCount": "Riddles on the page",
@@ -1128,6 +1150,7 @@
       "daysCount": "An integer from 1 to 14.",
       "passThreshold": "An integer from 0 to 100.",
       "finalCtaUrl": "A path starting with / or a full http:// or https:// URL.",
+      "publicChatUrl": "Optional. When set, the bot shows the link in Help and in the intro. For onemath an empty field means https://t.me/nmt_onemath.",
       "introVideo": "Optional. A YouTube or Loom link. Shown once at the start.",
       "inviteAudience": "Sent once, when the marathon becomes active. A draft notifies nobody. Saving again does not send another invitation. The home card stays visible to everyone.",
       "landingRiddleCount": "How many riddles to draw at random on the landing page. An integer from 1 to 12. Default is 3.",
@@ -1141,7 +1164,8 @@
       "slug": "math-5",
       "unlockHour": "09:00",
       "reminderHour": "19:00",
-      "finalCtaUrl": "/"
+      "finalCtaUrl": "/",
+      "publicChatUrl": "https://t.me/"
     },
     "fieldErrors": {
       "form": {
@@ -1184,6 +1208,9 @@
       },
       "finalCtaUrl": {
         "required": "Enter the button link.",
+        "format": "The link must start with / or with http:// or https://."
+      },
+      "publicChatUrl": {
         "format": "The link must start with / or with http:// or https://."
       },
       "order": {
@@ -1264,6 +1291,7 @@
       },
       "labels": {
         "intro_rules": "Rules",
+        "bot_help_chat": "Participant chat",
         "review_intro": "Text before the review",
         "final_summary": "Summary text",
         "notify_day_open": "Day opened",
@@ -1281,16 +1309,40 @@
         "bot_menu": "Menu",
         "bot_btn_today": "Today button",
         "bot_btn_top": "Leaderboard button",
+        "bot_btn_overall": "Overall button",
+        "rank_course": "This course board title",
+        "rank_overall": "Overall board title",
         "bot_btn_map": "Map button",
         "bot_btn_channel": "Change channel button",
         "bot_btn_stop": "Stop notifications button",
+        "bot_pause_ask": "Confirm pausing this course",
+        "bot_pause_yes": "Pause button",
+        "bot_pause_done": "Course paused",
+        "bot_resume_ask": "Confirm resuming this course",
+        "bot_resume_yes": "Resume button",
+        "bot_resume_done": "Course notifications on",
         "bot_btn_site": "On the site button",
         "bot_btn_telegram": "In Telegram button",
         "bot_locked": "Day still locked",
         "bot_link_ok": "Bot linked",
         "bot_registered": "Registration confirmation",
         "bot_open_site": "Open on the site button",
-        "bot_to_tasks": "To the tasks button"
+        "bot_to_tasks": "To the tasks button",
+        "bot_btn_begin": "Start button",
+        "bot_btn_support": "Write to the team button",
+        "bot_support_ask": "Support request",
+        "bot_support_thanks": "Request received",
+        "bot_day_done": "Day already submitted",
+        "bot_finished": "Marathon finished",
+        "bot_archived": "Marathon archived",
+        "survey_rating": "Rating 1–5",
+        "survey_improve": "What to improve",
+        "survey_recommend": "Would recommend",
+        "survey_thanks": "Thanks for the answers",
+        "survey_skipped": "Survey skipped",
+        "survey_skip": "Skip button",
+        "survey_yes": "Yes button",
+        "survey_no": "No button"
       }
     },
     "status": {
@@ -2176,9 +2228,46 @@
       "title": "Marathons",
       "description": "Manage math marathons, participants, and the funnel."
     },
+    "supportAdmin": {
+      "title": "Messages",
+      "description": "Participant messages from the bot, and replies in Telegram."
+    },
     "assign": {
       "title": "Assign topic test",
       "description": "Assign topic tests to your students with a deadline and progress statuses."
+    }
+  },
+  "Support": {
+    "kicker": "Admin",
+    "title": "Messages",
+    "lead": "Messages from the bot. A reply is sent to the participant in Telegram.",
+    "filterLabel": "Ticket status",
+    "listTitle": "List",
+    "empty": "No messages.",
+    "noName": "Participant",
+    "noMarathon": "No marathon",
+    "day": "Day {day}",
+    "statusLegend": "Status",
+    "reply": "Reply",
+    "replyPlaceholder": "Text for the participant",
+    "save": "Save",
+    "saved": "Saved",
+    "migratedChat": "Telegram moved the team chat to {chatId}. Set TELEGRAM_SUPPORT_CHAT_ID to this value in the host environment file and restart the site.",
+    "filters": {
+      "all": "All",
+      "new": "New",
+      "in_progress": "In progress",
+      "closed": "Closed"
+    },
+    "status": {
+      "new": "New",
+      "in_progress": "In progress",
+      "closed": "Closed"
+    },
+    "errors": {
+      "invalid": "Could not save. Refresh the page.",
+      "missing": "Message not found.",
+      "send_failed": "Could not send the reply in Telegram. The status was not changed."
     }
   },
   "SettingsPage": {

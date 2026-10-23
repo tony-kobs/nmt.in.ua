@@ -10,5 +10,6 @@ export function isPublicMarathonPath(pathname: string): boolean {
 export function isMarathonManagePath(pathname: string): boolean {
   return (
     pathname === "/admin/marathons" || pathname.startsWith("/admin/marathons/")
+    || pathname === "/admin/support" || pathname.startsWith("/admin/support/")
   );
 }

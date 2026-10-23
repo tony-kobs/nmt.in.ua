@@ -35,6 +35,7 @@ const NAV_ICONS: Record<string, string> = {
   "/consultations": "✉",
   "/leaderboard": "▴",
   "/admin/marathons": "5",
+  "/admin/support": "?",
 };
 
 const NAV_KEYS: Record<string, string> = {
@@ -53,6 +54,7 @@ const NAV_KEYS: Record<string, string> = {
   "/consultations": "consultations",
   "/leaderboard": "leaderboard",
   "/admin/marathons": "marathons",
+  "/admin/support": "support",
 };
 
 const MARATHON_ICON = "◷";
@@ -129,7 +131,7 @@ export function visibleSidebar(input: {
     if (item.href === "/feedback") return canImportContent(input.role);
     if (item.href === "/profiles") return canManageProfiles(input.role);
     if (item.href === "/students") return canManageStudents(input.role);
-    if (item.href === "/admin/marathons") {
+    if (item.href === "/admin/marathons" || item.href === "/admin/support") {
       return hasPermission(input.role, "marathon:manage");
     }
     return true;

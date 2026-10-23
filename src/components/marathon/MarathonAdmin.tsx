@@ -3,6 +3,9 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
 import type { CardStats } from "@/modules/marathons/daily/cardStats";
+import type { CronHealth } from "@/modules/marathons/daily/cronHeartbeat";
+import type { DailyFunnel } from "@/modules/marathons/daily/dailyStats";
+import type { SurveySummary } from "@/modules/marathons/daily/survey";
 import { formatKyivWhen, kyivDateIso } from "@/modules/marathons/daily/calendar";
 import { activationBlockers, marathonIsReady } from "@/modules/marathons/daily/readiness";
 import { loadMarathonBoard, loadMarathonCopy } from "@/modules/marathons/daily/store";
@@ -103,12 +106,21 @@ function kyivDayLabel(locale: string, isoDate: string): string {
   }).format(new Date(`${isoDate}T12:00:00Z`));
 }
 
+function clipImprove(value: string): string {
+  const chars = Array.from(value.trim());
+  return chars.length > 180 ? `${chars.slice(0, 180).join("")}…` : chars.join("");
+}
+
 async function MarathonAdminCard({
   marathon,
   stats,
+  funnel,
+  survey,
 }: {
   marathon: DailyMarathon;
   stats: CardStats | null;
+  funnel: DailyFunnel | null;
+  survey: SurveySummary | null;
 }) {
   const t = await getTranslations("Marathon");
   const locale = await getLocale();
@@ -185,6 +197,79 @@ async function MarathonAdminCard({
           ) : null}
         </dl>
       ) : null}
+      {funnel ? (
+        <section className={css.cardFunnel} aria-labelledby={`funnel-${marathon.id}`}>
+          <h3 id={`funnel-${marathon.id}`} className={css.cardFunnelTitle}>{t("cardFunnelTitle")}</h3>
+          <dl className={css.cardStats}>
+            <div>
+              <dt>{t("cardFunnelTickets")}</dt>
+              <dd>{funnel.ticketsOpen}</dd>
+            </div>
+            <div>
+              <dt>{t("cardFunnelErrors")}</dt>
+              <dd>{funnel.deliveryErrors24h}</dd>
+            </div>
+          </dl>
+          {funnel.days.length > 0 ? (
+            <ul className={css.cardFunnelDays}>
+              {funnel.days.map((day) => (
+                <li key={day.day}>
+                  <span>{t("cardStatDay", { day: day.day })}</span>
+                  <span>{t("cardFunnelOpened", { count: day.opened })}</span>
+                  <span>{t("cardFunnelCompleted", { count: day.completed })}</span>
+                  <span>
+                    {day.avgScore == null
+                      ? t("cardFunnelAverageEmpty")
+                      : t("cardFunnelAverage", { value: day.avgScore })}
+                  </span>
+                  <span>{t("cardFunnelDropoff", { count: day.dropoff })}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+      ) : null}
+      {survey && (survey.count > 0 || survey.answers.length > 0) ? (
+        <section className={css.cardSurvey} aria-labelledby={`survey-${marathon.id}`}>
+          <h3 id={`survey-${marathon.id}`} className={css.cardSurveyTitle}>{t("cardSurveyTitle")}</h3>
+          <dl className={css.cardStats}>
+            <div>
+              <dt>{t("cardSurveyAverage")}</dt>
+              <dd>{survey.average == null ? t("cardStatEmpty") : survey.average}</dd>
+            </div>
+            <div>
+              <dt>{t("cardSurveyRecommend")}</dt>
+              <dd>
+                {survey.recommendAnswered === 0
+                  ? t("cardStatEmpty")
+                  : t("cardSurveyRecommendValue", { yes: survey.recommendYes, total: survey.recommendAnswered })}
+              </dd>
+            </div>
+          </dl>
+          {survey.answers.length > 0 ? (
+            <ul className={css.cardSurveyList}>
+              {survey.answers.map((answer, index) => (
+                <li key={`${answer.name}-${index}`}>
+                  <p className={css.cardSurveyMeta}>
+                    <span>{answer.name}</span>
+                    <span>
+                      {answer.rating == null
+                        ? answer.status === "skipped" ? t("cardSurveySkipped") : t("cardStatEmpty")
+                        : answer.rating}
+                    </span>
+                    {answer.recommend == null ? null : (
+                      <span>{answer.recommend ? t("cardSurveyYes") : t("cardSurveyNo")}</span>
+                    )}
+                  </p>
+                  {answer.improve ? <p className={css.cardSurveyText}>{clipImprove(answer.improve)}</p> : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {survey.hidden > 0 ? <p className={css.cardSurveyMore}>{t("cardSurveyMore", { count: survey.hidden })}</p> : null}
+        </section>
+      ) : null}
+
       <div className={css.actions}>
         {marathon.status === "draft" ? (
           <StatusConfirm
@@ -230,16 +315,43 @@ async function MarathonAdminCard({
   );
 }
 
+function cronBadge(t: Awaited<ReturnType<typeof getTranslations<"Marathon">>>, cron: CronHealth | null) {
+  if (!cron) {
+    return <p className={css.badgeStale} role="status">{t("cronUnknown")}</p>;
+  }
+  if (cron.lastRunAt == null || cron.ageMinutes == null) {
+    return <p className={css.badgeStale} role="status">{t("cronNever")}</p>;
+  }
+  if (cron.ok) {
+    return (
+      <p className={css.badgeOn} role="status">
+        {t("cronOk", { minutes: cron.ageMinutes })}
+      </p>
+    );
+  }
+  return (
+    <p className={css.badgeStale} role="status">
+      {t("cronStale", { minutes: cron.ageMinutes })}
+    </p>
+  );
+}
+
 export async function MarathonAdminList({
   marathons,
   stats,
+  funnels,
+  surveys,
   error,
   savedToken,
+  cron = null,
 }: {
   marathons: DailyMarathon[];
   stats: Map<number, CardStats>;
+  funnels?: Map<number, DailyFunnel>;
+  surveys?: Map<number, SurveySummary>;
   error?: string;
   savedToken?: string;
+  cron?: CronHealth | null;
 }) {
   const t = await getTranslations("Marathon");
   const message = marathonErrorText(t, error);
@@ -248,7 +360,13 @@ export async function MarathonAdminList({
   const cards = (items: DailyMarathon[]) => (
     <ul className={css.stack}>
       {items.map((marathon) => (
-        <MarathonAdminCard key={marathon.id} marathon={marathon} stats={stats.get(marathon.id) ?? null} />
+        <MarathonAdminCard
+          key={marathon.id}
+          marathon={marathon}
+          stats={stats.get(marathon.id) ?? null}
+          funnel={funnels?.get(marathon.id) ?? null}
+          survey={surveys?.get(marathon.id) ?? null}
+        />
       ))}
     </ul>
   );
@@ -260,6 +378,7 @@ export async function MarathonAdminList({
         savedText={t("saved")}
         error={message}
       >
+        {cronBadge(t, cron)}
         <form action={seedMarathonAction}>
           <SubmitButton className={css.buttonQuiet} pendingLabel={t("working")}>
             {t("seed")}

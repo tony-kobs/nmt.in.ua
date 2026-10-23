@@ -69,7 +69,10 @@ function isMachineApi(pathname: string): boolean {
   return (
     pathname === "/api/payments/wayforpay/webhook" ||
     pathname === "/api/telegram/webhook" ||
-    pathname === "/api/telegram/notifications/process"
+    pathname === "/api/telegram/notifications/process" ||
+    pathname === "/api/marathon/notifications/process" ||
+    pathname === "/api/marathon/notifications/health" ||
+    pathname === "/api/marathon/stats"
   );
 }
 

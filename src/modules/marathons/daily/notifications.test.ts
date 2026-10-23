@@ -75,8 +75,42 @@ test("evening reminder fires after 19:00 Kyiv only for today's unfinished day", 
     people: [{ ...person, notifyBot: false, telegramChatId: null }],
   });
   assert.deepEqual(
-    due.map((item) => item.channel),
-    ["email", "email"],
+    due.map((item) => `${item.kind}:${item.channel}`),
+    ["reminder:email"],
+  );
+});
+
+test("day-open, reminder and nudge never share one moment for the same day", () => {
+  const insideOpen = planNotifications({
+    ...marathon,
+    unlockHour: "18:00",
+    reminderHour: "18:30",
+    now: new Date("2026-01-10T16:40:00.000Z"),
+  });
+  assert.deepEqual(
+    [...new Set(insideOpen.map((item) => `${item.dayNumber}:${item.kind}`))],
+    ["1:day_open"],
+  );
+
+  const afterOpen = planNotifications({
+    ...marathon,
+    unlockHour: "18:00",
+    reminderHour: "18:30",
+    now: new Date("2026-01-10T17:10:00.000Z"),
+  });
+  assert.deepEqual(
+    [...new Set(afterOpen.map((item) => `${item.dayNumber}:${item.kind}`))],
+    ["1:reminder"],
+  );
+
+  const nextMorning = new Date("2026-01-11T08:00:00.000Z");
+  const opens = planNotifications({ ...marathon, now: nextMorning });
+  assert.equal(opens.some((item) => item.dayNumber === 1), false);
+  assert.equal(opens.some((item) => item.kind === "day_open" && item.dayNumber === 2), false);
+  const nudges = planNudges({ ...marathon, now: nextMorning });
+  assert.deepEqual(
+    [...new Set(nudges.map((item) => `${item.dayNumber}:${item.kind}`))],
+    ["1:nudge"],
   );
 });
 

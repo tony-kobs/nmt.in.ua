@@ -14,6 +14,8 @@ import { loadTelegramConnection } from "./schema";
 import { buildTaskListReply } from "./taskList";
 import { handleMenuRequest, parseMenuCallback, parseMenuCommand, parseMenuData, type MenuDeps } from "./menu";
 import { accountCallbackFromText, attachReplyKeyboard, collapsedMenuKeyboard, expandedMenuKeyboard, MENU_CLOSE_LABEL, MENU_OPEN_LABEL, parsePrivateMenuText } from "./replyKeyboard";
+import { readSurveyNote, type SurveyPrompt } from "@/modules/marathons/daily/survey";
+import { intakeDecision, readPrivateNote } from "@/modules/support/text";
 
 type TelegramMessage = {
   chat?: { id?: number; type?: string };
@@ -85,6 +87,14 @@ export async function handleTelegramUpdate(
     ) => Promise<boolean | { ok: boolean; code?: string }>;
     getProfile?: typeof getTelegramAccountProfile;
     menu?: Omit<MenuDeps, "getProfile" | "getTasks" | "getTodayTasks" | "referenceSecret" | "logError">;
+    survey?: {
+      takeText?: (chatId: string, body: string) => Promise<SurveyPrompt | null>;
+    };
+    support?: {
+      peek?: (chatId: string) => Promise<boolean>;
+      cancel?: (chatId: string) => Promise<void>;
+      accept?: (input: { chatId: string; body: string }) => Promise<{ text: string } | null>;
+    };
   } = { consume: consumeTelegramLink },
 ): Promise<TelegramReply | null> {
   const menuDeps: MenuDeps = {
@@ -107,12 +117,17 @@ export async function handleTelegramUpdate(
         return { chatId: unlinkRequest.chatId, text: "Telegram уже не прив’язано до акаунта nmt.in.ua." };
       }
       await (deps.unlink ?? unlinkTelegramAccount)(profile.profile.userId);
+      await cancelSupportWait(unlinkRequest.chatId, deps);
       return { chatId: unlinkRequest.chatId, text: UNLINK_NOTICE };
     } catch (error) {
       log(error);
       return { chatId: unlinkRequest.chatId, text: "Не вдалося відв’язати бота. Спробуйте в кабінеті на nmt.in.ua." };
     }
   }
+  const supportCaptured = await captureSupport(update, deps, log);
+  if (supportCaptured) return supportCaptured;
+  const captured = await captureSurvey(update, deps, log);
+  if (captured) return captured;
   async function accountKeyboard(userId: string) {
     try {
       const profile = await (deps.getProfile ?? getTelegramAccountProfile)(userId, {
@@ -201,8 +216,7 @@ export async function handleTelegramUpdate(
     }
   }
   if (isMarathonCallbackData(callbackData) || isMarathonMenu(update)) {
-    const queryId = callbackQueryId(update);
-    if (queryId && deps.acknowledgeCallback) await deps.acknowledgeCallback(queryId);
+    await acknowledgeQuietly(deps, callbackQueryId(update));
     try {
       const handler = deps.marathon ?? (await import("@/modules/marathons/daily/botGateway")).handleMarathonGateway;
       return packReplies(await handler(update));
@@ -214,7 +228,7 @@ export async function handleTelegramUpdate(
   }
   const menuCallback = parseMenuCallback(update);
   if (menuCallback) {
-    if (deps.acknowledgeCallback) await deps.acknowledgeCallback(menuCallback.queryId!);
+    await acknowledgeQuietly(deps, menuCallback.queryId);
     try {
       return await handleMenuRequest(menuCallback, menuDeps);
     } catch (error) {
@@ -224,7 +238,7 @@ export async function handleTelegramUpdate(
   }
   const callback = parseTaskCallback(update);
   if (callback) {
-    if (deps.acknowledgeCallback) await deps.acknowledgeCallback(callback.queryId);
+    await acknowledgeQuietly(deps, callback.queryId);
     try {
       return await handleTaskCallback(callback, {
         secret: deps.referenceSecret ?? process.env.TELEGRAM_WEBHOOK_SECRET ?? "",
@@ -376,6 +390,18 @@ function callbackDataOf(update: unknown): string | undefined {
   return typeof data === "string" ? data : undefined;
 }
 
+async function acknowledgeQuietly(
+  deps: { acknowledgeCallback?: (queryId: string) => Promise<void>; logError?: (error: unknown) => void },
+  queryId: string | null | undefined,
+): Promise<void> {
+  if (!queryId || !deps.acknowledgeCallback) return;
+  try {
+    await deps.acknowledgeCallback(queryId);
+  } catch (error) {
+    (deps.logError ?? ((value) => console.error("telegram callback acknowledgement failed", value)))(error);
+  }
+}
+
 function callbackQueryId(update: unknown): string | null {
   if (!update || typeof update !== "object") return null;
   const id = (update as { callback_query?: { id?: unknown } }).callback_query?.id;
@@ -398,4 +424,97 @@ function isMarathonMenu(update: unknown): boolean {
   if (!update || typeof update !== "object") return false;
   const text = (update as { message?: { text?: unknown } }).message?.text;
   return typeof text === "string" && /^\/(menu|top|leaderboard)(?:@\w+)?\s*$/.test(text);
+}
+
+async function cancelSupportWait(
+  chatId: string,
+  deps: {
+    support?: { cancel?: (chatId: string) => Promise<void> };
+  },
+): Promise<void> {
+  if (deps.support?.cancel) {
+    await deps.support.cancel(chatId);
+    return;
+  }
+  if (!process.env.DB_HOST) return;
+  const { cancelSupportWait: cancel } = await import("@/modules/support/store");
+  await cancel(chatId);
+}
+
+async function captureSupport(
+  update: unknown,
+  deps: {
+    support?: {
+      peek?: (chatId: string) => Promise<boolean>;
+      cancel?: (chatId: string) => Promise<void>;
+      accept?: (input: { chatId: string; body: string }) => Promise<{ text: string } | null>;
+    };
+  },
+  log: (error: unknown) => void,
+): Promise<TelegramReply | null> {
+  const note = readPrivateNote(update);
+  if (!note) return null;
+  try {
+    const store = deps.support?.peek && deps.support.cancel && deps.support.accept
+      ? null
+      : await import("@/modules/support/store");
+    const waiting = deps.support?.peek
+      ? await deps.support.peek(note.chatId)
+      : await store!.peekSupportWait(note.chatId);
+    const decision = intakeDecision(note, waiting);
+    if (decision === "ignore") return null;
+    if (decision === "cancel") {
+      if (deps.support?.cancel) await deps.support.cancel(note.chatId);
+      else await store!.cancelSupportWait(note.chatId);
+      return null;
+    }
+    if (!note.body) return null;
+    const accepted = deps.support?.accept
+      ? await deps.support.accept({ chatId: note.chatId, body: note.body })
+      : await store!.acceptSupportMessage({ chatId: note.chatId, body: note.body });
+    return accepted ? { chatId: note.chatId, text: accepted.text, disablePreview: true } : null;
+  } catch (error) {
+    log(error);
+    return null;
+  }
+}
+
+async function captureSurvey(
+  update: unknown,
+  deps: {
+    survey?: {
+      takeText?: (chatId: string, body: string) => Promise<SurveyPrompt | null>;
+    };
+  },
+  log: (error: unknown) => void,
+): Promise<TelegramReply | null> {
+  const note = readSurveyNote(update);
+  if (!note || note.navigation) return null;
+  try {
+    let prompt: SurveyPrompt | null = null;
+    if (deps.survey?.takeText) {
+      prompt = await deps.survey.takeText(note.chatId, note.body);
+    } else if (process.env.DB_HOST) {
+      const { takeSurveyText } = await import("@/modules/marathons/daily/surveyStore");
+      prompt = await takeSurveyText(note.chatId, note.body);
+    }
+    if (!prompt) return null;
+    return {
+      chatId: note.chatId,
+      text: prompt.text,
+      ...(prompt.buttons.length
+        ? {
+            replyMarkup: {
+              inline_keyboard: prompt.buttons.map((button) => [{
+                text: button.text,
+                callback_data: button.data,
+              }]),
+            },
+          }
+        : {}),
+    };
+  } catch (error) {
+    log(error);
+    return null;
+  }
 }

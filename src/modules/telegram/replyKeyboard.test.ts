@@ -43,7 +43,7 @@ test("the input keeps one menu button that unfolds the sections", () => {
     "👤 Мій акаунт", "❓ Допомога",
   ]);
   assert.deepEqual(labels(accountMenuRows("teacher")), [
-    "👥 Мої учні", "🔔 Сповіщення", "👤 Мій акаунт", "❓ Допомога",
+    "🏁 Марафон", "👥 Мої учні", "🔔 Сповіщення", "👤 Мій акаунт", "❓ Допомога",
   ]);
   const keyboard = accountReplyKeyboard("student");
   assert.equal(keyboard.resize_keyboard, true);
@@ -67,13 +67,23 @@ test("marathon bottom buttons use the same labels as the inline menu", () => {
   assert.equal(keyboard.resize_keyboard, true);
   assert.equal(keyboard.is_persistent, true);
   assert.deepEqual(keyboard.keyboard.flat().map((button) => button.text), [
-    "День", "Топ", "Карта на сайті", "Зупинити сповіщення", "🏠 Головне меню",
+    "День", "Топ", "Загальні", "Карта на сайті", "Змінити канал", "❓ Допомога", "🏠 Головне меню",
   ]);
+  assert.equal(keyboard.keyboard.flat().some((button) => button.text === "Зупинити сповіщення"), false);
+  const closed = marathonReplyKeyboard(undefined, { closed: true });
+  assert.equal(closed.keyboard.flat().some((button) => button.text === "Сьогодні"), false);
+  assert.equal(closed.keyboard.flat().some((button) => button.text === "Змінити канал"), true);
   assert.equal(keyboard.keyboard.flat().some((button) => button.text === "Пройти тестування"), false);
   assert.equal(marathonCallbackFromText("День", { bot_btn_today: "День" }), "mh:today");
+  assert.equal(marathonCallbackFromText("Змінити канал", undefined), "mh:ch");
+  assert.equal(marathonCallbackFromText("Сьогодні", { bot_btn_today: "День" }), "mh:today");
+  assert.equal(marathonCallbackFromText("Загальні", { bot_btn_overall: "Усі" }), "mh:all");
+  assert.equal(marathonCallbackFromText("Усі", { bot_btn_overall: "Усі" }), "mh:all");
   assert.equal(marathonCallbackFromText("Топ", { bot_btn_top: "Топ" }), "mh:top");
   assert.equal(marathonCallbackFromText("Карта на сайті", undefined), "mh:map");
   assert.equal(marathonCallbackFromText("Зупинити сповіщення", undefined), "mh:stop");
+  assert.equal(marathonCallbackFromText("Зупинити сповіщення", { bot_btn_stop: "Тиша" }), "mh:stop");
+  assert.equal(marathonCallbackFromText("Тиша", { bot_btn_stop: "Тиша" }), "mh:stop");
   assert.equal(marathonCallbackFromText("🏠 Головне меню", undefined), "m:home");
   assert.equal(marathonCallbackFromText("Пройти тестування", undefined), null);
 });

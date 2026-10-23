@@ -39,3 +39,4 @@ alwaysApply: true
 
 Не в git. Жива: `/home/levelhst/nmt.in.ua/www/.env.production`. Store: `/home/levelhst/nmt.in.ua/.env.production`.
 Без `SESSION_SECRET` логін і реєстрація на проді падають. Деплой лише копіює store, ключ не генерує.
+`TELEGRAM_SUPPORT_CHAT_ID` (чат команди для звернень) пишеться в той самий store, що й `TELEGRAM_BOT_TOKEN`. Workflow деплою її не підставляє. Після міграції групи адмінка показує новий id — його треба записати в store замість старого і перезапустити процес.

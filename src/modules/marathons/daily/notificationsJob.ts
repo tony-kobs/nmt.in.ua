@@ -2,20 +2,19 @@ import "server-only";
 
 import { createHash, timingSafeEqual } from "node:crypto";
 import { absoluteUrl, sendMail } from "@/modules/mail/sendMail";
-import { piecesToReplies } from "@/modules/telegram/deliver";
 import { rememberDeferred } from "@/modules/telegram/outbox";
 import { loadQuietHoursByChat, shouldHoldForQuietHours } from "@/modules/telegram/preferences";
 import { loadTelegramConnection } from "@/modules/telegram/schema";
 import { getKyivClock } from "@/modules/telegram/taskDay";
 import { sendThrottled, sharedTelegramPace } from "@/modules/telegram/throttle";
+import type { TelegramReply } from "@/modules/telegram/taskInteraction";
 import { sendTelegramMessage } from "@/modules/telegram/transport";
 import { optionalTelegramBot } from "./botLink";
 import { personNotifyChannels } from "./channel";
 import { dayUnlockAt, formatKyivWhen } from "./calendar";
 import { shouldFinishDailyMarathon } from "./lifecycle";
-import { renderCopy, renderResolved, resolveCopy, type CopyKey, type CopyVars } from "./copy";
+import { renderCopy, renderResolved, type CopyKey, type CopyVars } from "./copy";
 import { publicLeaderName, rankNoticeText, type BoardLine } from "./leaderboard";
-import { expandSources, materialSources } from "./telegramContent";
 import { marathonDayUrl, wrapMarathonMail } from "./mailCopy";
 import {
   deliverNotifications,
@@ -48,8 +47,6 @@ import {
   confirmNotification,
   finishElapsedDailyMarathons,
   listContentDayNumbers,
-  listDays,
-  listMaterials,
   loadMarathonBoard,
   loadNotifyAudience,
   releaseNotification,
@@ -271,12 +268,7 @@ async function buildDeliveries(
 }
 
 /**
- * Queues the day_open announcement and the whole day content in the outbox, in order.
- * Returns false when nothing could be queued, so the claim is released and cron retries.
- * The outbox drain sends, retries and falls back per piece; one bad image no longer drops the day.
- */
-/**
- * A day_open claim is confirmed only after the outbox accepted the day.
+ * Claim rule for a send that must also enqueue a follow-up.
  * A failed enqueue stays unconfirmed so the next cron can retry.
  * A definitive Telegram failure has nowhere to deliver, so it is closed.
  */
@@ -286,45 +278,21 @@ export function dayOpenDeliveryOk(attempt: TelegramAttempt, queued: boolean): bo
   return queued;
 }
 
-async function queueOpenedDay(
-  marathon: NotifyAudienceMarathon,
-  userId: number,
-  dayNumber: number,
-  chatId: string,
-  announcement: string,
-  includeAnnouncement = true,
-): Promise<boolean> {
-  const bot = optionalTelegramBot();
-  if (!bot) return false;
-  const days = await listDays(marathon.marathonId);
-  const day = days.find((item) => item.dayNumber === dayNumber);
-  const announce = {
-    chatId,
-    text: announcement,
-    trigger: "system" as const,
-    schedule: { dayNumber, kind: "day_open" },
+/** Cron opens the day with one short note and a button. The day itself waits for «Почати». */
+export function dayOpenPrompt(input: {
+  chatId: string;
+  text: string;
+  dayNumber: number;
+  beginLabel: string;
+}): TelegramReply {
+  const label = input.beginLabel.trim().slice(0, 64) || "Почати";
+  return {
+    chatId: input.chatId,
+    text: input.text,
+    trigger: "system",
+    schedule: { dayNumber: input.dayNumber, kind: "day_open" },
+    replyMarkup: { inline_keyboard: [[{ text: label, callback_data: "mh:today" }]] },
   };
-  if (!day) {
-    if (!includeAnnouncement) return true;
-    await rememberDeferred([announce], "system", marathon.marathonId);
-    return true;
-  }
-  const materials = await listMaterials(day.id);
-  const label = resolveCopy("bot_to_tasks", marathon.copy).slice(0, 64);
-  const sources = [
-    ...(day.introText?.trim() ? [{ text: day.introText.trim(), rich: true as const }] : []),
-    ...materials.flatMap((material) => materialSources(material)),
-    { text: label, buttons: [{ text: label, data: `mh:mat:${day.dayNumber}` }] },
-  ];
-  const replies = piecesToReplies(chatId, expandSources(sources));
-  const last = replies[replies.length - 1];
-  if (last) {
-    last.materialsViewed = { marathonId: marathon.marathonId, userId, dayId: day.id };
-  }
-  const queued = includeAnnouncement ? [announce, ...replies] : replies;
-  if (queued.length === 0) return true;
-  await rememberDeferred(queued, "system", marathon.marathonId);
-  return true;
 }
 
 async function classifyTelegramSend(chatId: string, text: string): Promise<TelegramAttempt> {
@@ -361,6 +329,8 @@ export async function runMarathonNotifications(deps: {
   sendTelegram?: (chatId: string, text: string) => Promise<boolean | "definitive">;
   /** When set, replaces the quiet-hours lookup. True means do not send this chat yet. */
   holdTelegram?: (chatId: string) => Promise<boolean>;
+  /** Production queues the short day-open note. Tests can capture it instead. */
+  enqueueTelegram?: typeof rememberDeferred;
   telegramEnabled?: boolean;
   secret?: string | null;
   loadBoard?: (marathonId: number) => Promise<BoardLine[]>;
@@ -451,24 +421,19 @@ export async function runMarathonNotifications(deps: {
           if (!marathon) {
             attempt = "retry";
           } else {
-            attempt = await classifyTelegramSend(item.chatId, item.text);
-            let queued = attempt !== "sent";
-            if (attempt === "sent") {
-              try {
-                queued = await queueOpenedDay(
-                  marathon,
-                  intent.userId,
-                  intent.dayNumber,
-                  item.chatId,
-                  item.text,
-                  false,
-                );
-              } catch (error) {
-                console.error("marathon day content", error);
-                queued = false;
-              }
+            try {
+              const prompt = dayOpenPrompt({
+                chatId: item.chatId,
+                text: item.text,
+                dayNumber: intent.dayNumber,
+                beginLabel: renderResolved("bot_btn_begin", marathon.copy, { day: intent.dayNumber }).slice(0, 64),
+              });
+              await (deps.enqueueTelegram ?? rememberDeferred)([prompt], "system", marathon.marathonId);
+              return true;
+            } catch (error) {
+              console.error("marathon day open", error);
+              return false;
             }
-            return dayOpenDeliveryOk(attempt, queued);
           }
         } else {
           const sent = await sendTelegram(item.chatId, item.text);

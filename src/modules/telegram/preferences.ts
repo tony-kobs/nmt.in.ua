@@ -59,16 +59,19 @@ export function togglesForRole(role: TelegramAccountRole): PreferenceToggle[] {
     .filter((key) => PREFERENCE_TOGGLES[key].role === role);
 }
 
+/** Preset index, or -1 when the saved hours are a custom pair. Off matches only both empty. */
 export function quietPresetIndex(prefs: Pick<NotificationPreferences, "quietStart" | "quietEnd">): number {
-  const index = QUIET_HOUR_PRESETS.findIndex((preset) => preset
-    ? preset[0] === prefs.quietStart && preset[1] === prefs.quietEnd
-    : prefs.quietStart === null);
-  return index < 0 ? 0 : index;
+  return QUIET_HOUR_PRESETS.findIndex((preset) => {
+    if (!preset) return prefs.quietStart === null && prefs.quietEnd === null;
+    return preset[0] === prefs.quietStart && preset[1] === prefs.quietEnd;
+  });
 }
 
 export function formatQuietHours(prefs: Pick<NotificationPreferences, "quietStart" | "quietEnd">): string {
-  if (prefs.quietStart === null || prefs.quietEnd === null) return "вимкнено";
   const pad = (hour: number) => `${String(hour).padStart(2, "0")}:00`;
+  if (prefs.quietStart === null && prefs.quietEnd === null) return "вимкнено";
+  if (prefs.quietStart === null) return `до ${pad(prefs.quietEnd ?? 0)}`;
+  if (prefs.quietEnd === null) return `з ${pad(prefs.quietStart)}`;
   return `${pad(prefs.quietStart)}–${pad(prefs.quietEnd)}`;
 }
 
@@ -215,6 +218,22 @@ export async function setQuietHours(connection: SqlConnection, accountId: number
   await connection.execute(`INSERT INTO telegram_notification_preferences (account_id, quiet_start, quiet_end) VALUES (?, ?, ?)
     ON DUPLICATE KEY UPDATE quiet_start = VALUES(quiet_start), quiet_end = VALUES(quiet_end)`,
   [accountId, preset?.[0] ?? null, preset?.[1] ?? null]);
+}
+
+/** Writes one edge and leaves the other hour as it is. A window starts only when both are set. */
+export async function setQuietEdge(
+  connection: SqlConnection,
+  accountId: number,
+  edge: "start" | "end",
+  hour: number,
+): Promise<void> {
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) throw new Error("Unknown quiet hour.");
+  const column = edge === "start" ? "quiet_start" : "quiet_end";
+  await connection.execute(
+    `INSERT INTO telegram_notification_preferences (account_id, ${column}) VALUES (?, ?)
+     ON DUPLICATE KEY UPDATE ${column} = VALUES(${column})`,
+    [accountId, hour],
+  );
 }
 
 export async function ensureNotificationPreferences(connection: SqlConnection, accountId: number): Promise<void> {

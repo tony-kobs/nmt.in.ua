@@ -45,6 +45,7 @@ export async function seedMathMarathon(): Promise<"created" | "exists"> {
     introVideoUrl: "",
     inviteAudience: "none",
     landingRiddleCount: 3,
+    publicChatUrl: "",
     startsAt,
     endsAt,
   });

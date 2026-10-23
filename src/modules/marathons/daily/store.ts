@@ -21,6 +21,7 @@ import {
 } from "./invite";
 import { shouldFinishDailyMarathon } from "./lifecycle";
 import { isCopyKey, type CopyKey } from "./copy";
+import { resolvePublicChatUrl } from "./publicChat";
 import type { NotifyIntent, NotifyKind } from "./notifications";
 import {
   parseStoredAnswers,
@@ -76,6 +77,8 @@ export type DailyMarathon = {
   inviteAudience: InviteAudience;
   /** How many bank riddles the public landing draws on each visit. */
   landingRiddleCount: number;
+  /** Public participant chat. Empty when the marathon has none. */
+  publicChatUrl: string;
   status: DailyStatus;
 };
 
@@ -197,6 +200,7 @@ function mapMarathon(row: {
   intro_video_url?: string | null;
   invite_audience?: string | null;
   landing_riddle_count?: number | null;
+  public_chat_url?: string | null;
   status: string;
 }): DailyMarathon | null {
   if (
@@ -227,13 +231,14 @@ function mapMarathon(row: {
     introVideoUrl: row.intro_video_url ?? "",
     inviteAudience: normalizeInviteAudience(row.invite_audience),
     landingRiddleCount: clampLandingRiddleCount(row.landing_riddle_count),
+    publicChatUrl: resolvePublicChatUrl(row.slug, row.public_chat_url),
     status: row.status,
   };
 }
 
 const MARATHON_SELECT = `id, slug, title, description, subject, start_date, unlock_hour, reminder_hour,
   nudge_from, nudge_until, days_count, pass_threshold, final_cta_text, final_cta_url,
-  intro_video_url, invite_audience, landing_riddle_count, status`;
+  intro_video_url, invite_audience, landing_riddle_count, public_chat_url, status`;
 
 export async function listDailyMarathons(getConnection?: Conn): Promise<DailyMarathon[]> {
   return withConn(async (connection) => {
@@ -287,8 +292,8 @@ export async function insertDailyMarathon(
         (slug, title, description, status, starts_at, ends_at, min_tasks_per_session,
          kind, subject, start_date, unlock_hour, reminder_hour, nudge_from, nudge_until,
          days_count, pass_threshold, final_cta_text, final_cta_url, intro_video_url,
-         invite_audience, landing_riddle_count)
-       VALUES (?, ?, ?, 'draft', ?, ?, 5, 'daily', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         invite_audience, landing_riddle_count, public_chat_url)
+       VALUES (?, ?, ?, 'draft', ?, ?, 5, 'daily', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         input.slug,
         input.title,
@@ -308,6 +313,7 @@ export async function insertDailyMarathon(
         input.introVideoUrl || null,
         normalizeInviteAudience(input.inviteAudience),
         input.landingRiddleCount,
+        input.publicChatUrl.trim() || null,
       ],
     );
     return result.insertId;
@@ -325,7 +331,8 @@ export async function updateDailyMarathon(
        SET slug = ?, title = ?, description = ?, subject = ?, start_date = ?, unlock_hour = ?,
            reminder_hour = ?, nudge_from = ?, nudge_until = ?,
            days_count = ?, pass_threshold = ?, final_cta_text = ?, final_cta_url = ?,
-           intro_video_url = ?, invite_audience = ?, landing_riddle_count = ?, starts_at = ?, ends_at = ?
+           intro_video_url = ?, invite_audience = ?, landing_riddle_count = ?, public_chat_url = ?,
+           starts_at = ?, ends_at = ?
        WHERE id = ? AND kind = 'daily'`,
       [
         input.slug,
@@ -344,6 +351,7 @@ export async function updateDailyMarathon(
         input.introVideoUrl || null,
         normalizeInviteAudience(input.inviteAudience),
         input.landingRiddleCount,
+        input.publicChatUrl.trim() || null,
         input.startsAt,
         input.endsAt,
         id,
@@ -835,6 +843,29 @@ export async function findParticipantByChat(
   }, getConnection);
 }
 
+/** Archived course still linked to this chat, when no active or finished course is. */
+export async function findArchivedMarathonByChat(
+  chatId: string,
+  getConnection?: Conn,
+): Promise<{ id: number; title: string; displayName: string } | null> {
+  if (!/^[1-9][0-9]{0,19}$/.test(chatId)) return null;
+  return withConn(async (connection) => {
+    const rows = await connection.query<{ id: number; title: string; display_name: string | null }>(
+      `SELECT m.id, m.title, u.display_name
+       FROM marathon_participants p
+       INNER JOIN marathons m ON m.id = p.marathon_id
+       INNER JOIN app_users u ON u.id = p.user_id
+       WHERE p.telegram_chat_id = ? AND m.kind = 'daily' AND m.status = 'archived'
+       ORDER BY p.joined_at DESC
+       LIMIT 1`,
+      [chatId],
+    );
+    const row = rows[0];
+    if (!row) return null;
+    return { id: Number(row.id), title: row.title, displayName: String(row.display_name ?? "") };
+  }, getConnection);
+}
+
 export async function listChatMarathons(
   chatId: string,
   getConnection?: Conn,
@@ -1218,22 +1249,71 @@ export async function markIntroSeen(
   }, getConnection);
 }
 
+export type MarathonPauseState = {
+  marathonId: number;
+  title: string;
+  paused: boolean;
+  status: "active" | "finished";
+};
+
+/**
+ * Pause or resume one course. The account-wide «Марафони» toggles stay as they are,
+ * so another marathon this person joined keeps sending.
+ */
+export async function setMarathonNotificationsPaused(
+  marathonId: number,
+  userId: number,
+  paused: boolean,
+  getConnection?: Conn,
+): Promise<boolean> {
+  return withConn(async (connection) => {
+    const result = await connection.execute(
+      `UPDATE marathon_participants
+       SET notify_paused = ?
+       WHERE marathon_id = ? AND user_id = ?`,
+      [paused ? 1 : 0, marathonId, userId],
+    );
+    return result.affectedRows === 1;
+  }, getConnection);
+}
+
 export async function pauseMarathonNotifications(
   marathonId: number,
   userId: number,
   getConnection?: Conn,
 ): Promise<void> {
-  await withConn(async (connection) => {
-    await saveUserChannelPreference(connection, userId, "marathon", {
-      email: false,
-      telegram: false,
-    });
-    await connection.execute(
-      `UPDATE marathon_participants
-       SET notify_paused = 1
-       WHERE marathon_id = ? AND user_id = ?`,
-      [marathonId, userId],
+  await setMarathonNotificationsPaused(marathonId, userId, true, getConnection);
+}
+
+/** Active and finished courses this account joined, for the bot's notification screen. */
+export async function listMarathonPauseStates(
+  userId: number,
+  getConnection?: Conn,
+): Promise<MarathonPauseState[]> {
+  return withConn(async (connection) => {
+    const rows = await connection.query<{
+      id: number;
+      title: string;
+      status: string;
+      notify_paused: number;
+    }>(
+      `SELECT m.id, m.title, m.status, p.notify_paused
+       FROM marathon_participants p
+       INNER JOIN marathons m ON m.id = p.marathon_id
+       WHERE p.user_id = ? AND m.kind = 'daily' AND m.status IN ('active', 'finished')
+       ORDER BY (m.status = 'active') DESC, m.start_date DESC, m.id DESC`,
+      [userId],
     );
+    return rows.flatMap((row) => {
+      if (row.status !== "active" && row.status !== "finished") return [];
+      const title = String(row.title ?? "").trim();
+      return [{
+        marathonId: Number(row.id),
+        title: title || `Марафон ${row.id}`,
+        paused: flag(row.notify_paused),
+        status: row.status,
+      }];
+    });
   }, getConnection);
 }
 
@@ -1923,36 +2003,104 @@ export async function listStudentMarathonShelf(
   }, getConnection);
 }
 
-export async function saveMarathonBotTokens(
-  rows: Array<{ token: string; marathonId: number; userId: number; payload: string }>,
-  getConnection?: Conn,
-): Promise<void> {
-  if (rows.length === 0) return;
-  await withConn(async (connection) => {
-    for (const row of rows) {
-      await connection.execute(
-        `INSERT INTO marathon_bot_tokens (token, marathon_id, user_id, payload)
-         VALUES (?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE payload = VALUES(payload)`,
-        [row.token, row.marathonId, row.userId, row.payload.slice(0, 240)],
-      );
-    }
-  }, getConnection);
-}
-
-export async function readMarathonBotToken(
+/** Reads an answer token and deletes it, so the same button cannot be used again. */
+export async function consumeMarathonBotToken(
   token: string,
   marathonId: number,
   userId: number,
   getConnection?: Conn,
 ): Promise<string | null> {
   return withConn(async (connection) => {
-    const rows = await connection.query<{ payload: string }>(
-      `SELECT payload FROM marathon_bot_tokens
-       WHERE token = ? AND marathon_id = ? AND user_id = ?`,
-      [token, marathonId, userId],
+    await connection.beginTransaction();
+    try {
+      const rows = await connection.query<{ payload: string }>(
+        `SELECT payload FROM marathon_bot_tokens
+         WHERE token = ? AND marathon_id = ? AND user_id = ?`,
+        [token, marathonId, userId],
+      );
+      await connection.execute(
+        `DELETE FROM marathon_bot_tokens
+         WHERE token = ? AND marathon_id = ? AND user_id = ?`,
+        [token, marathonId, userId],
+      );
+      await connection.commit();
+      return rows[0]?.payload ?? null;
+    } catch (error) {
+      try {
+        await connection.rollback();
+      } catch {}
+      throw error;
+    }
+  }, getConnection);
+}
+
+export async function rememberMarathonButtonLabels(
+  marathonId: number,
+  rows: Array<{ data: string; label: string }>,
+  getConnection?: Conn,
+): Promise<void> {
+  if (rows.length === 0) return;
+  await withConn(async (connection) => {
+    for (const row of rows) {
+      const label = row.label.trim().slice(0, 64);
+      const data = row.data.trim().slice(0, 32);
+      if (!label || !data) continue;
+      await connection.execute(
+        `INSERT IGNORE INTO marathon_button_labels (marathon_id, callback_data, label)
+         VALUES (?, ?, ?)`,
+        [marathonId, data, label],
+      );
+    }
+  }, getConnection);
+}
+
+export async function marathonCallbackFromStoredLabel(
+  marathonId: number,
+  label: string,
+  getConnection?: Conn,
+): Promise<string | null> {
+  const trimmed = label.trim().slice(0, 64);
+  if (!trimmed) return null;
+  return withConn(async (connection) => {
+    const rows = await connection.query<{ callback_data: string }>(
+      `SELECT callback_data FROM marathon_button_labels
+       WHERE marathon_id = ? AND label = ?
+       LIMIT 1`,
+      [marathonId, trimmed],
     );
-    return rows[0]?.payload ?? null;
+    const data = rows[0]?.callback_data ?? "";
+    return /^mh:[a-z]+$/.test(data) ? data : null;
+  }, getConnection);
+}
+
+/** Drops every answer button for this participant, then stores the next task's set. */
+export async function replaceMarathonBotTokens(
+  marathonId: number,
+  userId: number,
+  rows: Array<{ token: string; payload: string }>,
+  getConnection?: Conn,
+): Promise<void> {
+  await withConn(async (connection) => {
+    await connection.beginTransaction();
+    try {
+      await connection.execute(
+        `DELETE FROM marathon_bot_tokens WHERE marathon_id = ? AND user_id = ?`,
+        [marathonId, userId],
+      );
+      for (const row of rows) {
+        await connection.execute(
+          `INSERT INTO marathon_bot_tokens (token, marathon_id, user_id, payload)
+           VALUES (?, ?, ?, ?)`,
+          [row.token, marathonId, userId, row.payload.slice(0, 240)],
+        );
+      }
+      await connection.commit();
+    } catch (error) {
+      try {
+        await connection.rollback();
+      } catch {}
+      throw error;
+    }
   }, getConnection);
 }
 

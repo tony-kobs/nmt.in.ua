@@ -105,6 +105,12 @@ export const DASHBOARD_NAV: NavItem[] = [
     description: "П'ятиденний марафон: загадки, дні, учасники й вирва.",
     status: "ready",
   },
+  {
+    href: "/admin/support",
+    label: "Звернення",
+    description: "Повідомлення учасників з бота і відповідь у Telegram.",
+    status: "ready",
+  },
 ];
 
 export function getNavItem(href: string): NavItem {

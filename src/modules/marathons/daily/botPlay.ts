@@ -1,11 +1,10 @@
 import { composeRichText, composeTelegramTask } from "@/modules/telegram/taskRender";
+import { ACCOUNT_MENU } from "@/modules/telegram/replyKeyboard";
 import { MAIN_MENU_LABEL, MENU, mainMenuDataButton } from "@/modules/telegram/ui";
-import { materialSources } from "./telegramContent";
 import { isDayPassed, scorePercent } from "./score";
 import {
-  COPY_DEFAULTS,
   renderResolved,
-  resolveCopy,
+  TELEGRAM_BUTTON_LIMIT,
   type CopyKey,
   type CopyVars,
 } from "./copy";
@@ -53,7 +52,9 @@ export type BotCallback =
   | { kind: "pick"; marathonId: number }
   | { kind: "today" }
   | { kind: "top" }
+  | { kind: "overall" }
   | { kind: "stop" }
+  | { kind: "pauseYes" }
   | { kind: "channels" }
   | { kind: "channel"; channel: "site" | "telegram" }
   | { kind: "materials"; day: number }
@@ -67,7 +68,10 @@ export type BotCallback =
   | { kind: "quizResume" }
   | { kind: "quizReview" }
   | { kind: "quizAnswer"; sessionId: number; mappingId: number; option: number; attempt: 1 | 2 }
-  | { kind: "map" };
+  | { kind: "map" }
+  | { kind: "surveyRate"; rating: 1 | 2 | 3 | 4 | 5 }
+  | { kind: "surveyRecommend"; yes: boolean }
+  | { kind: "surveySkip" };
 
 export type Outgoing = {
   text: string;
@@ -149,7 +153,15 @@ export function parseBotCallback(data: string): BotCallback | null {
   if (data === "mh:map") return { kind: "map" };
   if (data === "mh:today") return { kind: "today" };
   if (data === "mh:top") return { kind: "top" };
+  if (data === "mh:all") return { kind: "overall" };
   if (data === "mh:stop") return { kind: "stop" };
+  const surveyRate = /^mh:sv:([1-5])$/.exec(data);
+  if (surveyRate?.[1]) return { kind: "surveyRate", rating: Number(surveyRate[1]) as 1 | 2 | 3 | 4 | 5 };
+  if (data === "mh:sv:y") return { kind: "surveyRecommend", yes: true };
+  if (data === "mh:sv:n") return { kind: "surveyRecommend", yes: false };
+  if (data === "mh:sv:x") return { kind: "surveySkip" };
+  if (data === "mh:py") return { kind: "pauseYes" };
+  if (data === "mh:pn") return { kind: "menu" };
   if (data === "mh:ch") return { kind: "channels" };
   if (data === "mh:ch:s") return { kind: "channel", channel: "site" };
   if (data === "mh:ch:t") return { kind: "channel", channel: "telegram" };
@@ -282,8 +294,48 @@ function sanitizeAnswers(
   return answers;
 }
 
-function buttonLabel(copy: Partial<Record<CopyKey, string>> | undefined, key: CopyKey): string {
-  return resolveCopy(key, copy).slice(0, 64);
+function buttonLabel(
+  copy: Partial<Record<CopyKey, string>> | undefined,
+  key: CopyKey,
+  vars: CopyVars = {},
+): string {
+  return renderResolved(key, copy, vars).slice(0, TELEGRAM_BUTTON_LIMIT);
+}
+
+const CHANNEL_MARK = "✓ ";
+
+export type ChannelMarks = { site: boolean; telegram: boolean };
+
+export function markedChannelLabel(label: string, selected: boolean): string {
+  if (!selected) return label.slice(0, TELEGRAM_BUTTON_LIMIT);
+  const room = TELEGRAM_BUTTON_LIMIT - CHANNEL_MARK.length;
+  return `${CHANNEL_MARK}${label.slice(0, Math.max(0, room))}`;
+}
+
+export function channelChoiceLabel(
+  copy: Partial<Record<CopyKey, string>> | undefined,
+  channel: "site" | "telegram",
+  name: string,
+  selected = true,
+): string {
+  const key = channel === "site" ? "bot_btn_site" : "bot_btn_telegram";
+  return markedChannelLabel(buttonLabel(copy, key, { name }), selected);
+}
+
+export function channelScreen(input: {
+  copy?: Partial<Record<CopyKey, string>>;
+  name: string;
+  site: boolean;
+  telegram: boolean;
+}): Outgoing {
+  const vars = { name: input.name };
+  return {
+    text: renderResolved("channel_prompt", input.copy, vars),
+    buttons: withMainMenu([
+      { text: channelChoiceLabel(input.copy, "site", input.name, input.site), data: "mh:ch:s" },
+      { text: channelChoiceLabel(input.copy, "telegram", input.name, input.telegram), data: "mh:ch:t" },
+    ]),
+  };
 }
 
 function withMainMenu(buttons?: Outgoing["buttons"]): NonNullable<Outgoing["buttons"]> {
@@ -298,19 +350,55 @@ export const MARATHON_OTHERS_LABEL = "Інші марафони";
 /** Marathon navigation under the input. It replaces the cabinet section list. */
 export function marathonReplyKeyboard(
   copy: Partial<Record<CopyKey, string>> | undefined,
-  options?: { others?: boolean },
+  options?: { others?: boolean; closed?: boolean },
 ): {
   keyboard: { text: string }[][];
   resize_keyboard: true;
   is_persistent: true;
 } {
-  const rows: { text: string }[][] = [
-    [{ text: buttonLabel(copy, "bot_btn_today") }, { text: buttonLabel(copy, "bot_btn_top") }],
-    [{ text: buttonLabel(copy, "bot_btn_map") }, { text: buttonLabel(copy, "bot_btn_stop") }],
-  ];
+  const rows: { text: string }[][] = [];
+  if (options?.closed) {
+    rows.push([
+      { text: buttonLabel(copy, "bot_btn_top") },
+      { text: buttonLabel(copy, "bot_btn_overall") },
+    ]);
+  } else {
+    rows.push([{ text: buttonLabel(copy, "bot_btn_today") }, { text: buttonLabel(copy, "bot_btn_top") }]);
+    rows.push([{ text: buttonLabel(copy, "bot_btn_overall") }]);
+  }
+  rows.push([{ text: buttonLabel(copy, "bot_btn_map") }]);
+  rows.push([{ text: buttonLabel(copy, "bot_btn_channel") }]);
   if (options?.others) rows.push([{ text: MARATHON_OTHERS_LABEL }]);
+  rows.push([{ text: ACCOUNT_MENU.help.text }]);
   rows.push([{ text: MAIN_MENU_LABEL }]);
   return { keyboard: rows, resize_keyboard: true, is_persistent: true };
+}
+
+const BUTTON_BINDINGS: Array<{ key: CopyKey; data: string }> = [
+  { key: "bot_btn_today", data: "mh:today" },
+  { key: "bot_btn_top", data: "mh:top" },
+  { key: "bot_btn_overall", data: "mh:all" },
+  { key: "bot_btn_map", data: "mh:map" },
+  { key: "bot_btn_channel", data: "mh:ch" },
+  { key: "bot_btn_stop", data: "mh:stop" },
+  { key: "bot_btn_begin", data: "mh:today" },
+];
+
+/** Current label and the shipped default, so a renamed button still matches an old keyboard. */
+export function marathonButtonSnapshots(
+  copy: Partial<Record<CopyKey, string>> | undefined,
+): Array<{ data: string; label: string }> {
+  const seen = new Set<string>();
+  const rows: Array<{ data: string; label: string }> = [];
+  for (const binding of BUTTON_BINDINGS) {
+    for (const label of [buttonLabel(copy, binding.key), buttonLabel(undefined, binding.key)]) {
+      const key = `${binding.data}\n${label}`;
+      if (!label || seen.has(key)) continue;
+      seen.add(key);
+      rows.push({ data: binding.data, label });
+    }
+  }
+  return rows;
 }
 
 /** Label of a marathon bottom button → the same callback the inline button uses. */
@@ -320,16 +408,15 @@ export function marathonCallbackFromText(
 ): string | null {
   const trimmed = text.trim();
   if (!trimmed) return null;
-  const rows = [
-    { text: buttonLabel(copy, "bot_btn_today"), data: "mh:today" },
-    { text: buttonLabel(copy, "bot_btn_top"), data: "mh:top" },
-    { text: buttonLabel(copy, "bot_btn_map"), data: "mh:map" },
-    { text: buttonLabel(copy, "bot_btn_stop"), data: "mh:stop" },
-    { text: MARATHON_OTHERS_LABEL, data: "mh:list" },
-    { text: "⬅️ Назад", data: "mh:menu" },
-    { text: MAIN_MENU_LABEL, data: MENU.home },
-  ];
-  return rows.find((button) => button.text.trim() === trimmed)?.data ?? null;
+  if (trimmed === MARATHON_OTHERS_LABEL) return "mh:list";
+  if (trimmed === "⬅️ Назад") return "mh:menu";
+  if (trimmed === MAIN_MENU_LABEL) return MENU.home;
+  for (const binding of BUTTON_BINDINGS) {
+    if (trimmed === buttonLabel(copy, binding.key) || trimmed === buttonLabel(undefined, binding.key)) {
+      return binding.data;
+    }
+  }
+  return null;
 }
 
 const QUIZ_KEYBOARD_LABELS = [
@@ -362,27 +449,16 @@ export function isDefaultMarathonMenuLabel(text: string): boolean {
 export function menuMessages(
   copy: Partial<Record<CopyKey, string>> | undefined,
   mapUrl: string,
+  name = "",
 ): Outgoing[] {
   return [
     {
-      text: resolveCopy("bot_menu", copy),
+      text: renderResolved("bot_menu", copy, { name }),
       buttons: withMainMenu([
         { text: buttonLabel(copy, "bot_btn_today"), data: "mh:today" },
         { text: buttonLabel(copy, "bot_btn_top"), data: "mh:top" },
         { text: buttonLabel(copy, "bot_btn_map"), url: mapUrl },
-        { text: buttonLabel(copy, "bot_btn_stop"), data: "mh:stop" },
-      ]),
-    },
-  ];
-}
-
-function channelMessages(copy: Partial<Record<CopyKey, string>> | undefined): Outgoing[] {
-  return [
-    {
-      text: resolveCopy("channel_prompt", copy),
-      buttons: withMainMenu([
-        { text: buttonLabel(copy, "bot_btn_site"), data: "mh:ch:s" },
-        { text: buttonLabel(copy, "bot_btn_telegram"), data: "mh:ch:t" },
+        { text: buttonLabel(copy, "bot_btn_channel"), data: "mh:ch" },
       ]),
     },
   ];
@@ -403,6 +479,7 @@ function taskMessage(
   day: DayPacket,
   task: GradedTask,
   copy: Partial<Record<CopyKey, string>> | undefined,
+  name: string,
   tokenFor?: (action: { day: number; taskId: number; option: number }) => string,
 ): Outgoing {
   return composeTelegramTask({
@@ -415,7 +492,7 @@ function taskMessage(
     )),
     trailingButtons: [mainMenuDataButton()],
     siteUrl: day.pageUrl,
-    siteLabel: buttonLabel(copy, "bot_open_site"),
+    siteLabel: buttonLabel(copy, "bot_open_site", varsFor(day, name)),
   });
 }
 
@@ -423,17 +500,32 @@ function nextTask(day: DayPacket, state: PlayState): GradedTask | null {
   return day.tasks.find((task) => state.answers[task.id] == null) ?? null;
 }
 
-function reviewMessages(
+function materialBody(day: DayPacket): string {
+  const parts: string[] = [];
+  const intro = day.introText?.trim();
+  if (intro) parts.push(intro);
+  for (const material of day.materials) {
+    const body = material.urlOrBody.trim();
+    if (body) parts.push(body);
+  }
+  return parts.join("\n\n");
+}
+
+function clipCard(text: string): string {
+  const clean = text.trim();
+  if (clean.length <= 3900) return clean;
+  return `${clean.slice(0, 3850).trim()}\n…`;
+}
+
+/** One card when the day is just finished. Reopening the day does not send this again. */
+function reviewCard(
   day: DayPacket,
   state: PlayState,
   copy: Partial<Record<CopyKey, string>> | undefined,
   name: string,
-  withFollowUp: boolean,
   followUp?: string | null,
 ): Outgoing[] {
-  const messages: Outgoing[] = [
-    { text: renderResolved("review_intro", copy, varsFor(day, name)), rich: true },
-  ];
+  const blocks = [renderResolved("review_intro", copy, varsFor(day, name))];
   for (const [index, task] of day.tasks.entries()) {
     const choice = state.answers[task.id] ?? null;
     const right = choice === task.correct;
@@ -446,19 +538,29 @@ function reviewMessages(
       `Правильна відповідь: ${correct}`,
     ];
     if (task.explanation) lines.push(task.explanation);
-    messages.push(composeRichText({
-      text: lines.join("\n"),
-      siteUrl: day.pageUrl,
-      siteLabel: buttonLabel(copy, "bot_open_site"),
-    }));
+    blocks.push(lines.join("\n"));
   }
-  if (withFollowUp && followUp !== null) {
+  if (followUp !== null) {
     const follow = followUp === undefined ? followUpText(day, copy, name) : followUp;
-    if (follow) messages.push({ text: follow });
+    if (follow) blocks.push(follow);
   }
-  const last = messages[messages.length - 1];
-  if (last) last.buttons = withMainMenu(last.buttons);
-  return messages;
+  return [composeRichText({
+    text: clipCard(blocks.join("\n\n")),
+    buttons: withMainMenu(),
+    siteUrl: day.pageUrl,
+    siteLabel: buttonLabel(copy, "bot_open_site", varsFor(day, name)),
+  })];
+}
+
+function doneCard(
+  day: DayPacket,
+  copy: Partial<Record<CopyKey, string>> | undefined,
+  name: string,
+): Outgoing[] {
+  return [{
+    text: renderResolved("bot_day_done", copy, varsFor(day, name)),
+    buttons: withMainMenu([{ text: buttonLabel(copy, "bot_open_site", varsFor(day, name)), url: day.pageUrl }]),
+  }];
 }
 
 export function followUpText(
@@ -497,25 +599,29 @@ function currentStep(
     return [
       {
         text: renderResolved("bot_locked", copy, varsFor(day, name)),
-        buttons: withMainMenu([{ text: buttonLabel(copy, "bot_open_site"), url: day.pageUrl }]),
+        buttons: withMainMenu([{ text: buttonLabel(copy, "bot_open_site", varsFor(day, name)), url: day.pageUrl }]),
       },
     ];
   }
-  if (state.completed) return reviewMessages(day, state, copy, name, announce, followUp);
-  if (!state.materialsViewed) {
-    const messages: Outgoing[] = [];
-    if (day.introText?.trim()) messages.push({ text: day.introText.trim(), rich: true });
-    for (const material of day.materials) messages.push(...materialSources(material));
-    if (messages.length === 0) messages.push({ text: " " });
-    messages.push({
-      text: buttonLabel(copy, "bot_to_tasks"),
-      buttons: withMainMenu([{ text: buttonLabel(copy, "bot_to_tasks"), data: `mh:mat:${day.dayNumber}` }]),
-    });
-    return messages;
+  if (state.completed) {
+    return announce ? reviewCard(day, state, copy, name, followUp) : doneCard(day, copy, name);
+  }
+  if (!state.materialsViewed && materialBody(day)) {
+    return [{
+      text: materialBody(day),
+      rich: true,
+      buttons: withMainMenu([{ text: buttonLabel(copy, "bot_to_tasks", varsFor(day, name)), data: `mh:mat:${day.dayNumber}` }]),
+    }];
   }
   const task = nextTask(day, state);
-  if (!task) return reviewMessages(day, state, copy, name, announce, followUp);
-  return [taskMessage(day, task, copy, tokenFor)];
+  if (!task) return reviewCard(day, state, copy, name, announce ? followUp : null);
+  return [taskMessage(day, task, copy, name, tokenFor)];
+}
+
+/** An empty materials step is already done: the next screen is the task, not a blank bubble. */
+function openedMaterials(state: PlayState, day: DayPacket): PlayState {
+  if (day.locked || state.materialsViewed || state.completed || materialBody(day)) return state;
+  return applyPlay(state, { type: "materials" }, day.tasks, day.passThreshold).state;
 }
 
 export function presentMarathon(input: {
@@ -528,23 +634,34 @@ export function presentMarathon(input: {
   tokenFor?: (action: { day: number; taskId: number; option: number }) => string;
   /** Replaces the follow-up sentence. `null` omits it. Omit the field for the default text. */
   followUp?: string | null;
+  /** Enabled delivery sides. Both can be on. */
+  channels?: ChannelMarks;
 }): { messages: Outgoing[]; state: PlayState; completedNow: boolean } {
   const copy = input.copy;
   if (input.callback.kind === "menu" || input.callback.kind === "top") {
-    return { messages: menuMessages(copy, input.mapUrl), state: input.state, completedNow: false };
+    return { messages: menuMessages(copy, input.mapUrl, input.name), state: input.state, completedNow: false };
   }
   if (input.callback.kind === "channels") {
-    return { messages: channelMessages(copy), state: input.state, completedNow: false };
+    const marks = input.channels ?? { site: false, telegram: false };
+    return {
+      messages: [channelScreen({ copy, name: input.name, site: marks.site, telegram: marks.telegram })],
+      state: input.state,
+      completedNow: false,
+    };
   }
   if (input.callback.kind === "channel") {
+    const marks = input.channels ?? {
+      site: input.callback.channel === "site",
+      telegram: input.callback.channel === "telegram",
+    };
+    const screen = channelScreen({ copy, name: input.name, site: marks.site, telegram: marks.telegram });
     return {
       messages: [
         {
-          text: input.callback.channel === "site"
-            ? resolveCopy("bot_btn_site", copy)
-            : resolveCopy("bot_btn_telegram", copy),
+          text: channelChoiceLabel(copy, input.callback.channel, input.name, true),
+          buttons: screen.buttons,
         },
-        ...menuMessages(copy, input.mapUrl),
+        ...menuMessages(copy, input.mapUrl, input.name),
       ],
       state: input.state,
       completedNow: false,
@@ -552,7 +669,10 @@ export function presentMarathon(input: {
   }
   if (input.callback.kind === "stop") {
     return {
-      messages: [{ text: resolveCopy("bot_btn_stop", copy) }, ...menuMessages(copy, input.mapUrl)],
+      messages: [
+        { text: renderResolved("bot_btn_stop", copy, { name: input.name }) },
+        ...menuMessages(copy, input.mapUrl, input.name),
+      ],
       state: input.state,
       completedNow: false,
     };
@@ -560,7 +680,7 @@ export function presentMarathon(input: {
   const day = input.day;
   if (!day) {
     return {
-      messages: [{ text: COPY_DEFAULTS.bot_start }],
+      messages: [{ text: renderResolved("bot_start", copy, { name: input.name }) }],
       state: input.state,
       completedNow: false,
     };
@@ -573,17 +693,19 @@ export function presentMarathon(input: {
     };
   }
   if (input.callback.kind === "today" || input.callback.kind === "open") {
+    const state = openedMaterials(input.state, day);
     return {
-      messages: currentStep(day, input.state, copy, input.name, false, input.tokenFor),
-      state: input.state,
+      messages: currentStep(day, state, copy, input.name, false, input.tokenFor),
+      state,
       completedNow: false,
     };
   }
   if (input.callback.kind === "materials") {
     if (input.callback.day !== day.dayNumber) {
-      return { messages: currentStep(day, input.state, copy, input.name, false, input.tokenFor), state: input.state, completedNow: false };
+      const state = openedMaterials(input.state, day);
+      return { messages: currentStep(day, state, copy, input.name, false, input.tokenFor), state, completedNow: false };
     }
-    const applied = applyPlay(input.state, { type: "materials" }, day.tasks, day.passThreshold);
+    const applied = applyPlay(openedMaterials(input.state, day), { type: "materials" }, day.tasks, day.passThreshold);
     return {
       messages: currentStep(day, applied.state, copy, input.name, false, input.tokenFor),
       state: applied.state,
@@ -614,14 +736,19 @@ export function presentMarathon(input: {
       completedNow: applied.completedNow,
     };
   }
-  return { messages: menuMessages(copy, input.mapUrl), state: input.state, completedNow: false };
+  return { messages: menuMessages(copy, input.mapUrl, input.name), state: input.state, completedNow: false };
 }
 
-export function startText(copy: Partial<Record<CopyKey, string>> | undefined, linked: boolean, mapUrl: string): Outgoing[] {
-  if (!linked) return [{ text: resolveCopy("bot_start", copy) }];
-  return menuMessages(copy, mapUrl);
+export function startText(
+  copy: Partial<Record<CopyKey, string>> | undefined,
+  linked: boolean,
+  mapUrl: string,
+  name = "",
+): Outgoing[] {
+  if (!linked) return [{ text: renderResolved("bot_start", copy, { name }) }];
+  return menuMessages(copy, mapUrl, name);
 }
 
-export function linkOkText(copy: Partial<Record<CopyKey, string>> | undefined): string {
-  return resolveCopy("bot_link_ok", copy);
+export function linkOkText(copy: Partial<Record<CopyKey, string>> | undefined, name = ""): string {
+  return renderResolved("bot_link_ok", copy, { name });
 }
