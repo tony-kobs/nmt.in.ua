@@ -5,7 +5,7 @@ import { absoluteSiteUrl } from "@/lib/siteOrigin";
 import type { CardStats } from "@/modules/marathons/daily/cardStats";
 import type { CronHealth } from "@/modules/marathons/daily/cronHeartbeat";
 import type { DailyFunnel } from "@/modules/marathons/daily/dailyStats";
-import { durationLocale, formatMarathonDuration } from "@/modules/marathons/daily/durationText";
+import { durationLocale, formatMarathonDurationOrDash } from "@/modules/marathons/daily/durationText";
 import type { SurveySummary } from "@/modules/marathons/daily/survey";
 import { formatKyivWhen, kyivDateIso } from "@/modules/marathons/daily/calendar";
 import { activationBlockers, marathonIsReady } from "@/modules/marathons/daily/readiness";
@@ -228,8 +228,8 @@ async function MarathonAdminCard({
                     {day.avgTimeSec == null || day.medianTimeSec == null
                       ? t("cardFunnelTimeEmpty")
                       : t("cardFunnelTime", {
-                        avg: formatMarathonDuration(day.avgTimeSec, uiLocale),
-                        median: formatMarathonDuration(day.medianTimeSec, uiLocale),
+                        avg: formatMarathonDurationOrDash(day.avgTimeSec, uiLocale),
+                        median: formatMarathonDurationOrDash(day.medianTimeSec, uiLocale),
                       })}
                   </span>
                   <span>{t("cardFunnelDropoff", { count: day.dropoff })}</span>

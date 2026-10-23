@@ -109,9 +109,11 @@
 
 .standingStats {
   grid-column: 2;
+  min-width: 0;
   color: rgb(246 241 226 / 78%);
   font-size: var(--fs-small);
   font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
 .card {

@@ -136,8 +136,8 @@ test("public names hide the address and keep a first name with an initial", () =
     selfOutside: true,
   });
   assert.equal(board.includes("@"), false);
-  assert.match(board, /1\. a — 4 · час невідомий · серія 2/);
-  assert.match(board, /8\. b — 0/);
+  assert.match(board, /1\. a — 4 · — · серія 2/);
+  assert.match(board, /8\. b — 0 · —/);
   const timed = formatBoardMessage({
     title: "Таблиця",
     rows: [{ place: 1, name: "Оля", points: 4, streak: 0, totalTimeSec: 750 }],

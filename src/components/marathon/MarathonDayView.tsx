@@ -11,7 +11,7 @@ import {
   submitDayAction,
 } from "@/modules/marathons/daily/actions";
 import { formatKyivWhen } from "@/modules/marathons/daily/calendar";
-import { durationLocale, formatMarathonDuration } from "@/modules/marathons/daily/durationText";
+import { durationLocale, formatMarathonDurationOrDash } from "@/modules/marathons/daily/durationText";
 import { loomEmbedSrc, renderSafeMarkdown, youtubeEmbedSrc } from "@/modules/marathons/daily/richText";
 import type { PendingPlayTask, ReviewedPlayTask } from "@/modules/marathons/daily/playTasks";
 import type { DailyMarathon, DayProgress, MarathonDay, Material } from "@/modules/marathons/daily/store";
@@ -40,10 +40,8 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
   const t = await getTranslations("Marathon");
   const uiLocale = durationLocale(await getLocale());
   const { marathon, day, materials, tasks, review, progress, totalSeconds, lockedUntil, locale, reviewIntro, rankNote, error, saved = false } = props;
-  const dayTime = progress?.durationSeconds == null
-    ? null
-    : formatMarathonDuration(progress.durationSeconds, uiLocale);
-  const totalTime = totalSeconds == null ? null : formatMarathonDuration(totalSeconds, uiLocale);
+  const dayTime = formatMarathonDurationOrDash(progress?.durationSeconds ?? null, uiLocale);
+  const totalTime = formatMarathonDurationOrDash(totalSeconds, uiLocale);
   const submitted = progress?.completedAt != null;
   const message = marathonErrorText(t, error);
   return (
@@ -90,9 +88,9 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                   ) : null}
                   {submitted ? (
                     <p className={css.meta}>
-                      {dayTime ? t("dayTime", { time: dayTime }) : t("dayTimeUnknown")}
+                      {t("dayTime", { time: dayTime })}
                       {" · "}
-                      {totalTime ? t("totalTime", { time: totalTime }) : t("totalTimeUnknown")}
+                      {t("totalTime", { time: totalTime })}
                     </p>
                   ) : null}
                   {submitted && rankNote ? (

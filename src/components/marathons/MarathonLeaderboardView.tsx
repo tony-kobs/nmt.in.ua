@@ -4,7 +4,7 @@ import { ALL_MARATHONS_SLUG, boardShowsSpeed } from "@/modules/marathons/boardSt
 import { formatPercent, formatSpeed } from "@/modules/results/types";
 import type { MarathonLeaderboardView as LeaderboardData } from "@/modules/marathons/types";
 import { getLocale, getTranslations } from "next-intl/server";
-import { durationLocale, formatMarathonDuration } from "@/modules/marathons/daily/durationText";
+import { durationLocale, formatMarathonDurationOrDash } from "@/modules/marathons/daily/durationText";
 import { MarathonJoinForm } from "./MarathonJoinForm";
 import { MarathonPicker } from "./MarathonPicker";
 import css from "./MarathonLeaderboard.module.css";
@@ -185,7 +185,7 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
                   {daily ? (
                     <div>
                       <dt>{t("totalTime")}</dt>
-                      <dd>{row.totalTimeSec == null ? "—" : formatMarathonDuration(row.totalTimeSec, uiLocale)}</dd>
+                      <dd>{formatMarathonDurationOrDash(row.totalTimeSec, uiLocale)}</dd>
                     </div>
                   ) : null}
                   {showSpeed ? (
@@ -245,7 +245,7 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
                     {daily ? <td className={css.colMetric}>{row.points}</td> : null}
                     {daily ? (
                       <td className={css.colMetric}>
-                        {row.totalTimeSec == null ? "—" : formatMarathonDuration(row.totalTimeSec, uiLocale)}
+                        {formatMarathonDurationOrDash(row.totalTimeSec, uiLocale)}
                       </td>
                     ) : null}
                     {showSpeed ? (

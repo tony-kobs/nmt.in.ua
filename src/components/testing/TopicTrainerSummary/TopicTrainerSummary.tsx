@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { PostTestFeedbackPrompt } from "@/components/feedback/FeedbackDialog";
 import { TopicTrainerMistakeReview } from "@/components/testing/TopicTrainerMistakeReview";
 import type { SessionMistakeItem } from "@/modules/testing/getSessionMistakeReview";
@@ -42,6 +42,7 @@ export function TopicTrainerSummary({
   sessionId,
 }: TopicTrainerSummaryProps) {
   const t = useTranslations("TopicTrainerSummary");
+  const locale = useLocale();
   const isUltimate = mode === "ultimate";
   const isDiagnostic = mode === "diagnostic";
   const isNmt = mode === "nmt";
@@ -114,7 +115,7 @@ export function TopicTrainerSummary({
 
         <div className={css.stat}>
           <dt>{t("time")}</dt>
-          <dd>{formatDurationSeconds(summary.timeSec)}</dd>
+          <dd>{formatDurationSeconds(summary.timeSec, locale)}</dd>
         </div>
       </dl>
 
