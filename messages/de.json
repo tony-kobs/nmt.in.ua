@@ -1449,8 +1449,10 @@
   },
   "Diagnostic": {
     "kicker": "Einstufungstest",
-    "title": "Finde dein tatsächliches Niveau in Mathe heraus",
-    "lead": "Bis zu 10 Aufgaben aus verschiedenen Themen. Die Schwierigkeit passt sich an: richtig → schwerer, falsch → leichter. Jede nächste Aufgabe kommt aus einem anderen Thema als die vorherige.",
+    "title": "Entdecke dein tatsächliches Niveau in Mathematik",
+    "titleStart": "Entdecke dein tatsächliches Niveau",
+    "titleAccent": "in Mathematik",
+    "lead": "Beginne deine Vorbereitung damit, deinen eigenen Wissensstand besser einzuschätzen. Die Aufgaben passen sich deinen Antworten an, und das Ergebnis hilft dir, deine nächsten Schritte zu planen.",
     "start": "Einstufungstest starten",
     "loading": "Test wird vorbereitet…",
     "redirecting": "Test wird geöffnet…",
@@ -1463,10 +1465,9 @@
     "info": {
       "title": "Das bringt dir der Einstufungstest",
       "items": {
-        "tasks": "bis zu 10 adaptive Aufgaben aus verschiedenen Themen",
-        "duration": "etwa 5–10 Minuten",
-        "insight": "zeigt deine Stärken und Schwächen",
-        "recommendations": "nach dem Test persönliche Empfehlungen"
+        "tasks": "10 adaptive Aufgaben",
+        "duration": "5–10 Minuten",
+        "recommendations": "Individuelle Empfehlungen"
       }
     }
   },

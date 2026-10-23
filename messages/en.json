@@ -1449,8 +1449,10 @@
   },
   "Diagnostic": {
     "kicker": "Diagnostic test",
-    "title": "Find out your real level in math",
-    "lead": "Up to 10 tasks from different topics. Difficulty adapts to your answers: correct → harder, wrong → easier. Each next task comes from a different topic than the previous one.",
+    "title": "Discover your true level in mathematics",
+    "titleStart": "Discover your true level",
+    "titleAccent": "in mathematics",
+    "lead": "Start your preparation by understanding what you already know. The questions will adapt to your answers, and your results will help you decide what to focus on next.",
     "start": "Start the diagnostic test",
     "loading": "Preparing the test…",
     "redirecting": "Opening the test…",
@@ -1463,10 +1465,9 @@
     "info": {
       "title": "What the diagnostic test gives you",
       "items": {
-        "tasks": "up to 10 adaptive tasks from different topics",
-        "duration": "about 5–10 minutes",
-        "insight": "shows your strengths and weaknesses",
-        "recommendations": "personal recommendations once you finish"
+        "tasks": "10 adaptive questions",
+        "duration": "5–10 minutes",
+        "recommendations": "Personalized recommendations"
       }
     }
   },
