@@ -281,7 +281,7 @@ export function TopicTestStart({
       className={css.frame}
       title={
         <>
-          {t("helloStart")} <span className={css.accent}>{displayName}</span>
+          {t("helloStart")} {displayName}
         </>
       }
       lead={t("lead")}

@@ -93,7 +93,7 @@ fi
 
 bash "$REWRITE" "$REMOTE_SITE"
 
-# scripts/migrate.mjs imports ./migrate-sql.mjs and reads scripts/sql.
+# scripts/migrate.mjs imports ./migrate-sql.mjs and ./schema-lock.mjs and reads scripts/sql.
 # mysql2 is a production dependency (npm install --omit=dev on the host).
 PACK_PATHS=(
   .next
@@ -108,6 +108,7 @@ PACK_PATHS=(
   tsconfig.json
   scripts/migrate.mjs
   scripts/migrate-sql.mjs
+  scripts/schema-lock.mjs
   scripts/sql
 )
 
@@ -143,7 +144,7 @@ tar -tzf "$ARCHIVE" > "$ARCHIVE_LIST"
 archive_has() {
   grep -qxF -- "$1" "$ARCHIVE_LIST"
 }
-for entry in scripts/migrate.mjs scripts/migrate-sql.mjs; do
+for entry in scripts/migrate.mjs scripts/migrate-sql.mjs scripts/schema-lock.mjs; do
   if ! archive_has "$entry"; then
     echo "Release archive is missing ${entry}" >&2
     exit 1

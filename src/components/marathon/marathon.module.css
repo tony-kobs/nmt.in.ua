@@ -16,39 +16,102 @@
   margin-inline: auto;
 }
 
-.shelf {
-  display: flex;
+.boardPicker {
+  margin-bottom: var(--space-md);
+}
+
+.courses {
+  display: grid;
   gap: var(--space-md);
+  align-content: start;
+  min-width: 0;
+}
+
+.course {
+  height: 100%;
+}
+
+.course .kicker {
+  align-self: flex-start;
+  width: fit-content;
+}
+
+.courses .courseCurrent {
+  background: #1e463b;
+}
+
+.courseActions {
+  margin-top: auto;
+}
+
+.standingsPanel {
+  min-width: 0;
+}
+
+.boardRules,
+.boardRank {
   margin: 0;
-  padding: 0 0 var(--space-xs);
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-snap-type: x mandatory;
+  color: rgb(246 241 226 / 78%);
+  font-size: var(--fs-small);
+}
+
+.boardRank {
+  color: #f6f1e2;
+  font-weight: 700;
+}
+
+.standings {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
   list-style: none;
 }
 
-.shelf > li {
-  flex: 0 0 min(100%, 20rem);
-  scroll-snap-align: start;
+.standing {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: 0.1rem var(--space-sm);
+  align-items: baseline;
+  padding-block: 0.55rem;
+  border-bottom: 1px solid rgb(246 241 226 / 14%);
+  color: #f6f1e2;
 }
 
-.shelfCard {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  height: 100%;
+.standing:last-child {
+  border-bottom: 0;
+}
+
+.standingYou {
+  margin-inline: calc(var(--space-xs) * -1);
+  padding-inline: var(--space-xs);
+  border-radius: var(--radius-sm);
+  background: rgb(246 241 226 / 12%);
+}
+
+.standingPlace {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.standingName {
   min-width: 0;
-  padding: var(--space-lg);
-  background: var(--grad-glass);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.shelfTitle {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--fs-h3);
+.standingYouMark {
+  color: rgb(246 241 226 / 72%);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.standingStats {
+  grid-column: 2;
+  color: rgb(246 241 226 / 78%);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
 }
 
 .card {

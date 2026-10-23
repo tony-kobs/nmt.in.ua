@@ -12,6 +12,8 @@ export type SqlConnection = {
   commit(): Promise<void>;
   rollback(): Promise<void>;
   release(): void;
+  /** Close the socket. A named lock dies with the session instead of returning to the pool. */
+  discard?(): void;
 };
 
 /**
@@ -278,6 +280,12 @@ function wrap(connection: PoolConnection, timeoutMs?: number, deadlineMs?: numbe
       }
       lastReleasedAt.set(connection, Date.now());
       connection.release();
+    },
+    discard: () => {
+      if (destroyed) return;
+      destroyed = true;
+      lastReleasedAt.delete(connection);
+      connection.destroy();
     },
   };
 }

@@ -12,7 +12,79 @@
   overflow-x: clip;
   color: var(--ink-deep);
   font-size: var(--fs-body);
-  background: transparent;
+  background: var(--page);
+}
+
+.page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(
+      100deg,
+      color-mix(in srgb, var(--page) 90%, transparent) 0%,
+      color-mix(in srgb, var(--page) 74%, transparent) 40%,
+      color-mix(in srgb, var(--page) 35%, transparent) 100%
+    ),
+    url("/landing/hero-classroom.webp");
+  background-size: cover;
+  background-position: center 42%;
+}
+
+.decor {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.decorMath {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  width: 100%;
+  height: clamp(220px, 32vw, 380px);
+  color: rgb(94 76 40 / 60%);
+  mask-image: linear-gradient(180deg, transparent, rgb(0 0 0 / 100%) 45%);
+}
+
+.decorAxis,
+.decorCurve {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.decorAxis {
+  opacity: 0.3;
+}
+
+.decorCurve {
+  opacity: 0.45;
+}
+
+.decorGlyph,
+.decorFormula {
+  fill: currentColor;
+}
+
+.decorGlyph {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 700;
+  opacity: 0.35;
+}
+
+.decorFormula {
+  font-family: var(--font);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.28;
 }
 
 .shell {
@@ -21,8 +93,7 @@
   width: 100%;
   max-width: var(--container-max);
   margin-inline: auto;
-  padding-block: var(--section-y);
-  padding-inline: var(--container-pad);
+  padding: var(--space-lg) var(--container-pad) var(--space-3xl);
 }
 
 .topbar {
@@ -93,16 +164,17 @@
 }
 
 .main {
+  display: grid;
   min-width: 0;
 }
 
 /* --- marketing aside ------------------------------------------------------- */
 
 .aside {
-  display: none;
+  display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-md);
-  padding-top: var(--space-md);
+  gap: var(--space-lg);
+  justify-items: start;
 }
 
 .asideBadge {
@@ -121,22 +193,70 @@
 }
 
 .asideTitle {
+  max-width: 38rem;
   margin: 0;
+  color: var(--ink-deep);
   font-family: var(--font-display);
-  font-size: var(--fs-h2);
-  font-weight: 700;
-  line-height: 1.14;
-  letter-spacing: -0.03em;
+  font-size: var(--fs-display);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
   text-wrap: balance;
 }
 
 .asideLead {
+  max-width: 34rem;
   margin: 0;
-  max-width: 32rem;
   color: var(--muted);
   font-size: var(--fs-lead);
-  line-height: 1.6;
+  line-height: 1.7;
   text-wrap: pretty;
+}
+
+.points {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-md);
+  width: 100%;
+  max-width: 36rem;
+  margin: 0;
+  padding: var(--space-md);
+  list-style: none;
+  isolation: isolate;
+}
+
+.points::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  z-index: -1;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--paper) 38%, transparent);
+  backdrop-filter: blur(8px);
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 12%,
+    black 88%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 12%,
+    black 88%,
+    transparent 100%
+  );
+}
+
+.points li {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  line-height: 1.45;
 }
 
 .rolePicker {
@@ -178,12 +298,15 @@
   place-items: center;
   min-height: 44px;
   padding: 8px 14px;
+  border: 0;
   border-radius: var(--radius-pill);
+  background: transparent;
   color: var(--muted);
+  font: inherit;
   font-size: var(--fs-small);
   font-weight: 700;
   text-align: center;
-  text-decoration: none;
+  cursor: pointer;
   transition:
     background var(--t) var(--ease),
     color var(--t) var(--ease);
@@ -206,12 +329,12 @@
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-lg);
   width: 100%;
-  max-width: 30rem;
-  margin-inline: auto;
+  max-width: none;
+  margin-inline: 0;
   padding: var(--space-lg);
-  border: 1px solid rgb(253 251 244 / 72%);
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
   border-radius: var(--radius-xl);
-  background: var(--grad-glass);
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(14px);
 }
@@ -220,6 +343,52 @@
   .card {
     background: var(--surface);
   }
+}
+
+.modeNav {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-lg);
+}
+
+.modeTab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 2px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.modeTab:hover {
+  color: var(--ink);
+}
+
+.modeTab:focus,
+.modeTab:focus-visible {
+  outline: none;
+}
+
+.modeTabActive {
+  color: var(--ink);
+}
+
+.modeBar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, #0f766e 0%, #35b7ae 42%, #6d28d9 100%);
 }
 
 .intro {
@@ -300,6 +469,42 @@
 
 .input:disabled {
   background: var(--surface-muted);
+  cursor: not-allowed;
+}
+
+.passwordWrap {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.passwordInput {
+  width: 100%;
+  padding-inline-end: 48px;
+}
+
+.passwordToggle {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.passwordToggle:hover,
+.passwordToggle:focus-visible {
+  color: var(--ink);
+}
+
+.passwordToggle:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -468,8 +673,21 @@
     display: block;
   }
 
+  .points {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: fit-content;
+    gap: var(--space-lg);
+    padding: var(--space-md) var(--space-lg);
+  }
+
+  .points::before {
+    inset: -8px;
+    mask-image: radial-gradient(ellipse 85% 100% at center, black 35%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 85% 100% at center, black 35%, transparent 100%);
+  }
+
   .card {
-    max-width: 32rem;
     padding: var(--space-xl);
   }
 }
@@ -480,27 +698,20 @@
 
 @media (min-width: 1240px) {
   .layout {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 32rem);
+    grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
     gap: var(--space-3xl);
     align-items: start;
   }
 
   .main {
-    justify-self: end;
+    justify-self: stretch;
+    justify-items: end;
     width: 100%;
   }
 
-  .aside {
-    display: grid;
-  }
-
   .card {
-    margin-inline: 0;
-    justify-self: end;
-  }
-
-  .rolePickerCard {
-    display: none;
+    width: 100%;
+    max-width: 34rem;
   }
 
   .rolePickerAside {

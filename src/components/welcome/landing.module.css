@@ -80,7 +80,10 @@
 
 .sectionLead {
   margin: 0;
-  color: var(--muted);
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: rgb(253 251 244 / 92%);
+  color: var(--ink);
   font-size: var(--fs-lead);
   line-height: 1.6;
   text-wrap: pretty;
@@ -304,40 +307,6 @@
   padding-block: var(--space-2xl) var(--section-y);
 }
 
-.heroBg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.heroBgImage {
-  object-fit: cover;
-  object-position: center 42%;
-}
-
-.heroBg::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(
-      100deg,
-      color-mix(in srgb, var(--page) 90%, transparent) 0%,
-      color-mix(in srgb, var(--page) 74%, transparent) 32%,
-      color-mix(in srgb, var(--page) 40%, transparent) 58%,
-      color-mix(in srgb, var(--page) 22%, transparent) 100%
-    ),
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--page) 48%, transparent) 0%,
-      transparent 20%,
-      transparent 68%,
-      var(--page) 100%
-    );
-}
-
 .heroGrid {
   position: relative;
   z-index: 1;
@@ -369,7 +338,10 @@
 .heroLead {
   margin: 0;
   max-width: 34rem;
-  color: var(--muted);
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: rgb(253 251 244 / 92%);
+  color: var(--ink);
   font-size: var(--fs-lead);
   line-height: 1.6;
   text-wrap: pretty;
@@ -998,6 +970,7 @@
 .footer {
   padding-block: var(--space-xl);
   border-top: 1px solid var(--line-soft);
+  background: var(--page);
 }
 
 .footerInner {
@@ -1179,10 +1152,6 @@ button.footerLink {
 
   .hero {
     padding-block: calc(var(--section-y) * 0.85) var(--section-y);
-  }
-
-  .heroBgImage {
-    object-position: 64% 40%;
   }
 
   .heroGrid {

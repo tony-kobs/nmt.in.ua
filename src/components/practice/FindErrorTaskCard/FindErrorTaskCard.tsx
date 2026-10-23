@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { useTranslations } from "next-intl";
 import { MathText } from "@/components/ui/MathText";
+import { TestTaskCard } from "@/components/testing/TestTaskCard";
+import cardCss from "@/components/testing/TestTaskCard/TestTaskCard.module.css";
 import {
   getFindErrorTaskAction,
   submitFindErrorTaskAction,
@@ -77,12 +79,32 @@ export function FindErrorTaskCard({ taskId, roundId, diagnostic = false, quiet =
     }
   }
 
-  return (
-    <div className={css.wrap}>
-      <h3>{task.name}</h3>
-      <MathText text={task.taskText} />
+  const note = !result || quiet
+    ? undefined
+    : diagnostic
+      ? t("answerSaved")
+      : result.correct
+        ? undefined
+        : result.retryAvailable
+          ? t("retryPrompt")
+          : t("incorrectLocked");
 
-      <div className={css.lines} role="radiogroup" aria-label={t("findErrorLinesLabel")}>
+  return (
+    <TestTaskCard
+      heading="h3"
+      title={<MathText text={task.name} />}
+      prompt={<MathText as="div" text={task.taskText} />}
+      hint={
+        note || (revealed?.explanation && !quiet) ? (
+          <>
+            {note ? <span role="status">{note}</span> : null}
+            {revealed?.explanation && !quiet ? <MathText text={revealed.explanation} /> : null}
+          </>
+        ) : undefined
+      }
+      result={!quiet && result?.correct && !diagnostic ? t("correct") : undefined}
+    >
+      <div className={`${cardCss.answers} ${cardCss.answersStack}`} role="radiogroup" aria-label={t("findErrorLinesLabel")}>
         {task.lines.map((line) => {
           const isSelected = selectedLine === line.ord;
           const isRevealedError = revealed?.errorLineOrd === line.ord;
@@ -93,17 +115,19 @@ export function FindErrorTaskCard({ taskId, roundId, diagnostic = false, quiet =
               role="radio"
               aria-checked={isSelected}
               disabled={isLocked}
-              className={clsx(css.line, isSelected && css.selectedLine, isRevealedError && css.errorLine)}
+              className={clsx(cardCss.option, isSelected && cardCss.optionSelected, isRevealedError && cardCss.optionWrong)}
               onClick={() => setSelectedLine(line.ord)}
             >
-              <MathText text={line.text} />
+              <span className={cardCss.optionText}>
+                <MathText text={line.text} />
+              </span>
             </button>
           );
         })}
       </div>
 
       <p className={css.optionsLabel}>{t("findErrorOptionsLabel")}</p>
-      <div className={css.options} role="radiogroup" aria-label={t("findErrorOptionsLabel")}>
+      <div className={cardCss.answers} role="radiogroup" aria-label={t("findErrorOptionsLabel")}>
         {task.correctionOptions.map((option) => {
           const isSelected = selectedOption === option.number;
           const isCorrectOption = revealed?.rightCorrectionN === option.number;
@@ -114,25 +138,17 @@ export function FindErrorTaskCard({ taskId, roundId, diagnostic = false, quiet =
               role="radio"
               aria-checked={isSelected}
               disabled={isLocked}
-              className={clsx(css.option, isSelected && css.selectedOption, isCorrectOption && css.correctOption)}
+              className={clsx(cardCss.option, isSelected && cardCss.optionSelected, isCorrectOption && cardCss.optionCorrect)}
               onClick={() => setSelectedOption(option.number)}
             >
-              <MathText text={option.text} />
+              <span className={cardCss.optionText}>
+                <MathText text={option.text} />
+              </span>
             </button>
           );
         })}
       </div>
 
-      {result && !quiet ? (
-        <p role="status">
-          {diagnostic ? t("answerSaved") : result.correct
-            ? t("correct")
-            : result.retryAvailable
-              ? t("retryPrompt")
-              : t("incorrectLocked")}
-        </p>
-      ) : null}
-      {revealed?.explanation && !quiet ? <MathText text={revealed.explanation} /> : null}
       {result?.retryAvailable && !diagnostic && !quiet ? <Stage2Hints format="find_error" taskId={taskId} roundId={roundId} /> : null}
       {error ? <p role="alert">{error}</p> : null}
 
@@ -146,6 +162,6 @@ export function FindErrorTaskCard({ taskId, roundId, diagnostic = false, quiet =
           {checking ? t("checking") : submitLabel ?? t("check")}
         </button>
       ) : null}
-    </div>
+    </TestTaskCard>
   );
 }

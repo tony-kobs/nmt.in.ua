@@ -37,9 +37,16 @@ function lockFlag(rows: Array<Record<string, unknown>>): LockResult {
   const row = rows[0];
   if (!row) return "unknown";
   const value = row.got ?? row.GOT ?? Object.values(row)[0];
-  if (value === 1 || value === "1" || value === true) return "acquired";
-  if (value === 0 || value === "0" || value === false) return "busy";
+  if (value === 1 || value === "1" || value === true || value === 1n) return "acquired";
+  if (value === 0 || value === "0" || value === false || value === 0n) return "busy";
   return "unknown";
+}
+
+function lockReleased(rows: Array<Record<string, unknown>>): boolean {
+  const row = rows[0];
+  if (!row) return false;
+  const value = row.released ?? row.RELEASED ?? Object.values(row)[0];
+  return value === 1 || value === "1" || value === true || value === 1n;
 }
 
 /**
@@ -105,13 +112,20 @@ async function runOnce(
       if (heldHere) lockDepth -= 1;
     }
   } finally {
-    if (acquired === "acquired") {
+    let leaked = false;
+    if (heldHere && acquired === "acquired") {
       try {
-        await connection.query(`SELECT RELEASE_LOCK(?) AS released`, [SCHEMA_LOCK_NAME]);
+        const rows = await connection.query<Record<string, unknown>>(
+          `SELECT RELEASE_LOCK(?) AS released`,
+          [SCHEMA_LOCK_NAME],
+        );
+        leaked = !lockReleased(rows);
       } catch (error) {
+        leaked = true;
         console.error("schema lock release failed", error);
       }
     }
-    connection.release();
+    if (leaked && connection.discard) connection.discard();
+    else connection.release();
   }
 }

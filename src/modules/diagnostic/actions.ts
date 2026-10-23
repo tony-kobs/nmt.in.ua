@@ -18,10 +18,14 @@ import type {
   CheckAnswerActionState,
   FinishTrainerSessionActionState,
   MarkSessionStartedActionState,
+  SessionTask,
+  TrainerSessionSummary,
 } from "@/modules/testing/types";
+import { TASK_STATUS_UNANSWERED } from "@/modules/testing/types";
 import {
   checkDiagnosticAnswer,
   CheckDiagnosticAnswerError,
+  skipDiagnosticTask,
 } from "./checkDiagnosticAnswer";
 import {
   finishDiagnosticSession,
@@ -49,6 +53,12 @@ import {
   getDiagnosticAnswerReview,
   type DiagnosticAnswerReviewItem,
 } from "./getDiagnosticAnswerReview";
+import {
+  getDiagnosticSessionTasks,
+  GetDiagnosticSessionTasksError,
+} from "./getDiagnosticSessionTasks";
+import { getDiagnosticNextStep } from "./getDiagnosticNextStep";
+import { DIAGNOSTIC_TOTAL_QUESTIONS } from "./diagnosticProgress";
 
 export type StartDiagnosticActionErrorCode =
   | "insufficientTasks"
@@ -165,6 +175,39 @@ export async function checkDiagnosticAnswerAction(
   }
 }
 
+export async function skipDiagnosticTaskAction(input: {
+  sessionId: number;
+  mappingId: number;
+}): Promise<CheckAnswerActionState> {
+  try {
+    const owner = await resolveOwnerForWrite();
+    await skipDiagnosticTask({
+      owner,
+      sessionId: input.sessionId,
+      mappingId: input.mappingId,
+    });
+    return { status: "success", correct: false, firstAttempt: true };
+  } catch (error) {
+    rethrowNavigation(error);
+    if (error instanceof CheckDiagnosticAnswerError) {
+      switch (error.code) {
+        case "invalid_input":
+          return { status: "error", code: "invalidInput" };
+        case "not_found":
+          return { status: "error", code: "notFound" };
+        case "session_completed":
+          return { status: "error", code: "sessionCompleted" };
+        case "session_expired":
+          return { status: "error", code: "sessionExpired" };
+        default:
+          return { status: "error", code: "generic" };
+      }
+    }
+    console.error("skipDiagnosticTaskAction: unexpected error", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
 export type FinishDiagnosticSessionActionInput = { sessionId: number };
 
 export async function finishDiagnosticSessionAction(
@@ -275,6 +318,66 @@ export async function markDiagnosticSessionStartedAction(
       "markDiagnosticSessionStartedAction: unexpected error",
       error,
     );
+    return { status: "error", code: "generic" };
+  }
+}
+
+export type DiagnosticBoard = {
+  themeCode: string | null;
+  themeName: string;
+  tasks: SessionTask[];
+  initialIndex: number;
+  progressTotal: number;
+  continueAfterLast: boolean;
+  summary: TrainerSessionSummary | null;
+};
+
+export type LoadDiagnosticBoardActionState =
+  | { status: "success"; board: DiagnosticBoard }
+  | { status: "error"; code: "notFound" | "sessionExpired" | "generic" };
+
+/** Reads the attempt so the intro page can show the cards in place. */
+export async function loadDiagnosticBoardAction(
+  sessionId: number,
+): Promise<LoadDiagnosticBoardActionState> {
+  try {
+    const owner = await resolveOwnerForRead();
+    if (!owner) return { status: "error", code: "notFound" };
+
+    const session = await getDiagnosticSessionTasks(sessionId, owner);
+    if (session.tasks.length === 0) return { status: "error", code: "generic" };
+
+    const step = session.summary
+      ? null
+      : await getDiagnosticNextStep(sessionId, owner);
+    const pendingIndex = session.tasks.findIndex(
+      (task) => task.status === TASK_STATUS_UNANSWERED,
+    );
+
+    return {
+      status: "success",
+      board: {
+        themeCode: session.themeCode,
+        themeName: session.themeName,
+        tasks: session.tasks,
+        initialIndex:
+          pendingIndex === -1 ? session.tasks.length - 1 : pendingIndex,
+        progressTotal: Math.max(DIAGNOSTIC_TOTAL_QUESTIONS, session.tasks.length),
+        continueAfterLast: step?.afterLastTask === "continue",
+        summary: session.summary,
+      },
+    };
+  } catch (error) {
+    rethrowNavigation(error);
+    if (error instanceof GetDiagnosticSessionTasksError) {
+      if (error.code === "session_expired") {
+        return { status: "error", code: "sessionExpired" };
+      }
+      if (error.code === "session_not_found" || error.code === "invalid_input") {
+        return { status: "error", code: "notFound" };
+      }
+    }
+    console.error("loadDiagnosticBoardAction: unexpected error", error);
     return { status: "error", code: "generic" };
   }
 }

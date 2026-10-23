@@ -20,7 +20,6 @@ import {
   CreateUserError,
   findUserByEmail,
   findUserById,
-  findUserByLogin,
   markEmailVerified,
   updateUserPassword,
 } from "./users";
@@ -50,6 +49,7 @@ import {
   resetPasswordSchema,
 } from "@/validations/authValidation";
 import { validateSchema } from "@/validations/parse";
+import { loginCandidatesFromEmail } from "./loginFromEmail";
 import {
   validateRegistrationInput,
   type RegistrationFieldError,
@@ -74,19 +74,22 @@ export async function loginAction(
   formData: FormData,
 ): Promise<LoginActionState> {
   const parsed = validateSchema(loginUserSchema, {
-    login: String(formData.get("login") ?? ""),
+    email: String(formData.get("email") ?? ""),
     password: String(formData.get("password") ?? ""),
   });
   if (!parsed.ok) {
-    if (parsed.detail.type === "string.max") {
-      return { status: "error", code: "invalidCredentials" };
+    if (
+      parsed.detail.type === "any.required" ||
+      parsed.detail.type === "string.empty"
+    ) {
+      return { status: "error", code: "requiredFields" };
     }
-    return { status: "error", code: "requiredFields" };
+    return { status: "error", code: "invalidCredentials" };
   }
-  const { login, password } = parsed.value;
+  const { email, password } = parsed.value;
   const nextPath = safeInternalPath(formData.get("next"));
 
-  const user = await findUserByLogin(login);
+  const user = await findUserByEmail(email);
 
   if (!user || !verifyPassword(password, user.passwordHash)) {
     return { status: "error", code: "invalidCredentials" };
@@ -130,42 +133,60 @@ export async function registerAction(
   formData: FormData,
   deps: RegisterActionDeps = {},
 ): Promise<RegisterActionState> {
-  const validated = validateRegistrationInput({
-    login: String(formData.get("login") ?? ""),
-    displayName: String(formData.get("displayName") ?? ""),
-    email: String(formData.get("email") ?? ""),
-    password: String(formData.get("password") ?? ""),
-    passwordConfirm: String(formData.get("passwordConfirm") ?? ""),
-  });
-
-  if (!validated.ok) {
-    return { status: "error", code: validated.code };
-  }
+  const displayName = String(formData.get("displayName") ?? "");
+  const email = String(formData.get("email") ?? "");
+  const password = String(formData.get("password") ?? "");
+  const passwordConfirm = String(formData.get("passwordConfirm") ?? "");
 
   const roleRaw = String(formData.get("role") ?? "student").trim();
   const role = roleRaw === "teacher" ? "teacher" : "student";
 
   const create = deps.createUser ?? createUser;
-  let userId: number;
-  try {
-    const user = await create({
-      login: validated.value.login,
-      displayName: validated.value.displayName,
-      email: validated.value.email,
-      password: validated.value.password,
-      role,
+  let userId: number | null = null;
+  let createdEmail = "";
+  let createdName = "";
+  let fieldError: RegistrationFieldError | null = null;
+  for (const login of loginCandidatesFromEmail(email)) {
+    const attempt = validateRegistrationInput({
+      login,
+      displayName,
+      email,
+      password,
+      passwordConfirm,
     });
-    userId = user.id;
-  } catch (error) {
-    if (error instanceof CreateUserError && error.code === "login_taken") {
-      return { status: "error", code: "loginTaken" };
+    if (!attempt.ok) {
+      if (attempt.code === "invalidLogin" || attempt.code === "reservedLogin") {
+        continue;
+      }
+      fieldError = attempt.code;
+      break;
     }
-    if (error instanceof CreateUserError && error.code === "email_taken") {
-      return { status: "error", code: "emailTaken" };
+    try {
+      const user = await create({
+        login: attempt.value.login,
+        displayName: attempt.value.displayName,
+        email: attempt.value.email,
+        password: attempt.value.password,
+        role,
+      });
+      userId = user.id;
+      createdEmail = attempt.value.email;
+      createdName = attempt.value.displayName;
+      break;
+    } catch (error) {
+      if (error instanceof CreateUserError && error.code === "login_taken") {
+        continue;
+      }
+      if (error instanceof CreateUserError && error.code === "email_taken") {
+        return { status: "error", code: "emailTaken" };
+      }
+      console.error("registerAction: unexpected error", error);
+      return { status: "error", code: "serverError" };
     }
-    console.error("registerAction: unexpected error", error);
-    return { status: "error", code: "serverError" };
   }
+
+  if (fieldError) return { status: "error", code: fieldError };
+  if (userId == null) return { status: "error", code: "serverError" };
 
   if (role === "student" && formData.get("from") === "diagnostic") {
     try {
@@ -185,15 +206,15 @@ export async function registerAction(
     const send = deps.sendVerificationMail ?? sendRegistrationVerificationMail;
     const result = await send({
       userId,
-      email: validated.value.email,
-      displayName: validated.value.displayName,
+      email: createdEmail,
+      displayName: createdName,
     });
     mailed = result.ok;
   } catch (error) {
     console.error("registerAction: send verify mail failed", error);
   }
 
-  const checkEmail = `/register/check-email?email=${encodeURIComponent(validated.value.email)}`;
+  const checkEmail = `/register/check-email?email=${encodeURIComponent(createdEmail)}`;
   const destination = mailed ? checkEmail : `${checkEmail}&mail=failed`;
   if (deps.redirectTo) return deps.redirectTo(destination);
   redirect(destination);

@@ -1,3 +1,4 @@
+import type { NavIconName } from "@/components/dashboard/AppSidebar/navIcons";
 import { DASHBOARD_NAV, type NavItemStatus } from "@/constants/navigation";
 import { hasPermission } from "@/modules/auth/permissions";
 import {
@@ -14,28 +15,28 @@ export type SidebarLink = {
   href: string;
   labelKey: string;
   status: NavItemStatus;
-  icon: string;
+  icon: NavIconName;
 };
 
 const ADMIN_NAV_SET = new Set<string>(ADMIN_NAV_HREFS);
 
-const NAV_ICONS: Record<string, string> = {
-  "/": "✦",
-  "/topic": "∑",
-  "/results": "%",
-  "/sessions": "⏱",
-  "/assign": "✎",
-  "/students": "◈",
-  "/profiles": "◉",
-  "/simulator": "◎",
-  "/materials/textbook": "▣",
-  "/problems": "ƒ",
-  "/feedback": "★",
-  "/settings": "⚙",
-  "/consultations": "✉",
-  "/leaderboard": "▴",
-  "/admin/marathons": "5",
-  "/admin/support": "?",
+const NAV_ICONS: Record<string, NavIconName> = {
+  "/": "spark",
+  "/topic": "bolt",
+  "/results": "chart",
+  "/sessions": "timer",
+  "/assign": "notebook",
+  "/students": "cap",
+  "/profiles": "cap",
+  "/simulator": "target",
+  "/materials/textbook": "book",
+  "/problems": "notebook",
+  "/feedback": "spark",
+  "/settings": "bolt",
+  "/consultations": "mail",
+  "/leaderboard": "trophy",
+  "/admin/marathons": "flame",
+  "/admin/support": "mail",
 };
 
 const NAV_KEYS: Record<string, string> = {
@@ -57,7 +58,7 @@ const NAV_KEYS: Record<string, string> = {
   "/admin/support": "support",
 };
 
-const MARATHON_ICON = "◷";
+const MARATHON_ICON: NavIconName = "flame";
 
 export function isMarathonOnlyStudent(
   role: UserRole,
@@ -110,7 +111,8 @@ function marathonLink(href: string): SidebarLink {
 
 /**
  * Sidebar for the signed-in role.
- * Students always get «Марафон» (`/marathon`): the shelf of current courses.
+ * Students always get «Марафон» (`/marathon`): the shelf and the standings.
+ * The separate `/leaderboard` item stays for teachers and admins.
  * A legacy marathon scope no longer hides the rest of the cabinet.
  * Teachers and admins keep their existing menus.
  */
@@ -134,12 +136,13 @@ export function visibleSidebar(input: {
     if (item.href === "/admin/marathons" || item.href === "/admin/support") {
       return hasPermission(input.role, "marathon:manage");
     }
+    if (item.href === "/leaderboard") return input.role !== "student";
     return true;
   }).map((item) => ({
     href: item.href,
     labelKey: NAV_KEYS[item.href] ?? "home",
     status: item.status,
-    icon: NAV_ICONS[item.href] ?? "•",
+    icon: NAV_ICONS[item.href] ?? "spark",
   }));
 
   if (input.role === "student") {

@@ -32,7 +32,9 @@ export function resolveAnswerCardState({
   // before that happens (`correct` still undefined) — never a colored state.
   if (isUltimate) return "selected";
 
-  if (mode === "diagnostic") return "selected";
+  // Diagnostic moves on as soon as the answer is stored, so the picked card
+  // must not flash a border before the next task appears.
+  if (mode === "diagnostic") return "default";
 
   if (correct === undefined) return "selected";
   return correct ? "correct" : "incorrect";

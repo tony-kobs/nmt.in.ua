@@ -5,6 +5,8 @@
   "Header": {
     "hideSidebar": "Hide sidebar",
     "showSidebar": "Show sidebar",
+    "pinSidebar": "Keep the menu expanded",
+    "unpinSidebar": "Collapse to icons",
     "hideMenu": "Hide menu",
     "showMenu": "Show menu",
     "goHome": "About the site",
@@ -594,6 +596,7 @@
     "timeAria": "Time {time}",
     "taskProgress": "Task {current} / {total}",
     "taskAria": "Task {number}",
+    "taskHeading": "Task №{number}",
     "answerOptions": "Answer options",
     "savingAnswer": "Saving answer…",
     "checkingAnswer": "Checking answer…",
@@ -601,6 +604,7 @@
     "incorrect": "Incorrect",
     "answerSaved": "Answer saved",
     "skip": "Skip",
+    "skipTask": "Skip this task",
     "abort": "Finish test",
     "next": "Next task",
     "finishing": "Finishing…",
@@ -664,6 +668,7 @@
     "ultimateTitle": "Timed test summary",
     "title": "Test summary",
     "diagnosticTitle": "Diagnostic test result",
+    "taskHeading": "Task №{number}",
     "nmtTitle": "NMT simulator — summary",
     "summary": "Topic “<themeLink>{theme}</themeLink>”. Session #{sessionId}.",
     "diagnosticSummary": "Diagnostic test #{sessionId} completed.",
@@ -774,6 +779,8 @@
     "loading": "Loading…",
     "activeTitle": "Fraction addition",
     "taskProgress": "Task {current} of {total}",
+    "taskHeading": "Task №{number}",
+    "levelBadge": "Level {level}",
     "scoreLine": "Correct: {correct} of {answered}",
     "submit": "Check",
     "next": "Next",
@@ -810,6 +817,9 @@
     "strongTitle": "Already going well:",
     "reviewTitle": "Review all answers",
     "reviewTaskNumber": "Question {number}",
+    "reviewCounter": "Task {current} of {total}",
+    "reviewPrev": "Previous",
+    "reviewNext": "Next",
     "reviewCorrect": "Correct",
     "reviewIncorrect": "Incorrect",
     "reviewCorrectAnswer": "Correct answer",
@@ -824,7 +834,7 @@
     "explanationDetail": "This test gives us enough to build your personal study route: focus on the topics that raise your score fastest, and gradually close the weaker spots.",
     "registerKicker": "30-second sign-up",
     "registerTitle": "Turn your test result into a study plan",
-    "registerLead": "Create an account — we'll save your result and help you keep moving forward.",
+    "registerLead": "Create an account — your result and the topic to start with will be waiting on Today.",
     "perfectRegisterTitle": "Save your result and keep testing your knowledge",
     "perfectRegisterLead": "Create an account to save your 10/10, track your progress, and take more in-depth topic tests.",
     "registerBenefit1Title": "A personal topic list",
@@ -846,7 +856,8 @@
     "loginCta": "Log in",
     "resultsCta": "Results by topic",
     "sessionsCta": "My sessions",
-    "newTest": "Take it again"
+    "newTest": "Take it again",
+    "todayCta": "See what to study today"
   },
   "Marathon": {
     "kicker": "Marathon",
@@ -912,6 +923,7 @@
     "materialsTitle": "Materials",
     "toTasks": "To the tasks",
     "tasksTitle": "Tasks",
+    "taskHeading": "Task №{number}",
     "submit": "Check",
     "yourChoice": "Your choice",
     "correctMark": "Correct answer",
@@ -1570,6 +1582,11 @@
   },
   "AuthShared": {
     "backHome": "Back to home",
+    "modeNavLabel": "Sign up or sign in",
+    "modeRegister": "Sign up",
+    "modeLogin": "Sign in",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "asideBadge": "NMT 2027 · mathematics",
     "asideTitle": "Your workspace for NMT maths preparation",
     "asideLead": "One login and you see your weak topics, attempt history and the plan for the next steps.",
@@ -1584,7 +1601,7 @@
       "sectionsAria": "Page sections",
       "features": "Features",
       "steps": "How it works",
-      "teachers": "Teachers",
+      "teachers": "Teacher",
       "faq": "FAQ",
       "login": "Log in",
       "register": "Create account",
@@ -1710,20 +1727,9 @@
       }
     },
     "teachers": {
-      "kicker": "Teachers",
-      "title": "Learn with verified specialists",
-      "lead": "Pick a teacher, see open hours and agree on a lesson when you want to work through topics with a mentor.",
-      "stub": "This could be your visiting card — join the platform",
-      "verified": "Verified teacher",
-      "city": "City",
-      "education": "Education",
-      "experience": "Experience",
-      "reviews": "(students: {count})",
-      "empty": "No public teacher cards yet.",
-      "carouselAria": "Platform teachers carousel",
-      "prev": "Previous teacher",
-      "next": "Next teacher",
-      "counter": "{current} / {total}",
+      "kicker": "Course teacher",
+      "lead": "Graduated from the Kharkiv Physics and Mathematics Lyceum and Karazin University. He has taught for twelve years.",
+      "imageAlt": "Mykhailo Maksymov",
       "demo": {
         "initials": "MM",
         "name": "Mykhailo Maksymov",
@@ -1733,35 +1739,6 @@
         "headline": "Graduated from the Kharkiv Physics and Mathematics Lyceum and earned a specialist degree in economic cybernetics at Karazin University.",
         "bio": "Taught “Fundamentals of Entrepreneurship”, “Entrepreneurship and Startups” and “E-governance” at the university’s School of Economics. In 2018 became head of the Scientific Society of students, postgraduates, doctoral students and young researchers at Karazin University. Since 2008 has run a business in IT education and information technology.",
         "publications": "Sole author of six research papers and a participant in many international conferences. Contributed to the Kharkiv regional entrepreneurship support program for 2016–2020 and to the Kharkiv city development strategy. Coached young researchers in the Junior Academy of Sciences and prepared more than 15 winners of regional and national research competitions."
-      },
-      "offerTitle": "Offer for teachers",
-      "offerLead": "The platform gives you tools to attract students, guide their learning and show results.",
-      "joinCta": "Join the platform",
-      "features": {
-        "profile": {
-          "title": "Public profile",
-          "text": "A teacher page with experience, subjects and contacts for students and parents."
-        },
-        "students": {
-          "title": "Students and groups",
-          "text": "Add students, create groups and share invite codes."
-        },
-        "assign": {
-          "title": "Assign tests",
-          "text": "Set topics for several students at once — now or on a date."
-        },
-        "results": {
-          "title": "Results and sessions",
-          "text": "See class and per-student progress: averages, attempts, statuses."
-        },
-        "sessions": {
-          "title": "Learning sessions",
-          "text": "Student attempt history with filters, sorting and session statuses."
-        },
-        "consultations": {
-          "title": "Consultation requests",
-          "text": "Receive student requests and join them to you or into a group."
-        }
       }
     },
     "cta": {
@@ -1845,6 +1822,7 @@
     },
     "footer": {
       "tagline": "Online NMT maths preparation: topic tests, result analytics, an exam simulator and learning sessions with a teacher.",
+      "practice": "This project is a practice base for GoIT graduates",
       "rights": "Educational project · NMT mathematics preparation"
     }
   },
@@ -1852,7 +1830,7 @@
     "kicker": "Sign in",
     "title": "NMT Learning Dashboard",
     "lead": "Sign in as a student, teacher, or admin.",
-    "login": "Login",
+    "email": "Email",
     "password": "Password",
     "signingIn": "Signing in…",
     "signIn": "Sign in",
@@ -1864,8 +1842,9 @@
       "admin": "Admin"
     },
     "errors": {
-      "requiredFields": "Enter your login and password.",
-      "invalidCredentials": "Invalid login or password.",
+      "requiredFields": "Enter your email and password.",
+      "invalidEmail": "Enter a valid email address.",
+      "invalidCredentials": "Wrong email or password.",
       "accountBanned": "This account is blocked. Contact an administrator.",
       "emailUnverified": "Confirm your email via the link we sent before signing in."
     },
@@ -2301,6 +2280,7 @@
   "nmtTrainer": {
     "title": "NMT Simulator",
     "taskProgress": "Task {current} of {total}",
+    "taskHeading": "Task №{number}",
     "taskImageAlt": "Image for task {n}",
     "tasks": "Tasks",
     "answered": "Answered: {answered}/{total}",

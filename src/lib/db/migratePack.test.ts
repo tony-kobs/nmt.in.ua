@@ -21,7 +21,7 @@ test("release pack list includes the migrate entrypoint and SQL", () => {
   const packEnd = source.indexOf(")", packStart);
   assert.ok(packStart >= 0 && packEnd > packStart);
   const pack = source.slice(packStart, packEnd);
-  for (const entry of ["scripts/migrate.mjs", "scripts/migrate-sql.mjs", "scripts/sql"]) {
+  for (const entry of ["scripts/migrate.mjs", "scripts/migrate-sql.mjs", "scripts/schema-lock.mjs", "scripts/sql"]) {
     assert.match(pack, new RegExp(`^\\s+${entry.replaceAll("/", "\\/")}\\s*$`, "m"));
   }
 

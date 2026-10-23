@@ -5,6 +5,8 @@
   "Header": {
     "hideSidebar": "Seitenleiste ausblenden",
     "showSidebar": "Seitenleiste anzeigen",
+    "pinSidebar": "Menü ausgeklappt lassen",
+    "unpinSidebar": "Auf Symbole einklappen",
     "hideMenu": "Menü ausblenden",
     "showMenu": "Menü anzeigen",
     "goHome": "Über die Website",
@@ -594,6 +596,7 @@
     "timeAria": "Zeit {time}",
     "taskProgress": "Aufgabe {current} / {total}",
     "taskAria": "Aufgabe {number}",
+    "taskHeading": "Aufgabe №{number}",
     "answerOptions": "Antwortmöglichkeiten",
     "savingAnswer": "Antwort wird gespeichert…",
     "checkingAnswer": "Antwort wird geprüft…",
@@ -601,6 +604,7 @@
     "incorrect": "Falsch",
     "answerSaved": "Antwort gespeichert",
     "skip": "Überspringen",
+    "skipTask": "Aufgabe überspringen",
     "abort": "Test beenden",
     "next": "Nächste Aufgabe",
     "finishing": "Wird beendet…",
@@ -664,6 +668,7 @@
     "ultimateTitle": "Zusammenfassung des Zeittests",
     "title": "Testzusammenfassung",
     "diagnosticTitle": "Ergebnis des Einstufungstests",
+    "taskHeading": "Aufgabe №{number}",
     "nmtTitle": "NMT-Simulator — Zusammenfassung",
     "summary": "Thema „<themeLink>{theme}</themeLink>“. Sitzung Nr. {sessionId}.",
     "diagnosticSummary": "Einstufungstest Nr. {sessionId} abgeschlossen.",
@@ -774,6 +779,8 @@
     "loading": "Wird geladen…",
     "activeTitle": "Bruchaddition",
     "taskProgress": "Aufgabe {current} von {total}",
+    "taskHeading": "Aufgabe №{number}",
+    "levelBadge": "Stufe {level}",
     "scoreLine": "Richtig: {correct} von {answered}",
     "submit": "Prüfen",
     "next": "Weiter",
@@ -810,6 +817,9 @@
     "strongTitle": "Läuft schon gut:",
     "reviewTitle": "Alle Antworten im Überblick",
     "reviewTaskNumber": "Aufgabe {number}",
+    "reviewCounter": "Aufgabe {current} von {total}",
+    "reviewPrev": "Zurück",
+    "reviewNext": "Weiter",
     "reviewCorrect": "Richtig",
     "reviewIncorrect": "Falsch",
     "reviewCorrectAnswer": "Richtige Antwort",
@@ -824,7 +834,7 @@
     "explanationDetail": "Dieser Test reicht aus, um deine persönliche Lernroute aufzubauen: Konzentriere dich auf die Themen, die dein Ergebnis am schnellsten verbessern, und schließe nach und nach die Lücken.",
     "registerKicker": "Registrierung in 30 Sekunden",
     "registerTitle": "Verwandle dein Testergebnis in einen Lernplan",
-    "registerLead": "Erstelle ein Konto — wir speichern dein Ergebnis und helfen dir, weiterzukommen.",
+    "registerLead": "Erstelle ein Konto — dein Ergebnis und das Thema für den Start warten schon auf der Seite „Heute“.",
     "perfectRegisterTitle": "Speichere dein Ergebnis und teste dein Wissen weiter",
     "perfectRegisterLead": "Erstelle ein Konto, um dein 10/10-Ergebnis zu speichern, deinen Fortschritt zu verfolgen und ausführlichere Thementests zu machen.",
     "registerBenefit1Title": "Persönliche Themenliste",
@@ -846,7 +856,8 @@
     "loginCta": "Anmelden",
     "resultsCta": "Ergebnisse nach Themen",
     "sessionsCta": "Meine Sitzungen",
-    "newTest": "Test wiederholen"
+    "newTest": "Test wiederholen",
+    "todayCta": "Ansehen, was heute dran ist"
   },
   "Marathon": {
     "kicker": "Marathon",
@@ -912,6 +923,7 @@
     "materialsTitle": "Material",
     "toTasks": "Zu den Aufgaben",
     "tasksTitle": "Aufgaben",
+    "taskHeading": "Aufgabe №{number}",
     "submit": "Prüfen",
     "yourChoice": "Deine Wahl",
     "correctMark": "Richtige Antwort",
@@ -1570,6 +1582,11 @@
   },
   "AuthShared": {
     "backHome": "Zur Startseite",
+    "modeNavLabel": "Registrierung oder Anmeldung",
+    "modeRegister": "Registrierung",
+    "modeLogin": "Anmelden",
+    "showPassword": "Passwort anzeigen",
+    "hidePassword": "Passwort verbergen",
     "asideBadge": "NMT 2027 · Mathematik",
     "asideTitle": "Ihr Bereich für die NMT-Vorbereitung in Mathematik",
     "asideLead": "Eine Anmeldung — und Sie sehen Ihre Schwachstellen, den Verlauf der Versuche und die nächsten Schritte.",
@@ -1584,7 +1601,7 @@
       "sectionsAria": "Abschnitte der Seite",
       "features": "Funktionen",
       "steps": "So funktioniert es",
-      "teachers": "Lehrkräfte",
+      "teachers": "Lehrkraft",
       "faq": "Fragen",
       "login": "Anmelden",
       "register": "Konto erstellen",
@@ -1710,20 +1727,9 @@
       }
     },
     "teachers": {
-      "kicker": "Lehrkräfte",
-      "title": "Lerne mit geprüften Fachleuten",
-      "lead": "Wähle eine Lehrkraft, sieh freie Stunden und vereinbare eine Stunde, wenn du Themen mit einer Mentorin oder einem Mentor besprechen willst.",
-      "stub": "Hier kann deine Visitenkarte stehen — tritt der Plattform bei",
-      "verified": "Geprüfte Lehrkraft",
-      "city": "Stadt",
-      "education": "Ausbildung",
-      "experience": "Erfahrung",
-      "reviews": "(Schüler: {count})",
-      "empty": "Noch keine öffentlichen Lehrerkarten.",
-      "carouselAria": "Karussell der Plattform-Lehrkräfte",
-      "prev": "Vorherige Lehrkraft",
-      "next": "Nächste Lehrkraft",
-      "counter": "{current} / {total}",
+      "kicker": "Lehrkraft des Kurses",
+      "lead": "Absolvent des Physikalisch-Mathematischen Lyzeums Charkiw und der Karasin-Universität. Er unterrichtet seit zwölf Jahren.",
+      "imageAlt": "Mychajlo Maksymow",
       "demo": {
         "initials": "MM",
         "name": "Mychajlo Maksymow",
@@ -1733,35 +1739,6 @@
         "headline": "Absolvent des Physikalisch-Mathematischen Lyzeums Charkiw, Spezialist für Wirtschaftskybernetik an der Karasin-Universität.",
         "bio": "Lehrte an der Wirtschaftsfakultät die Kurse „Grundlagen des Unternehmertums“, „Unternehmertum und Start-ups“ und „E-Government“. Wurde 2018 Vorsitzender der Wissenschaftlichen Gesellschaft der Studierenden, Promovierenden und jungen Forschenden der Karasin-Universität. Seit 2008 unternehmerisch in IT-Bildung und Informationstechnologie tätig.",
         "publications": "Alleinautor von sechs wissenschaftlichen Arbeiten und Teilnehmer vieler internationaler Konferenzen. Beteiligt am regionalen Programm zur Förderung des Unternehmertums in Charkiw 2016–2020 und an der Entwicklungsstrategie der Stadt Charkiw. Betreute begabte Jugendliche in der Kleinen Akademie der Wissenschaften und bereitete mehr als 15 Sieger regionaler und landesweiter Forschungsarbeiten vor."
-      },
-      "offerTitle": "Angebot für Lehrkräfte",
-      "offerLead": "Die Plattform gibt Werkzeuge, um Schüler:innen zu gewinnen, Lernen zu führen und Ergebnisse zu zeigen.",
-      "joinCta": "Der Plattform beitreten",
-      "features": {
-        "profile": {
-          "title": "Öffentliches Profil",
-          "text": "Lehrerseite mit Erfahrung, Fächern und Kontakt für Schüler:innen und Eltern."
-        },
-        "students": {
-          "title": "Schüler und Gruppen",
-          "text": "Schüler:innen hinzufügen, Gruppen anlegen und Einladungscodes teilen."
-        },
-        "assign": {
-          "title": "Tests zuweisen",
-          "text": "Themen für mehrere Schüler:innen zugleich setzen — sofort oder zum Termin."
-        },
-        "results": {
-          "title": "Ergebnisse und Sitzungen",
-          "text": "Fortschritt der Klasse und einzelner Schüler:innen: Mittelwerte, Versuche, Status."
-        },
-        "sessions": {
-          "title": "Lernsitzungen",
-          "text": "Versuchsverlauf der Schüler:innen mit Filtern, Sortierung und Status."
-        },
-        "consultations": {
-          "title": "Beratungsanfragen",
-          "text": "Anfragen erhalten und Schüler:innen sich selbst oder einer Gruppe zuordnen."
-        }
       }
     },
     "cta": {
@@ -1845,6 +1822,7 @@
     },
     "footer": {
       "tagline": "Online-Vorbereitung auf die NMT in Mathematik: Themen-Tests, Ergebnisanalyse, Prüfungssimulator und Lernsitzungen mit einer Lehrkraft.",
+      "practice": "Dieses Projekt ist eine Praxisbasis für Absolventinnen und Absolventen von GoIT",
       "rights": "Bildungsprojekt · NMT-Vorbereitung Mathematik"
     }
   },
@@ -1852,7 +1830,7 @@
     "kicker": "Anmelden",
     "title": "NMT-Lernbereich",
     "lead": "Melde dich als Schüler, Lehrkraft oder Administrator an.",
-    "login": "Login",
+    "email": "E-Mail",
     "password": "Passwort",
     "signingIn": "Anmeldung…",
     "signIn": "Anmelden",
@@ -1864,8 +1842,9 @@
       "admin": "Admin"
     },
     "errors": {
-      "requiredFields": "Gib Login und Passwort ein.",
-      "invalidCredentials": "Ungültiger Login oder ungültiges Passwort.",
+      "requiredFields": "Gib E-Mail und Passwort ein.",
+      "invalidEmail": "Bitte eine gültige E-Mail-Adresse angeben.",
+      "invalidCredentials": "Falsche E-Mail oder falsches Passwort.",
       "accountBanned": "Dieses Konto ist gesperrt. Wende dich an einen Administrator.",
       "emailUnverified": "Bestätige zuerst deine E-Mail über den Link in der Nachricht."
     },
@@ -2301,6 +2280,7 @@
   "nmtTrainer": {
     "title": "NMT-Simulator",
     "taskProgress": "Aufgabe {current} von {total}",
+    "taskHeading": "Aufgabe №{number}",
     "taskImageAlt": "Abbildung zu Aufgabe {n}",
     "tasks": "Aufgaben",
     "answered": "Beantwortet: {answered}/{total}",

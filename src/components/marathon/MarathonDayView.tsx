@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { MathText } from "@/components/ui/MathText/MathText";
+import { TestTaskCard, optionLetter } from "@/components/testing/TestTaskCard";
+import cardCss from "@/components/testing/TestTaskCard/TestTaskCard.module.css";
 import {
   markMaterialsAction,
   submitDayAction,
@@ -80,52 +82,59 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                     <div className={css.stack}>
                       {reviewIntro ? <p className={css.lead}>{reviewIntro}</p> : null}
                       {review.map((task, index) => (
-                        <article key={task.id} className={css.card}>
-                          <h3>
-                            {index + 1}. <MathText text={task.prompt} as="span" />
-                          </h3>
-                          <p className={task.right ? css.reviewRight : css.reviewWrong}>
-                            {task.right ? t("taskRight") : t("taskWrong")}
-                          </p>
-                          {task.choice == null ? (
-                            <p className={css.meta}>{t("choiceMissing")}</p>
-                          ) : null}
-                          <ol className={css.options}>
+                        <TestTaskCard
+                          key={task.id}
+                          heading="h3"
+                          titleId={`day-review-${task.id}`}
+                          title={t("taskHeading", { number: index + 1 })}
+                          badge={day.topic}
+                          prompt={<MathText text={task.prompt} as="div" />}
+                          hint={
+                            task.explanation ? (
+                              <MathText text={task.explanation} as="span" />
+                            ) : task.choice == null ? (
+                              t("choiceMissing")
+                            ) : undefined
+                          }
+                          result={
+                            task.options[task.correct - 1] ? (
+                              <MathText text={task.options[task.correct - 1]} as="span" />
+                            ) : task.right ? (
+                              t("taskRight")
+                            ) : (
+                              t("taskWrong")
+                            )
+                          }
+                        >
+                          <ol className={cardCss.answers}>
                             {task.options.map((option, optionIndex) => {
                               const number = optionIndex + 1;
                               const chosen = task.choice === number;
                               const key = task.correct === number;
+                              const tone = chosen
+                                ? task.right
+                                  ? cardCss.optionCorrect
+                                  : cardCss.optionWrong
+                                : key
+                                  ? cardCss.optionKey
+                                  : "";
                               return (
-                                <li
-                                  key={`${task.id}-${optionIndex}`}
-                                  className={
-                                    chosen
-                                      ? task.right
-                                        ? css.optionRight
-                                        : css.optionWrong
-                                      : key
-                                        ? css.optionKey
-                                        : css.optionStatic
-                                  }
-                                >
-                                  <MathText text={option} as="span" />
+                                <li key={`${task.id}-${optionIndex}`} className={`${cardCss.option} ${cardCss.optionFrozen} ${tone}`}>
+                                  <span className={cardCss.mark}>{optionLetter(optionIndex)})</span>
+                                  <span className={cardCss.optionText}>
+                                    <MathText text={option} as="span" />
+                                  </span>
                                   {chosen ? (
                                     <span className={css.reviewNote}>{t("yourChoice")}</span>
                                   ) : null}
-                                  {key ? (
+                                  {key && !chosen ? (
                                     <span className={css.reviewNote}>{t("correctMark")}</span>
                                   ) : null}
                                 </li>
                               );
                             })}
                           </ol>
-                          {task.explanation ? (
-                            <div className={css.prose}>
-                              <p className={css.reviewNote}>{t("explanation")}</p>
-                              <MathText text={task.explanation} as="div" />
-                            </div>
-                          ) : null}
-                        </article>
+                        </TestTaskCard>
                       ))}
                     </div>
                   ) : (
@@ -133,25 +142,33 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                       <input type="hidden" name="slug" value={marathon.slug} />
                       <input type="hidden" name="day" value={day.dayNumber} />
                       {tasks.map((task, index) => (
-                        <fieldset key={task.id} className={css.card}>
-                          <legend>
-                            {index + 1}. <MathText text={task.prompt} as="span" />
-                          </legend>
-                          <div className={css.options}>
+                        <TestTaskCard
+                          key={task.id}
+                          as="fieldset"
+                          titleId={`day-task-${task.id}`}
+                          title={t("taskHeading", { number: index + 1 })}
+                          badge={day.topic}
+                          prompt={<MathText text={task.prompt} as="div" />}
+                        >
+                          <div className={cardCss.answers}>
                             {task.options.map((option, optionIndex) => (
-                              <label key={`${task.id}-${optionIndex}`} className={css.option}>
+                              <label key={`${task.id}-${optionIndex}`} className={cardCss.option}>
                                 <input
+                                  className="visually-hidden"
                                   type="radio"
                                   name={`task_${task.id}`}
                                   value={optionIndex + 1}
                                   defaultChecked={progress?.answers[task.id] === optionIndex + 1}
                                   required
                                 />
-                                <MathText text={option} as="span" />
+                                <span className={cardCss.mark}>{optionLetter(optionIndex)})</span>
+                                <span className={cardCss.optionText}>
+                                  <MathText text={option} as="span" />
+                                </span>
                               </label>
                             ))}
                           </div>
-                        </fieldset>
+                        </TestTaskCard>
                       ))}
                       <button type="submit" className={css.button}>{t("submit")}</button>
                     </form>

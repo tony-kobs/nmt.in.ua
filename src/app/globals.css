@@ -230,8 +230,8 @@ input[type="range"] {
   --surface-muted: #e7e5e4;
   --ink: #1c1917;
   --ink-deep: #0c0a09;
-  --muted: #57534e;
-  --subtle: #78716c;
+  --muted: #3c3631;
+  --subtle: #4e463f;
   --line: #d6d3d1;
   --line-soft: rgb(28 25 23 / 12%);
   --border: #a8a29e;
@@ -325,6 +325,7 @@ input[type="range"] {
   --pad-y: 16px;
   --header-h: 64px;
   --sidebar-w: 0px;
+  --sidebar-rail: 0px;
   --aside-w: 0px;
   --title: 22px;
 }
@@ -343,6 +344,7 @@ input[type="range"] {
     --pad-y: 48px;
     --header-h: 72px;
     --sidebar-w: 240px;
+    --sidebar-rail: 103px;
     --title: 26px;
   }
 }
@@ -382,8 +384,33 @@ body {
   font-size: var(--fs-body);
   color: var(--ink);
   background-color: var(--page);
+  background-image:
+    linear-gradient(
+      100deg,
+      color-mix(in srgb, var(--page) 90%, transparent) 0%,
+      color-mix(in srgb, var(--page) 74%, transparent) 32%,
+      color-mix(in srgb, var(--page) 40%, transparent) 58%,
+      color-mix(in srgb, var(--page) 22%, transparent) 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--page) 48%, transparent) 0%,
+      transparent 20%,
+      transparent 68%,
+      transparent 100%
+    ),
+    url("/landing/hero-classroom.webp");
+  background-repeat: no-repeat;
+  background-position: center 42%;
+  background-size: cover;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+@media (min-width: 768px) {
+  body {
+    background-attachment: fixed;
+  }
 }
 
 h1,

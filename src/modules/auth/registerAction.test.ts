@@ -16,18 +16,16 @@ function formDataWith(fields: Record<string, string>): FormData {
 }
 
 test("registerAction returns validation error without creating a user", async () => {
-  // Patch via dynamic import won't work for createUser; we rely on validation short-circuit.
   const state = await registerAction(
     IDLE,
     formDataWith({
-      login: "ab",
       displayName: "Ok Name",
       email: "ok@example.com",
-      password: "12345678",
-      passwordConfirm: "12345678",
+      password: "short",
+      passwordConfirm: "short",
     }),
   );
-  assert.deepEqual(state, { status: "error", code: "invalidLogin" });
+  assert.deepEqual(state, { status: "error", code: "passwordTooShort" });
 });
 
 class Redirected extends Error {
@@ -128,19 +126,39 @@ test("registerAction tells the student to resend when the first letter does not 
   ]);
 });
 
-test("registerAction maps login_taken from createUser", async () => {
-  // Direct unit of CreateUserError mapping is covered in users.createUser.test;
-  // here we simulate by calling register with reserved demo login.
-  const state = await registerAction(
+test("registerAction maps email_taken and skips a taken generated login", async () => {
+  const taken = await registerAction(
     IDLE,
-    formDataWith({
-      login: "demo-admin",
-      displayName: "Someone",
-      email: "someone@example.com",
-      password: "12345678",
-      passwordConfirm: "12345678",
-    }),
+    registrationForm("student"),
+    {
+      createUser: async () => {
+        throw new CreateUserError("Email already taken.", "email_taken");
+      },
+      redirectTo: () => {
+        throw new Error("should not redirect");
+      },
+    },
   );
-  assert.deepEqual(state, { status: "error", code: "reservedLogin" });
-  assert.ok(CreateUserError);
+  assert.deepEqual(taken, { status: "error", code: "emailTaken" });
+
+  let attempts = 0;
+  await assert.rejects(
+    () =>
+      registerAction(IDLE, registrationForm("student"), {
+        createUser: async (input) => {
+          attempts += 1;
+          if (attempts === 1) {
+            assert.equal(input.login, "maria");
+            throw new CreateUserError("Login already taken.", "login_taken");
+          }
+          assert.equal(input.login, "maria2");
+          return createdStudent;
+        },
+        sendVerificationMail: async () => ({ ok: true }),
+        redirectTo: (path) => {
+          throw new Redirected(path);
+        },
+      }),
+    (error: unknown) => error instanceof Redirected,
+  );
 });

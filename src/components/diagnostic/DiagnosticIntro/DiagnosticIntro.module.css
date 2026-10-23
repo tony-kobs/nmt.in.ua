@@ -11,6 +11,10 @@
   align-items: center;
 }
 
+.gridLive {
+  align-items: start;
+}
+
 .content {
   display: flex;
   flex-direction: column;
@@ -167,6 +171,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
+}
+
+.visualLive {
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.board {
+  width: 100%;
   min-width: 0;
 }
 

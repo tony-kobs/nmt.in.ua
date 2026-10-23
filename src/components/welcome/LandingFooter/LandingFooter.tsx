@@ -13,9 +13,15 @@ const FOOTER_LINKS = [
   { key: "faq", href: "#faq" },
 ] as const;
 
-export async function LandingFooter() {
+export async function LandingFooter({
+  variant = "landing",
+}: {
+  /** Cabinet keeps the same footer and points section links at the welcome page. */
+  variant?: "landing" | "cabinet";
+}) {
   const t = await getTranslations("WelcomeLanding");
   const nav = await getTranslations("WelcomeLanding.nav");
+  const cabinet = variant === "cabinet";
 
   return (
     <footer className={css.footer}>
@@ -35,19 +41,27 @@ export async function LandingFooter() {
 
           <nav className={css.footerNav} aria-label={nav("sectionsAria")}>
             {FOOTER_LINKS.map((item) => (
-              <a key={item.key} href={item.href} className={css.footerLink}>
+              <a
+                key={item.key}
+                href={cabinet ? `/welcome${item.href}` : item.href}
+                className={css.footerLink}
+              >
                 {nav(item.key)}
               </a>
             ))}
-            <Link href="/login" className={css.footerLink}>
-              {nav("login")}
-            </Link>
-            <Link href="/register" className={css.footerLink}>
-              {nav("register")}
-            </Link>
+            {cabinet ? null : (
+              <>
+                <Link href="/login" className={css.footerLink}>
+                  {nav("login")}
+                </Link>
+                <Link href="/register" className={css.footerLink}>
+                  {nav("register")}
+                </Link>
+              </>
+            )}
             <FeedbackEntry
               source="footer"
-              isGuest
+              isGuest={!cabinet}
               triggerClassName={css.footerLink}
             />
           </nav>
@@ -57,6 +71,7 @@ export async function LandingFooter() {
           <p>
             © {new Date().getFullYear()} {SITE_NAME}
           </p>
+          <p>{t("footer.practice")}</p>
           <p>{t("footer.rights")}</p>
         </div>
       </div>

@@ -182,12 +182,38 @@
   gap: var(--space-md);
 }
 
-.answerReviewList {
-  display: grid;
+.answerReviewNav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-sm);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+}
+
+.reviewStep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 10px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reviewStep:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.reviewStep:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
 }
 
 .answerReviewCard {

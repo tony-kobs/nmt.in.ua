@@ -22,12 +22,8 @@
 }
 
 .item {
-  display: grid;
-  gap: 6px;
-  padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, crimson 25%, var(--border));
-  border-radius: 10px;
-  background: color-mix(in srgb, crimson 6%, var(--surface));
+  display: block;
+  min-width: 0;
 }
 
 .itemName {

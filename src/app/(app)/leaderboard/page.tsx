@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { MarathonLeaderboardView } from "@/components/marathons/MarathonLeaderboardView";
 import { PageFrame, PagePanel } from "@/components/dashboard/PageFrame";
 import { getNavItem } from "@/constants/navigation";
@@ -23,8 +24,15 @@ export const metadata = createPageMetadata({
 
 export default async function LeaderboardPage({ searchParams }: PageProps) {
   const user = await requireUser();
-  const t = await getTranslations("MarathonLeaderboard");
   const marathonSlug = readSearchParam((await searchParams).marathon);
+  if (user.role === "student") {
+    redirect(
+      marathonSlug
+        ? `/marathon?marathon=${encodeURIComponent(marathonSlug)}`
+        : "/marathon",
+    );
+  }
+  const t = await getTranslations("MarathonLeaderboard");
 
   let rosterStudentIds: Set<number> | undefined;
   if (canManageStudents(user.role)) {

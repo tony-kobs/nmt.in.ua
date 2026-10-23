@@ -14,10 +14,8 @@ export async function generateMetadata() {
   });
 }
 
-/** Bounds how long the page render waits on the availability read below — a
- * slow/unreachable DB must never turn "show the form" into a multi-second
- * blank page; that class of hang is exactly what this feature exists to
- * avoid trading in for. */
+/** Bounds the background catalog check. The intro paints without waiting on
+ * it — a slow or unreachable DB must not hold the page on the loading scene. */
 const CONTENT_CHECK_BUDGET_MS = 2_000;
 
 /**
@@ -46,11 +44,10 @@ async function resolveContentAvailable(): Promise<boolean> {
 /** Public diagnostic entry point — no auth required (see PUBLIC_PATHS in
  * src/proxy.ts). Guests get a signed nmt_guest cookie the first time they
  * submit the form (inside startDiagnosticAction), not on this render. */
-export default async function DiagnosticPage() {
-  const contentAvailable = await resolveContentAvailable();
+export default function DiagnosticPage() {
   return (
     <DiagnosticShell mathDecor="intro">
-      <DiagnosticIntro contentAvailable={contentAvailable} />
+      <DiagnosticIntro availability={resolveContentAvailable()} />
     </DiagnosticShell>
   );
 }
