@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useMemo, useSyncExternalStore } from "react";
+import { attemptSkewReload } from "@/lib/deploymentSkew";
 import { StatusScene } from "@/components/status/StatusScene";
 import {
   readStatusLocaleFromCookie,
@@ -35,6 +36,10 @@ export function StatusErrorView({
     readClientLocale,
     readServerLocale,
   );
+
+  useLayoutEffect(() => {
+    attemptSkewReload(error);
+  }, [error]);
 
   useEffect(() => {
     console.error(error);

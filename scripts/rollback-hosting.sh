@@ -38,9 +38,15 @@ if [ ! -f "$LIB" ]; then
   exit 1
 fi
 
+if [ -z "${ADM_TOOLS_TOKEN:-}" ] || [ -z "${ADM_TOOLS_HOST_ID:-}" ]; then
+  echo "ADM_TOOLS_TOKEN and ADM_TOOLS_HOST_ID are required. Rollback does not start Node itself." >&2
+  exit 1
+fi
+
 REMOTE_APPLY="$(printf \
-  'export SITE=%q HOST=%q PORT=%q; exec bash -s' \
-  "$REMOTE_SITE" "$REMOTE_HOST_IP" "$REMOTE_PORT")"
+  'export SITE=%q HOST=%q PORT=%q ADM_TOOLS_TOKEN=%q ADM_TOOLS_HOST_ID=%q; exec bash -s' \
+  "$REMOTE_SITE" "$REMOTE_HOST_IP" "$REMOTE_PORT" \
+  "$ADM_TOOLS_TOKEN" "$ADM_TOOLS_HOST_ID")"
 
 {
   cat "$LIB"
@@ -52,6 +58,9 @@ export PATH="/usr/local/node24/bin:/usr/local/bin:/usr/bin:${PATH}"
 SITE="${SITE:?}"
 HOST="${HOST:?}"
 PORT="${PORT:?}"
+ADM_TOOLS_TOKEN="${ADM_TOOLS_TOKEN:?}"
+ADM_TOOLS_HOST_ID="${ADM_TOOLS_HOST_ID:?}"
+require_panel_api
 APP_ROOT="$(dirname "$SITE")"
 cd "$APP_ROOT"
 
@@ -75,10 +84,10 @@ if [ -d "$SITE" ]; then
 fi
 mv "$PREVIOUS" "$SITE"
 
-start_site_node
-
-if ! wait_health; then
-  echo "Restored previous files, but healthcheck failed." >&2
+BUILD_ID="$(tr -d '[:space:]' < "${SITE}/.next/BUILD_ID")"
+if ! restart_panel_node || ! wait_health "$BUILD_ID"; then
+  echo "Restored previous files, but the panel restart or /health failed." >&2
+  echo "Press «Примусовий перезапуск» in the panel Node.js settings. Do not start Node with nohup." >&2
   exit 1
 fi
 
