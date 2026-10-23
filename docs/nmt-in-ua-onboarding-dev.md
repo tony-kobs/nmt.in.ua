@@ -112,7 +112,7 @@ git checkout -b feature/коротка-назва
 
 Далі: коміти → push → Pull Request `feature/…` → `dev`. Реліз на прод: `dev` → `main`.
 
-Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.github/workflows/deploy-hosting.yml): Actions збирає Next, переписує шляхи runner у `.next`, кладе tar на хостинг. У tar, крім `src/`, є `scripts/migrate.mjs`, `scripts/migrate-sql.mjs`, `scripts/schema-lock.mjs` і `scripts/sql/`. Сервер у `releases/<sha>` ставить `npm install` (`mysql2` з production-залежностей), потім `npm run migrate`, і лише після успішної міграції міняє `www`. На хості `npm run build` не запускаємо (старий glibc).
+Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.github/workflows/deploy-hosting.yml): Actions збирає Next, переписує шляхи runner у `.next`, кладе tar на хостинг. У tar, крім `src/`, є `scripts/migrate.mjs`, `scripts/migrate-sql.mjs`, `scripts/schema-lock.mjs` і `scripts/sql/`. Сервер у `releases/<sha>` ставить `npm install` (`mysql2` з production-залежностей), потім `npm run migrate`, і лише після успішної міграції міняє `www`. Секрет `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` (якщо є) потрапляє в збірку і в env хоста; без нього job лише попереджає. На хості `npm run build` не запускаємо (старий glibc).
 
 Розробнику на хостинг ходити не треба і **не деплоїти самостійно**. Секрети, відкат і що не робити на хості: [`.cursor/rules/deploy-hosting.mdc`](../.cursor/rules/deploy-hosting.mdc).
 

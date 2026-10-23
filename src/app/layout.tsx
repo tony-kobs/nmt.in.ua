@@ -11,6 +11,7 @@ import {
   createPageMetadata,
   siteIcons,
 } from "@/constants/seo";
+import { DeploymentSkewReload } from "@/components/status/DeploymentSkewReload";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { getLocale } from "next-intl/server";
 import "./globals.css";
@@ -78,6 +79,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang={locale} className={`${inter.variable} ${manrope.variable}`}>
       <body>
+        <DeploymentSkewReload />
         <QueryProvider>{children}</QueryProvider>
       </body>
     </html>

@@ -5,6 +5,7 @@ import { PageFrame } from "@/components/dashboard/PageFrame";
 import { MathText } from "@/components/ui/MathText/MathText";
 import { TestTaskCard, optionLetter } from "@/components/testing/TestTaskCard";
 import cardCss from "@/components/testing/TestTaskCard/TestTaskCard.module.css";
+import { MARATHON_DAY_FORM_ID } from "@/lib/deploymentSkew";
 import {
   markMaterialsAction,
   submitDayAction,
@@ -14,6 +15,7 @@ import { durationLocale, formatMarathonDuration } from "@/modules/marathons/dail
 import { loomEmbedSrc, renderSafeMarkdown, youtubeEmbedSrc } from "@/modules/marathons/daily/richText";
 import type { PendingPlayTask, ReviewedPlayTask } from "@/modules/marathons/daily/playTasks";
 import type { DailyMarathon, DayProgress, MarathonDay, Material } from "@/modules/marathons/daily/store";
+import { MarathonDayDraftRestore } from "./MarathonDayDraftRestore";
 import { SavedToast } from "./SavedToast";
 import { marathonErrorText } from "./errors";
 import css from "./marathon.module.css";
@@ -156,7 +158,8 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                       ))}
                     </div>
                   ) : (
-                    <form action={submitDayAction} className={css.stack}>
+                    <form id={MARATHON_DAY_FORM_ID} action={submitDayAction} className={css.stack}>
+                      <MarathonDayDraftRestore />
                       <input type="hidden" name="slug" value={marathon.slug} />
                       <input type="hidden" name="day" value={day.dayNumber} />
                       {tasks.map((task, index) => (

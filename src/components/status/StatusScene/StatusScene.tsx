@@ -97,6 +97,7 @@ export function StatusScene({
           <p className={css.lead}>{pack.lead}</p>
           {art && "imageAlt" in pack ? (
             <figure className={css.art}>
+              {/* /status/* is outside images.localPatterns, so the optimizer answers 400 and the browser shows alt as text. */}
               <Image
                 src={art}
                 alt={pack.imageAlt}
@@ -105,6 +106,7 @@ export function StatusScene({
                 className={css.artImg}
                 sizes="(min-width: 768px) 22rem, 80vw"
                 priority
+                unoptimized
               />
             </figure>
           ) : null}
