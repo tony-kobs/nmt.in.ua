@@ -12,7 +12,7 @@
 - Схвалено: ні
 - Автор: Romanna-Brych
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/244
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-10-23 — feat: денна статистика марафону для крону (#237)
 
