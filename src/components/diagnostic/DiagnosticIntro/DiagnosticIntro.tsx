@@ -117,7 +117,7 @@ export function DiagnosticIntro({
               <span className={css.placeholderIcon} aria-hidden="true">
                 ∑
               </span>
-              <p>Тут з’являться завдання тесту</p>
+              <p>{t("slot")}</p>
             </div>
           )}
         </div>

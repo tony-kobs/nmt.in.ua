@@ -1527,6 +1527,7 @@
     "lead": "Start your preparation by understanding what you already know. The questions will adapt to your answers, and your results will help you decide what to focus on next.",
     "start": "Start the diagnostic test",
     "loading": "Preparing the test…",
+    "slot": "The test tasks will appear here",
     "redirecting": "Opening the test…",
     "unavailable": "Topics and tasks are still being prepared. Testing will be available soon.",
     "errors": {

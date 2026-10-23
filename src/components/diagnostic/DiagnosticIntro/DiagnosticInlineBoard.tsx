@@ -36,8 +36,20 @@ export function DiagnosticInlineBoard({
   }, [sessionId]);
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    let cancelled = false;
+    void loadDiagnosticBoardAction(sessionId).then((result) => {
+      if (cancelled) return;
+      if (result.status !== "success") {
+        setError(result.code === "sessionExpired" ? "sessionExpired" : "generic");
+        return;
+      }
+      setBoard(result.board);
+      setError(null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
 
   if (error === "sessionExpired") return <SessionExpiredNotice />;
 

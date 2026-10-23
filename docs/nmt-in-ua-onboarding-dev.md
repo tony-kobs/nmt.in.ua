@@ -112,7 +112,7 @@ git checkout -b feature/коротка-назва
 
 Далі: коміти → push → Pull Request `feature/…` → `dev`. Реліз на прод: `dev` → `main`.
 
-Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.github/workflows/deploy-hosting.yml): Actions збирає Next, переписує шляхи runner у `.next`, кладе tar на хостинг. У tar, крім `src/`, є `scripts/migrate.mjs`, `scripts/migrate-sql.mjs` і `scripts/sql/`. Сервер у `releases/<sha>` ставить `npm install` (`mysql2` з production-залежностей), потім `npm run migrate`, і лише після успішної міграції міняє `www`. На хості `npm run build` не запускаємо (старий glibc).
+Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.github/workflows/deploy-hosting.yml): Actions збирає Next, переписує шляхи runner у `.next`, кладе tar на хостинг. У tar, крім `src/`, є `scripts/migrate.mjs`, `scripts/migrate-sql.mjs`, `scripts/schema-lock.mjs` і `scripts/sql/`. Сервер у `releases/<sha>` ставить `npm install` (`mysql2` з production-залежностей), потім `npm run migrate`, і лише після успішної міграції міняє `www`. На хості `npm run build` не запускаємо (старий glibc).
 
 Розробнику на хостинг ходити не треба і **не деплоїти самостійно**. Секрети, відкат і що не робити на хості: [`.cursor/rules/deploy-hosting.mdc`](../.cursor/rules/deploy-hosting.mdc).
 
@@ -311,7 +311,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | URL | Хто бачить | Стан |
 | --- | --- | --- |
 | `/`, `/welcome` | Усі. `/` — лендінг для гостя, кабінет для учня; `/welcome` завжди лендінг | Готово |
-| `/login`, `/register` | Гість | Готово. На `/register` вибір учень/викладач (`?role=`). Email → check-email → verify |
+| `/login`, `/register` | Гість | Готово. Вхід за e-mail; внутрішній логін виводиться з пошти. На `/register` вибір учень/викладач (`?role=`). Email → check-email → verify |
 | `/register/check-email`, `/verify-email` | Гість | Підтвердження email (Brevo / log). Після verify — сесія |
 | `/forgot-password`, `/reset-password` | Гість | Скидання пароля за email (лише verified акаунти) |
 | `/register/teacher` (+ `/success`, `/fail`) | Гість | UI оплати приховано: `/register/teacher` → `/register?role=teacher`. WayForPay success/fail лишаються для старих чеків |

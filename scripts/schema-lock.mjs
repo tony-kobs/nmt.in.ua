@@ -47,9 +47,9 @@ export function formatSchemaLockHolder(holder) {
 }
 
 export function lockGranted(value) {
-  return value === 1 || value === "1" || value === true || value === 1n;
+  return value === 1 || value === "1" || value === true || value === BigInt(1);
 }
 
 export function lockDenied(value) {
-  return value === 0 || value === "0" || value === false || value === 0n;
+  return value === 0 || value === "0" || value === false || value === BigInt(0);
 }

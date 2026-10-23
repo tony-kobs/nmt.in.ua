@@ -54,9 +54,9 @@ test("a vanished lock owner is retried", () => {
 
 test("lock flags accept numbers, strings, and bigints", () => {
   assert.equal(lockGranted(1), true);
-  assert.equal(lockGranted(1n), true);
+  assert.equal(lockGranted(BigInt(1)), true);
   assert.equal(lockGranted("1"), true);
   assert.equal(lockDenied(0), true);
-  assert.equal(lockDenied(0n), true);
+  assert.equal(lockDenied(BigInt(0)), true);
   assert.equal(lockGranted(0), false);
 });
