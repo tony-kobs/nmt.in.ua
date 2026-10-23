@@ -229,6 +229,16 @@ async function forwardTicket(
       disablePreview: true,
     }, bot.token);
     await reportSupportForward(result, connection);
+    if (result.status === "sent" && result.messageId > 0) {
+      try {
+        await connection.execute(
+          `UPDATE support_tickets SET forward_message_id = ? WHERE id = ?`,
+          [result.messageId, input.id],
+        );
+      } catch (error) {
+        if (!missingRelation(error)) console.error("support forward id", error);
+      }
+    }
   } catch (error) {
     console.error("support forward", error);
   }

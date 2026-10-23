@@ -45,6 +45,7 @@ const versions = [
   { version: "051_support_tickets.sql" },
   { version: "052_marathon_survey.sql" },
   { version: "053_marathon_scheduler_runs.sql" },
+  { version: "054_team_chat_broadcast.sql" },
 ];
 
 function harness(options?: { failInsert?: boolean }) {
