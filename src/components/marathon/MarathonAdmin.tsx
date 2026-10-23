@@ -5,6 +5,7 @@ import { absoluteSiteUrl } from "@/lib/siteOrigin";
 import type { CardStats } from "@/modules/marathons/daily/cardStats";
 import type { CronHealth } from "@/modules/marathons/daily/cronHeartbeat";
 import type { DailyFunnel } from "@/modules/marathons/daily/dailyStats";
+import type { SurveySummary } from "@/modules/marathons/daily/survey";
 import { formatKyivWhen, kyivDateIso } from "@/modules/marathons/daily/calendar";
 import { activationBlockers, marathonIsReady } from "@/modules/marathons/daily/readiness";
 import { loadMarathonBoard, loadMarathonCopy } from "@/modules/marathons/daily/store";
@@ -105,14 +106,21 @@ function kyivDayLabel(locale: string, isoDate: string): string {
   }).format(new Date(`${isoDate}T12:00:00Z`));
 }
 
+function clipImprove(value: string): string {
+  const chars = Array.from(value.trim());
+  return chars.length > 180 ? `${chars.slice(0, 180).join("")}…` : chars.join("");
+}
+
 async function MarathonAdminCard({
   marathon,
   stats,
   funnel,
+  survey,
 }: {
   marathon: DailyMarathon;
   stats: CardStats | null;
   funnel: DailyFunnel | null;
+  survey: SurveySummary | null;
 }) {
   const t = await getTranslations("Marathon");
   const locale = await getLocale();
@@ -221,6 +229,47 @@ async function MarathonAdminCard({
           ) : null}
         </section>
       ) : null}
+      {survey && (survey.count > 0 || survey.answers.length > 0) ? (
+        <section className={css.cardSurvey} aria-labelledby={`survey-${marathon.id}`}>
+          <h3 id={`survey-${marathon.id}`} className={css.cardSurveyTitle}>{t("cardSurveyTitle")}</h3>
+          <dl className={css.cardStats}>
+            <div>
+              <dt>{t("cardSurveyAverage")}</dt>
+              <dd>{survey.average == null ? t("cardStatEmpty") : survey.average}</dd>
+            </div>
+            <div>
+              <dt>{t("cardSurveyRecommend")}</dt>
+              <dd>
+                {survey.recommendAnswered === 0
+                  ? t("cardStatEmpty")
+                  : t("cardSurveyRecommendValue", { yes: survey.recommendYes, total: survey.recommendAnswered })}
+              </dd>
+            </div>
+          </dl>
+          {survey.answers.length > 0 ? (
+            <ul className={css.cardSurveyList}>
+              {survey.answers.map((answer, index) => (
+                <li key={`${answer.name}-${index}`}>
+                  <p className={css.cardSurveyMeta}>
+                    <span>{answer.name}</span>
+                    <span>
+                      {answer.rating == null
+                        ? answer.status === "skipped" ? t("cardSurveySkipped") : t("cardStatEmpty")
+                        : answer.rating}
+                    </span>
+                    {answer.recommend == null ? null : (
+                      <span>{answer.recommend ? t("cardSurveyYes") : t("cardSurveyNo")}</span>
+                    )}
+                  </p>
+                  {answer.improve ? <p className={css.cardSurveyText}>{clipImprove(answer.improve)}</p> : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {survey.hidden > 0 ? <p className={css.cardSurveyMore}>{t("cardSurveyMore", { count: survey.hidden })}</p> : null}
+        </section>
+      ) : null}
+
       <div className={css.actions}>
         {marathon.status === "draft" ? (
           <StatusConfirm
@@ -291,6 +340,7 @@ export async function MarathonAdminList({
   marathons,
   stats,
   funnels,
+  surveys,
   error,
   savedToken,
   cron = null,
@@ -298,6 +348,7 @@ export async function MarathonAdminList({
   marathons: DailyMarathon[];
   stats: Map<number, CardStats>;
   funnels?: Map<number, DailyFunnel>;
+  surveys?: Map<number, SurveySummary>;
   error?: string;
   savedToken?: string;
   cron?: CronHealth | null;
@@ -314,6 +365,7 @@ export async function MarathonAdminList({
           marathon={marathon}
           stats={stats.get(marathon.id) ?? null}
           funnel={funnels?.get(marathon.id) ?? null}
+          survey={surveys?.get(marathon.id) ?? null}
         />
       ))}
     </ul>

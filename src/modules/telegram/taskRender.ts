@@ -1,7 +1,9 @@
 import { parseMathText } from "@/components/ui/MathText/parseMathText";
-import { remainingTexCommands, toAdminInput } from "@/modules/admin-content/mathField";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
 import { normalizeNmtRichText } from "@/modules/testing/normalizeNmtRichText";
+import { formulaToPlain, latexToTelegramPlain } from "./latexPlain";
+
+export { formulaToPlain, latexToTelegramPlain };
 
 /**
  * One Telegram message per practice or marathon task.
@@ -11,17 +13,6 @@ import { normalizeNmtRichText } from "@/modules/testing/normalizeNmtRichText";
  */
 
 const LETTERS = ["А", "Б", "В", "Г", "Д", "Е", "Є", "Ж"] as const;
-
-const SUPERSCRIPT: Record<string, string> = {
-  "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
-  "+": "⁺", "-": "⁻", "=": "⁼", "(": "⁽", ")": "⁾", n: "ⁿ", i: "ⁱ",
-};
-
-const SUBSCRIPT: Record<string, string> = {
-  "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉",
-  "+": "₊", "-": "₋", "=": "₌", "(": "₍", ")": "₎",
-  a: "ₐ", e: "ₑ", o: "ₒ", x: "ₓ", k: "ₖ", n: "ₙ",
-};
 
 const IMAGE = /!\[[^\]]*\]\(([^)\s]+)\)|https?:\/\/\S+\.(?:png|jpe?g|gif|webp)(?:\?\S*)?/gi;
 
@@ -46,37 +37,6 @@ type Piece =
   | { kind: "missing" };
 
 type Field = { text: string; tex: string[]; images: string[]; missing: boolean };
-
-function applyScript(value: string, pattern: RegExp, map: Record<string, string>): string {
-  return value.replace(pattern, (full, body: string) => {
-    const chars = [...body];
-    if (chars.length === 0 || chars.some((char) => !map[char])) return full;
-    return chars.map((char) => map[char]!).join("");
-  });
-}
-
-function prettify(value: string): string {
-  let out = value;
-  out = applyScript(out, /\^\{([^{}]+)\}/g, SUPERSCRIPT);
-  out = applyScript(out, /\^([0-9n+\-=()i])/g, SUPERSCRIPT);
-  out = applyScript(out, /_\{([^{}]+)\}/g, SUBSCRIPT);
-  out = applyScript(out, /_([0-9aeknox])/g, SUBSCRIPT);
-  return out;
-}
-
-/** Readable stand-in for school TeX, or null when the formula has to be drawn. */
-export function formulaToPlain(tex: string): string | null {
-  const trimmed = tex
-    .trim()
-    .replace(/\\dfrac(?![a-zA-Z])/g, "\\frac")
-    .replace(/\\tfrac(?![a-zA-Z])/g, "\\frac");
-  if (!trimmed) return null;
-  const wrapped = `$${trimmed}$`;
-  if (remainingTexCommands(wrapped).length > 0) return null;
-  const plain = prettify(toAdminInput(wrapped)).replace(/\s+/g, " ").trim();
-  if (!plain || /\\/.test(plain)) return null;
-  return plain;
-}
 
 function publicImageUrl(raw: string): string | null {
   const url = raw.trim().replace(/[),.;]+$/, "");
@@ -141,7 +101,7 @@ function optionButton(letter: string, plain: string): string {
   const body = plain.replace(/\s+/g, " ").trim();
   if (!body) return letter;
   const label = `${letter}. ${body}`;
-  return label.length <= 64 ? label : letter;
+  return label.length <= 64 ? label : label.slice(0, 64);
 }
 
 function compositeTex(blocks: Array<{ mark: string | null; tex: string }>): string {
@@ -173,7 +133,7 @@ export function composeTelegramTask(input: {
     ...fieldOf(option),
   }));
   const lines: string[] = [];
-  if (input.heading?.trim()) lines.push(input.heading.trim());
+  if (input.heading?.trim()) lines.push(latexToTelegramPlain(input.heading.trim()));
   if (prompt.text) lines.push(prompt.text);
   for (const option of options) {
     if (option.text) lines.push(`${option.letter}. ${option.text}`);

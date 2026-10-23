@@ -57,6 +57,34 @@ test("/stop and «Відв'язати» unlink the signed-in account; a pause bu
   assert.deepEqual(seen, [7, 7]);
 });
 
+test("a survey answer is taken, and /menu is left for the marathon menu", async () => {
+  const seen: string[] = [];
+  const reply = await handleTelegramUpdate(start("коротші пояснення"), {
+    consume: async () => true,
+    survey: {
+      takeText: async (chatId, body) => {
+        seen.push(`${chatId}:${body}`);
+        return { text: "Порадили б марафон знайомим?", buttons: [{ text: "Так", data: "mh:sv:y" }] };
+      },
+    },
+  });
+  assert.deepEqual(seen, ["123:коротші пояснення"]);
+  assert.equal(reply?.text, "Порадили б марафон знайомим?");
+  assert.equal(reply?.replyMarkup?.inline_keyboard[0]?.[0]?.callback_data, "mh:sv:y");
+  const menu = await handleTelegramUpdate(start("/menu"), {
+    consume: async () => true,
+    marathon: async () => ({ chatId: "123", text: "меню" }),
+    survey: {
+      takeText: async () => {
+        seen.push("menu");
+        return { text: "ні", buttons: [] };
+      },
+    },
+  });
+  assert.equal(menu?.text, "меню");
+  assert.deepEqual(seen, ["123:коротші пояснення"]);
+});
+
 test("/start payload links and invalid payload gets generic reply", async () => {
   const seen: string[] = [];
   const valid = await handleTelegramUpdate(start("/start abc"), { consume: async (token) => { seen.push(token); return true; } });

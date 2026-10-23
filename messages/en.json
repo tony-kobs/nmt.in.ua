@@ -1000,6 +1000,14 @@
     "cardFunnelDropoff": "dropoff {count}",
     "cardFunnelTickets": "Open tickets",
     "cardFunnelErrors": "Delivery errors, 24h",
+    "cardSurveyTitle": "Survey",
+    "cardSurveyAverage": "Average rating",
+    "cardSurveyRecommend": "Would recommend",
+    "cardSurveyRecommendValue": "{yes} of {total}",
+    "cardSurveyYes": "Yes",
+    "cardSurveyNo": "No",
+    "cardSurveySkipped": "Skipped",
+    "cardSurveyMore": "and {count} more",
     "addRiddle": "Add a riddle",
     "addDay": "Add a day",
     "addMaterial": "Add material",
@@ -1326,7 +1334,15 @@
         "bot_support_thanks": "Request received",
         "bot_day_done": "Day already submitted",
         "bot_finished": "Marathon finished",
-        "bot_archived": "Marathon archived"
+        "bot_archived": "Marathon archived",
+        "survey_rating": "Rating 1–5",
+        "survey_improve": "What to improve",
+        "survey_recommend": "Would recommend",
+        "survey_thanks": "Thanks for the answers",
+        "survey_skipped": "Survey skipped",
+        "survey_skip": "Skip button",
+        "survey_yes": "Yes button",
+        "survey_no": "No button"
       }
     },
     "status": {
