@@ -6,6 +6,7 @@ import { requireUser } from "@/modules/auth/getCurrentUser";
 import { hasPermission } from "@/modules/auth/permissions";
 import { loadMarathonCardStats } from "@/modules/marathons/daily/cardStats";
 import { readMarathonCronHealth, type CronHealth } from "@/modules/marathons/daily/cronHeartbeat";
+import { loadDailyFunnels } from "@/modules/marathons/daily/dailyStatsStore";
 import { loadSurveySummaries } from "@/modules/marathons/daily/surveyStore";
 import { listDailyMarathons } from "@/modules/marathons/daily/store";
 
@@ -34,8 +35,9 @@ export default async function AdminMarathonsPage({
   if (!hasPermission(user.role, "marathon:manage")) redirect("/");
   const query = await searchParams;
   const marathons = await listDailyMarathons();
-  const [stats, surveys] = await Promise.all([
+  const [stats, funnels, surveys] = await Promise.all([
     loadMarathonCardStats(marathons),
+    loadDailyFunnels(marathons),
     loadSurveySummaries(marathons.map((marathon) => marathon.id)),
   ]);
   let cron: CronHealth | null = null;
@@ -48,6 +50,7 @@ export default async function AdminMarathonsPage({
     <MarathonAdminList
       marathons={marathons}
       stats={stats}
+      funnels={funnels}
       surveys={surveys}
       error={first(query.error)}
       savedToken={first(query.saved)}

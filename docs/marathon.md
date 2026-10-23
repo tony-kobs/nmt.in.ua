@@ -159,7 +159,7 @@ Google-вхід **немає**. На формі лишається TODO: дод�
 | --- | --- |
 | `BREVO_API_KEY`, `MAIL_FROM` | Листи. Без ключа `sendMail` пише в лог. |
 | `SESSION_SECRET` | Сесія. Також запасний секрет підпису відписки. |
-| `MARATHON_CRON_SECRET` | `Authorization: Bearer …` для cron. Якщо порожній — ендпоінт відповідає 401. |
+| `MARATHON_CRON_SECRET` | `Authorization: Bearer …` для cron і для `GET /api/marathon/stats`. Якщо порожній — ендпоінт відповідає 401. |
 | `MARATHON_UNSUBSCRIBE_SECRET` | Необов’язково. Інакше береться `SESSION_SECRET`, потім `MARATHON_CRON_SECRET`. |
 | `TELEGRAM_BOT_TOKEN` | Токен бота від BotFather. Без пари з username кнопка «Прив’язати» показує, що бот вимкнено, а cron пропускає канал Telegram. |
 | `TELEGRAM_BOT_USERNAME` | Username бота без `@`. |
@@ -238,6 +238,12 @@ curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" 
 ```
 
 `allowed_updates` має містити `message` і `callback_query`. `secret_token` — те саме значення, що `TELEGRAM_WEBHOOK_SECRET` на хості.
+
+## Цифри для крону
+
+`GET /api/marathon/stats?marathon=<slug>` відповідає лише з `Authorization: Bearer` і тим самим `MARATHON_CRON_SECRET`, що й розсилка. Порожній секрет або хибний заголовок — 401 з порожнім тілом. Невідомий slug або не денний курс — 404, теж порожнє тіло, без чужих цифр. Хибний slug — 400. Успіх: `cache-control: no-store`.
+
+У відповіді: `registered`, `telegramLinked` (чат учасника), `finished` (`finished_at`), `days` (номер, `opened` — рядок прогресу дня, `completed` — є `completed_at`, `avgScore` — середній бал зданих або `null`, `dropoff`), `ticketsOpen`, `deliveryErrors24h`. Відсів дня 1 — зареєстровані мінус здані, не нижче нуля. Далі — здані попереднього дня мінус здані цього, теж не нижче нуля. Відкриті звернення — `support_tickets` зі статусом `new` або `in_progress`; якщо таблиці ще немає, у відповіді 0. Помилки за 24 години — сума `failed` у `marathon_telegram_outbox` (`created_at`), `marathon_message_jobs` (`created_at`) і `marathon_notifications` (`outcome = failed`, `sent_at`) цього курсу. Немає колонки чи таблиці — це джерело дає 0. Нової міграції немає. Ті самі цифри стоять на картці списку `/admin/marathons` під наявними підсумками. Воронка джерел у редакторі лишається окремо.
 
 ## Воронка
 
