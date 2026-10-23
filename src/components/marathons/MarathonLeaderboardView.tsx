@@ -3,7 +3,8 @@ import clsx from "clsx";
 import { ALL_MARATHONS_SLUG, boardShowsSpeed } from "@/modules/marathons/boardStats";
 import { formatPercent, formatSpeed } from "@/modules/results/types";
 import type { MarathonLeaderboardView as LeaderboardData } from "@/modules/marathons/types";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { durationLocale, formatMarathonDuration } from "@/modules/marathons/daily/durationText";
 import { MarathonJoinForm } from "./MarathonJoinForm";
 import { MarathonPicker } from "./MarathonPicker";
 import css from "./MarathonLeaderboard.module.css";
@@ -45,6 +46,7 @@ function visibleLogin(
 
 export async function MarathonLeaderboardView({ data, mode }: Props) {
   const t = await getTranslations("MarathonLeaderboard");
+  const uiLocale = durationLocale(await getLocale());
   const {
     marathon,
     options,
@@ -180,6 +182,12 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
                       <dd>{row.points}</dd>
                     </div>
                   ) : null}
+                  {daily ? (
+                    <div>
+                      <dt>{t("totalTime")}</dt>
+                      <dd>{row.totalTimeSec == null ? "—" : formatMarathonDuration(row.totalTimeSec, uiLocale)}</dd>
+                    </div>
+                  ) : null}
                   {showSpeed ? (
                     <div>
                       <dt>{t("speed")}</dt>
@@ -207,6 +215,7 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
                   {daily ? <th scope="col">{t("days")}</th> : null}
                   <th scope="col">{t("avgPercent")}</th>
                   {daily ? <th scope="col">{t("points")}</th> : null}
+                  {daily ? <th scope="col">{t("totalTime")}</th> : null}
                   {showSpeed ? <th scope="col">{t("speed")}</th> : null}
                   {daily ? null : <th scope="col">{t("sessions")}</th>}
                 </tr>
@@ -234,6 +243,11 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
                       {formatPercent(row.avgPercent)}
                     </td>
                     {daily ? <td className={css.colMetric}>{row.points}</td> : null}
+                    {daily ? (
+                      <td className={css.colMetric}>
+                        {row.totalTimeSec == null ? "—" : formatMarathonDuration(row.totalTimeSec, uiLocale)}
+                      </td>
+                    ) : null}
                     {showSpeed ? (
                       <td className={css.colMetric}>
                         {formatAvgSec(row.avgSecPerTask)}

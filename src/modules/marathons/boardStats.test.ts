@@ -35,9 +35,9 @@ test("daily board ranks by total correct answers, the same way as Telegram /top"
   ];
   const board = buildDailyBoard(people, days);
   const expected = rankParticipants([
-    { userId: 1, displayName: "Анна Коваль", points: 5, lastCompletedAt: 30_000, streak: 2, joinedAt: 1_000 },
-    { userId: 2, displayName: "Богдан", points: 8, lastCompletedAt: 50_000, streak: 0, joinedAt: 2_000 },
-    { userId: 3, displayName: "Віра", points: 5, lastCompletedAt: 15_000, streak: 1, joinedAt: 500 },
+    { userId: 1, displayName: "Анна Коваль", points: 5, lastCompletedAt: 30_000, totalTimeSec: null, streak: 2, joinedAt: 1_000 },
+    { userId: 2, displayName: "Богдан", points: 8, lastCompletedAt: 50_000, totalTimeSec: null, streak: 0, joinedAt: 2_000 },
+    { userId: 3, displayName: "Віра", points: 5, lastCompletedAt: 15_000, totalTimeSec: null, streak: 1, joinedAt: 500 },
   ]).map((row) => row.userId);
   assert.deepEqual(board.map((row) => row.userId), expected);
   assert.deepEqual(board.map((row) => row.rank), [1, 2, 3]);
@@ -48,7 +48,7 @@ test("daily board ranks by total correct answers, the same way as Telegram /top"
   assert.equal(board.find((row) => row.userId === 2)?.points, 8);
 });
 
-test("an equal score puts the earlier last day first, and an unfinished person stays last", () => {
+test("an equal score with unknown time still puts the earlier last day first", () => {
   const days = [
     day({ userId: 1, dayId: 1, correctCount: 4, completedAt: 40_000 }),
     day({ userId: 2, dayId: 1, correctCount: 4, completedAt: 10_000 }),
@@ -70,6 +70,7 @@ test("average time per task uses only days that stored a duration", () => {
   ];
   const [row] = buildDailyBoard([people[0]], days);
   assert.equal(row.daysDone, 3);
+  assert.equal(row.totalTimeSec, null);
   assert.equal(row.avgSecPerTask, 10);
   assert.equal(boardShowsSpeed("daily", [row]), true);
   assert.equal(boardShowsSpeed("daily", [{ avgSecPerTask: null }]), false);
@@ -114,6 +115,17 @@ test("days from two marathons add up even when the day id is the same", () => {
     ],
   );
   assert.deepEqual(tied.map((row) => row.userId), [1, 2]);
+});
+
+test("equal points put the shorter known total first and leave an unknown time behind", () => {
+  const board = buildDailyBoard(people, [
+    day({ userId: 1, dayId: 1, correctCount: 4, timeSec: 900, completedAt: 10_000 }),
+    day({ userId: 2, dayId: 1, correctCount: 4, timeSec: 30, completedAt: 90_000 }),
+    day({ userId: 3, dayId: 1, correctCount: 4, timeSec: null, completedAt: 1_000 }),
+  ]);
+  assert.deepEqual(board.map((row) => row.userId), [2, 1, 3]);
+  assert.equal(board.find((row) => row.userId === 2)?.totalTimeSec, 30);
+  assert.equal(board.find((row) => row.userId === 3)?.totalTimeSec, null);
 });
 
 test("the selector prefers the requested marathon, otherwise an active daily one", () => {

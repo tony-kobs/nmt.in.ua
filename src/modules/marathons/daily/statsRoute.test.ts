@@ -9,7 +9,7 @@ const funnel: DailyFunnel = {
   registered: 3,
   telegramLinked: 2,
   finished: 1,
-  days: [{ day: 1, opened: 2, completed: 1, avgScore: 70, dropoff: 2 }],
+  days: [{ day: 1, opened: 2, completed: 1, avgScore: 70, avgTimeSec: null, medianTimeSec: null, dropoff: 2 }],
   ticketsOpen: 0,
   deliveryErrors24h: 0,
 };

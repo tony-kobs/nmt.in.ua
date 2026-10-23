@@ -46,11 +46,13 @@ const versions = [
   { version: "052_marathon_survey.sql" },
   { version: "053_marathon_scheduler_runs.sql" },
   { version: "054_team_chat_broadcast.sql" },
+  { version: "055_marathon_day_time.sql" },
 ];
 
-function harness(options?: { failInsert?: boolean }) {
+function harness(options?: { failInsert?: boolean; startedAt?: Date }) {
   const queries: string[] = [];
   const executed: string[] = [];
+  const inserts: unknown[][] = [];
   let completed = false;
   let began = 0;
   let committed = 0;
@@ -73,9 +75,19 @@ function harness(options?: { failInsert?: boolean }) {
         return [{ user_id: 7 }] as T[];
       }
       if (sql.includes("marathon_day_progress pr") && sql.includes("FOR UPDATE")) {
+        if (!completed && options?.startedAt) {
+          return [{
+            completed_at: null,
+            started_at: options.startedAt,
+            score: null,
+            passed: 0,
+            streak: 0,
+          }] as T[];
+        }
         if (!completed) return [] as T[];
         return [{
           completed_at: new Date("2026-10-16T10:00:00.000Z"),
+          started_at: options?.startedAt ?? null,
           score: 0,
           passed: 0,
           streak: 1,
@@ -93,9 +105,10 @@ function harness(options?: { failInsert?: boolean }) {
       }
       return [] as T[];
     },
-    execute: async (sql) => {
+    execute: async (sql, params) => {
       executed.push(sql);
       if (sql.includes("INSERT INTO marathon_day_progress")) {
+        inserts.push(Array.isArray(params) ? params : []);
         if (options?.failInsert) throw new Error("insert failed");
         completed = true;
       }
@@ -106,6 +119,7 @@ function harness(options?: { failInsert?: boolean }) {
     connection,
     queries,
     executed,
+    inserts,
     counts: () => ({ began, committed, rolledBack }),
   };
 }
@@ -150,6 +164,19 @@ test("completeParticipantDay locks the progress row and a second call is not fre
     1,
   );
   assert.equal(db.counts().committed, 2);
+});
+
+test("completeParticipantDay stores the duration from the first open and leaves an old row unknown", async () => {
+  const started = new Date("2026-10-16T10:00:00.000Z");
+  const known = harness({ startedAt: started });
+  const saved = await completeParticipantDay(input, async () => known.connection);
+  assert.equal(saved.ok, true);
+  const params = known.inserts[0] ?? [];
+  assert.equal(params[8], 2 * 60 * 60);
+
+  const unknown = harness();
+  await completeParticipantDay(input, async () => unknown.connection);
+  assert.equal((unknown.inserts[0] ?? [])[8], null);
 });
 
 test("completeParticipantDay rolls back when the write fails", async () => {

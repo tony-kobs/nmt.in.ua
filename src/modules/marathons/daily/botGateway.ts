@@ -27,6 +27,7 @@ import {
   type PlayState,
 } from "./botPlay";
 import { renderCopy, renderResolved } from "./copy";
+import { botDayTimeNote, durationSeconds, totalKnownSeconds } from "./durationText";
 import { decideSlot, findSlotOverride } from "./messageTimeline";
 import { loadOverridesSafe } from "./messageOverrides";
 import { expandSources, introSources } from "./telegramContent";
@@ -67,6 +68,7 @@ import {
   rememberMarathonButtonLabels,
   replaceMarathonBotTokens,
   selectChatMarathon,
+  markDayTestStarted,
   savePartialAnswers,
   setNotifyToggles,
   type DailyMarathon,
@@ -485,6 +487,7 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
         place: row.rank,
         name: publicLeaderName(row.displayName),
         points: row.points,
+        totalTimeSec: row.totalTimeSec,
         streak: 0,
       }));
     } catch (error) {
@@ -612,6 +615,36 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     await replaceMarathonBotTokens(marathon.id, participant.userId, minted);
   }
   let outgoing = presented.messages;
+  const content = days.find((item) => item.dayNumber === requested) ?? null;
+  if (playing && presented.state.completed && day) {
+    const daySec = presented.completedNow
+      ? durationSeconds(progress?.startedAt ?? null, now.getTime())
+      : (progress?.durationSeconds ?? null);
+    const others = progressRows
+      .filter((row) => row.completedAt != null && row.dayNumber !== day.dayNumber)
+      .map((row) => row.durationSeconds);
+    const note = botDayTimeNote(daySec, totalKnownSeconds([daySec, ...others]));
+    outgoing = outgoing.map((item, index) => (
+      index === 0 && item.text ? { ...item, text: `${item.text}\n\n${note}` } : item
+    ));
+  }
+  const showingTask = Boolean(
+    day
+    && content
+    && !day.locked
+    && playing
+    && !presented.state.completed
+    && presented.state.materialsViewed
+    && day.tasks.some((task) => presented.state.answers[task.id] == null),
+  );
+  if (showingTask && content) {
+    await markDayTestStarted({
+      marathonId: marathon.id,
+      userId: participant.userId,
+      dayId: content.id,
+      now,
+    });
+  }
   const several = (await listChatMarathons(parsed.chatId)).length > 1;
   const introFresh = !participant.introSeen;
   if (introFresh) {
@@ -634,7 +667,7 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
     marathon,
     participant,
     day,
-    content: days.find((item) => item.dayNumber === requested) ?? null,
+    content,
     before,
     after: presented.state,
     completedNow: presented.completedNow,
