@@ -5,6 +5,7 @@ import { createPageMetadata } from "@/constants/seo";
 import { requireUser } from "@/modules/auth/getCurrentUser";
 import { evaluateDayAccess } from "@/modules/marathons/daily/calendar";
 import { renderResolved } from "@/modules/marathons/daily/copy";
+import { totalKnownSeconds } from "@/modules/marathons/daily/durationText";
 import { rankNoticeText } from "@/modules/marathons/daily/leaderboard";
 import { dayClientPayload } from "@/modules/marathons/daily/playTasks";
 import {
@@ -15,6 +16,7 @@ import {
   listPendingTasks,
   listProgress,
   listTaskReview,
+  markDayTestStarted,
   loadMarathonBoard,
   loadMarathonCopy,
 } from "@/modules/marathons/daily/store";
@@ -56,10 +58,18 @@ export default async function MarathonDayPage({ params, searchParams }: PageProp
   const day = (await listDays(marathon.id)).find((item) => item.dayNumber === dayNumber);
   if (!day) notFound();
   const query = await searchParams;
-  const progress = (await listProgress(marathon.id, user.id)).find(
-    (item) => item.dayNumber === dayNumber,
-  );
+  const progressRows = await listProgress(marathon.id, user.id);
+  const progress = progressRows.find((item) => item.dayNumber === dayNumber);
   const open = access.open;
+  const submittedEarly = progress?.completedAt != null;
+  if (open && progress?.materialsViewed && !submittedEarly) {
+    await markDayTestStarted({
+      marathonId: marathon.id,
+      userId: user.id,
+      dayId: day.id,
+      now: new Date(),
+    });
+  }
   const locale = await getLocale();
   const materials = open ? await listMaterials(day.id) : [];
   const submitted = progress?.completedAt != null;
@@ -103,6 +113,9 @@ export default async function MarathonDayPage({ params, searchParams }: PageProp
       tasks={payload.tasks}
       review={payload.review}
       progress={progress}
+      totalSeconds={totalKnownSeconds(
+        progressRows.filter((row) => row.completedAt != null).map((row) => row.durationSeconds),
+      )}
       reviewIntro={reviewIntro}
       rankNote={rankNote}
       lockedUntil={open ? null : access.unlockAt}

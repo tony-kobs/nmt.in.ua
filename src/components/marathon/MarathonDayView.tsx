@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { MathText } from "@/components/ui/MathText/MathText";
 import { TestTaskCard, optionLetter } from "@/components/testing/TestTaskCard";
@@ -9,6 +9,7 @@ import {
   submitDayAction,
 } from "@/modules/marathons/daily/actions";
 import { formatKyivWhen } from "@/modules/marathons/daily/calendar";
+import { durationLocale, formatMarathonDuration } from "@/modules/marathons/daily/durationText";
 import { loomEmbedSrc, renderSafeMarkdown, youtubeEmbedSrc } from "@/modules/marathons/daily/richText";
 import type { PendingPlayTask, ReviewedPlayTask } from "@/modules/marathons/daily/playTasks";
 import type { DailyMarathon, DayProgress, MarathonDay, Material } from "@/modules/marathons/daily/store";
@@ -23,6 +24,7 @@ type MarathonDayViewProps = {
   tasks: PendingPlayTask[];
   review: ReviewedPlayTask[];
   progress: DayProgress | undefined;
+  totalSeconds: number | null;
   lockedUntil: Date | null;
   locale: string;
   reviewIntro: string;
@@ -33,7 +35,12 @@ type MarathonDayViewProps = {
 
 export async function MarathonDayView(props: MarathonDayViewProps) {
   const t = await getTranslations("Marathon");
-  const { marathon, day, materials, tasks, review, progress, lockedUntil, locale, reviewIntro, rankNote, error, saved = false } = props;
+  const uiLocale = durationLocale(await getLocale());
+  const { marathon, day, materials, tasks, review, progress, totalSeconds, lockedUntil, locale, reviewIntro, rankNote, error, saved = false } = props;
+  const dayTime = progress?.durationSeconds == null
+    ? null
+    : formatMarathonDuration(progress.durationSeconds, uiLocale);
+  const totalTime = totalSeconds == null ? null : formatMarathonDuration(totalSeconds, uiLocale);
   const submitted = progress?.completedAt != null;
   const message = marathonErrorText(t, error);
   return (
@@ -73,6 +80,13 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                       {progress.passed
                         ? t("markPassed", { score: progress.score ?? 0 })
                         : t("markFailed", { score: progress.score ?? 0 })}
+                    </p>
+                  ) : null}
+                  {submitted ? (
+                    <p className={css.meta}>
+                      {dayTime ? t("dayTime", { time: dayTime }) : t("dayTimeUnknown")}
+                      {" · "}
+                      {totalTime ? t("totalTime", { time: totalTime }) : t("totalTimeUnknown")}
                     </p>
                   ) : null}
                   {submitted && rankNote ? (

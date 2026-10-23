@@ -15,6 +15,7 @@ import { buildTaskListReply } from "./taskList";
 import { handleMenuRequest, parseMenuCallback, parseMenuCommand, parseMenuData, type MenuDeps } from "./menu";
 import { accountCallbackFromText, attachReplyKeyboard, collapsedMenuKeyboard, expandedMenuKeyboard, MENU_CLOSE_LABEL, MENU_OPEN_LABEL, parsePrivateMenuText } from "./replyKeyboard";
 import { readSurveyNote, type SurveyPrompt } from "@/modules/marathons/daily/survey";
+import { dispatchTeamChat } from "@/modules/support/teamBroadcast";
 import { intakeDecision, readPrivateNote } from "@/modules/support/text";
 
 type TelegramMessage = {
@@ -95,8 +96,13 @@ export async function handleTelegramUpdate(
       cancel?: (chatId: string) => Promise<void>;
       accept?: (input: { chatId: string; body: string }) => Promise<{ text: string } | null>;
     };
+    teamChat?: (update: unknown) => Promise<{ handled: boolean; reply: TelegramReply | null }>;
   } = { consume: consumeTelegramLink },
 ): Promise<TelegramReply | null> {
+  const team = deps.teamChat
+    ? await deps.teamChat(update)
+    : await dispatchTeamChat(update, deps.acknowledgeCallback);
+  if (team.handled) return team.reply;
   const menuDeps: MenuDeps = {
     ...deps.menu,
     getProfile: deps.getProfile,

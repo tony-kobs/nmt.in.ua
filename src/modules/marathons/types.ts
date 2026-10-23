@@ -22,6 +22,8 @@ export type MarathonLeaderboardRow = {
   daysDone: number;
   /** Sum of correct answers. Zero on the old session board. */
   points: number;
+  /** Sum of day durations on a daily board. Null on the session board and when any day is unknown. */
+  totalTimeSec: number | null;
   avgPercent: number | null;
   avgSecPerTask: number | null;
   isCurrentUser: boolean;

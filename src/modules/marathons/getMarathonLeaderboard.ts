@@ -57,6 +57,7 @@ function decorate(
     sessionsCount: number;
     daysDone: number;
     points: number;
+    totalTimeSec: number | null;
     avgPercent: number | null;
     avgSecPerTask: number | null;
   },
@@ -106,9 +107,11 @@ async function dailyRows(
     score: number | null;
     correct_count: number | null;
     completed_at: number | string | null;
+    duration_seconds: number | string | null;
   }>(
     `SELECT pr.marathon_id, pr.user_id, pr.day_id, pr.score, pr.correct_count,
-            UNIX_TIMESTAMP(pr.completed_at) AS completed_at
+            UNIX_TIMESTAMP(pr.completed_at) AS completed_at,
+            pr.duration_seconds AS duration_seconds
      FROM marathon_day_progress pr
      WHERE pr.marathon_id IN (${placeholders}) AND pr.completed_at IS NOT NULL`,
     [...marathonIds],
@@ -122,6 +125,9 @@ async function dailyRows(
       score: row.score == null ? null : Number(row.score),
       correctCount: Number(row.correct_count) || 0,
       completedAt: Number(row.completed_at) * 1000 || null,
+      timeSec: row.duration_seconds == null || row.duration_seconds === ""
+        ? null
+        : Number(row.duration_seconds),
     }));
   const people = earliestDailyPeople(
     participants.map((person) => ({
@@ -140,6 +146,7 @@ async function dailyRows(
     sessionsCount: 0,
     daysDone: row.daysDone,
     points: row.points,
+    totalTimeSec: row.totalTimeSec,
     avgPercent: row.avgPercent,
     avgSecPerTask: row.avgSecPerTask,
   }, viewerUserId, rosterStudentIds));
@@ -210,6 +217,7 @@ async function sessionRows(
     sessionsCount: entry.agg.sessionsCount,
     daysDone: 0,
     points: 0,
+    totalTimeSec: null,
     avgPercent: entry.agg.avgPercent,
     avgSecPerTask: entry.agg.avgSecPerTask,
   }, viewerUserId, rosterStudentIds));

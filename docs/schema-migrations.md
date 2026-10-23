@@ -49,5 +49,7 @@ node scripts/migrate.mjs --check
 | `051_support_tickets.sql` | `support_tickets`, `support_waits`, `support_forward_state` (новий id чату після `migrate_to_chat_id`), `marathons.public_chat_url`. Для slug `onemath` порожній чат стає `https://t.me/nmt_onemath`. Перед продом — бекап бази |
 | `052_marathon_survey.sql` | відповіді фінального опитування бота (`marathon_surveys`). Перед продом — бекап бази. `050` і `051` уже в `dev` |
 | `053_marathon_scheduler_runs.sql` | історія тіків розсилки (`marathon_scheduler_runs`: час, джерело, лічильники, тривалість, помилка). Перед продом — бекап бази. `050` лишається стара однорядкова таблиця і більше не пишеться |
+| `054_team_chat_broadcast.sql` | чернетки `/all` з групи підтримки (`marathon_team_broadcasts`) і `support_tickets.forward_message_id` для відповіді на картку звернення. Перед продом — бекап бази |
+| `055_marathon_day_time.sql` | час дня в `marathon_day_progress`: `started_at`, `submitted_at`, `duration_seconds`. Старі рядки лишаються NULL. Перед продом — бекап бази |
 
 Два файли з префіксом `044` — різні версії: `044_notification_channels_and_invites.sql` і `044_user_sessions.sql`. Ключ журналу — повне ім’я файлу.

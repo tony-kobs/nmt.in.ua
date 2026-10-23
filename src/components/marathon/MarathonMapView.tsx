@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { joinMarathonAction } from "@/modules/marathons/daily/actions";
 import { formatKyivWhen } from "@/modules/marathons/daily/calendar";
+import { durationLocale, formatMarathonDuration, totalKnownSeconds } from "@/modules/marathons/daily/durationText";
 import { loomEmbedSrc, youtubeEmbedSrc } from "@/modules/marathons/daily/richText";
 import type { DailyMarathon, DayProgress, Participant } from "@/modules/marathons/daily/store";
 import { DeliveryToggles } from "./DeliveryToggles";
@@ -46,6 +47,14 @@ export async function MarathonMapView({
   saved = false,
 }: MarathonMapViewProps) {
   const t = await getTranslations("Marathon");
+  const uiLocale = durationLocale(locale);
+  const finished = days.filter((day) => day.progress?.completedAt != null);
+  const totalSeconds = totalKnownSeconds(finished.map((day) => day.progress?.durationSeconds ?? null));
+  const totalLabel = finished.length === 0
+    ? null
+    : totalSeconds == null
+      ? t("totalTimeUnknown")
+      : t("totalTime", { time: formatMarathonDuration(totalSeconds, uiLocale) });
   const message = marathonErrorText(t, error);
   const video = marathon.introVideoUrl;
   const src = video ? youtubeEmbedSrc(video) ?? loomEmbedSrc(video) : null;
@@ -116,6 +125,15 @@ export async function MarathonMapView({
                           : t("opensAt", {
                               when: day.unlockAt ? formatKyivWhen(day.unlockAt, locale) : "",
                             })}
+                      {day.progress?.completedAt != null
+                        ? ` · ${
+                          day.progress.durationSeconds == null
+                            ? t("dayTimeUnknown")
+                            : t("dayTime", {
+                              time: formatMarathonDuration(day.progress.durationSeconds, uiLocale),
+                            })
+                        }`
+                        : ""}
                     </span>
                   </>
                 );
@@ -138,6 +156,7 @@ export async function MarathonMapView({
                 );
               })}
             </ol>
+            {totalLabel ? <p className={css.meta}>{totalLabel}</p> : null}
           </section>
           {participant ? (
             <p>

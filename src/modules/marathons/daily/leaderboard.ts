@@ -3,6 +3,7 @@ import {
   type CopyKey,
   type CopyVars,
 } from "./copy";
+import { formatMarathonDuration } from "./durationText";
 
 /** How many rows the participant sees before their own line. */
 export const BOARD_TOP = 10;
@@ -12,6 +13,11 @@ export type RankInput = {
   displayName: string;
   points: number;
   lastCompletedAt: number | null;
+  /**
+   * Sum of submitted-day durations. Null when there is no submission,
+   * or when any submitted day has no stored start.
+   */
+  totalTimeSec: number | null;
   streak: number;
   joinedAt: number;
 };
@@ -32,12 +38,19 @@ const TONE_KEY = {
 } as const satisfies Record<RankTone, CopyKey>;
 
 /**
- * Higher points first. A tie goes to whoever finished their latest day earlier.
- * No completion is worse than any completion. Then earlier join, then user id.
+ * Higher points first. Equal points: a known total time beats an unknown one,
+ * and a shorter known total ranks higher. Unknown times keep the old order:
+ * whoever finished their latest day earlier, then earlier join, then user id.
  */
 export function rankParticipants(rows: RankInput[]): Ranked[] {
   const sorted = [...rows].sort((a, b) => {
     if (a.points !== b.points) return b.points - a.points;
+    const aKnown = a.totalTimeSec != null;
+    const bKnown = b.totalTimeSec != null;
+    if (aKnown !== bKnown) return aKnown ? -1 : 1;
+    if (aKnown && bKnown && a.totalTimeSec !== b.totalTimeSec) {
+      return (a.totalTimeSec ?? 0) - (b.totalTimeSec ?? 0);
+    }
     const aDone = a.lastCompletedAt ?? Number.POSITIVE_INFINITY;
     const bDone = b.lastCompletedAt ?? Number.POSITIVE_INFINITY;
     if (aDone !== bDone) return aDone - bDone;
@@ -135,6 +148,7 @@ export type BoardLine = {
   place: number;
   prevPlace: number | null;
   points: number;
+  totalTimeSec: number | null;
   streak: number;
   name: string;
 };
@@ -153,13 +167,16 @@ export function visibleBoard<T extends { userId: number }>(
 
 export function formatBoardMessage(input: {
   title: string;
-  rows: Array<{ place: number; name: string; points: number; streak: number }>;
-  self: { place: number; name: string; points: number; streak: number } | null;
+  rows: Array<{ place: number; name: string; points: number; streak: number; totalTimeSec?: number | null }>;
+  self: { place: number; name: string; points: number; streak: number; totalTimeSec?: number | null } | null;
   selfOutside: boolean;
 }): string {
-  const line = (row: { place: number; name: string; points: number; streak: number }) => {
+  const line = (row: { place: number; name: string; points: number; streak: number; totalTimeSec?: number | null }) => {
+    const time = row.totalTimeSec == null
+      ? (row.points > 0 ? " · час невідомий" : "")
+      : ` · ${formatMarathonDuration(row.totalTimeSec, "uk")}`;
     const streak = row.streak > 0 ? ` · серія ${row.streak}` : "";
-    return `${row.place}. ${row.name} — ${row.points}${streak}`;
+    return `${row.place}. ${row.name} — ${row.points}${time}${streak}`;
   };
   const lines = [input.title.trim(), ""];
   for (const row of input.rows) lines.push(line(row));

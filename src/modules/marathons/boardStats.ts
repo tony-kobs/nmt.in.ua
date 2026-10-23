@@ -1,3 +1,4 @@
+import { totalKnownSeconds } from "./daily/durationText";
 import { rankParticipants } from "./daily/leaderboard";
 
 export type MarathonBoardKind = "daily" | "sessions";
@@ -44,6 +45,8 @@ export type DailyBoardRow = {
   daysDone: number;
   avgPercent: number | null;
   points: number;
+  /** Sum of submitted-day durations. Null when any submitted day has no start. */
+  totalTimeSec: number | null;
   avgSecPerTask: number | null;
 };
 
@@ -85,8 +88,9 @@ export function sortBoardChoices<T extends BoardChoice & { startsAt: number; id:
 }
 
 /**
- * Same order as Telegram `/top`: more correct answers first, then whoever
- * finished their latest day earlier. Days that are not submitted do not count.
+ * Same order as Telegram `/top`: more correct answers first. Equal points use
+ * the shorter known total time. An unknown time ranks after a known one.
+ * Days that are not submitted do not count.
  */
 export function buildDailyBoard(
   people: readonly DailyBoardPerson[],
@@ -118,6 +122,9 @@ export function buildDailyBoard(
         displayName: person.displayName,
         points: completed.reduce((sum, day) => sum + Math.max(0, day.correctCount || 0), 0),
         lastCompletedAt,
+        totalTimeSec: completed.length === 0
+          ? null
+          : totalKnownSeconds(completed.map((day) => day.timeSec ?? null)),
         streak: person.streak,
         joinedAt: person.joinedAt,
       };
@@ -148,6 +155,7 @@ export function buildDailyBoard(
       daysDone: completed.length,
       avgPercent: scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : null,
       points: row.points,
+      totalTimeSec: row.totalTimeSec,
       avgSecPerTask: tasks > 0 ? timeSec / tasks : null,
     };
   });
