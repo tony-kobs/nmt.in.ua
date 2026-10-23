@@ -40,6 +40,7 @@ import {
   type BoardLine,
   type RankInput,
 } from "./leaderboard";
+import { durationSeconds } from "./durationText";
 import { clampLandingRiddleCount } from "./riddleQuiz";
 import { deleteOrphanTaggedRiddles } from "./riddleStore";
 import { submitOpenedDay, type SubmitSuccess } from "./submit";
@@ -123,6 +124,9 @@ export type DayProgress = {
   score: number | null;
   passed: boolean;
   completedAt: number | null;
+  startedAt: number | null;
+  submittedAt: number | null;
+  durationSeconds: number | null;
   answers: Record<number, number>;
   correctCount: number | null;
 };
@@ -175,6 +179,16 @@ function asMs(value: unknown): number | null {
   const date = value instanceof Date ? value : new Date(String(value));
   const ms = date.getTime();
   return Number.isNaN(ms) ? null : ms;
+}
+
+/** Known only when every submitted day stored a duration. */
+function standingTime(doneDays: unknown, timedDays: unknown, timeSum: unknown): number | null {
+  const done = Number(doneDays) || 0;
+  const timed = Number(timedDays) || 0;
+  if (done <= 0 || done !== timed) return null;
+  const sum = Number(timeSum);
+  if (!Number.isFinite(sum) || sum < 0) return null;
+  return Math.floor(sum);
 }
 
 function clampHour(value: unknown, fallback: number): number {
@@ -941,11 +955,15 @@ export async function listProgress(
       score: number | null;
       passed: number;
       completed_at: unknown;
+      started_at: unknown;
+      submitted_at: unknown;
+      duration_seconds: number | null;
       answers_json: string | null;
       correct_count: number | null;
     }>(
       `SELECT pr.day_id, d.day_number, pr.materials_viewed_at, pr.score, pr.passed,
-              pr.completed_at, pr.answers_json, pr.correct_count
+              pr.completed_at, pr.started_at, pr.submitted_at, pr.duration_seconds,
+              pr.answers_json, pr.correct_count
        FROM marathon_day_progress pr
        INNER JOIN marathon_days d ON d.id = pr.day_id
        WHERE pr.marathon_id = ? AND pr.user_id = ?
@@ -959,6 +977,9 @@ export async function listProgress(
       score: row.score == null ? null : Number(row.score),
       passed: flag(row.passed),
       completedAt: asMs(row.completed_at),
+      startedAt: asMs(row.started_at),
+      submittedAt: asMs(row.submitted_at),
+      durationSeconds: row.duration_seconds == null ? null : Number(row.duration_seconds),
       answers: parseStoredAnswers(row.answers_json),
       correctCount: row.correct_count == null ? null : Number(row.correct_count),
     }));
@@ -989,6 +1010,27 @@ export async function markMaterialsViewed(input: {
     );
   }, getConnection);
   return "ok";
+}
+
+/** First open of the day's tasks. A later refresh does not move the start. */
+export async function markDayTestStarted(input: {
+  marathonId: number;
+  userId: number;
+  dayId: number;
+  now: Date;
+}, getConnection?: Conn): Promise<void> {
+  if (!Number.isInteger(input.marathonId) || !Number.isInteger(input.userId) || !Number.isInteger(input.dayId)) {
+    return;
+  }
+  await withConn(async (connection) => {
+    await connection.execute(
+      `INSERT INTO marathon_day_progress (marathon_id, user_id, day_id, started_at)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         started_at = IF(completed_at IS NULL, COALESCE(started_at, VALUES(started_at)), started_at)`,
+      [input.marathonId, input.userId, input.dayId, input.now],
+    );
+  }, getConnection);
 }
 
 /** Marks materials seen after the Telegram day packet was actually delivered. */
@@ -1042,11 +1084,12 @@ export async function completeParticipantDay(input: {
     );
     const existing = await connection.query<{
       completed_at: unknown;
+      started_at: unknown;
       score: number | null;
       passed: number;
       streak: number;
     }>(
-      `SELECT pr.completed_at, pr.score, pr.passed, p.streak
+      `SELECT pr.completed_at, pr.started_at, pr.score, pr.passed, p.streak
        FROM marathon_day_progress pr
        INNER JOIN marathon_participants p
          ON p.marathon_id = pr.marathon_id AND p.user_id = pr.user_id
@@ -1096,14 +1139,17 @@ export async function completeParticipantDay(input: {
           return { correct, total: tasks.length };
         },
         persist: async (result) => {
+          const taken = durationSeconds(asMs(prior?.started_at), input.now.getTime());
           await connection.execute(
             `INSERT INTO marathon_day_progress
-              (marathon_id, user_id, day_id, materials_viewed_at, score, passed, completed_at, answers_json, correct_count)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+              (marathon_id, user_id, day_id, materials_viewed_at, score, passed, completed_at, submitted_at, duration_seconds, answers_json, correct_count)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                score = VALUES(score),
                passed = VALUES(passed),
-               completed_at = VALUES(completed_at),
+               completed_at = IF(completed_at IS NULL, VALUES(completed_at), completed_at),
+               submitted_at = IF(submitted_at IS NULL, VALUES(submitted_at), submitted_at),
+               duration_seconds = IF(duration_seconds IS NULL, VALUES(duration_seconds), duration_seconds),
                answers_json = VALUES(answers_json),
                correct_count = VALUES(correct_count),
                materials_viewed_at = COALESCE(materials_viewed_at, VALUES(materials_viewed_at))`,
@@ -1115,6 +1161,8 @@ export async function completeParticipantDay(input: {
               result.score,
               result.passed ? 1 : 0,
               input.now,
+              input.now,
+              taken,
               JSON.stringify(input.answers),
               dayCorrect,
             ],
@@ -1740,6 +1788,7 @@ async function composeBoard(
     place: row.place,
     prevPlace: row.prevPlace,
     points: row.points,
+    totalTimeSec: row.totalTimeSec,
     streak: row.streak,
     name: publicLeaderName(row.displayName),
   }));
@@ -1816,13 +1865,19 @@ async function readStandings(
     joined_at: unknown;
     points: number | string | null;
     last_completed: unknown;
+    done_days: number | string | null;
+    timed_days: number | string | null;
+    time_sum: number | string | null;
   }>(
     `SELECT p.user_id AS user_id,
             u.display_name AS display_name,
             p.streak AS streak,
             p.joined_at AS joined_at,
             COALESCE(SUM(CASE WHEN pr.completed_at IS NOT NULL THEN pr.correct_count ELSE 0 END), 0) AS points,
-            MAX(CASE WHEN pr.completed_at IS NOT NULL THEN pr.completed_at ELSE NULL END) AS last_completed
+            MAX(CASE WHEN pr.completed_at IS NOT NULL THEN pr.completed_at ELSE NULL END) AS last_completed,
+            COALESCE(SUM(CASE WHEN pr.completed_at IS NOT NULL THEN 1 ELSE 0 END), 0) AS done_days,
+            COALESCE(SUM(CASE WHEN pr.completed_at IS NOT NULL AND pr.duration_seconds IS NOT NULL THEN 1 ELSE 0 END), 0) AS timed_days,
+            COALESCE(SUM(CASE WHEN pr.completed_at IS NOT NULL AND pr.duration_seconds IS NOT NULL THEN pr.duration_seconds ELSE 0 END), 0) AS time_sum
      FROM marathon_participants p
      INNER JOIN app_users u ON u.id = p.user_id
      LEFT JOIN marathon_day_progress pr
@@ -1836,6 +1891,7 @@ async function readStandings(
     displayName: row.display_name?.trim() || "",
     points: Number(row.points) || 0,
     lastCompletedAt: asMs(row.last_completed),
+    totalTimeSec: standingTime(row.done_days, row.timed_days, row.time_sum),
     streak: Number(row.streak) || 0,
     joinedAt: asMs(row.joined_at) ?? 0,
   }));

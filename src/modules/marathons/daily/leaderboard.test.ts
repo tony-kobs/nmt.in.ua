@@ -17,13 +17,14 @@ function row(partial: Partial<RankInput> & Pick<RankInput, "userId" | "points">)
   return {
     displayName: `Учень ${partial.userId}`,
     lastCompletedAt: 1_000,
+    totalTimeSec: null,
     streak: 0,
     joinedAt: partial.userId,
     ...partial,
   };
 }
 
-test("ranking sums points and breaks ties by earlier completion, then join, then id", () => {
+test("ranking sums points and breaks unknown-time ties by earlier completion, then join, then id", () => {
   const ranked = rankParticipants([
     row({ userId: 3, points: 4, lastCompletedAt: 500, joinedAt: 9 }),
     row({ userId: 1, points: 4, lastCompletedAt: 200, joinedAt: 9 }),
@@ -34,6 +35,16 @@ test("ranking sums points and breaks ties by earlier completion, then join, then
   ]);
   assert.deepEqual(ranked.map((item) => item.userId), [2, 1, 3, 5, 6, 4]);
   assert.deepEqual(ranked.map((item) => item.place), [1, 2, 3, 4, 5, 6]);
+});
+
+test("equal points rank a shorter known total first, and an unknown time after every known time", () => {
+  const ranked = rankParticipants([
+    row({ userId: 1, points: 4, totalTimeSec: 900, lastCompletedAt: 100 }),
+    row({ userId: 2, points: 4, totalTimeSec: 120, lastCompletedAt: 900 }),
+    row({ userId: 3, points: 4, totalTimeSec: null, lastCompletedAt: 50 }),
+    row({ userId: 4, points: 4, totalTimeSec: 120, lastCompletedAt: 200, joinedAt: 1 }),
+  ]);
+  assert.deepEqual(ranked.map((item) => item.userId), [4, 2, 1, 3]);
 });
 
 test("snapshot keeps the previous place and leaves a first appearance empty", () => {
@@ -125,6 +136,13 @@ test("public names hide the address and keep a first name with an initial", () =
     selfOutside: true,
   });
   assert.equal(board.includes("@"), false);
-  assert.match(board, /1\. a — 4 · серія 2/);
+  assert.match(board, /1\. a — 4 · час невідомий · серія 2/);
   assert.match(board, /8\. b — 0/);
+  const timed = formatBoardMessage({
+    title: "Таблиця",
+    rows: [{ place: 1, name: "Оля", points: 4, streak: 0, totalTimeSec: 750 }],
+    self: null,
+    selfOutside: false,
+  });
+  assert.match(timed, /1\. Оля — 4 · 12 хв 30 с/);
 });

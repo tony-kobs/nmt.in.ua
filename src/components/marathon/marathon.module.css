@@ -1142,6 +1142,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+.boardPoints {
+  text-align: end;
+  overflow-wrap: anywhere;
+}
+
 .boardPlace {
   color: var(--muted);
 }

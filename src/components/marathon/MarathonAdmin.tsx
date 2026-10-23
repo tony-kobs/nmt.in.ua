@@ -5,6 +5,7 @@ import { absoluteSiteUrl } from "@/lib/siteOrigin";
 import type { CardStats } from "@/modules/marathons/daily/cardStats";
 import type { CronHealth } from "@/modules/marathons/daily/cronHeartbeat";
 import type { DailyFunnel } from "@/modules/marathons/daily/dailyStats";
+import { durationLocale, formatMarathonDuration } from "@/modules/marathons/daily/durationText";
 import type { SurveySummary } from "@/modules/marathons/daily/survey";
 import { formatKyivWhen, kyivDateIso } from "@/modules/marathons/daily/calendar";
 import { activationBlockers, marathonIsReady } from "@/modules/marathons/daily/readiness";
@@ -124,6 +125,7 @@ async function MarathonAdminCard({
 }) {
   const t = await getTranslations("Marathon");
   const locale = await getLocale();
+  const uiLocale = durationLocale(locale);
   const hidden = marathon.status === "draft" || marathon.status === "archived";
   const focusLabel = !stats
     ? ""
@@ -221,6 +223,14 @@ async function MarathonAdminCard({
                     {day.avgScore == null
                       ? t("cardFunnelAverageEmpty")
                       : t("cardFunnelAverage", { value: day.avgScore })}
+                  </span>
+                  <span>
+                    {day.avgTimeSec == null || day.medianTimeSec == null
+                      ? t("cardFunnelTimeEmpty")
+                      : t("cardFunnelTime", {
+                        avg: formatMarathonDuration(day.avgTimeSec, uiLocale),
+                        median: formatMarathonDuration(day.medianTimeSec, uiLocale),
+                      })}
                   </span>
                   <span>{t("cardFunnelDropoff", { count: day.dropoff })}</span>
                 </li>
