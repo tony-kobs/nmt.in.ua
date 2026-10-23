@@ -125,6 +125,29 @@ test("a photo Telegram refuses is resent as a text link instead of being dropped
   assert.match(bodies[1]!, /triangle\.png/);
 });
 
+test("a telegram file id is sent as the photo, and a refusal falls back to the text", async () => {
+  const methods: string[] = [];
+  const bodies: string[] = [];
+  const request = (async (url: string | URL, init?: RequestInit) => {
+    const method = String(url).split("/").pop() ?? "";
+    methods.push(method);
+    bodies.push(typeof init?.body === "string" ? init.body : "");
+    const ok = method === "sendMessage";
+    return new Response(JSON.stringify(ok
+      ? { ok: true, result: { message_id: 6 } }
+      : { ok: false, error_code: 400, description: "Bad Request: wrong file identifier" }), {
+      status: ok ? 200 : 400, headers: { "content-type": "application/json" },
+    });
+  }) as typeof fetch;
+  const result = await deliverTelegramReplies([
+    { chatId: "7", text: "Схема", photoFileId: "AgACAgIAAxkB-file" },
+  ], "token", { request, sleep: async () => {}, now: () => 0 });
+  assert.equal(result.sent, 1);
+  assert.deepEqual(methods, ["sendPhoto", "sendMessage"]);
+  assert.match(bodies[0] ?? "", /AgACAgIAAxkB-file/);
+  assert.match(bodies[1] ?? "", /Схема/);
+});
+
 test("a message with both keyboards is sent once, with the inline buttons", async () => {
   const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
   const sent = await deliverTelegramReplies([{

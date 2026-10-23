@@ -147,6 +147,26 @@ export function surveyPrompt(
   return { text: resolveCopy("survey_skipped", copy), buttons: [] };
 }
 
+/**
+ * Card label for one survey answer.
+ * The row always belongs to a site account. A missing name is not a guest.
+ */
+export function surveyAuthorLabel(input: {
+  displayName: string | null | undefined;
+  login: string | null | undefined;
+  telegramUsername: string | null | undefined;
+}): string {
+  const name = String(input.displayName ?? "").replace(/\s+/g, " ").trim();
+  const login = String(input.login ?? "").trim();
+  const raw = String(input.telegramUsername ?? "").trim().replace(/^@+/, "");
+  const nick = /^[A-Za-z0-9_]{4,32}$/.test(raw) ? `@${raw}` : "";
+  if (name && nick) return `${name} (${nick})`;
+  if (name) return name;
+  if (nick) return nick;
+  if (login) return `${login} · Telegram не прив’язано`;
+  return "Немає імені · Telegram не прив’язано";
+}
+
 export type SurveyAnswer = {
   marathonId: number;
   name: string;

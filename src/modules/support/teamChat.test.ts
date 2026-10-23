@@ -6,11 +6,13 @@ import { serializeReply } from "@/modules/telegram/outbox";
 import {
   broadcastPreview,
   handleTeamChat,
+  largestPhotoFileId,
   parseAllCommand,
   parseBroadcastCallback,
   readTeamEvent,
   severalMarathonsText,
   splitBroadcastTarget,
+  studentBroadcastReplies,
   studentBroadcastReply,
   type TeamCourse,
   type TeamDeps,
@@ -30,8 +32,8 @@ function group(text: string, from = 42) {
 }
 
 function harness(overrides: Partial<TeamDeps> = {}) {
-  const sent: Array<{ text: string; edit?: number; buttons?: string[] }> = [];
-  const enqueued: Array<{ marathonId: number; chats: string[]; body: string }> = [];
+  const sent: Array<{ text: string; photo?: string; edit?: number; buttons?: string[] }> = [];
+  const enqueued: Array<{ marathonId: number; chats: string[]; body: string; photoFileId: string | null }> = [];
   let drains = 0;
   let nextId = 7;
   const drafts = new Map<number, TeamDraft>();
@@ -46,6 +48,7 @@ function harness(overrides: Partial<TeamDeps> = {}) {
         id,
         marathonId: input.marathonId,
         body: input.body,
+        photoFileId: input.photoFileId,
         status: "draft",
         expired: false,
         previewChatId: input.previewChatId,
@@ -86,6 +89,7 @@ function harness(overrides: Partial<TeamDeps> = {}) {
     send: async (reply) => {
       sent.push({
         text: reply.text,
+        ...(reply.photoFileId ? { photo: reply.photoFileId } : {}),
         ...(reply.editMessageId ? { edit: reply.editMessageId } : {}),
         ...(reply.replyMarkup ? { buttons: reply.replyMarkup.inline_keyboard.flat().map((button) => button.text) } : {}),
       });
@@ -188,7 +192,7 @@ test("confirm enqueues once with a system trigger and a second tap does not", as
   await handleTeamChat(press, deps);
   assert.equal(acks, 2);
   assert.equal(box.enqueued.length, 1);
-  assert.deepEqual(box.enqueued[0], { marathonId: 3, chats: ["100", "200"], body: "Усім привіт" });
+  assert.deepEqual(box.enqueued[0], { marathonId: 3, chats: ["100", "200"], body: "Усім привіт", photoFileId: null });
   assert.equal(box.drains(), 1);
   assert.equal(box.sent.filter((item) => item.text === "Надіслано 2").length, 2);
   const payload = JSON.parse(serializeReply(studentBroadcastReply("100", "Усім привіт")));
@@ -204,6 +208,7 @@ test("an expired draft is not sent", async () => {
     id: 8,
     marathonId: 3,
     body: "пізно",
+    photoFileId: null,
     status: "draft",
     expired: true,
     previewChatId: SUPPORT,
@@ -229,6 +234,7 @@ test("cancel leaves the draft unsent", async () => {
     id: 8,
     marathonId: 3,
     body: "ні",
+    photoFileId: null,
     status: "draft",
     expired: false,
     previewChatId: SUPPORT,
@@ -284,6 +290,91 @@ test("a reply to a forwarded ticket reaches the student, and a stranger does not
   });
   await handleTeamChat(event, stranger.deps);
   assert.equal(stranger.sent.length, 0);
+});
+
+test("a photo caption and a reply to a photo become one broadcast with that file", async () => {
+  const caption = readTeamEvent({
+    message: {
+      message_id: 11,
+      chat: { id: Number(SUPPORT), type: "supergroup" },
+      from: { id: 42 },
+      caption: "/all Дивіться схему",
+      photo: [
+        { file_id: "small", file_size: 20 },
+        { file_id: "AgACAgIAAxkB-large", file_size: 800 },
+      ],
+    },
+  }, SUPPORT, BOT);
+  assert.equal(caption && typeof caption === "object" && caption.type, "command");
+  if (!caption || caption === "ignore" || caption.type !== "command") throw new Error("caption");
+  assert.equal(caption.photoFileId, "AgACAgIAAxkB-large");
+  const box = harness();
+  await handleTeamChat(caption, box.deps);
+  assert.equal(box.sent[0]?.photo, "AgACAgIAAxkB-large");
+  assert.match(box.sent[0]?.text ?? "", /Дивіться схему/);
+  assert.equal(box.drafts.get(7)?.photoFileId, "AgACAgIAAxkB-large");
+
+  const replied = readTeamEvent({
+    message: {
+      message_id: 12,
+      chat: { id: Number(SUPPORT), type: "supergroup" },
+      from: { id: 42 },
+      text: "/all",
+      reply_to_message: {
+        message_id: 4,
+        photo: [{ file_id: "reply-photo", file_size: 40 }],
+      },
+    },
+  }, SUPPORT, BOT);
+  if (!replied || replied === "ignore" || replied.type !== "command") throw new Error("reply photo");
+  assert.equal(replied.photoFileId, "reply-photo");
+  assert.equal(largestPhotoFileId(undefined), null);
+
+  const long = `${"а".repeat(1100)}`;
+  const parts = studentBroadcastReplies("100", long, "reply-photo");
+  assert.equal(parts.length, 2);
+  assert.equal(parts[0]?.photoFileId, "reply-photo");
+  assert.equal(parts[0]?.text, "");
+  assert.equal(parts[1]?.text, long);
+  assert.equal(parts[1]?.photoFileId, undefined);
+  assert.equal(parts[0]?.trigger, "system");
+  const short = studentBroadcastReplies("100", "коротко", "reply-photo");
+  assert.equal(short.length, 1);
+  assert.equal(short[0]?.photoFileId, "reply-photo");
+  assert.equal(short[0]?.text, "коротко");
+});
+
+test("confirming a photo draft queues sendPhoto, then the full text when the caption is too long", async () => {
+  const box = harness();
+  const long = "б".repeat(1100);
+  const event = readTeamEvent({
+    message: {
+      message_id: 13,
+      chat: { id: Number(SUPPORT), type: "supergroup" },
+      from: { id: 42 },
+      caption: `/all ${long}`,
+      photo: [{ file_id: "day-photo", file_size: 10 }],
+    },
+  }, SUPPORT, BOT);
+  if (!event || event === "ignore") throw new Error("command");
+  await handleTeamChat(event, box.deps);
+  assert.equal(box.sent[0]?.photo, "day-photo");
+  assert.equal(box.sent[0]?.text, "");
+  assert.match(box.sent[1]?.text ?? "", /б{20}/);
+  assert.equal(box.sent[1]?.photo, undefined);
+  await handleTeamChat({
+    type: "callback",
+    chatId: SUPPORT,
+    userId: "42",
+    queryId: "q-photo",
+    data: "tb:ok:7",
+    messageId: 77,
+  }, box.deps);
+  assert.equal(box.enqueued[0]?.photoFileId, "day-photo");
+  assert.equal(box.enqueued[0]?.body.length, 1100);
+  const queued = studentBroadcastReplies("100", box.enqueued[0]!.body, box.enqueued[0]!.photoFileId);
+  assert.equal(queued[0]?.photoFileId, "day-photo");
+  assert.equal(queued[1]?.text.length, 1100);
 });
 
 test("the webhook uses the team handler before the private menu", async () => {

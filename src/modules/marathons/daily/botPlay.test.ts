@@ -314,6 +314,28 @@ test("materials are one message and an empty set opens the task", () => {
   assert.equal(empty.state.materialsViewed, true);
   assert.match(blob(empty.messages), /2\+2/);
   assert.equal(empty.messages.some((message) => message.text.trim() === ""), false);
+
+  const photo = presentMarathon({
+    callback: { kind: "today" },
+    day: day({ imageUrl: "https://nmt.in.ua/api/marathon-media/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }),
+    state: blankPlay(),
+    name: "Марія",
+    mapUrl: "https://nmt.in.ua/marathon/math-5/map",
+  });
+  assert.equal(photo.messages[0]?.photoUrl, "https://nmt.in.ua/api/marathon-media/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+  assert.match(photo.messages[0]?.text ?? "", /Прочитайте правило/);
+  assert.equal(photo.state.materialsViewed, false);
+
+  const onlyPhoto = presentMarathon({
+    callback: { kind: "today" },
+    day: day({ materials: [], introText: "", imageUrl: "https://nmt.in.ua/pic.png" }),
+    state: blankPlay(),
+    name: "Марія",
+    mapUrl: "https://nmt.in.ua/marathon/math-5/map",
+  });
+  assert.equal(onlyPhoto.messages[0]?.photoUrl, "https://nmt.in.ua/pic.png");
+  assert.equal(onlyPhoto.state.materialsViewed, false);
+  assert.equal(onlyPhoto.messages.some((message) => /2\+2/.test(message.text)), false);
 });
 
 test("finishing a day sends the review once, in a single message", () => {

@@ -442,6 +442,7 @@ export async function MarathonAdminEditor({
   questions,
   error,
   savedToken,
+  introImageUrl,
 }: {
   marathon: DailyMarathon;
   riddles: Riddle[];
@@ -452,6 +453,7 @@ export async function MarathonAdminEditor({
   questions: Array<{ id: number; label: string }>;
   error?: string;
   savedToken?: string;
+  introImageUrl?: string | null;
 }) {
   const t = await getTranslations("Marathon");
   const message = marathonErrorText(t, error);
@@ -508,6 +510,7 @@ export async function MarathonAdminEditor({
         <div id="marathon-settings" className={css.anchor}>
         <MarathonSettingsForm
           marathon={marathon}
+          introImageUrl={introImageUrl}
           riddles={riddles.map((riddle) => ({ id: riddle.id, title: riddle.title }))}
           statusSlot={
             <div className={css.actions}>
@@ -658,6 +661,7 @@ export async function MarathonAdminEditor({
                 dayId={day.id}
                 topic={day.topic}
                 introText={day.introText ?? ""}
+                imageUrl={day.imageUrl}
               />
               <form action={deleteDayAction}>
                 <input type="hidden" name="marathonId" value={marathon.id} />

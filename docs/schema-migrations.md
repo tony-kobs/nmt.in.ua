@@ -51,5 +51,7 @@ node scripts/migrate.mjs --check
 | `053_marathon_scheduler_runs.sql` | історія тіків розсилки (`marathon_scheduler_runs`: час, джерело, лічильники, тривалість, помилка). Перед продом — бекап бази. `050` лишається стара однорядкова таблиця і більше не пишеться |
 | `054_team_chat_broadcast.sql` | чернетки `/all` з групи підтримки (`marathon_team_broadcasts`) і `support_tickets.forward_message_id` для відповіді на картку звернення. Перед продом — бекап бази |
 | `055_marathon_day_time.sql` | час дня в `marathon_day_progress`: `started_at`, `submitted_at`, `duration_seconds`. Старі рядки лишаються NULL. Перед продом — бекап бази |
+| `056_marathon_images.sql` | фото вступу і дня (`marathon_images`, `day_id = 0` — вступ) і `marathon_team_broadcasts.photo_file_id` для фото в `/all`. Перед продом — бекап бази |
+| `057_support_ticket_thread.sql` | `support_tickets.body_kind`, переписка `support_ticket_entries`, прив’язка повідомлення бота `support_reply_links`, очікування продовження `support_follow_waits`. Перед продом — бекап бази |
 
 Два файли з префіксом `044` — різні версії: `044_notification_channels_and_invites.sql` і `044_user_sessions.sql`. Ключ журналу — повне ім’я файлу.

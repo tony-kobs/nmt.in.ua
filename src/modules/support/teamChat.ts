@@ -1,4 +1,5 @@
 import type { TelegramReply } from "@/modules/telegram/taskInteraction";
+import { TELEGRAM_CAPTION_LIMIT } from "@/modules/marathons/daily/images";
 import { isSlug } from "@/modules/marathons/daily/forms";
 
 export const BROADCAST_KIND = "broadcast";
@@ -16,6 +17,7 @@ export type TeamDraft = {
   id: number;
   marathonId: number;
   body: string;
+  photoFileId: string | null;
   status: "draft" | "sent" | "cancelled";
   expired: boolean;
   previewChatId: string;
@@ -24,7 +26,7 @@ export type TeamDraft = {
 };
 
 export type TeamEvent =
-  | { type: "command"; chatId: string; userId: string; text: string; botUsername: string }
+  | { type: "command"; chatId: string; userId: string; text: string; botUsername: string; photoFileId: string | null }
   | { type: "callback"; chatId: string; userId: string; queryId: string; data: string; messageId: number | null }
   | { type: "reply"; chatId: string; userId: string; text: string; replyToMessageId: number };
 
@@ -36,6 +38,7 @@ export type TeamDeps = {
     marathonId: number;
     authorTgId: string;
     body: string;
+    photoFileId: string | null;
     previewChatId: string;
     recipientCount: number;
   }) => Promise<number>;
@@ -45,7 +48,12 @@ export type TeamDeps = {
   setSentCount: (id: number, count: number) => Promise<void>;
   markCancelled: (id: number) => Promise<boolean>;
   revertToDraft: (id: number) => Promise<void>;
-  enqueue: (input: { marathonId: number; chats: string[]; body: string }) => Promise<void>;
+  enqueue: (input: {
+    marathonId: number;
+    chats: string[];
+    body: string;
+    photoFileId: string | null;
+  }) => Promise<void>;
   send: (reply: TelegramReply) => Promise<{ ok: boolean; messageId?: number }>;
   scheduleDrain: () => void;
   findTicket: (messageId: number) => Promise<{ id: number } | null>;
@@ -105,6 +113,29 @@ function sameChat(id: number | undefined, supportChatId: string): boolean {
   return Number.isSafeInteger(id) && String(id) === supportChatId;
 }
 
+function photoFileIdOf(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const id = value.trim();
+  if (!id || id.length > 128 || /\s/.test(id)) return null;
+  return id;
+}
+
+/** Telegram lists sizes ascending. The last large file_id is the one sendPhoto can reuse. */
+export function largestPhotoFileId(
+  message: { photo?: Array<{ file_id?: unknown; file_size?: unknown }> } | undefined,
+): string | null {
+  const photos = message?.photo;
+  if (!Array.isArray(photos)) return null;
+  let best: { id: string; size: number } | null = null;
+  for (const item of photos) {
+    const id = photoFileIdOf(item?.file_id);
+    if (!id) continue;
+    const size = typeof item?.file_size === "number" && item.file_size > 0 ? item.file_size : 0;
+    if (!best || size >= best.size) best = { id, size };
+  }
+  return best?.id ?? null;
+}
+
 export function readTeamEvent(
   update: unknown,
   supportChatId: string,
@@ -118,7 +149,11 @@ export function readTeamEvent(
       text?: unknown;
       caption?: unknown;
       message_id?: number;
-      reply_to_message?: { message_id?: number };
+      reply_to_message?: {
+        message_id?: number;
+        photo?: Array<{ file_id?: unknown; file_size?: unknown }>;
+      };
+      photo?: Array<{ file_id?: unknown; file_size?: unknown }>;
     };
     callback_query?: {
       id?: unknown;
@@ -154,10 +189,20 @@ export function readTeamEvent(
   const text = typeof message.text === "string" ? message.text.trim() : "";
   const caption = typeof message.caption === "string" ? message.caption.trim() : "";
   const body = text || caption;
-  if (text.startsWith("/all")) {
-    const parsed = parseAllCommand(text, botUsername);
+  const commandText = text.startsWith("/all") ? text : caption.startsWith("/all") ? caption : "";
+  if (commandText) {
+    const parsed = parseAllCommand(commandText, botUsername);
     if (parsed === "foreign" || !parsed) return "ignore";
-    return { type: "command", chatId: supportChatId, userId: String(userId), text, botUsername };
+    const ownPhoto = largestPhotoFileId(message);
+    const repliedPhoto = text.startsWith("/all") ? largestPhotoFileId(message.reply_to_message) : null;
+    return {
+      type: "command",
+      chatId: supportChatId,
+      userId: String(userId),
+      text: commandText,
+      botUsername,
+      photoFileId: ownPhoto ?? repliedPhoto,
+    };
   }
   const replied = message.reply_to_message?.message_id;
   if (Number.isSafeInteger(replied) && replied! > 0 && body && !body.startsWith("/")) {
@@ -191,12 +236,38 @@ function edit(chatId: string, messageId: number | null, text: string): TelegramR
 }
 
 async function deliver(deps: TeamDeps, reply: TelegramReply): Promise<{ ok: boolean; messageId?: number }> {
+  const { continuation, ...head } = reply;
   try {
-    return await deps.send(reply);
+    const first = await deps.send(head);
+    if (!first.ok) return first;
+    let messageId = first.messageId;
+    for (const next of continuation ?? []) {
+      const sent = await deps.send(next);
+      if (!sent.ok) return sent;
+      messageId = sent.messageId ?? messageId;
+    }
+    return { ok: true, messageId };
   } catch (error) {
     console.error("team chat send", error);
     return { ok: false };
   }
+}
+
+/** Photo and caption together when the text fits. Otherwise the photo, then the full text. */
+export function attachBroadcastPhoto(reply: TelegramReply, photoFileId: string | null): TelegramReply {
+  const photo = photoFileId?.trim() || "";
+  if (!photo) return reply;
+  const { continuation: _nested, ...head } = reply;
+  if (head.text.length <= TELEGRAM_CAPTION_LIMIT) {
+    return { ...head, photoFileId: photo };
+  }
+  return {
+    ...head,
+    text: "",
+    photoFileId: photo,
+    replyMarkup: undefined,
+    continuation: [{ ...head }],
+  };
 }
 
 function pickCourse(courses: TeamCourse[], key: string | null): TeamCourse | "several" | "none" | "missing" {
@@ -265,7 +336,7 @@ async function onCommand(
     return show(deps, { chatId: event.chatId, text: "Немає такого денного марафону.", disablePreview: true });
   }
   const body = split.body.slice(0, BODY_LIMIT).trim();
-  if (!body) {
+  if (!body && !event.photoFileId) {
     return show(deps, { chatId: event.chatId, text: "Додайте текст після команди.", disablePreview: true });
   }
   const chats = await deps.recipients(picked.id);
@@ -273,16 +344,17 @@ async function onCommand(
     marathonId: picked.id,
     authorTgId: event.userId,
     body,
+    photoFileId: event.photoFileId,
     previewChatId: event.chatId,
     recipientCount: chats.length,
   });
   const preview = broadcastPreview({ title: picked.title, body, count: chats.length });
-  const sent = await deliver(deps, {
+  const sent = await deliver(deps, attachBroadcastPhoto({
     chatId: event.chatId,
     text: preview,
     disablePreview: true,
     replyMarkup: buttons(id),
-  });
+  }, event.photoFileId));
   if (!sent.ok) {
     await deps.markCancelled(id);
     return { chatId: event.chatId, text: "Не вдалося показати чернетку.", disablePreview: true };
@@ -328,7 +400,12 @@ async function onCallback(
   try {
     const chats = await deps.recipients(draft.marathonId);
     if (chats.length > 0) {
-      await deps.enqueue({ marathonId: draft.marathonId, chats, body: draft.body });
+      await deps.enqueue({
+        marathonId: draft.marathonId,
+        chats,
+        body: draft.body,
+        photoFileId: draft.photoFileId,
+      });
       deps.scheduleDrain();
     }
     await deps.setSentCount(draft.id, chats.length);
@@ -370,4 +447,22 @@ export function studentBroadcastReply(chatId: string, body: string): TelegramRep
     trigger: "system",
     schedule: { dayNumber: 0, kind: BROADCAST_KIND },
   };
+}
+
+/** One sendPhoto when the caption fits. A longer text is a second outbox row, after the photo. */
+export function studentBroadcastReplies(
+  chatId: string,
+  body: string,
+  photoFileId?: string | null,
+): TelegramReply[] {
+  const text = body.trim();
+  const photo = photoFileId?.trim() || "";
+  if (!photo) return [studentBroadcastReply(chatId, text)];
+  if (text.length <= TELEGRAM_CAPTION_LIMIT) {
+    return [{ ...studentBroadcastReply(chatId, text), photoFileId: photo }];
+  }
+  return [
+    { ...studentBroadcastReply(chatId, ""), photoFileId: photo },
+    studentBroadcastReply(chatId, text),
+  ];
 }

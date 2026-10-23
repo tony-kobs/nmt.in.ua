@@ -147,6 +147,16 @@ function usePublishChange<T extends HTMLInputElement | HTMLTextAreaElement | HTM
   };
 }
 
+export function AdminCheck({ name, label }: { name: string; label: string }) {
+  const control = useControl(name);
+  return (
+    <label className={css.check} htmlFor={control.id}>
+      <input type="checkbox" value="1" {...control} />
+      <span>{label}</span>
+    </label>
+  );
+}
+
 export function AdminInput({
   name,
   onChange,

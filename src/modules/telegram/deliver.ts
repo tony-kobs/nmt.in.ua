@@ -96,10 +96,14 @@ function stripHtml(html: string): string {
 /** Text stand-in for media Telegram refused (unreachable URL, SVG, too large, bad caption). */
 export function mediaFallback(reply: TelegramReply): TelegramReply | null {
   const urls = reply.albumUrls?.length ? reply.albumUrls : reply.photoUrl ? [reply.photoUrl] : reply.videoUrl ? [reply.videoUrl] : [];
-  if (urls.length === 0) return null;
   const caption = reply.text.trim();
+  if (urls.length === 0) {
+    if (!reply.photoFileId || !caption) return null;
+    const { photoFileId: _id, ...rest } = reply;
+    return { ...rest, text: caption.slice(0, 4096) };
+  }
   const text = [caption, ...urls.map((url) => `🖼 ${url}`)].filter(Boolean).join("\n").slice(0, 4096);
-  const { photoUrl: _p, albumUrls: _a, videoUrl: _v, videoFileId: _f, formulaTex: _tex, ...rest } = reply;
+  const { photoUrl: _p, photoFileId: _id, albumUrls: _a, videoUrl: _v, videoFileId: _f, formulaTex: _tex, ...rest } = reply;
   const markup = withSiteButton(reply);
   return { ...rest, text, ...(markup ? { replyMarkup: markup } : {}) };
 }
@@ -117,7 +121,7 @@ async function sendOne(
   }
   console.error("telegram reply rejected", {
     chatId: reply.chatId,
-    kind: reply.formulaTex ? "formula" : reply.albumUrls ? "album" : reply.photoUrl ? "photo" : reply.videoUrl || reply.videoFileId ? "video" : "text",
+    kind: reply.formulaTex ? "formula" : reply.albumUrls ? "album" : reply.photoUrl || reply.photoFileId ? "photo" : reply.videoUrl || reply.videoFileId ? "video" : "text",
     ...result.context,
   });
   const fallback = mediaFallback(reply);
@@ -182,14 +186,15 @@ async function sendOneRaw(
     }, token, request);
     return follow.status === "sent" ? group : follow;
   }
-  if (reply.photoUrl) {
+  const photo = reply.photoFileId?.trim() || reply.photoUrl;
+  if (photo) {
     return sendTelegramPayload({
       method: "sendPhoto",
       token,
       request,
       json: {
         chat_id: reply.chatId,
-        photo: reply.photoUrl,
+        photo,
         ...(reply.text.trim() ? { caption: reply.text.trim().slice(0, 1024) } : {}),
         ...(reply.text.trim() && reply.parseMode ? { parse_mode: reply.parseMode } : {}),
         ...(keyboard(reply) ? { reply_markup: keyboard(reply) } : {}),

@@ -2,14 +2,18 @@ import "server-only";
 
 import type { SqlConnection } from "@/lib/db/mysql";
 import { currentDayNumber } from "@/modules/marathons/daily/calendar";
-import { isCopyKey, resolveCopy, type CopyKey } from "@/modules/marathons/daily/copy";
+import { isCopyKey, renderResolved, resolveCopy, type CopyKey } from "@/modules/marathons/daily/copy";
 import { resolvePublicChatUrl } from "@/modules/marathons/daily/publicChat";
 import { optionalTelegramBot } from "@/modules/marathons/daily/botLink";
 import { sendTelegramMessage, type TelegramSendResult } from "@/modules/telegram/transport";
 import {
+  composeStudentReply,
   publicChatNotice,
   readSupportChatId,
+  SUPPORT_PHOTO_BODY,
   supportMigrationNotice,
+  supportQuestionQuote,
+  teamFollowupHtml,
   teamTicketHtml,
   type TicketStatus,
 } from "./text";
@@ -142,6 +146,7 @@ export async function armSupportWait(
            created_at = CURRENT_TIMESTAMP`,
         [chatId, userId, course?.id ?? null, day],
       );
+      await deleteFollowWait(connection, chatId);
       const copy = await copyFor(connection, course?.id ?? null);
       return { ok: true as const, ask: resolveCopy("bot_support_ask", copy) };
     });
@@ -172,9 +177,18 @@ export async function cancelSupportWait(chatId: string): Promise<void> {
   try {
     await withConn(async (connection) => {
       await connection.execute(`DELETE FROM support_waits WHERE chat_id = ?`, [chatId]);
+      await deleteFollowWait(connection, chatId);
     });
   } catch (error) {
     console.error("support wait cancel", error);
+  }
+}
+
+async function deleteFollowWait(connection: SqlConnection, chatId: string): Promise<void> {
+  try {
+    await connection.execute(`DELETE FROM support_follow_waits WHERE chat_id = ?`, [chatId]);
+  } catch (error) {
+    if (!missingRelation(error)) throw error;
   }
 }
 
@@ -247,6 +261,7 @@ async function forwardTicket(
 export async function acceptSupportMessage(input: {
   chatId: string;
   body: string;
+  kind?: "text" | "photo";
 }): Promise<{ text: string } | null> {
   if (!process.env.DB_HOST) return null;
   try {
@@ -271,11 +286,19 @@ export async function acceptSupportMessage(input: {
       const day = wait.day_number == null ? null : Number(wait.day_number);
       const inserted = await connection.execute(
         `INSERT INTO support_tickets
-          (user_id, telegram_chat_id, marathon_id, day_number, body, status)
-         VALUES (?, ?, ?, ?, ?, 'new')`,
-        [wait.user_id, input.chatId, wait.marathon_id, day, input.body],
+          (user_id, telegram_chat_id, marathon_id, day_number, body, body_kind, status)
+         VALUES (?, ?, ?, ?, ?, ?, 'new')`,
+        [
+          wait.user_id,
+          input.chatId,
+          wait.marathon_id,
+          day,
+          input.body,
+          input.kind === "photo" ? "photo" : "text",
+        ],
       );
       await connection.execute(`DELETE FROM support_waits WHERE chat_id = ?`, [input.chatId]);
+      await deleteFollowWait(connection, input.chatId);
       await forwardTicket(connection, {
         id: inserted.insertId,
         displayName: String(wait.display_name ?? ""),
@@ -293,6 +316,13 @@ export async function acceptSupportMessage(input: {
   }
 }
 
+export type SupportEntry = {
+  id: number;
+  author: "student" | "staff";
+  body: string;
+  createdAt: string;
+};
+
 export type SupportTicket = {
   id: number;
   userId: number;
@@ -306,6 +336,7 @@ export type SupportTicket = {
   status: TicketStatus;
   replyText: string | null;
   createdAt: string;
+  entries: SupportEntry[];
 };
 
 function stamp(value: unknown): string {
@@ -357,8 +388,9 @@ export async function listSupportTickets(status: TicketStatus | "all"): Promise<
        LIMIT 100`,
       [status, status === "all" ? "" : status],
     );
-    return rows.flatMap((row) => {
-      if (row.status !== "new" && row.status !== "in_progress" && row.status !== "closed") return [];
+    const tickets = rows.flatMap((row) => {
+      const ticketStatus = row.status;
+      if (ticketStatus !== "new" && ticketStatus !== "in_progress" && ticketStatus !== "closed") return [];
       return [{
         id: Number(row.id),
         userId: Number(row.user_id),
@@ -369,12 +401,67 @@ export async function listSupportTickets(status: TicketStatus | "all"): Promise<
         marathonTitle: row.marathon_title,
         dayNumber: row.day_number == null ? null : Number(row.day_number),
         body: row.body,
-        status: row.status,
+        status: ticketStatus as TicketStatus,
         replyText: row.reply_text,
         createdAt: stamp(row.created_at),
+        entries: [] as SupportEntry[],
       }];
     });
+    const byId = new Map(tickets.map((ticket) => [ticket.id, ticket]));
+    if (byId.size === 0) return tickets;
+    try {
+      const ids = [...byId.keys()];
+      const marks = ids.map(() => "?").join(", ");
+      const entries = await connection.query<{
+        id: number;
+        ticket_id: number;
+        author: string;
+        body: string;
+        created_at: unknown;
+      }>(
+        `SELECT id, ticket_id, author, body, created_at
+         FROM support_ticket_entries
+         WHERE ticket_id IN (${marks})
+         ORDER BY id ASC`,
+        ids,
+      );
+      for (const entry of entries) {
+        const ticket = byId.get(Number(entry.ticket_id));
+        if (!ticket || (entry.author !== "student" && entry.author !== "staff")) continue;
+        ticket.entries.push({
+          id: Number(entry.id),
+          author: entry.author,
+          body: entry.body,
+          createdAt: stamp(entry.created_at),
+        });
+      }
+    } catch (error) {
+      if (!missingRelation(error)) throw error;
+    }
+    return tickets;
   });
+}
+
+async function rememberStudentReply(
+  connection: SqlConnection,
+  input: { chatId: string; messageId: number; ticketId: number; reply: string },
+): Promise<void> {
+  try {
+    await connection.execute(
+      `INSERT INTO support_ticket_entries (ticket_id, author, body) VALUES (?, 'staff', ?)`,
+      [input.ticketId, input.reply],
+    );
+    if (input.messageId > 0) {
+      await connection.execute(
+        `INSERT INTO support_reply_links (chat_id, message_id, ticket_id)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE ticket_id = VALUES(ticket_id)`,
+        [input.chatId, input.messageId, input.ticketId],
+      );
+    }
+  } catch (error) {
+    if (!missingRelation(error)) console.error("support reply thread", error);
+  }
 }
 
 export async function updateSupportTicket(input: {
@@ -383,8 +470,14 @@ export async function updateSupportTicket(input: {
   reply: string;
 }): Promise<"ok" | "missing" | "send_failed"> {
   return withConn(async (connection) => {
-    const rows = await connection.query<{ telegram_chat_id: string }>(
-      `SELECT telegram_chat_id FROM support_tickets WHERE id = ? LIMIT 1`,
+    const rows = await connection.query<{
+      telegram_chat_id: string;
+      body: string;
+      body_kind: string | null;
+      marathon_id: number | null;
+    }>(
+      `SELECT telegram_chat_id, body, body_kind, marathon_id
+       FROM support_tickets WHERE id = ? LIMIT 1`,
       [input.id],
     );
     const ticket = rows[0];
@@ -393,22 +486,38 @@ export async function updateSupportTicket(input: {
     if (reply) {
       const bot = optionalTelegramBot();
       if (!bot) return "send_failed";
+      const copy = await copyFor(connection, ticket.marathon_id);
+      const composed = composeStudentReply({
+        ticketId: input.id,
+        question: String(ticket.body ?? ""),
+        photo: ticket.body_kind === "photo" || String(ticket.body ?? "").trim() === SUPPORT_PHOTO_BODY,
+        answer: reply,
+        copy,
+      });
       try {
         const result = await sendTelegramMessage({
           chatId: String(ticket.telegram_chat_id),
-          text: reply,
+          text: composed.text,
+          parseMode: "HTML",
           disablePreview: true,
+          replyMarkup: { inline_keyboard: [[composed.button]] },
         }, bot.token);
         if (result.status !== "sent") return "send_failed";
+        await connection.execute(
+          `UPDATE support_tickets SET status = ?, reply_text = ? WHERE id = ?`,
+          [input.status, reply, input.id],
+        );
+        await rememberStudentReply(connection, {
+          chatId: String(ticket.telegram_chat_id),
+          messageId: result.messageId,
+          ticketId: input.id,
+          reply,
+        });
+        return "ok";
       } catch (error) {
         console.error("support reply", error);
         return "send_failed";
       }
-      await connection.execute(
-        `UPDATE support_tickets SET status = ?, reply_text = ? WHERE id = ?`,
-        [input.status, reply, input.id],
-      );
-      return "ok";
     }
     const updated = await connection.execute(
       `UPDATE support_tickets SET status = ? WHERE id = ?`,
@@ -416,4 +525,166 @@ export async function updateSupportTicket(input: {
     );
     return updated.affectedRows === 1 ? "ok" : "missing";
   });
+}
+
+export async function peekSupportFollow(chatId: string): Promise<boolean> {
+  if (!/^[1-9]\d{0,19}$/.test(chatId) || !process.env.DB_HOST) return false;
+  try {
+    return await withConn(async (connection) => {
+      const rows = await connection.query<{ chat_id: string }>(
+        `SELECT chat_id FROM support_follow_waits WHERE chat_id = ? LIMIT 1`,
+        [chatId],
+      );
+      return rows.length > 0;
+    });
+  } catch (error) {
+    if (!missingRelation(error)) console.error("support follow", error);
+    return false;
+  }
+}
+
+export async function armSupportFollow(
+  chatId: string,
+  ticketId: number,
+): Promise<{ text: string } | null> {
+  if (!/^[1-9]\d{0,19}$/.test(chatId) || !Number.isSafeInteger(ticketId) || ticketId <= 0) return null;
+  if (!process.env.DB_HOST) return null;
+  try {
+    return await withConn(async (connection) => {
+      const rows = await connection.query<{ marathon_id: number | null }>(
+        `SELECT marathon_id FROM support_tickets
+         WHERE id = ? AND telegram_chat_id = ? LIMIT 1`,
+        [ticketId, chatId],
+      );
+      const ticket = rows[0];
+      if (!ticket) return null;
+      await connection.execute(`DELETE FROM support_waits WHERE chat_id = ?`, [chatId]);
+      await connection.execute(
+        `INSERT INTO support_follow_waits (chat_id, ticket_id)
+         VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE ticket_id = VALUES(ticket_id), created_at = CURRENT_TIMESTAMP`,
+        [chatId, ticketId],
+      );
+      const copy = await copyFor(connection, ticket.marathon_id);
+      return { text: renderResolved("bot_support_follow_ask", copy, { id: ticketId }) };
+    });
+  } catch (error) {
+    console.error("support follow", error);
+    return null;
+  }
+}
+
+export async function acceptSupportFollowup(input: {
+  chatId: string;
+  body: string;
+  kind: "text" | "photo";
+  replyToMessageId: number | null;
+}): Promise<{ text: string } | null> {
+  if (!process.env.DB_HOST) return null;
+  const body = input.body.trim();
+  if (!body) return null;
+  try {
+    return await withConn(async (connection) => {
+      let ticketId: number | null = null;
+      if (input.replyToMessageId && input.replyToMessageId > 0) {
+        const linked = await connection.query<{ ticket_id: number }>(
+          `SELECT l.ticket_id
+           FROM support_reply_links l
+           INNER JOIN support_tickets t ON t.id = l.ticket_id
+           WHERE l.chat_id = ? AND l.message_id = ? AND t.telegram_chat_id = ?
+           LIMIT 1`,
+          [input.chatId, input.replyToMessageId, input.chatId],
+        );
+        ticketId = linked[0] ? Number(linked[0].ticket_id) : null;
+      }
+      if (!ticketId) {
+        const waiting = await connection.query<{ ticket_id: number }>(
+          `SELECT w.ticket_id
+           FROM support_follow_waits w
+           INNER JOIN support_tickets t ON t.id = w.ticket_id
+           WHERE w.chat_id = ? AND t.telegram_chat_id = ?
+           LIMIT 1`,
+          [input.chatId, input.chatId],
+        );
+        ticketId = waiting[0] ? Number(waiting[0].ticket_id) : null;
+      }
+      if (!ticketId) return null;
+      const rows = await connection.query<{
+        marathon_id: number | null;
+        display_name: string | null;
+        forward_message_id: number | string | null;
+      }>(
+        `SELECT t.marathon_id, u.display_name, t.forward_message_id
+         FROM support_tickets t
+         INNER JOIN app_users u ON u.id = t.user_id
+         WHERE t.id = ? LIMIT 1`,
+        [ticketId],
+      );
+      const ticket = rows[0];
+      if (!ticket) return null;
+      const copy = await copyFor(connection, ticket.marathon_id);
+      const stored = input.kind === "photo"
+        ? supportQuestionQuote({
+          body,
+          photo: true,
+          photoLabel: resolveCopy("bot_support_reply_photo", copy),
+        })
+        : body;
+      await connection.execute(
+        `INSERT INTO support_ticket_entries (ticket_id, author, body) VALUES (?, 'student', ?)`,
+        [ticketId, stored],
+      );
+      await connection.execute(
+        `UPDATE support_tickets SET status = IF(status = 'closed', 'new', status) WHERE id = ?`,
+        [ticketId],
+      );
+      await connection.execute(`DELETE FROM support_waits WHERE chat_id = ?`, [input.chatId]);
+      await deleteFollowWait(connection, input.chatId);
+      const forwardId = Number(ticket.forward_message_id);
+      await forwardFollowup(connection, {
+        id: ticketId,
+        displayName: String(ticket.display_name ?? ""),
+        body: stored,
+        replyToMessageId: Number.isSafeInteger(forwardId) && forwardId > 0 ? forwardId : undefined,
+      });
+      return { text: renderResolved("bot_support_follow_thanks", copy, { id: ticketId }) };
+    });
+  } catch (error) {
+    if (!missingRelation(error)) console.error("support follow", error);
+    return null;
+  }
+}
+
+async function forwardFollowup(
+  connection: SqlConnection,
+  input: { id: number; displayName: string; body: string; replyToMessageId?: number },
+): Promise<void> {
+  const team = readSupportChatId(process.env.TELEGRAM_SUPPORT_CHAT_ID);
+  const bot = optionalTelegramBot();
+  if (!team || !bot) return;
+  const text = teamFollowupHtml(input);
+  try {
+    let result = await sendTelegramMessage({
+      chatId: team,
+      text,
+      parseMode: "HTML",
+      disablePreview: true,
+      ...(input.replyToMessageId ? { replyToMessageId: input.replyToMessageId } : {}),
+    }, bot.token);
+    if (
+      result.status === "rejected"
+      && input.replyToMessageId
+      && result.context.retryAfter == null
+    ) {
+      result = await sendTelegramMessage({
+        chatId: team,
+        text,
+        parseMode: "HTML",
+        disablePreview: true,
+      }, bot.token);
+    }
+    await reportSupportForward(result, connection);
+  } catch (error) {
+    console.error("support forward", error);
+  }
 }

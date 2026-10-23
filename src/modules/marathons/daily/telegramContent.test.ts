@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   expandSources,
+  introSources,
   materialSources,
   optionLabel,
   previewChat,
@@ -59,6 +60,20 @@ test("day material stays in the chat and a formula task keeps opaque buttons", (
   assert.equal(optionLabel("$x^2$", 0), "1. x²");
   assert.ok(optionLabel(`${"$\\frac{a+b}{c}$ ".repeat(30)}`, 0).length <= 64);
   assert.equal(task.some((item) => item.text.trim() === "."), false);
+});
+
+test("intro sends the photo with the rules, and a long text follows the photo", () => {
+  const short = expandSources(introSources("", "Правила марафону.", "https://nmt.in.ua/api/marathon-media/abc"));
+  assert.equal(short[0]?.photoUrl, "https://nmt.in.ua/api/marathon-media/abc");
+  assert.match(short[0]?.text ?? "", /Правила марафону/);
+  const long = expandSources(introSources(
+    "https://www.youtube.com/watch?v=abcdefghijk",
+    "Правила",
+    "https://nmt.in.ua/pic.png",
+  ));
+  assert.equal(long[0]?.photoUrl, "https://nmt.in.ua/pic.png");
+  assert.equal(long[0]?.text, "");
+  assert.ok(long.some((item) => item.previewUrl?.includes("youtube.com")));
 });
 
 test("admin preview shows the day as chat bubbles with a secondary site button", () => {

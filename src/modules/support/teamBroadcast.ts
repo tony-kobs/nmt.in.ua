@@ -5,11 +5,11 @@ import { optionalTelegramBot } from "@/modules/marathons/daily/botLink";
 import { drainTelegramOutbox, serializeReply } from "@/modules/telegram/outbox";
 import { usableChatId } from "@/modules/telegram/linkSync";
 import type { TelegramReply } from "@/modules/telegram/taskInteraction";
-import { sendTelegramMessage } from "@/modules/telegram/transport";
+import { sendTelegramMessage, sendTelegramPayload } from "@/modules/telegram/transport";
 import {
   handleTeamChat,
   readTeamEvent,
-  studentBroadcastReply,
+  studentBroadcastReplies,
   type TeamCourse,
   type TeamDeps,
   type TeamDraft,
@@ -121,6 +121,7 @@ function draftFrom(row: {
   id: number;
   marathon_id: number;
   body: string;
+  photo_file_id: string | null;
   status: string;
   preview_chat_id: string;
   preview_message_id: number | null;
@@ -129,10 +130,12 @@ function draftFrom(row: {
 }): TeamDraft | null {
   if (row.status !== "draft" && row.status !== "sent" && row.status !== "cancelled") return null;
   const expires = asDate(row.expires_at);
+  const photo = typeof row.photo_file_id === "string" ? row.photo_file_id.trim() : "";
   return {
     id: Number(row.id),
     marathonId: Number(row.marathon_id),
     body: row.body,
+    photoFileId: photo || null,
     status: row.status,
     expired: row.status === "draft" && (!expires || expires.getTime() <= Date.now()),
     previewChatId: String(row.preview_chat_id),
@@ -141,7 +144,7 @@ function draftFrom(row: {
   };
 }
 
-const DRAFT_FIELDS = `id, marathon_id, body, status, preview_chat_id, preview_message_id, sent_count, expires_at`;
+const DRAFT_FIELDS = `id, marathon_id, body, photo_file_id, status, preview_chat_id, preview_message_id, sent_count, expires_at`;
 
 function productionDeps(input: {
   token: string;
@@ -197,9 +200,16 @@ function productionDeps(input: {
     saveDraft: (draft) => withConn(async (connection) => {
       const inserted = await connection.execute(
         `INSERT INTO marathon_team_broadcasts
-          (marathon_id, author_tg_id, body, status, recipient_count, preview_chat_id, expires_at)
-         VALUES (?, ?, ?, 'draft', ?, ?, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 1 HOUR))`,
-        [draft.marathonId, draft.authorTgId, draft.body, draft.recipientCount, draft.previewChatId],
+          (marathon_id, author_tg_id, body, photo_file_id, status, recipient_count, preview_chat_id, expires_at)
+         VALUES (?, ?, ?, ?, 'draft', ?, ?, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 1 HOUR))`,
+        [
+          draft.marathonId,
+          draft.authorTgId,
+          draft.body,
+          draft.photoFileId,
+          draft.recipientCount,
+          draft.previewChatId,
+        ],
       );
       return Number(inserted.insertId);
     }, getConnection),
@@ -216,6 +226,7 @@ function productionDeps(input: {
         body: string;
         status: string;
         preview_chat_id: string;
+        photo_file_id: string | null;
         preview_message_id: number | null;
         sent_count: number;
         expires_at: unknown;
@@ -258,15 +269,32 @@ function productionDeps(input: {
         [id],
       );
     }, getConnection),
-    enqueue: async ({ marathonId, chats, body }) => {
+    enqueue: async ({ marathonId, chats, body, photoFileId }) => {
       const { enqueueMarathonTelegram } = await import("@/modules/marathons/daily/store");
-      await enqueueMarathonTelegram(chats.map((chatId) => ({
+      const rows = chats.flatMap((chatId) => studentBroadcastReplies(chatId, body, photoFileId).map((reply) => ({
         chatId,
         marathonId,
-        payload: serializeReply(studentBroadcastReply(chatId, body)),
-      })), getConnection);
+        payload: serializeReply(reply),
+      })));
+      await enqueueMarathonTelegram(rows, getConnection);
     },
     send: async (reply) => {
+      const photo = reply.photoFileId?.trim();
+      if (photo && !reply.editMessageId) {
+        const caption = reply.text.trim();
+        const result = await sendTelegramPayload({
+          method: "sendPhoto",
+          token: input.token,
+          request: input.request ?? fetch,
+          json: {
+            chat_id: reply.chatId,
+            photo,
+            ...(caption ? { caption: caption.slice(0, 1024) } : {}),
+            ...(reply.replyMarkup ? { reply_markup: reply.replyMarkup } : {}),
+          },
+        });
+        return result.status === "sent" ? { ok: true, messageId: result.messageId } : { ok: false };
+      }
       const result = await sendTelegramMessage(reply, input.token, input.request);
       return result.status === "sent" ? { ok: true, messageId: result.messageId } : { ok: false };
     },

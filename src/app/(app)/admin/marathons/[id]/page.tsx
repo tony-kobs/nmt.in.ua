@@ -14,6 +14,7 @@ import {
   listRiddles,
   searchQuizTasks,
 } from "@/modules/marathons/daily/store";
+import { loadIntroImagePath } from "@/modules/marathons/daily/imageStore";
 import { listBankThemes } from "@/modules/marathons/daily/taskBank";
 import { parseUtmSource } from "@/modules/marathons/daily/utm";
 
@@ -52,12 +53,13 @@ export default async function AdminMarathonEditorPage({ params, searchParams }: 
   if (!marathon) notFound();
   const query = await searchParams;
   const q = first(query.q);
-  const [riddles, days, reports, questions, themes] = await Promise.all([
+  const [riddles, days, reports, questions, themes, introImageUrl] = await Promise.all([
     listRiddles(marathon.id, marathon.subject),
     listDays(marathon.id),
     listParticipantReports(marathon.id),
     searchQuizTasks(q ?? ""),
     listBankThemes(marathon.subject),
+    loadIntroImagePath(marathon.id),
   ]);
   const detailed = await Promise.all(
     days.map(async (day) => ({
@@ -95,6 +97,7 @@ export default async function AdminMarathonEditorPage({ params, searchParams }: 
       questions={questions}
       error={first(query.error)}
       savedToken={first(query.saved)}
+      introImageUrl={introImageUrl}
     />
   );
 }
