@@ -1,8 +1,13 @@
+import { averageAndMedian } from "./durationText";
+
 export type DayFunnel = {
   day: number;
   opened: number;
   completed: number;
   avgScore: number | null;
+  /** Mean of known day durations, whole seconds. Null when nobody has a stored time. */
+  avgTimeSec: number | null;
+  medianTimeSec: number | null;
   dropoff: number;
 };
 
@@ -22,6 +27,8 @@ export type DayFunnelInput = {
   completed: number;
   scoreSum: number;
   scoreCount: number;
+  /** Known durations only. Missing starts are left out of the average and the median. */
+  times?: readonly number[];
 };
 
 function whole(value: number): number {
@@ -58,11 +65,14 @@ export function buildDailyFunnel(input: {
     const completed = whole(row?.completed ?? 0);
     const scoreCount = whole(row?.scoreCount ?? 0);
     const scoreSum = Number.isFinite(row?.scoreSum) ? Number(row?.scoreSum) : 0;
+    const timing = averageAndMedian(row?.times ?? []);
     days.push({
       day,
       opened,
       completed,
       avgScore: scoreCount > 0 ? Math.round(scoreSum / scoreCount) : null,
+      avgTimeSec: timing.avg,
+      medianTimeSec: timing.median,
       dropoff: Math.max(0, previousCompleted - completed),
     });
     previousCompleted = completed;

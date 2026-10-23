@@ -471,6 +471,30 @@ export async function migrateDailyMarathon(
       "SMALLINT UNSIGNED NULL AFTER score",
     );
   }
+  if (progressColumns.size > 0 && !progressColumns.has("started_at")) {
+    await addColumn(
+      connection,
+      "marathon_day_progress",
+      "started_at",
+      "TIMESTAMP NULL DEFAULT NULL AFTER materials_viewed_at",
+    );
+  }
+  if (progressColumns.size > 0 && !progressColumns.has("submitted_at")) {
+    await addColumn(
+      connection,
+      "marathon_day_progress",
+      "submitted_at",
+      "TIMESTAMP NULL DEFAULT NULL AFTER completed_at",
+    );
+  }
+  if (progressColumns.size > 0 && !progressColumns.has("duration_seconds")) {
+    await addColumn(
+      connection,
+      "marathon_day_progress",
+      "duration_seconds",
+      "INT UNSIGNED NULL DEFAULT NULL AFTER submitted_at",
+    );
+  }
 
   const userColumns = await columnNames(connection, "app_users");
   if (userColumns.size > 0 && !userColumns.has("cabinet_scope")) {

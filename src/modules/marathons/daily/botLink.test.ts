@@ -20,6 +20,7 @@ const recordedVersions = [
   "052_marathon_survey.sql",
   "053_marathon_scheduler_runs.sql",
   "054_team_chat_broadcast.sql",
+  "055_marathon_day_time.sql",
 ].map((version) => ({ version }));
 
 function harness(linked: Array<{ user_id: number; telegram_user_id: string }>) {

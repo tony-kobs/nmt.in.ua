@@ -1,4 +1,5 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { durationLocale, formatMarathonDuration } from "@/modules/marathons/daily/durationText";
 import { visibleBoard, type BoardLine } from "@/modules/marathons/daily/leaderboard";
 import css from "./marathon.module.css";
 
@@ -15,6 +16,7 @@ export async function MarathonBoard({
   titleId: string;
 }) {
   const t = await getTranslations("Marathon");
+  const uiLocale = durationLocale(await getLocale());
   const view = limit == null
     ? {
         top: rows,
@@ -36,6 +38,7 @@ export async function MarathonBoard({
               row={row}
               you={row.userId === selfId}
               pointsLabel={t("boardPoints", { count: row.points })}
+              timeLabel={boardTimeLabel(t, uiLocale, row)}
               streakLabel={row.streak > 0 ? t("boardStreak", { count: row.streak }) : ""}
               youLabel={t("boardYou")}
             />
@@ -48,6 +51,7 @@ export async function MarathonBoard({
               row={view.self}
               you
               pointsLabel={t("boardPoints", { count: view.self.points })}
+              timeLabel={boardTimeLabel(t, uiLocale, view.self)}
               streakLabel={view.self.streak > 0 ? t("boardStreak", { count: view.self.streak }) : ""}
               youLabel={t("boardYou")}
             />
@@ -58,16 +62,28 @@ export async function MarathonBoard({
   );
 }
 
+function boardTimeLabel(
+  t: Awaited<ReturnType<typeof getTranslations>>,
+  locale: ReturnType<typeof durationLocale>,
+  row: BoardLine,
+): string {
+  if (row.totalTimeSec != null) return formatMarathonDuration(row.totalTimeSec, locale);
+  if (row.points > 0) return t("boardTimeUnknown");
+  return "";
+}
+
 function BoardRow({
   row,
   you,
   pointsLabel,
+  timeLabel,
   streakLabel,
   youLabel,
 }: {
   row: BoardLine;
   you: boolean;
   pointsLabel: string;
+  timeLabel: string;
   streakLabel: string;
   youLabel: string;
 }) {
@@ -80,6 +96,7 @@ function BoardRow({
       </span>
       <span className={css.boardPoints}>
         {pointsLabel}
+        {timeLabel ? <span className={css.meta}> · {timeLabel}</span> : null}
         {streakLabel ? <span className={css.meta}> · {streakLabel}</span> : null}
       </span>
     </li>

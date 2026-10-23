@@ -115,8 +115,33 @@ async function funnelsFor(connection: SqlConnection, courses: readonly CourseRef
       completed: Number(row.completed) || 0,
       scoreSum: Number(row.score_sum) || 0,
       scoreCount: Number(row.score_count) || 0,
+      times: [],
     });
     daysById.set(Number(row.marathon_id), list);
+  }
+  try {
+    const samples = await connection.query<{
+      marathon_id: number;
+      day_number: number;
+      duration_seconds: number | string | null;
+    }>(
+      `SELECT d.marathon_id, d.day_number, pr.duration_seconds
+       FROM marathon_days d
+       INNER JOIN marathon_day_progress pr
+         ON pr.day_id = d.id AND pr.marathon_id = d.marathon_id
+       WHERE d.marathon_id IN (${marks})
+         AND pr.completed_at IS NOT NULL
+         AND pr.duration_seconds IS NOT NULL`,
+      ids,
+    );
+    for (const sample of samples) {
+      const seconds = Number(sample.duration_seconds);
+      if (!Number.isFinite(seconds) || seconds < 0) continue;
+      const day = daysById.get(Number(sample.marathon_id))?.find((item) => item.day === Number(sample.day_number));
+      if (day) day.times = [...(day.times ?? []), Math.floor(seconds)];
+    }
+  } catch (error) {
+    if (!missingRelation(error)) throw error;
   }
   const funnels = new Map<number, DailyFunnel>();
   for (const course of courses) {
