@@ -1,7 +1,6 @@
-import Image from "next/image";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Reveal } from "@/components/ui/Reveal";
-import { DiagnosticPageTurnLink } from "@/components/welcome/DiagnosticPageTurnLink";
 import { ArrowRightIcon } from "../icons";
 import css from "../landing.module.css";
 
@@ -14,16 +13,6 @@ export async function Hero() {
 
   return (
     <section className={css.hero} aria-labelledby="hero-title">
-      <div className={css.heroBg} aria-hidden>
-        <Image
-          src="/landing/hero-classroom.webp"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className={css.heroBgImage}
-        />
-      </div>
       <div className={`${css.container} ${css.heroGrid}`}>
         <Reveal className={css.heroCopy}>
           <h1 id="hero-title" className={css.heroTitle}>
@@ -62,13 +51,13 @@ export async function Hero() {
               <div className={css.heroPathPrimary}>
                 <p className={css.heroPathPrompt}>{t("diagnosticPrompt")}</p>
                 <div className={css.heroPathRow}>
-                  <DiagnosticPageTurnLink
+                  <Link
                     href="/diagnostic"
                     className={`${css.btn} ${css.btnPrimary}`}
                   >
                     {t("ctaDiagnostic")}
                     <ArrowRightIcon size={18} />
-                  </DiagnosticPageTurnLink>
+                  </Link>
                   <p className={css.heroPathText}>{t("diagnosticHint")}</p>
                 </div>
               </div>

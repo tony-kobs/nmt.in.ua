@@ -212,3 +212,109 @@ export async function checkDiagnosticAnswer(
     );
   }
 }
+
+export type SkipDiagnosticTaskInput = {
+  owner: SessionOwner;
+  sessionId: number;
+  mappingId: number;
+};
+
+/** Marks the current diagnostic task incorrect so the attempt can move on. */
+export async function skipDiagnosticTask(
+  rawInput: unknown,
+  deps: CheckDiagnosticAnswerDeps = { getConnection: loadDefaultConnection },
+): Promise<{ correct: false }> {
+  if (typeof rawInput !== "object" || rawInput === null) {
+    throw new CheckDiagnosticAnswerError(
+      "Request payload must be an object.",
+      "invalid_input",
+    );
+  }
+  const { owner, sessionId, mappingId } = rawInput as Record<string, unknown>;
+  if (
+    !isValidOwner(owner) ||
+    typeof sessionId !== "number" ||
+    !Number.isInteger(sessionId) ||
+    sessionId <= 0 ||
+    typeof mappingId !== "number" ||
+    !Number.isInteger(mappingId) ||
+    mappingId <= 0
+  ) {
+    throw new CheckDiagnosticAnswerError(
+      "owner must be valid and sessionId and mappingId must be positive integers.",
+      "invalid_input",
+    );
+  }
+
+  const input = {
+    owner: owner as SessionOwner,
+    sessionId,
+    mappingId,
+  };
+
+  try {
+    const connection = await deps.getConnection();
+    try {
+      await connection.beginTransaction();
+      const rows = await connection.query<MappingRow>(SQL_SELECT_MAPPING, [
+        input.mappingId,
+        input.sessionId,
+        ...ownerParams(input.owner),
+      ]);
+      const row = rows[0];
+      if (!row) {
+        await connection.rollback();
+        throw new CheckDiagnosticAnswerError(
+          "Task mapping was not found in this session.",
+          "not_found",
+        );
+      }
+      if (row.status !== TASK_STATUS_UNANSWERED) {
+        await connection.commit();
+        return { correct: false };
+      }
+      if (row.session_status === SESSION_STATUS_COMPLETED) {
+        await connection.rollback();
+        throw new CheckDiagnosticAnswerError(
+          "This session is already completed.",
+          "session_completed",
+        );
+      }
+      const nowSec = deps.nowSec ?? nowUnixSec;
+      if (isSessionExpired(row.expire_time, nowSec())) {
+        await connection.rollback();
+        throw new CheckDiagnosticAnswerError(
+          "This session's 24h lifetime has expired.",
+          "session_expired",
+        );
+      }
+      const updated = await connection.execute(SQL_UPDATE_STATUS, [
+        TASK_STATUS_INCORRECT,
+        row.id,
+      ]);
+      if (updated.affectedRows !== 1) {
+        await connection.rollback();
+        throw new CheckDiagnosticAnswerError(
+          "Failed to store the skipped task status.",
+          "db_error",
+        );
+      }
+      await connection.commit();
+      return { correct: false };
+    } catch (error) {
+      if (!(error instanceof CheckDiagnosticAnswerError)) {
+        await connection.rollback().catch(() => undefined);
+      }
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    if (error instanceof CheckDiagnosticAnswerError) throw error;
+    console.error("skipDiagnosticTask: unexpected database error", error);
+    throw new CheckDiagnosticAnswerError(
+      "Database operation failed.",
+      "db_error",
+    );
+  }
+}

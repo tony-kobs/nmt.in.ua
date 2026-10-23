@@ -12,9 +12,12 @@ import {
 } from "@/modules/marathons/daily/access";
 import { useTranslations } from "next-intl";
 import css from "./AppSidebar.module.css";
+import { NavIcon, NavSprite } from "./navIcons";
 
 type AppSidebarProps = {
   open: boolean;
+  /** Mobile drawer is off-screen: hide from keyboard and AT. Desktop rail stays usable. */
+  conceal: boolean;
   onNavigate: () => void;
   role: UserRole;
   cabinetScope?: CabinetScope;
@@ -23,6 +26,7 @@ type AppSidebarProps = {
 
 export function AppSidebar({
   open,
+  conceal,
   onNavigate,
   role,
   cabinetScope = "full",
@@ -37,10 +41,12 @@ export function AppSidebar({
     <aside
       id="dashboard-sidebar"
       className={clsx(css.sidebar, open ? css.open : css.closed)}
+      data-pinned={open ? "true" : undefined}
       aria-label={t("ariaLabel")}
-      aria-hidden={!open}
-      inert={!open}
+      aria-hidden={conceal}
+      inert={conceal}
     >
+      <NavSprite />
       <div className={css.scrollInner}>
         <div className={css.top}>
           <p className={css.kicker}>{t("kicker")}</p>
@@ -64,11 +70,9 @@ export function AppSidebar({
                     )}
                     aria-current={active ? "page" : undefined}
                     onClick={onNavigate}
-                    tabIndex={open ? undefined : -1}
+                    tabIndex={conceal ? -1 : undefined}
                   >
-                    <span className={css.icon} aria-hidden>
-                      {item.icon}
-                    </span>
+                    <NavIcon name={item.icon} />
                     <span className={css.labelRow}>
                       <span className={css.label}>
                         {item.href === "/" && role === "admin"
@@ -93,12 +97,14 @@ export function AppSidebar({
 
         <div className={css.bottom}>
           {marathonOnly ? null : (
-            <FeedbackEntry
-              source="footer"
-              isGuest={false}
-              variant="sidebar"
-              tabIndex={open ? undefined : -1}
-            />
+            <div className={css.feedback}>
+              <FeedbackEntry
+                source="footer"
+                isGuest={false}
+                variant="sidebar"
+                tabIndex={conceal ? -1 : undefined}
+              />
+            </div>
           )}
 
           <div className={css.footerCard} aria-hidden>

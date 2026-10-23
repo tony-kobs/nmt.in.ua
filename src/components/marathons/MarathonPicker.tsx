@@ -9,10 +9,13 @@ export function MarathonPicker({
   label,
   value,
   options,
+  path = "/leaderboard",
 }: {
   label: string;
   value: string;
   options: readonly { value: string; label: string }[];
+  /** Page that owns the `?marathon=` filter. */
+  path?: string;
 }) {
   const router = useRouter();
   return (
@@ -25,7 +28,7 @@ export function MarathonPicker({
         value={value}
         options={options}
         onChange={(slug) => {
-          router.push(queryHref("/leaderboard", { marathon: slug }));
+          router.push(queryHref(path, { marathon: slug }));
         }}
       />
     </div>

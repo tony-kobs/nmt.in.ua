@@ -83,7 +83,7 @@ export async function MarathonFinalView({
           ) : null}
           <div className={css.actions}>
             <Link
-              href={`/leaderboard?marathon=${encodeURIComponent(marathon.slug)}`}
+              href={`/marathon?marathon=${encodeURIComponent(marathon.slug)}`}
               className={css.buttonQuiet}
             >
               {t("leaderboardLink")}

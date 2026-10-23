@@ -1,1 +1,0 @@
-export { DiagnosticPageTurnLink } from "./DiagnosticPageTurnLink";

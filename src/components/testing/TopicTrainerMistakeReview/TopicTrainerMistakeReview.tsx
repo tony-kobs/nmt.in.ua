@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import type { SessionMistakeItem } from "@/modules/testing/getSessionMistakeReview";
 import { textbookTopicHref } from "@/content/learningMaterials/textbookHref";
 import { MathText } from "@/components/ui/MathText";
+import { TestTaskCard, taskKicker } from "@/components/testing/TestTaskCard";
 import css from "./TopicTrainerMistakeReview.module.css";
 
 type TopicTrainerMistakeReviewProps = {
@@ -72,19 +73,27 @@ export function TopicTrainerMistakeReview({
             key={`${item.name}-${index}-${item.taskText.slice(0, 40)}`}
             className={css.item}
           >
-            <p className={css.itemName}>{item.name}</p>
-            <MistakeBody
-              text={item.taskText}
-              className={css.itemText}
-              imageAlt={t("taskImageAlt", { n: index + 1 })}
-            />
-            {item.comment ? (
-              <MistakeBody
-                text={item.comment}
-                className={css.comment}
-                imageAlt={t("taskImageAlt", { n: index + 1 })}
-              />
-            ) : null}
+            <TestTaskCard
+              heading="h3"
+              titleId={`mistake-task-${index}`}
+              title={t("taskHeading", { number: index + 1 })}
+              badge={item.themeName ?? undefined}
+              kicker={taskKicker(item.name, item.taskText) ? <MathText text={item.name} /> : undefined}
+              prompt={
+                <MistakeBody
+                  text={item.taskText}
+                  imageAlt={t("taskImageAlt", { n: index + 1 })}
+                />
+              }
+              hint={
+                item.comment ? (
+                  <MistakeBody
+                    text={item.comment}
+                    imageAlt={t("taskImageAlt", { n: index + 1 })}
+                  />
+                ) : undefined
+              }
+            >
             {showThemeLinks ? (
               item.themeId != null && item.themeName ? (
                 <nav className={css.themeLinks} aria-label={item.themeName}>
@@ -112,6 +121,7 @@ export function TopicTrainerMistakeReview({
                 <p className={css.themeMissing}>{t("mistakeThemeUnknown")}</p>
               )
             ) : null}
+            </TestTaskCard>
           </li>
         ))}
       </ul>

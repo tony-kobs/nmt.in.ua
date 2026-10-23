@@ -19,7 +19,7 @@ test("an unselected card is always default, regardless of mode or result", () =>
   }
 });
 
-test("diagnostic mode never reveals correct/incorrect on the selected card", () => {
+test("diagnostic mode never reveals a picked card before the next task", () => {
   assert.equal(
     resolveAnswerCardState({
       mode: "diagnostic",
@@ -27,7 +27,7 @@ test("diagnostic mode never reveals correct/incorrect on the selected card", () 
       isSelected: true,
       correct: true,
     }),
-    "selected",
+    "default",
   );
   assert.equal(
     resolveAnswerCardState({
@@ -36,7 +36,7 @@ test("diagnostic mode never reveals correct/incorrect on the selected card", () 
       isSelected: true,
       correct: false,
     }),
-    "selected",
+    "default",
   );
 });
 

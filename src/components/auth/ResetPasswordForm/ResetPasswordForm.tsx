@@ -13,6 +13,7 @@ import {
   resetPasswordAction,
   type ResetPasswordActionState,
 } from "@/modules/auth/actions";
+import { PasswordInput } from "../PasswordInput/PasswordInput";
 import css from "../auth.module.css";
 
 const INITIAL: ResetPasswordActionState = { status: "idle" };
@@ -61,9 +62,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         <input type="hidden" name="token" value={token} />
         <label className={css.field}>
           <span className={css.label}>{t("password")}</span>
-          <input
-            className={css.input}
-            type="password"
+          <PasswordInput
             name="password"
             autoComplete="new-password"
             required
@@ -74,9 +73,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         </label>
         <label className={css.field}>
           <span className={css.label}>{t("passwordConfirm")}</span>
-          <input
-            className={css.input}
-            type="password"
+          <PasswordInput
             name="passwordConfirm"
             autoComplete="new-password"
             required

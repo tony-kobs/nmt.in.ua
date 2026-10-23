@@ -1,4 +1,5 @@
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { LandingFooter } from "@/components/welcome/LandingFooter";
 import { MarathonInviteBanner } from "@/components/marathon/MarathonInviteBanner";
 import { UpgradeSessionCookie } from "@/components/auth/UpgradeSessionCookie";
 import { pickClientMessages } from "@/i18n/clientMessages";
@@ -66,6 +67,7 @@ export default async function AppLayout({
         <DashboardShell
           user={user}
           cabinetScope={cabinetScope}
+          footer={<LandingFooter variant="cabinet" />}
         >
           <MarathonInviteBanner invites={invites} />
           {children}

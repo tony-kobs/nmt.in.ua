@@ -57,6 +57,8 @@ export const CORE_CLIENT_NAMESPACES = [
  */
 export const PUBLIC_CLIENT_NAMESPACES = [
   "LanguageSwitcher",
+  "Common",
+  "AuthShared",
   "Feedback",
   "Diagnostic",
   "DiagnosticResult",

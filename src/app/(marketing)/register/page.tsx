@@ -1,10 +1,7 @@
 import { getTranslations } from "next-intl/server";
+import { AuthPanel } from "@/components/auth/AuthPanel/AuthPanel";
 import { AuthShell } from "@/components/auth/AuthShell";
-import { RegisterForm } from "@/components/auth/RegisterForm";
-import {
-  RegisterRolePicker,
-  type RegisterRole,
-} from "@/components/auth/RegisterRolePicker/RegisterRolePicker";
+import type { RegisterRole } from "@/components/auth/RegisterRolePicker/RegisterRolePicker";
 import { createPageMetadata } from "@/constants/seo";
 import { safeInternalPath } from "@/lib/safeInternalPath";
 
@@ -27,57 +24,24 @@ type RegisterPageProps = {
   }>;
 };
 
-function pickRole(raw: string | string[] | undefined): RegisterRole {
-  const value = Array.isArray(raw) ? raw[0] : raw;
-  return value === "teacher" ? "teacher" : "student";
+function first(raw: string | string[] | undefined): string | undefined {
+  return Array.isArray(raw) ? raw[0] : raw;
 }
 
-function registerHref(
-  role: RegisterRole,
-  nextPath: string,
-  from: "diagnostic" | undefined,
-): string {
-  const query = new URLSearchParams();
-  query.set("role", role);
-  if (nextPath !== "/") query.set("next", nextPath);
-  if (from) query.set("from", from);
-  return `/register?${query.toString()}`;
+function pickRole(raw: string | undefined): RegisterRole {
+  return raw === "teacher" ? "teacher" : "student";
 }
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   const params = await searchParams;
-  const rawNext = Array.isArray(params.next) ? params.next[0] : params.next;
-  const rawFrom = Array.isArray(params.from) ? params.from[0] : params.from;
-  const nextPath = safeInternalPath(rawNext);
-  const from = rawFrom === "diagnostic" ? "diagnostic" : undefined;
-  const role = pickRole(params.role);
-
-  const studentHref = registerHref("student", nextPath, from);
-  const teacherHref = registerHref("teacher", nextPath, from);
-
-  const cardPicker = (
-    <RegisterRolePicker
-      role={role}
-      studentHref={studentHref}
-      teacherHref={teacherHref}
-      placement="card"
-    />
-  );
-  const asidePicker = (
-    <RegisterRolePicker
-      role={role}
-      studentHref={studentHref}
-      teacherHref={teacherHref}
-      placement="aside"
-    />
-  );
+  const from = first(params.from) === "diagnostic" ? "diagnostic" : undefined;
 
   return (
-    <AuthShell asideExtra={asidePicker}>
-      <RegisterForm
-        nextPath={nextPath}
-        role={role}
-        rolePicker={cardPicker}
+    <AuthShell>
+      <AuthPanel
+        initialMode="register"
+        nextPath={safeInternalPath(first(params.next))}
+        initialRole={pickRole(first(params.role))}
         from={from}
       />
     </AuthShell>

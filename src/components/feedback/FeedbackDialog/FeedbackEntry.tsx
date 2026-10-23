@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
 import clsx from "clsx";
 import type { FeedbackSource } from "@/modules/feedback/types";
+import { NavIcon } from "@/components/dashboard/AppSidebar/navIcons";
 import { FeedbackDialog } from "./FeedbackDialog";
 import css from "./FeedbackDialog.module.css";
 
@@ -39,7 +40,14 @@ export function FeedbackEntry({
         tabIndex={tabIndex}
         onClick={() => setOpen(true)}
       >
-        {t("leaveReview")}
+        {variant === "sidebar" ? (
+          <span data-sidebar-glyph aria-hidden>
+            <NavIcon name="spark" />
+          </span>
+        ) : null}
+        <span data-sidebar-label={variant === "sidebar" ? "" : undefined}>
+          {t("leaveReview")}
+        </span>
       </button>
       <FeedbackDialog
         open={open}

@@ -14,17 +14,22 @@ import css from "./AppHeader.module.css";
 type AppHeaderProps = {
   onToggleSidebar: () => void;
   sidebarOpen: boolean;
+  sidebarMode: "drawer" | "rail";
   user: AuthUser;
 };
 
 export function AppHeader({
   onToggleSidebar,
   sidebarOpen,
+  sidebarMode,
   user,
 }: AppHeaderProps) {
   const t = useTranslations("Header");
   const pathname = usePathname();
   const onAccount = pathname === "/account";
+  const toggleLabel = sidebarOpen
+    ? t(sidebarMode === "rail" ? "unpinSidebar" : "hideSidebar")
+    : t(sidebarMode === "rail" ? "pinSidebar" : "showSidebar");
 
   return (
     <header className={css.header}>
@@ -35,8 +40,8 @@ export function AppHeader({
           onClick={onToggleSidebar}
           aria-expanded={sidebarOpen}
           aria-controls="dashboard-sidebar"
-          aria-label={sidebarOpen ? t("hideSidebar") : t("showSidebar")}
-          title={sidebarOpen ? t("hideMenu") : t("showMenu")}
+          aria-label={toggleLabel}
+          title={toggleLabel}
         >
           <span className={css.toggleGlyph} data-open={sidebarOpen} aria-hidden>
             <i />

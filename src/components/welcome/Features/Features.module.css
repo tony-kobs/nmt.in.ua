@@ -3,9 +3,18 @@
 
 .section {
   --sheet: #f4efe3;
+  --fade: 5.5rem;
   position: relative;
   isolation: isolate;
-  padding-block: var(--space-md);
+  padding-block: var(--fade);
+  background: none;
+}
+
+.section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
   background-color: var(--sheet);
   background-image:
     radial-gradient(ellipse 36rem 22rem at 8% 12%, rgb(246 231 168 / 78%), transparent 72%),
@@ -14,19 +23,19 @@
     linear-gradient(rgb(94 76 40 / 8%) 1px, transparent 1px),
     linear-gradient(90deg, rgb(94 76 40 / 8%) 1px, transparent 1px);
   background-size: auto, auto, auto, 28px 28px, 28px 28px;
-}
-
-.section::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    var(--page) 0%,
-    transparent 9%,
-    transparent 91%,
-    var(--page) 100%
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--fade),
+    #000 calc(100% - var(--fade)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--fade),
+    #000 calc(100% - var(--fade)),
+    transparent 100%
   );
 }
 
@@ -188,10 +197,6 @@
 }
 
 @media (min-width: 768px) {
-  .section {
-    padding-block: var(--space-lg);
-  }
-
   .student {
     width: min(100%, 15rem);
   }
@@ -210,10 +215,6 @@
 
 /* Clock: 12 / 2 / 4 / 6 / 8 / 10. Tilt is ±15deg. */
 @media (min-width: 1240px) {
-  .section {
-    padding-block: var(--space-md);
-  }
-
   .stage {
     margin-top: var(--space-sm);
   }

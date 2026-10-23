@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { PostTestFeedbackPrompt } from "@/components/feedback/FeedbackDialog";
 import { formatPercent } from "@/modules/results/types";
@@ -25,6 +26,8 @@ type DiagnosticResultSummaryProps = {
   topicInsight: DiagnosticTopicInsight | null;
   answerReview: DiagnosticAnswerReviewItem[] | null;
   isGuest: boolean;
+  /** The intro page already has the page title, so the result uses h2 there. */
+  titleLevel?: "h1" | "h2";
 };
 
 function TopicCard({ topic, tone }: { topic: DiagnosticThemeStat; tone: "priority" | "strong" }) {
@@ -51,42 +54,58 @@ function TopicCard({ topic, tone }: { topic: DiagnosticThemeStat; tone: "priorit
 
 function AnswerReview({ items }: { items: DiagnosticAnswerReviewItem[] }) {
   const t = useTranslations("DiagnosticResult");
+  const [index, setIndex] = useState(0);
+  const safeIndex = Math.min(index, items.length - 1);
+  const item = items[safeIndex];
+  if (!item) return null;
+  const presentation = resolveTaskPresentation(item);
 
   return (
-    <ol className={css.answerReviewList}>
-      {items.map((item, index) => {
-        const presentation = resolveTaskPresentation(item);
-        return (
-          <li key={item.mappingId} className={css.answerReviewCard}>
-            <div className={css.answerReviewMeta}>
-              <span>{t("reviewTaskNumber", { number: index + 1 })}</span>
-              <span className={css.answerReviewOutcome} data-correct={item.correct}>
-                {t(item.correct ? "reviewCorrect" : "reviewIncorrect")}
-              </span>
-            </div>
-            {item.name ? <p className={css.answerReviewName}>{item.name}</p> : null}
-            <TaskVisualArea visual={presentation.visual} />
-            <MathText as="div" text={presentation.displayText} />
-            <div className={css.answerReviewAnswer}>
-              <strong>{t("reviewCorrectAnswer")}</strong>
-              {item.correctAnswerText ? (
-                <span>
-                  {item.correctAnswerNumber}. <MathText text={item.correctAnswerText} />
-                </span>
-              ) : (
-                <span>{t("reviewAnswerUnavailable")}</span>
-              )}
-            </div>
-            {item.explanation ? (
-              <div className={css.answerReviewExplanation}>
-                <strong>{t("reviewExplanation")}</strong>
-                <MathText as="div" text={item.explanation} />
-              </div>
-            ) : null}
-          </li>
-        );
-      })}
-    </ol>
+    <div className={css.answerReviewCard}>
+      <div className={css.answerReviewMeta}>
+        <span>{t("reviewCounter", { current: safeIndex + 1, total: items.length })}</span>
+        <span className={css.answerReviewOutcome} data-correct={item.correct}>
+          {t(item.correct ? "reviewCorrect" : "reviewIncorrect")}
+        </span>
+      </div>
+      {item.name ? <p className={css.answerReviewName}>{item.name}</p> : null}
+      <TaskVisualArea visual={presentation.visual} />
+      <MathText as="div" text={presentation.displayText} />
+      <div className={css.answerReviewAnswer}>
+        <strong>{t("reviewCorrectAnswer")}</strong>
+        {item.correctAnswerText ? (
+          <span>
+            {item.correctAnswerNumber}. <MathText text={item.correctAnswerText} />
+          </span>
+        ) : (
+          <span>{t("reviewAnswerUnavailable")}</span>
+        )}
+      </div>
+      {item.explanation ? (
+        <div className={css.answerReviewExplanation}>
+          <strong>{t("reviewExplanation")}</strong>
+          <MathText as="div" text={item.explanation} />
+        </div>
+      ) : null}
+      <div className={css.answerReviewNav}>
+        <button
+          type="button"
+          className={css.reviewStep}
+          onClick={() => setIndex((current) => Math.max(0, current - 1))}
+          disabled={safeIndex === 0}
+        >
+          {t("reviewPrev")}
+        </button>
+        <button
+          type="button"
+          className={css.reviewStep}
+          onClick={() => setIndex((current) => Math.min(items.length - 1, current + 1))}
+          disabled={safeIndex === items.length - 1}
+        >
+          {t("reviewNext")}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -95,19 +114,21 @@ export function DiagnosticResultSummary({
   topicInsight,
   answerReview,
   isGuest,
+  titleLevel = "h1",
 }: DiagnosticResultSummaryProps) {
   const t = useTranslations("DiagnosticResult");
   const priority = topicInsight?.priority ?? [];
   const strongest = topicInsight?.strongest ?? [];
   const isPerfect = isPerfectDiagnosticResult(summary.rightNumber, summary.tasksNumber);
+  const Title = titleLevel === "h2" ? "h2" : "h1";
 
   return (
     <section className={css.summary} aria-labelledby="diagnostic-result-title">
       <header className={css.intro}>
         <p className={css.kicker}>{t("kicker")}</p>
-        <h1 id="diagnostic-result-title" className={css.title}>
+        <Title id="diagnostic-result-title" className={css.title}>
           {t(isPerfect ? "perfectTitle" : "title")}
-        </h1>
+        </Title>
         <p className={css.lead}>{t(isPerfect ? "perfectLead" : "lead")}</p>
         <p className={css.sessionLabel}>{t("sessionLabel", { sessionId: summary.sessionId })}</p>
       </header>
@@ -176,23 +197,6 @@ export function DiagnosticResultSummary({
         )}
       </section>
 
-      {isGuest ? null : (
-        <nav className={css.links} aria-label={t("resultsCta")}>
-          <Link href="/results" className={css.primary}>
-            {t("resultsCta")}
-          </Link>
-          <Link href="/sessions" className={css.secondary}>
-            {t("sessionsCta")}
-          </Link>
-        </nav>
-      )}
-
-      <nav className={css.links} aria-label={t("newTest")}>
-        <Link href="/" className={css.secondary}>
-          {t("newTest")}
-        </Link>
-      </nav>
-
       {isGuest ? (
         <section className={css.registerPanel} aria-labelledby="diagnostic-register-title">
           {isPerfect ? null : (
@@ -249,7 +253,11 @@ export function DiagnosticResultSummary({
             </Link>
           </p>
         </section>
-      ) : null}
+      ) : (
+        <Link href="/" className={css.registerCta}>
+          {t("todayCta")}
+        </Link>
+      )}
 
       <PostTestFeedbackPrompt sessionId={summary.sessionId} isGuest={isGuest} />
     </section>

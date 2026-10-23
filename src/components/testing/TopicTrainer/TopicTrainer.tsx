@@ -43,9 +43,12 @@ import type { DiagnosticTopicInsight } from "@/modules/diagnostic/diagnosticThem
 import type { DiagnosticAnswerReviewItem } from "@/modules/diagnostic/getDiagnosticAnswerReview";
 import { TopicTrainerSummary } from "@/components/testing/TopicTrainerSummary";
 import { DiagnosticResultSummary } from "@/components/diagnostic/DiagnosticResultSummary";
+import { skipDiagnosticTaskAction } from "@/modules/diagnostic/actions";
 import { SessionExpiredNotice } from "@/components/testing/SessionExpiredNotice";
 import { MathText } from "@/components/ui/MathText";
 import { TaskVisualArea } from "@/components/testing/TaskVisualArea";
+import { TestTaskCard, optionLetter, taskKicker } from "@/components/testing/TestTaskCard";
+import cardCss from "@/components/testing/TestTaskCard/TestTaskCard.module.css";
 import { AnswerStateIcon } from "./AnswerStateIcon";
 import { useCountdownTimer } from "./useCountdownTimer";
 import { useSessionTimer } from "./useSessionTimer";
@@ -97,6 +100,8 @@ type TopicTrainerProps = {
    * finishes as usual; `"continue"` means the page is re-reading the
    * server state and will remount the trainer. */
   onContinue?: () => Promise<"continue" | "finish" | "error">;
+  /** Intro page: the cards replace the placeholder, so this is not a second page. */
+  embed?: boolean;
 };
 
 /** Practice mode's second-attempt state travels alongside the plain
@@ -140,6 +145,7 @@ export function TopicTrainer({
   initialIndex = 0,
   progressTotal,
   onContinue,
+  embed = false,
 }: TopicTrainerProps) {
   const isUltimate = mode === "ultimate";
   const isPractice = isPracticeMode(mode);
@@ -311,6 +317,7 @@ export function TopicTrainer({
           topicInsight={topicInsight}
           answerReview={answerReview}
           isGuest={isGuest}
+          titleLevel={embed ? "h2" : "h1"}
         />
       );
     }
@@ -407,6 +414,11 @@ export function TopicTrainer({
 
     if (isUltimate) {
       advanceAfterAnswer(currentTask.mappingId, result.correct);
+      return;
+    }
+
+    if (mode === "diagnostic") {
+      await runDiagnosticAdvance();
       return;
     }
 
@@ -507,10 +519,9 @@ export function TopicTrainer({
     }
   }
 
-  async function handleFinish() {
-    if (!allAnswered || isFinishing || isPending || finishingRef.current) return;
+  async function completeSession() {
+    if (isFinishing || finishingRef.current) return;
     finishingRef.current = true;
-
     setErrorMessage(null);
     setIsFinishing(true);
 
@@ -532,22 +543,69 @@ export function TopicTrainer({
     setInsight(result.insight);
   }
 
+  async function runDiagnosticAdvance() {
+    answeringRef.current = true;
+    try {
+      if (onContinue) {
+        setIsContinuing(true);
+        const next = await onContinue();
+        if (next === "finish") {
+          setIsContinuing(false);
+          await completeSession();
+          return;
+        }
+        if (next === "error") {
+          setIsContinuing(false);
+          setErrorMessage(t("errors.continue"));
+        }
+        return;
+      }
+      if (currentIndex < taskList.length - 1) {
+        setCurrentIndex((index) => index + 1);
+        setErrorMessage(null);
+        return;
+      }
+      await completeSession();
+    } finally {
+      answeringRef.current = false;
+    }
+  }
+
+  async function handleDiagnosticSkip() {
+    if (mode !== "diagnostic" || isResolved || isPending || isFinishing || isContinuing) return;
+    if (answeringRef.current) return;
+    answeringRef.current = true;
+    setErrorMessage(null);
+    setPendingMappingId(currentTask.mappingId);
+
+    let result: Awaited<ReturnType<typeof skipDiagnosticTaskAction>>;
+    try {
+      result = await skipDiagnosticTaskAction({
+        sessionId,
+        mappingId: currentTask.mappingId,
+      });
+    } finally {
+      answeringRef.current = false;
+      setPendingMappingId(null);
+    }
+
+    if (result.status !== "success") {
+      setErrorMessage(t(`errors.checkAnswer.${result.code}`));
+      return;
+    }
+
+    await runDiagnosticAdvance();
+  }
+
+  async function handleFinish() {
+    if (!allAnswered || isFinishing || isPending || finishingRef.current) return;
+    await completeSession();
+  }
+
   async function handleContinue() {
     if (!onContinue || isContinuing || isFinishing || isPending) return;
     setErrorMessage(null);
-    setIsContinuing(true);
-
-    const next = await onContinue();
-    if (next === "finish") {
-      setIsContinuing(false);
-      await handleFinish();
-      return;
-    }
-    if (next === "error") {
-      setIsContinuing(false);
-      setErrorMessage(t("errors.continue"));
-    }
-    // "continue": stay disabled until the refreshed page remounts us.
+    await runDiagnosticAdvance();
   }
 
   async function handleAbortUltimate() {
@@ -561,33 +619,48 @@ export function TopicTrainer({
     ? formatElapsedClock(remainingSec)
     : formatElapsedClock(elapsedSec);
   const timerWarning = isUltimate && remainingSec <= ULTIMATE_TIMER_WARNING_SEC;
+  const promptText = presentation?.displayText ?? currentTask.taskText;
+  const kicker = taskKicker(currentTask.name, promptText);
+  const showVerdict = !isUltimate && mode !== "diagnostic" && checkResult !== undefined;
+  const resultLabel = !showVerdict || !checkResult
+    ? null
+    : checkResult.revealed?.correctAnswerText
+      ? checkResult.revealed.correctAnswerText
+      : checkResult.correct
+        ? t("correct")
+        : null;
 
   return (
-    <section className={css.topicTrainer} aria-labelledby="topic-trainer-title">
+    <section
+      className={clsx(css.topicTrainer, embed && css.embed)}
+      aria-labelledby={embed ? "topic-task-title" : "topic-trainer-title"}
+    >
       <header className={css.header}>
-        <div>
-          <h1 id="topic-trainer-title" className={css.title}>
-            {isUltimate
-              ? t("ultimateTitle")
-              : mode === "diagnostic"
-                ? t("diagnosticTitle")
-                : t("title")}
-          </h1>
-          <p className={css.meta}>
-            {t("session", { id: sessionId })}
-            {" · "}
-            {themeCode ? (
-              <Link
-                href={`/materials/textbook?topic=${encodeURIComponent(themeCode)}`}
-                className={css.themeLink}
-              >
-                {themeName}
-              </Link>
-            ) : (
-              themeName
-            )}
-          </p>
-        </div>
+        {embed ? null : (
+          <div>
+            <h1 id="topic-trainer-title" className={css.title}>
+              {isUltimate
+                ? t("ultimateTitle")
+                : mode === "diagnostic"
+                  ? t("diagnosticTitle")
+                  : t("title")}
+            </h1>
+            <p className={css.meta}>
+              {t("session", { id: sessionId })}
+              {" · "}
+              {themeCode ? (
+                <Link
+                  href={`/materials/textbook?topic=${encodeURIComponent(themeCode)}`}
+                  className={css.themeLink}
+                >
+                  {themeName}
+                </Link>
+              ) : (
+                themeName
+              )}
+            </p>
+          </div>
+        )}
         <div className={css.badges}>
           {isUltimate ? (
             <p className={clsx(css.modeBadge, css.modeUltimate)}>{t("ultimateTitle")}</p>
@@ -612,23 +685,42 @@ export function TopicTrainer({
         </div>
       </header>
 
-      <article
-        className={css.card}
-        aria-label={t("taskAria", { number: currentIndex + 1 })}
+      <TestTaskCard
+        titleId="topic-task-title"
+        title={t("taskHeading", { number: currentIndex + 1 })}
+        badge={themeName}
+        kicker={kicker ? <MathText text={kicker} /> : undefined}
+        prompt={
+          <>
+            <TaskVisualArea visual={presentation?.visual ?? null} />
+            <MathText as="div" text={promptText} />
+          </>
+        }
+        hint={
+          isPractice && checkResult?.revealed?.explanation ? (
+            <MathText text={checkResult.revealed.explanation} />
+          ) : isPractice && checkResult?.retryAvailable ? (
+            <>
+              <span>{t("retryPrompt")}</span>
+              {hintProgress?.map((rung) => (
+                <MathText key={rung.level} text={rung.text} />
+              ))}
+            </>
+          ) : showVerdict && checkResult && !checkResult.correct ? (
+            t("incorrect")
+          ) : undefined
+        }
+        result={
+          resultLabel ? (
+            checkResult?.revealed?.correctAnswerText ? (
+              <MathText text={checkResult.revealed.correctAnswerText} />
+            ) : (
+              resultLabel
+            )
+          ) : undefined
+        }
       >
-        <h2 className={css.taskName}>{currentTask.name}</h2>
-        <TaskVisualArea visual={presentation?.visual ?? null} />
-        <MathText
-          as="div"
-          className={css.taskText}
-          text={presentation?.displayText ?? currentTask.taskText}
-        />
-
-        <div
-          className={css.answers}
-          role="group"
-          aria-label={t("answerOptions")}
-        >
+        <div className={cardCss.answers} role="group" aria-label={t("answerOptions")}>
           {currentTask.answers.map((answer) => {
             const isSelected = selectedAnswer === answer.number;
             const isRevealedCorrect =
@@ -646,19 +738,29 @@ export function TopicTrainer({
                 key={answer.number}
                 type="button"
                 className={clsx(
-                  css.answer,
-                  cardState === "selected" && css.answerSelected,
-                  cardState === "correct" && css.answerCorrect,
-                  cardState === "incorrect" && css.answerWrong,
+                  cardCss.option,
+                  cardState === "selected" && cardCss.optionSelected,
+                  cardState === "correct" && cardCss.optionCorrect,
+                  cardState === "incorrect" && cardCss.optionWrong,
                 )}
+                onMouseDown={
+                  mode === "diagnostic"
+                    ? (event) => event.preventDefault()
+                    : undefined
+                }
                 onClick={() => handleSelect(answer.number)}
-                disabled={isPending || isResolved || isFinishing}
+                disabled={
+                  isPending ||
+                  isResolved ||
+                  isFinishing ||
+                  (mode === "diagnostic" && isContinuing)
+                }
                 aria-pressed={isSelected}
               >
-                <span className={css.answerBadge} aria-hidden="true">
-                  {answer.number}
+                <span className={cardCss.mark} aria-hidden="true">
+                  {optionLetter(answer.number - 1)})
                 </span>
-                <span className={css.answerText}>
+                <span className={cardCss.optionText}>
                   <MathText text={answer.text} />
                 </span>
                 <AnswerStateIcon state={cardState} className={css.answerIcon} />
@@ -666,7 +768,7 @@ export function TopicTrainer({
             );
           })}
         </div>
-      </article>
+      </TestTaskCard>
 
       {isPending ? (
         <p className="visually-hidden" role="status">
@@ -696,38 +798,26 @@ export function TopicTrainer({
 
       {/* Practice-only affordances: second-attempt prompt, hint ladder,
           reveal + reinforcement. Never rendered for diagnostic/exam. */}
-      {isPractice && checkResult?.retryAvailable ? (
-        <div className={css.practicePanel} role="status">
-          <p className={css.practiceNote}>{t("retryPrompt")}</p>
-          {hintProgress?.map((rung) => (
-            <p key={rung.level} className={css.hintText}>
-              <MathText text={rung.text} />
-            </p>
-          ))}
-          {!hintProgress || !hintProgress[hintProgress.length - 1]?.isFinal ? (
-            <button
-              type="button"
-              className={css.hintButton}
-              onClick={handleShowNextHint}
-              disabled={hintLoading}
-            >
-              {hintLoading
-                ? t("hintLoading")
-                : hintProgress && hintProgress.length > 0
-                  ? t("showNextHint")
-                  : t("showHint")}
-            </button>
-          ) : null}
+      {isPractice && checkResult?.retryAvailable &&
+      (!hintProgress || !hintProgress[hintProgress.length - 1]?.isFinal) ? (
+        <div className={css.practicePanel}>
+          <button
+            type="button"
+            className={css.hintButton}
+            onClick={handleShowNextHint}
+            disabled={hintLoading}
+          >
+            {hintLoading
+              ? t("hintLoading")
+              : hintProgress && hintProgress.length > 0
+                ? t("showNextHint")
+                : t("showHint")}
+          </button>
         </div>
       ) : null}
 
       {isPractice && checkResult?.revealed ? (
         <div className={css.practicePanel}>
-          {checkResult.revealed.explanation ? (
-            <p className={css.hintText}>
-              <MathText text={checkResult.revealed.explanation} />
-            </p>
-          ) : null}
           <button
             type="button"
             className={css.hintButton}
@@ -762,6 +852,15 @@ export function TopicTrainer({
               {t("abort")}
             </button>
           </>
+        ) : mode === "diagnostic" ? (
+          <button
+            type="button"
+            className={css.next}
+            onClick={handleDiagnosticSkip}
+            disabled={isResolved || isPending || isContinuing || isFinishing}
+          >
+            {t("skipTask")}
+          </button>
         ) : (
           <>
             {!isLast ? (
@@ -802,9 +901,11 @@ export function TopicTrainer({
           </>
         )}
 
-        <Link href="/" className={css.backLink}>
-          ← {t("backToTopics")}
-        </Link>
+        {embed ? null : (
+          <Link href="/" className={css.backLink}>
+            ← {t("backToTopics")}
+          </Link>
+        )}
       </div>
     </section>
   );

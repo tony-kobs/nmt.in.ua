@@ -101,7 +101,7 @@ test("every migration file splits into complete statements", () => {
   const driftedBefore028 = [];
 
   for (const file of files) {
-    const source = fs.readFileSync(path.join(sqlDir, file), "utf8");
+    const source = fs.readFileSync(path.join(sqlDir, file), "utf8").replace(/\r\n/g, "\n");
     const statements = splitSqlStatements(source);
     assert.ok(statements.length > 0, file);
     for (const statement of statements) {
@@ -114,7 +114,10 @@ test("every migration file splits into complete statements", () => {
 
   assert.deepEqual(driftedBefore028, []);
 
-  const stage2 = fs.readFileSync(path.join(sqlDir, "028_stage2_task_formats.sql"), "utf8");
+  const stage2 = fs.readFileSync(path.join(sqlDir, "028_stage2_task_formats.sql"), "utf8").replace(
+    /\r\n/g,
+    "\n",
+  );
   const stage2Statements = splitSqlStatements(stage2);
   assert.equal(stage2Statements.length, 21);
   assert.equal(naiveSplit(stage2).length > stage2Statements.length, true);

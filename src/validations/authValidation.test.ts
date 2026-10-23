@@ -4,14 +4,14 @@ import test from "node:test";
 import { loginUserSchema } from "./authValidation";
 import { validateSchema } from "./parse";
 
-test("login folds mixed-case login to the stored lowercase form", () => {
+test("sign-in folds the email to lowercase", () => {
   const parsed = validateSchema(loginUserSchema, {
-    login: " Demo-Student ",
+    email: " Maria@Example.com ",
     password: "demo123",
   });
 
   assert.equal(parsed.ok, true);
   if (parsed.ok) {
-    assert.equal(parsed.value.login, "demo-student");
+    assert.equal(parsed.value.email, "maria@example.com");
   }
 });

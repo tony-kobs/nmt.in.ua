@@ -88,7 +88,7 @@ export const teacherRegisterSchema = Joi.object({
 });
 
 export const loginUserSchema = Joi.object({
-  login: Joi.string().trim().lowercase().min(1).max(LOGIN_MAX_LEN).required(),
+  email: emailSchema,
   password: Joi.string().min(1).max(PASSWORD_MAX_LEN).required(),
 });
 
