@@ -374,24 +374,31 @@ export function marathonReplyKeyboard(
   return { keyboard: rows, resize_keyboard: true, is_persistent: true };
 }
 
-const BUTTON_BINDINGS: Array<{ key: CopyKey; data: string }> = [
+const BUTTON_BINDINGS: Array<{ key: CopyKey; data: string; legacy?: readonly string[] }> = [
   { key: "bot_btn_today", data: "mh:today" },
-  { key: "bot_btn_top", data: "mh:top" },
-  { key: "bot_btn_overall", data: "mh:all" },
+  { key: "bot_btn_top", data: "mh:top", legacy: ["Таблиця"] },
+  { key: "bot_btn_overall", data: "mh:all", legacy: ["Загальні"] },
   { key: "bot_btn_map", data: "mh:map" },
   { key: "bot_btn_channel", data: "mh:ch" },
   { key: "bot_btn_stop", data: "mh:stop" },
   { key: "bot_btn_begin", data: "mh:today" },
 ];
 
-/** Current label and the shipped default, so a renamed button still matches an old keyboard. */
+function bindingLabels(
+  copy: Partial<Record<CopyKey, string>> | undefined,
+  binding: (typeof BUTTON_BINDINGS)[number],
+): string[] {
+  return [buttonLabel(copy, binding.key), buttonLabel(undefined, binding.key), ...(binding.legacy ?? [])];
+}
+
+/** Current label, the shipped default, and a retired label, so an old keyboard still matches. */
 export function marathonButtonSnapshots(
   copy: Partial<Record<CopyKey, string>> | undefined,
 ): Array<{ data: string; label: string }> {
   const seen = new Set<string>();
   const rows: Array<{ data: string; label: string }> = [];
   for (const binding of BUTTON_BINDINGS) {
-    for (const label of [buttonLabel(copy, binding.key), buttonLabel(undefined, binding.key)]) {
+    for (const label of bindingLabels(copy, binding)) {
       const key = `${binding.data}\n${label}`;
       if (!label || seen.has(key)) continue;
       seen.add(key);
@@ -412,9 +419,7 @@ export function marathonCallbackFromText(
   if (trimmed === "⬅️ Назад") return "mh:menu";
   if (trimmed === MAIN_MENU_LABEL) return MENU.home;
   for (const binding of BUTTON_BINDINGS) {
-    if (trimmed === buttonLabel(copy, binding.key) || trimmed === buttonLabel(undefined, binding.key)) {
-      return binding.data;
-    }
+    if (bindingLabels(copy, binding).includes(trimmed)) return binding.data;
   }
   return null;
 }
@@ -457,6 +462,7 @@ export function menuMessages(
       buttons: withMainMenu([
         { text: buttonLabel(copy, "bot_btn_today"), data: "mh:today" },
         { text: buttonLabel(copy, "bot_btn_top"), data: "mh:top" },
+        { text: buttonLabel(copy, "bot_btn_overall"), data: "mh:all" },
         { text: buttonLabel(copy, "bot_btn_map"), url: mapUrl },
         { text: buttonLabel(copy, "bot_btn_channel"), data: "mh:ch" },
       ]),

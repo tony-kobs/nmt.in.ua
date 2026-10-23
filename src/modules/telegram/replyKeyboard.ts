@@ -74,8 +74,11 @@ export function homeReplyKeyboard(): ReplyKeyboardMarkup {
 }
 
 const ANSWER_DATA = /^mh:(?:q[ar]:|a:|z:)/;
-const STANDARD_NAV = new Set(["m:home", "mh:menu", "mh:today", "mh:top", "mh:stop", "mh:list", "mh:map", "mh:quiz"]);
 const LIFTED_CHOICE = /^(?:mh:qt:|mh:qn:|mh:qp:|mh:pick:|mh:qc$|mh:qr$)/;
+
+function replyKeyboardLabels(keyboard: ReplyKeyboardMarkup): Set<string> {
+  return new Set(keyboard.keyboard.flat().map((button) => button.text));
+}
 
 function reflowLabels(labels: string[]): { text: string }[][] {
   const home = labels.filter((text) => text === MAIN_MENU_LABEL);
@@ -94,9 +97,11 @@ function reflowLabels(labels: string[]): { text: string }[][] {
 }
 
 /**
- * Section navigation lives under the input.
- * Answer buttons stay on the message. A screen that only chooses the next step
- * becomes the keyboard. Content screens keep the stable section keyboard.
+ * A send carries one reply_markup. Inline buttons leave the keyboard already
+ * on screen in place, so a nav button is removed only when its label is on the
+ * keyboard this message will actually set. A link, an answer, or any label
+ * missing from that keyboard keeps the whole inline menu.
+ * A screen that only chooses the next step becomes the keyboard.
  */
 export function relocateSectionNavigation(replies: TelegramReply[], stable: ReplyKeyboardMarkup): TelegramReply[] {
   if (replies.length === 0) return replies;
@@ -111,16 +116,15 @@ export function relocateSectionNavigation(replies: TelegramReply[], stable: Repl
     });
     return attachReplyKeyboardList(cleared, toReplyKeyboard(reflowLabels(labels)));
   }
+  const onKeyboard = replyKeyboardLabels(stable);
+  const keepsInline = flat.some((button) => {
+    if (button.url || isAnswer(button.callback_data)) return true;
+    return !onKeyboard.has(button.text);
+  });
+  if (keepsInline) return replies;
   const stripped = replies.map((reply) => {
-    const rows = (reply.replyMarkup?.inline_keyboard ?? [])
-      .map((row) => row.filter((button) => {
-        const data = button.callback_data;
-        if (isAnswer(data) || button.url) return true;
-        return !!data && !STANDARD_NAV.has(data);
-      }))
-      .filter((row) => row.length > 0);
     const { replyMarkup: _markup, ...rest } = reply;
-    return rows.length > 0 ? { ...rest, replyMarkup: { inline_keyboard: rows } } : rest;
+    return rest;
   });
   return attachReplyKeyboardList(stripped, stable);
 }
