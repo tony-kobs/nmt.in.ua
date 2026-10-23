@@ -46,7 +46,15 @@ export function averageAndMedian(values: readonly number[]): { avg: number | nul
   return { avg, median };
 }
 
-/** `12 хв 30 с`. Zero is a real duration. Null stays empty so the caller can say the time is unknown. */
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+/**
+ * Under an hour: `12 хв 05 с` (minutes, seconds always two digits).
+ * From one hour: `1 год 03 хв` (minutes two digits, leftover seconds dropped).
+ * Zero is a real duration. Null stays empty so the caller can show «—».
+ */
 export function formatMarathonDuration(seconds: number | null, locale: DurationLocale = "uk"): string {
   if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return "";
   const whole = Math.min(Math.floor(seconds), 99 * 3600);
@@ -54,15 +62,17 @@ export function formatMarathonDuration(seconds: number | null, locale: DurationL
   const hours = Math.floor(whole / 3600);
   const minutes = Math.floor((whole % 3600) / 60);
   const secs = whole % 60;
-  const parts: string[] = [];
-  if (hours > 0) parts.push(`${hours} ${unit.h}`);
-  if (minutes > 0) parts.push(`${minutes} ${unit.m}`);
-  if (secs > 0 || parts.length === 0) parts.push(`${secs} ${unit.s}`);
-  return parts.join(" ");
+  if (hours > 0) return `${hours} ${unit.h} ${pad2(minutes)} ${unit.m}`;
+  return `${minutes} ${unit.m} ${pad2(secs)} ${unit.s}`;
+}
+
+/** Leaderboard and result lines. Missing time is an em dash, not a blank. */
+export function formatMarathonDurationOrDash(seconds: number | null, locale: DurationLocale = "uk"): string {
+  return formatMarathonDuration(seconds, locale) || "—";
 }
 
 export function botDayTimeNote(daySec: number | null, totalSec: number | null): string {
-  const day = daySec == null ? "невідомий" : formatMarathonDuration(daySec, "uk");
-  const total = totalSec == null ? "невідомий" : formatMarathonDuration(totalSec, "uk");
+  const day = formatMarathonDurationOrDash(daySec, "uk");
+  const total = formatMarathonDurationOrDash(totalSec, "uk");
   return `Час цього дня: ${day}\nЗагальний час: ${total}`;
 }

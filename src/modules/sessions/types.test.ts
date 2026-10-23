@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   buildLearningSessionRows,
+  formatDurationSeconds,
   resolveSessionDisplayStatus,
   SESSION_STATUS_COMPLETED,
   SESSION_STATUS_CREATED,
@@ -201,4 +202,11 @@ test("buildLearningSessionRows blocks start before available_at", () => {
   assert.equal(rows[0]?.canStart, false);
   assert.equal(rows[0]?.availableAt, availableAt);
   assert.ok(rows[0]?.availableAtLabel);
+});
+
+test("session time is minutes and seconds, not a raw second count", () => {
+  assert.equal(formatDurationSeconds(725), "12 хв 05 с");
+  assert.equal(formatDurationSeconds(3600 + 3 * 60, "uk"), "1 год 03 хв");
+  assert.equal(formatDurationSeconds(0), "—");
+  assert.equal(formatDurationSeconds(3661, "en"), "1 h 01 min");
 });

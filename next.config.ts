@@ -49,7 +49,10 @@ const nextConfig: NextConfig = {
     "/api/marathon/notifications/process": ["./node_modules/@resvg/resvg-wasm/index_bg.wasm"],
   },
   images: {
-    localPatterns: [{ pathname: "/api/marathon-media/**" }],
+    // Every local public file. A list of only /api/marathon-media made
+    // /_next/image answer 400 for /landing and the rest. No `search`:
+    // query strings stay allowed.
+    localPatterns: [{ pathname: "/**" }],
   },
   experimental: {
     optimizePackageImports: ["clsx", "motion"],

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { PostTestFeedbackPrompt } from "@/components/feedback/FeedbackDialog";
 import { formatPercent } from "@/modules/results/types";
 import { formatDurationSeconds } from "@/modules/sessions/types";
@@ -117,6 +117,7 @@ export function DiagnosticResultSummary({
   titleLevel = "h1",
 }: DiagnosticResultSummaryProps) {
   const t = useTranslations("DiagnosticResult");
+  const locale = useLocale();
   const priority = topicInsight?.priority ?? [];
   const strongest = topicInsight?.strongest ?? [];
   const isPerfect = isPerfectDiagnosticResult(summary.rightNumber, summary.tasksNumber);
@@ -146,7 +147,7 @@ export function DiagnosticResultSummary({
         </div>
         <div className={css.stat}>
           <dt>{t("statTime")}</dt>
-          <dd>{formatDurationSeconds(summary.timeSec)}</dd>
+          <dd>{formatDurationSeconds(summary.timeSec, locale)}</dd>
         </div>
       </dl>
 

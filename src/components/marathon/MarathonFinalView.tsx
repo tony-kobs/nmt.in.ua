@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { convertMarathonAction } from "@/modules/marathons/daily/actions";
+import { durationLocale, formatMarathonDurationOrDash, totalKnownSeconds } from "@/modules/marathons/daily/durationText";
 import type { DailyMarathon, DayProgress, MarathonDay, Participant } from "@/modules/marathons/daily/store";
 import css from "./marathon.module.css";
 
@@ -21,6 +22,11 @@ export async function MarathonFinalView({
   summary,
 }: MarathonFinalViewProps) {
   const t = await getTranslations("Marathon");
+  const uiLocale = durationLocale(await getLocale());
+  const totalTime = formatMarathonDurationOrDash(
+    totalKnownSeconds(progress.filter((row) => row.completedAt != null).map((row) => row.durationSeconds)),
+    uiLocale,
+  );
   const byDay = new Map(progress.map((item) => [item.dayNumber, item]));
   const weak = days.filter((day) => {
     const mark = byDay.get(day.dayNumber);
@@ -39,6 +45,7 @@ export async function MarathonFinalView({
           {summary ? <p className={css.lead}>{summary}</p> : null}
           <p className={css.badge}>{badge}</p>
           <p className={css.meta}>{t("streak", { count: participant.streak })}</p>
+          <p className={css.meta}>{t("totalTime", { time: totalTime })}</p>
           <section className={css.stack} aria-labelledby="final-days">
             <h2 id="final-days">{t("daysHeading")}</h2>
             <ol className={css.days}>
@@ -58,6 +65,9 @@ export async function MarathonFinalView({
                           : mark.passed
                             ? t("markPassed", { score: mark.score ?? 0 })
                             : t("markFailed", { score: mark.score ?? 0 })}
+                        {mark?.completedAt == null
+                          ? ""
+                          : ` · ${t("dayTime", { time: formatMarathonDurationOrDash(mark.durationSeconds, uiLocale) })}`}
                       </span>
                     </Link>
                   </li>

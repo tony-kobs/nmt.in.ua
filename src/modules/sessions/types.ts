@@ -1,3 +1,4 @@
+import { durationLocale, formatMarathonDuration } from "@/modules/marathons/daily/durationText";
 import { nowUnixSec } from "@/modules/testing/sessionElapsed";
 import { isSessionExpired } from "@/modules/testing/sessionExpiry";
 
@@ -150,9 +151,9 @@ export function formatSessionStartTime(startTime: number): string {
   }).format(new Date(ms));
 }
 
-export function formatDurationSeconds(seconds: number): string {
-  if (seconds <= 0) return "—";
-  return String(Math.round(seconds));
+export function formatDurationSeconds(seconds: number, locale = "uk"): string {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "—";
+  return formatMarathonDuration(seconds, durationLocale(locale));
 }
 
 export function formatTimePerTask(seconds: number | null): string {
