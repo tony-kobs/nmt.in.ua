@@ -18,6 +18,7 @@ const KIND_LABEL: Record<string, string> = {
   tomorrow: "Анонс наступного дня",
   final: "Фінал",
   rank: "Зміна місця",
+  broadcast: "Розсилка команди",
 };
 
 const STATUS_LABEL: Record<TimelineStatus, string> = {
