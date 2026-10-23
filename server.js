@@ -7,12 +7,19 @@ const {
   readMaxBodyBytes,
   rejectOversizedBody,
 } = require("./lib/serverBodyLimit.cjs");
+const { healthBody, siteTmpDir } = require("./lib/siteHealth.cjs");
 
 if (!process.env.NODE_ENV) {
   process.env.NODE_ENV = "production";
 }
 
 const dir = __dirname;
+
+// The panel starts this file itself and does not source the deploy script.
+// Keep uploads out of the account-wide PHP tmp.
+const siteTmp = siteTmpDir(dir);
+fs.mkdirSync(siteTmp, { recursive: true });
+process.env.TMPDIR = siteTmp;
 
 if (process.env.NODE_ENV === "production") {
   loadEnvFile(path.join(dir, ".env.production"));
@@ -41,8 +48,24 @@ if (!dev && !fs.existsSync(path.join(dir, ".next"))) {
 const app = next({ dev, hostname, port, dir });
 const handle = app.getRequestHandler();
 
+function isHealthRequest(req) {
+  if (req.method !== "GET" && req.method !== "HEAD") return false;
+  const pathOnly = String(req.url || "/").split("?")[0];
+  return pathOnly === "/health" || pathOnly === "/health/";
+}
+
 app.prepare().then(() => {
   createServer((req, res) => {
+    if (isHealthRequest(req)) {
+      const body = healthBody(dir);
+      res.writeHead(200, {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+      });
+      res.end(req.method === "HEAD" ? undefined : body);
+      return;
+    }
     if (rejectOversizedBody(req, res, maxBodyBytes)) {
       return;
     }

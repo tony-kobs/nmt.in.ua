@@ -3,7 +3,8 @@
 # SSH pipe, prepare a new release beside the live site, then swap directories.
 #
 # The live site stays up during upload + npm install + npm run migrate.
-# Node is fully stopped before any mv (otherwise the process follows the directory inode).
+# The legacy nmt.pid process is stopped before any mv (otherwise it follows the directory inode).
+# After the swap, the panel Node manager is reloaded. This script does not start Node.
 # A failed migrate aborts before the swap, so the previous www keeps serving.
 #
 # Usage (from repo root, Git Bash / Linux / macOS):
@@ -13,6 +14,7 @@
 #
 # Env:
 #   REMOTE_USER REMOTE_HOST REMOTE_SITE SSH_KEY REMOTE_HOST_IP REMOTE_PORT RELEASE_ID
+#   ADM_TOOLS_TOKEN ADM_TOOLS_HOST_ID   (panel API; never commit these)
 #
 # Do not use SCP / appleboy. Do not run npm run build on the server.
 
@@ -25,7 +27,7 @@ for arg in "$@"; do
     --skip-build) SKIP_BUILD=1 ;;
     --pack-only) PACK_ONLY=1; SKIP_BUILD=1 ;;
     -h|--help)
-      sed -n '2,17p' "$0"
+      sed -n '2,19p' "$0"
       exit 0
       ;;
     *)
@@ -163,13 +165,27 @@ if [ "$PACK_ONLY" -eq 1 ]; then
   exit 0
 fi
 
+if [ -z "${ADM_TOOLS_TOKEN:-}" ] || [ -z "${ADM_TOOLS_HOST_ID:-}" ]; then
+  echo "ADM_TOOLS_TOKEN and ADM_TOOLS_HOST_ID are required." >&2
+  echo "The panel Node manager restarts the site. This script does not start Node itself." >&2
+  echo "Create the token at https://adm.tools/user/api/ and store both values as GitHub Actions secrets." >&2
+  exit 1
+fi
+case "$ADM_TOOLS_HOST_ID" in
+  *[!0-9]*)
+    echo "ADM_TOOLS_HOST_ID must be digits (the site host_id, not the hosting account id)." >&2
+    exit 1
+    ;;
+esac
+
 echo "==> Uploading to ${REMOTE_USER}@${REMOTE_HOST} (SSH pipe)..."
 "${SSH[@]}" "${REMOTE_USER}@${REMOTE_HOST}" "cat > ${REMOTE_ARCHIVE}" < "$ARCHIVE"
 
 echo "==> Preparing release on server, then swapping www..."
 REMOTE_APPLY="$(printf \
-  'export RELEASE_ID=%q SITE=%q REMOTE_ARCHIVE=%q HOST=%q PORT=%q; exec bash -s' \
-  "$RELEASE_ID" "$REMOTE_SITE" "$REMOTE_ARCHIVE" "$REMOTE_HOST_IP" "$REMOTE_PORT")"
+  'export RELEASE_ID=%q SITE=%q REMOTE_ARCHIVE=%q HOST=%q PORT=%q ADM_TOOLS_TOKEN=%q ADM_TOOLS_HOST_ID=%q; exec bash -s' \
+  "$RELEASE_ID" "$REMOTE_SITE" "$REMOTE_ARCHIVE" "$REMOTE_HOST_IP" "$REMOTE_PORT" \
+  "$ADM_TOOLS_TOKEN" "$ADM_TOOLS_HOST_ID")"
 
 {
   cat "$LIB"
@@ -183,6 +199,13 @@ RELEASE_ID="${RELEASE_ID:?}"
 REMOTE_ARCHIVE="${REMOTE_ARCHIVE:?}"
 HOST="${HOST:?}"
 PORT="${PORT:?}"
+ADM_TOOLS_TOKEN="${ADM_TOOLS_TOKEN:?}"
+ADM_TOOLS_HOST_ID="${ADM_TOOLS_HOST_ID:?}"
+
+require_panel_api || {
+  rm -f "$REMOTE_ARCHIVE"
+  exit 1
+}
 
 APP_ROOT="$(dirname "$SITE")"
 RELEASES="${APP_ROOT}/releases"
@@ -330,7 +353,7 @@ echo "==> npm run migrate in staging, before the swap..."
   exit 1
 }
 
-echo "==> Stop nmt Node, then swap www..."
+echo "==> Stop legacy nmt.pid, free the port, then swap www..."
 stop_site_node
 wait_nmt_port_free
 
@@ -343,26 +366,26 @@ if ! mv "$STAGE" "$SITE"; then
   echo "Failed to move staging into www; restoring previous." >&2
   if [ -d "$PREVIOUS" ]; then
     mv "$PREVIOUS" "$SITE"
-    start_site_node
+    restart_panel_node || true
   fi
   exit 1
 fi
 
-start_site_node
-
-if ! wait_health; then
-  echo "Healthcheck failed; rolling back to previous release." >&2
+BUILD_ID="$(tr -d '[:space:]' < "${SITE}/.next/BUILD_ID")"
+if ! restart_panel_node || ! wait_health "$BUILD_ID"; then
+  echo "Panel restart or /health failed; rolling back to previous release." >&2
   stop_site_node
   wait_nmt_port_free || true
   rm -rf "$FAILED"
   mv "$SITE" "$FAILED" || true
   if [ -d "$PREVIOUS" ]; then
     mv "$PREVIOUS" "$SITE"
-    start_site_node
-    if wait_health; then
+    PREV_ID="$(tr -d '[:space:]' < "${SITE}/.next/BUILD_ID")"
+    if restart_panel_node && wait_health "$PREV_ID"; then
       echo "Rollback OK. New files are in ${FAILED}." >&2
     else
-      echo "Rollback started, but healthcheck still failing." >&2
+      echo "Rollback asked the panel to restart, but /health still does not match the previous BUILD_ID." >&2
+      echo "Press «Примусовий перезапуск» in the panel Node.js settings. Do not start Node with nohup." >&2
     fi
   fi
   exit 1
