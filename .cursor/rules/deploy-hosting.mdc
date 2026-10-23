@@ -34,6 +34,7 @@ alwaysApply: true
 - `scripts/hosting-clean-php-tmp.sh` — прибрати PHP-шелли з акаунтного tmp (`sess_*` не чіпає).
 - `scripts/rollback-hosting.sh --yes`
 - Секрет `HOSTING_SSH_KEY` = PEM для `levelhst@levelhst.ftp.tools`.
+- Секрет `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` — base64 на 32 байти (`openssl rand -base64 32`). Workflow попереджає і збирає далі, якщо його немає. Якщо задано, той самий ключ іде в `next build` і в `.env.production` на хості. Порожній ключ прибирає старий рядок, щоб процес узяв ключ із цієї збірки. Невалідний base64 зупиняє job.
 - Секрети `ADM_TOOLS_TOKEN` і `ADM_TOOLS_HOST_ID` — токен API adm.tools і числовий `host_id` сайту. Не в git і не в `.env.production`. Без них workflow «Deploy hosting» падає до зупинки Node.
 
 ## Панель Node.js (один раз)
@@ -44,4 +45,5 @@ alwaysApply: true
 
 Не в git. Жива: `/home/levelhst/nmt.in.ua/www/.env.production`. Store: `/home/levelhst/nmt.in.ua/.env.production`.
 Без `SESSION_SECRET` логін і реєстрація на проді падають. Деплой лише копіює store, ключ не генерує.
+`NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` деплой записує сам, коли секрет заданий у GitHub. Його не вигадувати на хості окремо від збірки.
 `TELEGRAM_SUPPORT_CHAT_ID` (чат команди для звернень) пишеться в той самий store, що й `TELEGRAM_BOT_TOKEN`. Workflow деплою її не підставляє. Після міграції групи адмінка показує новий id — його треба записати в store замість старого і перезапустити процес.

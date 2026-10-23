@@ -48,7 +48,22 @@ jobs:
       - name: Install, test, lint, build
         env:
           NEXT_PUBLIC_SITE_URL: https://nmt.in.ua
+          NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
         run: |
+          if [ -z "${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-}" ]; then
+            echo "::warning::NEXT_SERVER_ACTIONS_ENCRYPTION_KEY is empty. Each build mints a new Server Action key, so a tab opened before deploy can 500. Add a secret from: openssl rand -base64 32"
+          else
+            NEXT_SERVER_ACTIONS_ENCRYPTION_KEY="$(printf '%s' "$NEXT_SERVER_ACTIONS_ENCRYPTION_KEY" | tr -d '\n\r')"
+            export NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
+            bytes="$(printf '%s' "$NEXT_SERVER_ACTIONS_ENCRYPTION_KEY" | base64 -d 2>/dev/null | wc -c | tr -d ' ')"
+            case "$bytes" in
+              16|24|32) echo "Server Action encryption key length ok (${bytes} bytes)." ;;
+              *)
+                echo "::error::NEXT_SERVER_ACTIONS_ENCRYPTION_KEY must be base64 for 16, 24, or 32 bytes (decoded ${bytes})." >&2
+                exit 1
+                ;;
+            esac
+          fi
           npm ci
           npm test
           npm run lint
@@ -73,8 +88,13 @@ jobs:
       - name: Upload release, migrate, then swap www
         env:
           RELEASE_ID: ${{ github.sha }}
+          NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
           ADM_TOOLS_TOKEN: ${{ secrets.ADM_TOOLS_TOKEN }}
           ADM_TOOLS_HOST_ID: ${{ secrets.ADM_TOOLS_HOST_ID }}
         run: |
           export SSH_KEY="$HOME/.ssh/hosting_key"
+          if [ -n "${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-}" ]; then
+            NEXT_SERVER_ACTIONS_ENCRYPTION_KEY="$(printf '%s' "$NEXT_SERVER_ACTIONS_ENCRYPTION_KEY" | tr -d '\n\r')"
+            export NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
+          fi
           bash scripts/deploy-hosting.sh --skip-build

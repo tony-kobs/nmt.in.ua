@@ -14,6 +14,7 @@
 #
 # Env:
 #   REMOTE_USER REMOTE_HOST REMOTE_SITE SSH_KEY REMOTE_HOST_IP REMOTE_PORT RELEASE_ID
+#   NEXT_SERVER_ACTIONS_ENCRYPTION_KEY   (optional; empty warns, does not abort)
 #   ADM_TOOLS_TOKEN ADM_TOOLS_HOST_ID   (panel API; never commit these)
 #
 # Do not use SCP / appleboy. Do not run npm run build on the server.
@@ -27,7 +28,7 @@ for arg in "$@"; do
     --skip-build) SKIP_BUILD=1 ;;
     --pack-only) PACK_ONLY=1; SKIP_BUILD=1 ;;
     -h|--help)
-      sed -n '2,19p' "$0"
+      sed -n '2,20p' "$0"
       exit 0
       ;;
     *)
@@ -165,6 +166,20 @@ if [ "$PACK_ONLY" -eq 1 ]; then
   exit 0
 fi
 
+if [ -z "${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-}" ]; then
+  echo "WARNING: NEXT_SERVER_ACTIONS_ENCRYPTION_KEY is empty. A tab opened before this release can miss Server Actions." >&2
+else
+  NEXT_SERVER_ACTIONS_ENCRYPTION_KEY="$(printf '%s' "$NEXT_SERVER_ACTIONS_ENCRYPTION_KEY" | tr -d '\n\r')"
+  export NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
+  key_bytes="$(printf '%s' "$NEXT_SERVER_ACTIONS_ENCRYPTION_KEY" | base64 -d 2>/dev/null | wc -c | tr -d ' ')"
+  case "$key_bytes" in
+    16|24|32) ;;
+    *)
+      echo "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY must be base64 for 16, 24, or 32 bytes (decoded ${key_bytes})." >&2
+      exit 1
+      ;;
+  esac
+fi
 if [ -z "${ADM_TOOLS_TOKEN:-}" ] || [ -z "${ADM_TOOLS_HOST_ID:-}" ]; then
   echo "ADM_TOOLS_TOKEN and ADM_TOOLS_HOST_ID are required." >&2
   echo "The panel Node manager restarts the site. This script does not start Node itself." >&2
@@ -183,9 +198,9 @@ echo "==> Uploading to ${REMOTE_USER}@${REMOTE_HOST} (SSH pipe)..."
 
 echo "==> Preparing release on server, then swapping www..."
 REMOTE_APPLY="$(printf \
-  'export RELEASE_ID=%q SITE=%q REMOTE_ARCHIVE=%q HOST=%q PORT=%q ADM_TOOLS_TOKEN=%q ADM_TOOLS_HOST_ID=%q; exec bash -s' \
+  'export RELEASE_ID=%q SITE=%q REMOTE_ARCHIVE=%q HOST=%q PORT=%q NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=%q ADM_TOOLS_TOKEN=%q ADM_TOOLS_HOST_ID=%q; exec bash -s' \
   "$RELEASE_ID" "$REMOTE_SITE" "$REMOTE_ARCHIVE" "$REMOTE_HOST_IP" "$REMOTE_PORT" \
-  "$ADM_TOOLS_TOKEN" "$ADM_TOOLS_HOST_ID")"
+  "${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-}" "$ADM_TOOLS_TOKEN" "$ADM_TOOLS_HOST_ID")"
 
 {
   cat "$LIB"
@@ -239,12 +254,14 @@ find "$RELEASES" -mindepth 1 -maxdepth 1 -type d \
 mkdir -p "$STAGE"
 
 # App secrets stay in ENV_STORE. This function copies that file and only
-# rewrites MAX_BODY_BYTES and the site URL lines. TELEGRAM_BOT_TOKEN,
+# rewrites MAX_BODY_BYTES, the site URL lines, and — when the deploy was
+# given one — NEXT_SERVER_ACTIONS_ENCRYPTION_KEY. An empty key removes a
+# stale line so Node uses the key baked into this build. TELEGRAM_BOT_TOKEN,
 # TELEGRAM_SUPPORT_CHAT_ID and the other bot variables are not injected here
 # or by the GitHub Actions workflow.
 ensure_env() {
   local dest="$1"
-  local src=""
+  local src="" tmp
   if [ -f "$ENV_STORE" ]; then
     src="$ENV_STORE"
   elif [ -f "$SITE/.env.production" ]; then
@@ -281,6 +298,17 @@ ensure_env() {
   else
     printf '\nNEXT_PUBLIC_SITE_URL=https://nmt.in.ua\n' >> "$dest"
   fi
+
+  tmp="${dest}.actions-key"
+  grep -v '^NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=' "$dest" > "$tmp" || true
+  if [ -n "${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:-}" ]; then
+    printf 'NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=%s\n' "$NEXT_SERVER_ACTIONS_ENCRYPTION_KEY" >> "$tmp"
+    echo "writing NEXT_SERVER_ACTIONS_ENCRYPTION_KEY into env (value hidden)"
+  else
+    echo "no Server Action key in this deploy; runtime uses the key from the build"
+  fi
+  mv "$tmp" "$dest"
+  chmod 640 "$dest"
 }
 
 echo "==> Extract ${RELEASE_ID} (live site still running)..."
