@@ -49,6 +49,7 @@ const MARATHON_MIGRATIONS = [
   "050_marathon_cron_heartbeat.sql",
   "051_support_tickets.sql",
   "052_marathon_survey.sql",
+  "053_marathon_scheduler_runs.sql",
 ];
 
 async function participantForeignKeys(

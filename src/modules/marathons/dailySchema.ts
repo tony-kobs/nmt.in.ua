@@ -331,6 +331,26 @@ export async function migrateDailyMarathon(
 
   try {
     await connection.execute(
+      `CREATE TABLE IF NOT EXISTS marathon_scheduler_runs (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        ran_at BIGINT NOT NULL,
+        source VARCHAR(16) NOT NULL,
+        processed INT UNSIGNED NOT NULL,
+        sent INT UNSIGNED NOT NULL,
+        failed INT UNSIGNED NOT NULL,
+        duration_ms INT UNSIGNED NOT NULL,
+        error VARCHAR(500) NULL,
+        PRIMARY KEY (id),
+        KEY idx_marathon_scheduler_ran (ran_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+      [],
+    );
+  } catch (error) {
+    if (!isDuplicate(error)) throw error;
+  }
+
+  try {
+    await connection.execute(
       `CREATE TABLE IF NOT EXISTS marathon_surveys (
         marathon_id INT NOT NULL,
         user_id INT NOT NULL,
