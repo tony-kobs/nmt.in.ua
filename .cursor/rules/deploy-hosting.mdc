@@ -14,9 +14,9 @@ alwaysApply: true
 3. У tar — увесь `src/`, не лише i18n, і файли міграції: `scripts/migrate.mjs`, `scripts/migrate-sql.mjs`, `scripts/sql/`. SSH-pipe, не SCP/appleboy. Немає їх у архіві — вивантаження не починається.
 4. На хості install у `releases/<id>`, **поки старий www живий**. `node_modules` копіювати з живого `www` (glibc 2.28), потім `npm install`. `mysql2` має з’явитись з production-залежностей.
 5. Одразу після install, ще до зупинки Node: `npm run migrate` у каталозі релізу (`.env.production` уже скопійовано). Немає скрипта, SQL або `mysql2`, або міграція падає — живий `www` не чіпаємо. Деталі — `docs/schema-migrations.md`.
-6. Перед `mv` стоп лише процесів з `127.1.10.37` і `node server.js`/`npm run start`. На хості немає `ss`/`lsof` і немає `/dev/fd` — ніякого `<(…)`.
-7. Старт як панель: `npm run start -- --port=3000 --host=127.1.10.37`. Не `killall`.
-8. Healthcheck друкує HTTP-код; 5xx → rollback + хвіст лога.
+6. Перед `mv` звільнити порт: спершу старий `nmt.pid` (одноразова міграція з нашого `nohup`), далі слухач `node server.js` / `npm run start` на `127.1.10.37` або з cwd у `www`. На хості немає `ss`/`lsof` і немає `/dev/fd` — ніякого `<(…)`. Не `killall`. Свій Node після цього не стартує.
+7. Після `mv` панель перезапускає сайт: `POST https://adm.tools/action/hosting/account/nodejs/reload/` з числовим `host_id`. Секрети GitHub Actions: `ADM_TOOLS_TOKEN`, `ADM_TOOLS_HOST_ID`. Панель сама виконує `npm run start` (`node server.js`) і кладе адресу в `HOST` / `PORT`.
+8. Healthcheck: `GET http://127.1.10.37:3000/health` → 200 і тіло містить `BUILD_ID` цього релізу. Інакше rollback і ще один reload. Свій `nohup` не піднімати.
 
 ## Залізно не робити
 
@@ -30,10 +30,15 @@ alwaysApply: true
 - `scripts/deploy-hosting.sh` — єдиний шлях (локально і CI, `--skip-build`). Міграція — крок цього скрипта перед swap.
 - `scripts/migrate.mjs` — `npm run migrate`. На хості його викликає деплой, не окремий крок Actions.
 - `scripts/rewrite-next-build-paths.sh` — після кожної збірки перед tar.
-- `scripts/hosting-remote-lib.sh` — стоп / старт / health (`ps`/`awk`); Node `TMPDIR` = `nmt.in.ua/tmp`, не `~/.system/tmp`.
+- `scripts/hosting-remote-lib.sh` — стоп слухача, reload панелі, health `/health` (`ps`); `server.js` ставить `TMPDIR` = `nmt.in.ua/tmp`, не `~/.system/tmp`.
 - `scripts/hosting-clean-php-tmp.sh` — прибрати PHP-шелли з акаунтного tmp (`sess_*` не чіпає).
 - `scripts/rollback-hosting.sh --yes`
 - Секрет `HOSTING_SSH_KEY` = PEM для `levelhst@levelhst.ftp.tools`.
+- Секрети `ADM_TOOLS_TOKEN` і `ADM_TOOLS_HOST_ID` — токен API adm.tools і числовий `host_id` сайту. Не в git і не в `.env.production`. Без них workflow «Deploy hosting» падає до зупинки Node.
+
+## Панель Node.js (один раз)
+
+Веб-сервер сайту — Node.js, версія 24, проксування за IP `127.1.10.37:3000`, корінь `www`. Команда запуску — скрипт `start` з `package.json` (`node server.js`). Файл `tmp/restart.txt` панель не читає. Токен API: розділ «API» → «Активувати токен». Виклик reload іде з хоста під час деплою, не з раннера GitHub: якщо на токені є список IP, туди має входити вихідна адреса хостингу.
 
 ## Env на хості
 

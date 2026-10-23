@@ -1,14 +1,40 @@
 # Sourced on ukraine.com.ua. That bash has no /dev/fd process substitution
-# and no ss/lsof. Other sites on this account are started by the panel:
+# and no ss/lsof. The panel Node manager owns the process. It runs
 #   cd $site && npm run start -- --port=3000 --host=127.x.x.x
+# which is package.json "start" = node server.js, with HOST and PORT in the
+# environment. This file must not nohup its own copy.
 # Expects: SITE HOST PORT PIDFILE LOG
+# Panel restart also expects ADM_TOOLS_TOKEN and ADM_TOOLS_HOST_ID.
 
-# Only the nmt.in.ua listener. Do not match our SSH bash (it exports HOST= but
-# is not "node server.js" / "npm run start").
+# Listeners for this site only. Do not match the deploy shell: it exports
+# HOST= but its command is not node/npm and its cwd is the account root.
 nmt_pids() {
-  ps -u "$(id -un)" -o pid=,args= 2>/dev/null | awk '
-    /127\.1\.10\.37/ && (/node server\.js/ || /npm run start/) { print $1 }
-  '
+  local pid args cwd site_root
+  site_root="$(dirname "$SITE")"
+  # -ww: otherwise ssh ps truncates before --host=127.1.10.37.
+  ps -u "$(id -un)" -ww -o pid=,args= 2>/dev/null | while read -r pid args; do
+    [ -n "${pid:-}" ] || continue
+    case "$args" in
+      *127.1.10.37*)
+        case "$args" in
+          *'node server.js'*|*'npm run start'*)
+            echo "$pid"
+            continue
+            ;;
+        esac
+        ;;
+    esac
+    cwd="$(readlink "/proc/${pid}/cwd" 2>/dev/null || true)"
+    case "$cwd" in
+      "$SITE"|"$SITE"/*|"${site_root}/releases"/*)
+        case "$args" in
+          *node*|*npm*)
+            echo "$pid"
+            ;;
+        esac
+        ;;
+    esac
+  done
   return 0
 }
 
@@ -32,10 +58,11 @@ stop_site_node() {
   if [ -f "$PIDFILE" ]; then
     pid="$(tr -cd '0-9' < "$PIDFILE" || true)"
     if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-      echo "stop pidfile $pid"
+      echo "stop legacy pidfile $pid"
       kill "$pid" 2>/dev/null || true
     fi
     rm -f "$PIDFILE"
+    echo "removed legacy pidfile ${PIDFILE}"
   fi
 
   raw="$(nmt_pids | tr '\n' ' ')"
@@ -102,45 +129,70 @@ clean_shared_php_tmp() {
   return 0
 }
 
-# Same command the hosting panel uses for this site.
-start_site_node() {
-  local tmpdir
-  tmpdir="$(ensure_nmt_tmp)"
-  mkdir -p "$(dirname "$LOG")"
-  (
-    cd "$SITE"
-    export NODE_ENV=production PORT HOST TMPDIR="$tmpdir"
-    export SITE_URL="${SITE_URL:-https://nmt.in.ua}"
-    export MAIL_SITE_URL="${MAIL_SITE_URL:-$SITE_URL}"
-    export NEXT_PUBLIC_SITE_URL="${NEXT_PUBLIC_SITE_URL:-https://nmt.in.ua}"
-    export PATH="/usr/local/node24/bin:/usr/local/bin:/usr/bin:${PATH}"
-    nohup npm run start -- --port="$PORT" --host="$HOST" >>"$LOG" 2>&1 &
-    echo $! > "$PIDFILE"
-  )
-  local pid cwd=""
-  pid="$(tr -cd '0-9' < "$PIDFILE" || true)"
-  echo "started wrapper pid=${pid}"
+# Secrets stay in the environment of this shell. Never print the token.
+require_panel_api() {
+  if [ -z "${ADM_TOOLS_TOKEN:-}" ] || [ -z "${ADM_TOOLS_HOST_ID:-}" ]; then
+    echo "Refusing to stop Node: ADM_TOOLS_TOKEN or ADM_TOOLS_HOST_ID is empty." >&2
+    echo "Create an API token in adm.tools and set both GitHub Actions secrets." >&2
+    echo "This deploy does not start its own Node process." >&2
+    return 1
+  fi
+  case "$ADM_TOOLS_HOST_ID" in
+    *[!0-9]*)
+      echo "ADM_TOOLS_HOST_ID must be the numeric host_id of nmt.in.ua." >&2
+      return 1
+      ;;
+  esac
   return 0
 }
 
-health_ok() {
-  case "$1" in
-    200 | 201 | 204 | 301 | 302 | 303 | 307 | 308) return 0 ;;
-    *) return 1 ;;
-  esac
+# Force-restart via the panel Node manager (the «Примусовий перезапуск» button).
+# POST https://adm.tools/action/hosting/account/nodejs/reload/
+restart_panel_node() {
+  local body code
+  require_panel_api || return 1
+  body="$(ensure_nmt_tmp)/nmt-panel.body"
+  echo "panel nodejs reload host_id=${ADM_TOOLS_HOST_ID}"
+  code="$(
+    curl -sS -o "$body" -w '%{http_code}' --max-time 40 \
+      -X POST "https://adm.tools/action/hosting/account/nodejs/reload/" \
+      -H "Authorization: Bearer ${ADM_TOOLS_TOKEN}" \
+      -H "Content-Type: application/x-www-form-urlencoded" \
+      -H "User-Agent: nmt-deploy" \
+      --data "host_id=${ADM_TOOLS_HOST_ID}" || echo 000
+  )"
+  if [ "$code" = "200" ] && grep -Eq '"result"[[:space:]]*:[[:space:]]*true' "$body"; then
+    rm -f "$body"
+    echo "panel nodejs reload accepted"
+    return 0
+  fi
+  echo "panel nodejs reload failed HTTP ${code}" >&2
+  echo "Live Node was not started by this script. In the panel open Node.js settings and press «Примусовий перезапуск»." >&2
+  if [ -f "$body" ]; then
+    sed -e 's/[Bb]earer [A-Za-z0-9._~+/-]*/Bearer ***/g' "$body" | head -c 400 >&2 || true
+    echo >&2
+    rm -f "$body"
+  fi
+  return 1
 }
 
+# $1 is the BUILD_ID of the tree that must be listening.
 wait_health() {
+  local build_id="${1:-}"
   local i code body
   body="$(ensure_nmt_tmp)/nmt-health.body"
-  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-    code="$(curl -sS -o "$body" -w '%{http_code}' --max-time 10 "http://${HOST}:${PORT}/" || echo 000)"
+  if [ -z "$build_id" ]; then
+    echo "wait_health needs the release BUILD_ID" >&2
+    return 1
+  fi
+  for ((i = 1; i <= 40; i++)); do
+    code="$(curl -sS -o "$body" -w '%{http_code}' --max-time 10 "http://${HOST}:${PORT}/health" || echo 000)"
     echo "health try ${i} -> ${code}"
-    if health_ok "$code"; then
+    if [ "$code" = "200" ] && grep -qF -- "$build_id" "$body"; then
       rm -f "$body"
       return 0
     fi
-    sleep 2
+    sleep 3
   done
   rm -f "$body"
   echo "---- last 60 lines of ${LOG} ----" >&2
