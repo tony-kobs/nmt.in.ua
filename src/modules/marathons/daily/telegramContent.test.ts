@@ -44,9 +44,8 @@ test("day material stays in the chat and a formula task keeps opaque buttons", (
   assert.ok(materials.some((item) => item.videoUrl?.endsWith(".mp4")));
 
   const task = expandSources([taskSource()]);
-  const formula = task.find((item) => item.formulaTex === "x^2");
-  assert.ok(formula);
-  assert.equal(formula.siteUrl, undefined);
+  assert.equal(task.some((item) => item.formulaTex), false);
+  assert.match(task.map((item) => item.text).join("\n"), /Обчисліть x²/);
   const buttons = task[task.length - 1]?.buttons ?? [];
   assert.deepEqual(buttons.map((button) => button.data ?? button.url), [
     "mh:z:opaqueToken01",
@@ -57,7 +56,8 @@ test("day material stays in the chat and a formula task keeps opaque buttons", (
   const packed = JSON.stringify(buttons);
   assert.equal(packed.includes("correct"), false);
   assert.equal(packed.includes("mh:a:"), false);
-  assert.equal(optionLabel("$x^2$", 0), "1");
+  assert.equal(optionLabel("$x^2$", 0), "1. x²");
+  assert.ok(optionLabel(`${"$\\frac{a+b}{c}$ ".repeat(30)}`, 0).length <= 64);
   assert.equal(task.some((item) => item.text.trim() === "."), false);
 });
 

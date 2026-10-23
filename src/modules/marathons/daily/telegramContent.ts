@@ -1,4 +1,5 @@
 import { parseMathText } from "@/components/ui/MathText/parseMathText";
+import { formulaToPlain, latexToTelegramPlain } from "@/modules/telegram/latexPlain";
 import { composeTelegramTask } from "@/modules/telegram/taskRender";
 import {
   markdownToTelegramHtml,
@@ -70,26 +71,35 @@ export function materialSources(material: { type: string; urlOrBody: string }): 
 
 type Segment = { kind: "text"; value: string } | { kind: "image"; url: string } | { kind: "formula"; tex: string; display: boolean };
 
+function pushText(segments: Segment[], value: string) {
+  if (!value.trim()) return;
+  const last = segments[segments.length - 1];
+  if (last?.kind === "text") last.value += value;
+  else segments.push({ kind: "text", value });
+}
+
 function segmentsOf(source: string): Segment[] {
   const segments: Segment[] = [];
   for (const part of parseMathText(source)) {
     if (part.type === "formula") {
-      if (part.content.trim()) {
-        segments.push({ kind: "formula", tex: part.content.trim(), display: part.displayMode });
-      }
+      const tex = part.content.trim();
+      if (!tex) continue;
+      const plain = formulaToPlain(tex);
+      if (plain) pushText(segments, plain);
+      else segments.push({ kind: "formula", tex, display: part.displayMode });
       continue;
     }
     let cursor = 0;
     for (const match of part.content.matchAll(IMAGE)) {
       const index = match.index ?? 0;
       const before = part.content.slice(cursor, index);
-      if (before.trim()) segments.push({ kind: "text", value: before });
+      if (before.trim()) pushText(segments, before);
       const url = match[1] || match[2] || match[0];
       if (url) segments.push({ kind: "image", url: url.replace(/[),.;]+$/, "") });
       cursor = index + match[0].length;
     }
     const after = part.content.slice(cursor);
-    if (after.trim()) segments.push({ kind: "text", value: after });
+    if (after.trim()) pushText(segments, after);
   }
   return segments;
 }
@@ -262,13 +272,7 @@ export function previewChat(input: {
 }
 
 export function optionLabel(option: string, index: number): string {
-  const plain = option
-    .replace(/\$\$[\s\S]+?\$\$/g, "")
-    .replace(/\$[^$\n]+\$/g, "")
-    .replace(/\\\([\s\S]+?\\\)/g, "")
-    .replace(/\\\[[\s\S]+?\\\]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  const plain = latexToTelegramPlain(option).replace(/\s+/g, " ").trim();
   const label = plain ? `${index + 1}. ${plain}` : String(index + 1);
   return label.slice(0, 64);
 }

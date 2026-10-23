@@ -13,7 +13,7 @@ import { optionalTelegramBot } from "./botLink";
 import { personNotifyChannels } from "./channel";
 import { dayUnlockAt, formatKyivWhen } from "./calendar";
 import { shouldFinishDailyMarathon } from "./lifecycle";
-import { renderCopy, renderResolved, resolveCopy, type CopyKey, type CopyVars } from "./copy";
+import { renderCopy, renderResolved, type CopyKey, type CopyVars } from "./copy";
 import { publicLeaderName, rankNoticeText, type BoardLine } from "./leaderboard";
 import { marathonDayUrl, wrapMarathonMail } from "./mailCopy";
 import {
@@ -426,7 +426,7 @@ export async function runMarathonNotifications(deps: {
                 chatId: item.chatId,
                 text: item.text,
                 dayNumber: intent.dayNumber,
-                beginLabel: resolveCopy("bot_btn_begin", marathon.copy),
+                beginLabel: renderResolved("bot_btn_begin", marathon.copy, { day: intent.dayNumber }).slice(0, 64),
               });
               await (deps.enqueueTelegram ?? rememberDeferred)([prompt], "system", marathon.marathonId);
               return true;
