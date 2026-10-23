@@ -23,6 +23,8 @@ export type TelegramReply = {
   /** YouTube or Loom, shown as a large link preview above the text. */
   linkPreviewUrl?: string;
   photoUrl?: string;
+  /** Telegram file_id. sendPhoto accepts it in the same `photo` field as a URL. */
+  photoFileId?: string;
   albumUrls?: string[];
   videoUrl?: string;
   videoFileId?: string;
@@ -34,6 +36,8 @@ export type TelegramReply = {
   editMessageId?: number;
   /** Suppress the website preview card under the text. */
   disablePreview?: boolean;
+  /** Quote an earlier message in this chat. Ignored when the bubble is an edit. */
+  replyToMessageId?: number;
   /** Further messages. Not sent as part of the Telegram payload. */
   continuation?: TelegramReply[];
   /** Recorded after this message is delivered. Not sent to Telegram. */

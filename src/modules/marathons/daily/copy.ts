@@ -3,7 +3,7 @@
  * Missing rows fall back to the Ukrainian defaults. Placeholders:
  * `{name}`, `{day}`, `{topic}`, `{unlock_time}`, `{link}`,
  * `{place}`, `{prev_place}`, `{delta}`, `{total}`,
- * `{title}`, `{start_date}`.
+ * `{title}`, `{start_date}`, `{id}`.
  */
 
 export const COPY_PLACEHOLDERS = [
@@ -18,6 +18,7 @@ export const COPY_PLACEHOLDERS = [
   "total",
   "title",
   "start_date",
+  "id",
 ] as const;
 
 export type CopyPlaceholder = (typeof COPY_PLACEHOLDERS)[number];
@@ -63,6 +64,11 @@ export const COPY_KEYS = [
   "bot_btn_support",
   "bot_support_ask",
   "bot_support_thanks",
+  "bot_support_reply_header",
+  "bot_support_reply_photo",
+  "bot_support_reply_btn",
+  "bot_support_follow_ask",
+  "bot_support_follow_thanks",
   "bot_day_done",
   "bot_finished",
   "bot_archived",
@@ -134,6 +140,11 @@ export const COPY_GROUPS: Array<{
       "bot_btn_support",
       "bot_support_ask",
       "bot_support_thanks",
+      "bot_support_reply_header",
+      "bot_support_reply_photo",
+      "bot_support_reply_btn",
+      "bot_support_follow_ask",
+      "bot_support_follow_thanks",
       "bot_archived",
     ],
   },
@@ -163,6 +174,7 @@ const BUTTON_KEYS = new Set<CopyKey>([
   "bot_to_tasks",
   "bot_btn_begin",
   "bot_btn_support",
+  "bot_support_reply_btn",
   "survey_skip",
   "survey_yes",
   "survey_no",
@@ -221,6 +233,11 @@ export const COPY_DEFAULTS: Record<CopyKey, string> = {
   bot_support_ask:
     "Напишіть команді одним повідомленням: текст або підпис до фото. Наступне повідомлення стане зверненням.",
   bot_support_thanks: "Дякуємо. Звернення передано команді.",
+  bot_support_reply_header: "💬 Відповідь на ваше звернення #{id}",
+  bot_support_reply_photo: "[фото]",
+  bot_support_reply_btn: "✍️ Відповісти",
+  bot_support_follow_ask: "Напишіть продовження звернення #{id} одним повідомленням.",
+  bot_support_follow_thanks: "Продовження додано до звернення #{id}.",
   bot_day_done: "День {day} ({topic}) вже зданий.\n{link}",
   bot_finished: "{name}, марафон «{title}» завершено. Таблиця і карта лишаються.\n{link}",
   bot_archived: "Марафон «{title}» в архіві. Нові дні не надходять.",
@@ -248,6 +265,7 @@ export const COPY_PREVIEW_SAMPLE: Record<CopyPlaceholder, string> = {
   total: "7",
   title: "П'ять днів",
   start_date: "8 жовтня 2026",
+  id: "12",
 };
 
 const PLACEHOLDER_RE = /\{([A-Za-z0-9_]+)\}/g;

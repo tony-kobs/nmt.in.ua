@@ -19,6 +19,12 @@ function filterHref(status: (typeof FILTERS)[number]): string {
   return status === "all" ? "/admin/support" : `/admin/support?status=${status}`;
 }
 
+function entryWhen(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return when.format(date);
+}
+
 export async function SupportAdmin({
   tickets,
   filter,
@@ -71,7 +77,25 @@ export async function SupportAdmin({
                   <span>{t(`status.${ticket.status}`)}</span>
                 </p>
                 <p className={css.body}>{ticket.body}</p>
-                {ticket.replyText ? <p className={css.replyWas}>{ticket.replyText}</p> : null}
+                {ticket.entries.length > 0 ? (
+                  <ol className={css.thread} aria-label={t("threadLabel")}>
+                    {ticket.entries.map((entry) => {
+                      const at = entryWhen(entry.createdAt);
+                      return (
+                        <li
+                          key={entry.id}
+                          className={entry.author === "staff" ? `${css.entry} ${css.entryStaff}` : `${css.entry} ${css.entryStudent}`}
+                        >
+                          <span className={css.entryWho}>
+                            {entry.author === "staff" ? t("threadStaff") : t("threadStudent")}
+                            {at ? ` · ${at}` : ""}
+                          </span>
+                          {entry.body}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                ) : ticket.replyText ? <p className={css.replyWas}>{ticket.replyText}</p> : null}
                 <form className={css.form} action={updateSupportTicketAction}>
                   <input type="hidden" name="id" value={ticket.id} />
                   <input type="hidden" name="returnStatus" value={filter} />

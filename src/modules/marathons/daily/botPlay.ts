@@ -41,6 +41,8 @@ export type DayPacket = {
   tasks: GradedTask[];
   passThreshold: number;
   introText: string | null;
+  /** Absolute https URL. Empty when the day has no photo. */
+  imageUrl?: string;
   daysCount: number;
   next: { dayNumber: number; topic: string; unlockLabel: string; url: string } | null;
   finalUrl: string;
@@ -506,6 +508,10 @@ function nextTask(day: DayPacket, state: PlayState): GradedTask | null {
   return day.tasks.find((task) => state.answers[task.id] == null) ?? null;
 }
 
+function dayPhoto(day: DayPacket): string {
+  return day.imageUrl?.trim() ?? "";
+}
+
 function materialBody(day: DayPacket): string {
   const parts: string[] = [];
   const intro = day.introText?.trim();
@@ -612,12 +618,15 @@ function currentStep(
   if (state.completed) {
     return announce ? reviewCard(day, state, copy, name, followUp) : doneCard(day, copy, name);
   }
-  if (!state.materialsViewed && materialBody(day)) {
-    return [{
-      text: materialBody(day),
-      rich: true,
-      buttons: withMainMenu([{ text: buttonLabel(copy, "bot_to_tasks", varsFor(day, name)), data: `mh:mat:${day.dayNumber}` }]),
-    }];
+  if (!state.materialsViewed && (materialBody(day) || dayPhoto(day))) {
+    const text = materialBody(day);
+    const photo = dayPhoto(day);
+    const buttons = withMainMenu([{ text: buttonLabel(copy, "bot_to_tasks", varsFor(day, name)), data: `mh:mat:${day.dayNumber}` }]);
+    const plain = text.length > 0 && text.length <= 1024 && !/[*_`[\]<>]/.test(text);
+    if (photo && plain) return [{ text, photoUrl: photo, buttons }];
+    if (photo && text) return [{ text: "", photoUrl: photo }, { text, rich: true, buttons }];
+    if (photo) return [{ text: "", photoUrl: photo, buttons }];
+    return [{ text, rich: true, buttons }];
   }
   const task = nextTask(day, state);
   if (!task) return reviewCard(day, state, copy, name, announce ? followUp : null);
@@ -626,7 +635,7 @@ function currentStep(
 
 /** An empty materials step is already done: the next screen is the task, not a blank bubble. */
 function openedMaterials(state: PlayState, day: DayPacket): PlayState {
-  if (day.locked || state.materialsViewed || state.completed || materialBody(day)) return state;
+  if (day.locked || state.materialsViewed || state.completed || materialBody(day) || dayPhoto(day)) return state;
   return applyPlay(state, { type: "materials" }, day.tasks, day.passThreshold).state;
 }
 

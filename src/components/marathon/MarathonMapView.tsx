@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
@@ -29,6 +30,7 @@ type MarathonMapViewProps = {
   channelPrompt: string;
   telegramLinked: boolean;
   telegramUsername: string | null;
+  introImageUrl?: string | null;
   error?: string;
   saved?: boolean;
 };
@@ -43,6 +45,7 @@ export async function MarathonMapView({
   channelPrompt,
   telegramLinked,
   telegramUsername,
+  introImageUrl,
   error,
   saved = false,
 }: MarathonMapViewProps) {
@@ -70,6 +73,9 @@ export async function MarathonMapView({
           {message ? <p className={css.alert} role="alert">{message}</p> : null}
           <section className={css.card} aria-labelledby="marathon-rules">
             <h2 id="marathon-rules">{t("rulesTitle")}</h2>
+            {introImageUrl ? (
+              <Image className={css.shot} src={introImageUrl} alt={marathon.title} width={1200} height={800} unoptimized />
+            ) : null}
             {src ? (
               <div className={css.embed}>
                 <iframe

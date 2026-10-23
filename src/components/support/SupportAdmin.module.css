@@ -72,6 +72,38 @@
   overflow-wrap: anywhere;
 }
 
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entry {
+  margin: 0;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.entryStaff {
+  background: var(--green-bg);
+}
+
+.entryStudent {
+  background: var(--paper);
+}
+
+.entryWho {
+  display: block;
+  margin-bottom: var(--space-2xs);
+  color: var(--muted);
+  font-size: var(--fs-small);
+}
+
 .form {
   display: flex;
   flex-direction: column;

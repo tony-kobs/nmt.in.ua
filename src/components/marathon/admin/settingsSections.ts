@@ -1,7 +1,7 @@
 export const SETTINGS_SECTIONS = [
   { id: "basic", fields: ["slug", "title", "subject"] },
   { id: "dates", fields: ["startDate", "unlockHour", "daysCount", "passThreshold"] },
-  { id: "landing", fields: ["description", "introVideo", "finalCtaText", "finalCtaUrl", "publicChatUrl", "landingRiddleCount"] },
+  { id: "landing", fields: ["description", "introVideo", "introImage", "finalCtaText", "finalCtaUrl", "publicChatUrl", "landingRiddleCount"] },
   { id: "notify", fields: ["inviteAudience"] },
   { id: "telegram", fields: ["reminderHour", "nudgeFrom", "nudgeUntil"] },
 ] as const;

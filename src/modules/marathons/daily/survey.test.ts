@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { applySurvey, blankSurvey, isSurveyNavigation, summarizeSurveys, surveyPrompt } from "./survey";
+import { applySurvey, blankSurvey, isSurveyNavigation, summarizeSurveys, surveyAuthorLabel, surveyPrompt } from "./survey";
 
 test("the survey walks rating, free text and recommend, and skip keeps earlier answers", () => {
   const rated = applySurvey(blankSurvey(), { type: "rate", rating: 4 });
@@ -25,6 +25,29 @@ test("the survey walks rating, free text and recommend, and skip keeps earlier a
   assert.equal(isSurveyNavigation("❓ Допомога"), true);
   assert.equal(isSurveyNavigation("Сьогодні"), true);
   assert.equal(isSurveyNavigation("хочу більше задач на дроби"), false);
+});
+
+test("a survey card shows the name and telegram nick, and says when neither exists", () => {
+  assert.equal(surveyAuthorLabel({
+    displayName: "Іра",
+    login: "ira",
+    telegramUsername: "ira_math",
+  }), "Іра (@ira_math)");
+  assert.equal(surveyAuthorLabel({
+    displayName: "  ",
+    login: "ira",
+    telegramUsername: "@ira_math",
+  }), "@ira_math");
+  assert.equal(surveyAuthorLabel({
+    displayName: "",
+    login: "ira",
+    telegramUsername: null,
+  }), "ira · Telegram не прив’язано");
+  assert.equal(surveyAuthorLabel({
+    displayName: null,
+    login: "  ",
+    telegramUsername: "",
+  }), "Немає імені · Telegram не прив’язано");
 });
 
 test("the card averages ratings and lists answers", () => {

@@ -6,6 +6,7 @@ import { isCopyKey, type CopyKey } from "./copy";
 import {
   applySurvey,
   summarizeSurveys,
+  surveyAuthorLabel,
   surveyPrompt,
   type SurveyAnswer,
   type SurveyEvent,
@@ -160,14 +161,18 @@ export async function loadSurveySummaries(marathonIds: number[]): Promise<Map<nu
       const rows = await connection.query<{
         marathon_id: number;
         display_name: string | null;
+        login: string | null;
+        telegram_username: string | null;
         rating: number | null;
         improve_text: string | null;
         recommend: number | null;
         status: string;
       }>(
-        `SELECT s.marathon_id, u.display_name, s.rating, s.improve_text, s.recommend, s.status
+        `SELECT s.marathon_id, u.display_name, u.login, uta.telegram_username,
+                s.rating, s.improve_text, s.recommend, s.status
          FROM marathon_surveys s
          INNER JOIN app_users u ON u.id = s.user_id
+         LEFT JOIN user_telegram_accounts uta ON uta.user_id = u.id
          WHERE s.marathon_id IN (${marks})
            AND (s.status <> 'active' OR s.rating IS NOT NULL OR s.improve_text IS NOT NULL)
          ORDER BY s.updated_at DESC, s.user_id DESC`,
@@ -177,7 +182,11 @@ export async function loadSurveySummaries(marathonIds: number[]): Promise<Map<nu
         if (row.status !== "active" && row.status !== "done" && row.status !== "skipped") return [];
         return [{
           marathonId: Number(row.marathon_id),
-          name: String(row.display_name ?? "").trim() || "Учасник",
+          name: surveyAuthorLabel({
+            displayName: row.display_name,
+            login: row.login,
+            telegramUsername: row.telegram_username,
+          }),
           rating: rating(row.rating),
           improve: row.improve_text,
           recommend: row.recommend == null ? null : Number(row.recommend) === 1,

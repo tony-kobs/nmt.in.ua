@@ -48,6 +48,9 @@ const nextConfig: NextConfig = {
     "/api/telegram/webhook": ["./node_modules/@resvg/resvg-wasm/index_bg.wasm"],
     "/api/marathon/notifications/process": ["./node_modules/@resvg/resvg-wasm/index_bg.wasm"],
   },
+  images: {
+    localPatterns: [{ pathname: "/api/marathon-media/**" }],
+  },
   experimental: {
     optimizePackageImports: ["clsx", "motion"],
     serverActions: {

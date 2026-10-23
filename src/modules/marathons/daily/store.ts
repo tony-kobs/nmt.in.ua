@@ -90,6 +90,8 @@ export type MarathonDay = {
   dayNumber: number;
   topic: string;
   introText: string | null;
+  /** Relative public path. Empty when the day has no photo. */
+  imageUrl?: string | null;
 };
 
 export type Material = {
@@ -456,17 +458,29 @@ export async function listDays(marathonId: number, getConnection?: Conn): Promis
       day_number: number;
       topic: string;
       intro_text: string | null;
+      image_token: Buffer | Uint8Array | null;
     }>(
-      `SELECT id, day_number, topic, intro_text
-       FROM marathon_days WHERE marathon_id = ? ORDER BY day_number`,
+      `SELECT d.id, d.day_number, d.topic, d.intro_text, img.token AS image_token
+       FROM marathon_days d
+       LEFT JOIN marathon_images img
+         ON img.marathon_id = d.marathon_id AND img.day_id = d.id
+       WHERE d.marathon_id = ?
+       ORDER BY d.day_number`,
       [marathonId],
     );
-    return rows.map((row) => ({
-      id: row.id,
-      dayNumber: row.day_number,
-      topic: row.topic,
-      introText: row.intro_text,
-    }));
+    return rows.map((row) => {
+      const token = row.image_token instanceof Uint8Array
+        ? Buffer.from(row.image_token).toString("hex")
+        : "";
+      const imageUrl = /^[a-f0-9]{32}$/.test(token) ? `/api/marathon-media/${token}` : null;
+      return {
+        id: row.id,
+        dayNumber: row.day_number,
+        topic: row.topic,
+        introText: row.intro_text,
+        imageUrl,
+      };
+    });
   }, getConnection);
 }
 

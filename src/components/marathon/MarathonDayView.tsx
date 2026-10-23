@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
@@ -61,6 +62,9 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
             <>
               <section className={css.stack} aria-labelledby="day-materials">
                 <h2 id="day-materials">{t("materialsTitle")}</h2>
+                {day.imageUrl ? (
+                  <Image className={css.shot} src={day.imageUrl} alt={day.topic} width={1200} height={800} unoptimized />
+                ) : null}
                 {materials.map((material) => (
                   <MaterialBlock key={material.id} material={material} title={day.topic} />
                 ))}

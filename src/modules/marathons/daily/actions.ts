@@ -10,6 +10,8 @@ import { sendRegistrationVerificationMail } from "@/modules/auth/emailMessages";
 import { validateRegistrationInput } from "@/modules/auth/validateRegistration";
 import { safeInternalPath } from "@/lib/safeInternalPath";
 import { dayUnlockAt } from "./calendar";
+import { checkMarathonImage, INTRO_IMAGE_DAY_ID, MARATHON_IMAGE_MAX_BYTES } from "./images";
+import { deleteMarathonImage, saveMarathonImage } from "./imageStore";
 import { channelSavedPath } from "./channelPath";
 import { createMarathonBotLink } from "./botLink";
 import { notifyMarathonRegistration } from "./registrationDelivery";
@@ -169,8 +171,11 @@ export async function updateMarathonAction(
   const parsed = parseMarathonInput(formData);
   if (!id) return adminFormError([FORM_INVALID]);
   if (!parsed.ok) return adminFormError(parsed.issues);
+  const image = await uploadedImage(formData, "introImage");
+  if (!image.ok) return adminFormError([{ field: "introImage", code: image.code }]);
   try {
     await updateDailyMarathon(id, { ...parsed.value, ...bounds(parsed.value) });
+    await keepImage(id, INTRO_IMAGE_DAY_ID, formData, "introImage", image.bytes);
   } catch (error) {
     if (isDuplicateKey(error)) return adminFormError([DUPLICATE_SLUG]);
     console.error("updateMarathonAction", error);
@@ -236,6 +241,39 @@ export async function seedMarathonAction(): Promise<void> {
   }
   revalidatePath(adminPath());
   redirect(result === "exists" ? `${adminPath()}?error=seed_exists` : savedPath());
+}
+
+async function uploadedImage(
+  formData: FormData,
+  field: string,
+): Promise<{ ok: true; bytes: Uint8Array | null } | { ok: false; code: "type" | "size" }> {
+  const value = formData.get(field);
+  if (typeof value !== "object" || value === null || typeof (value as File).arrayBuffer !== "function") {
+    return { ok: true, bytes: null };
+  }
+  const file = value as File;
+  if (!file.size) return { ok: true, bytes: null };
+  if (file.size > MARATHON_IMAGE_MAX_BYTES) return { ok: false, code: "size" };
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const checked = checkMarathonImage(bytes);
+  if (!checked.ok) return { ok: false, code: checked.code };
+  return { ok: true, bytes };
+}
+
+async function keepImage(
+  marathonId: number,
+  dayId: number,
+  formData: FormData,
+  field: string,
+  bytes: Uint8Array | null,
+): Promise<void> {
+  if (bytes) {
+    await saveMarathonImage(marathonId, dayId, bytes);
+    return;
+  }
+  if (String(formData.get(`${field}Remove`) ?? "") === "1") {
+    await deleteMarathonImage(marathonId, dayId);
+  }
 }
 
 function revalidateMarathonSurfaces(id: number, slug: string): void {
@@ -331,8 +369,11 @@ export async function addDayAction(
   const parsed = parseDay(formData);
   if (!id) return adminFormError([FORM_INVALID]);
   if (!parsed.ok) return adminFormError(parsed.issues);
+  const image = await uploadedImage(formData, "dayImage");
+  if (!image.ok) return adminFormError([{ field: "dayImage", code: image.code }]);
   try {
-    await insertDay(id, parsed.value);
+    const dayId = await insertDay(id, parsed.value);
+    if (image.bytes) await saveMarathonImage(id, dayId, image.bytes);
   } catch (error) {
     if (isDuplicateKey(error)) return adminFormError([DUPLICATE_DAY]);
     console.error("addDayAction", error);
@@ -352,7 +393,15 @@ export async function updateDayAction(
   const parsed = parseDayUpdate(formData);
   if (!id || !dayId) return adminFormError([FORM_INVALID]);
   if (!parsed.ok) return adminFormError(parsed.issues);
-  await updateDay(id, dayId, parsed.value);
+  const image = await uploadedImage(formData, "dayImage");
+  if (!image.ok) return adminFormError([{ field: "dayImage", code: image.code }]);
+  try {
+    await updateDay(id, dayId, parsed.value);
+    await keepImage(id, dayId, formData, "dayImage", image.bytes);
+  } catch (error) {
+    console.error("updateDayAction", error);
+    return adminFormError([FORM_SERVER]);
+  }
   revalidatePath(adminPath(id));
   redirect(savedPath(id));
 }
@@ -362,6 +411,11 @@ export async function deleteDayAction(formData: FormData): Promise<void> {
   const id = readInt(formData.get("marathonId"));
   const dayId = readInt(formData.get("dayId"));
   if (!id || !dayId) redirect(`${adminPath(id ?? undefined)}?error=invalid`);
+  try {
+    await deleteMarathonImage(id, dayId);
+  } catch (error) {
+    console.error("delete day image", error);
+  }
   await deleteDay(id, dayId);
   revalidatePath(adminPath(id));
   redirect(adminPath(id));

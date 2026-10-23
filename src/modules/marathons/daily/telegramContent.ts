@@ -277,9 +277,17 @@ export function optionLabel(option: string, index: number): string {
   return label.slice(0, 64);
 }
 
-export function introSources(videoUrl: string, rules: string): RichSource[] {
+export function introSources(videoUrl: string, rules: string, photoUrl = ""): RichSource[] {
   const sources: RichSource[] = [];
+  const photo = photoUrl.trim();
+  const rulesText = rules.trim();
   const video = videoUrl.trim();
+  const captionFits = rulesText.length > 0 && rulesText.length <= 1024 && !/[*_`[\]<>]/.test(rulesText);
+  if (photo && captionFits && !video) {
+    sources.push({ text: rulesText, photoUrl: photo });
+    return sources;
+  }
+  if (photo) sources.push({ text: "", photoUrl: photo });
   if (video) {
     const classified = classifyVideo(video);
     if (classified && "videoUrl" in classified) sources.push({ text: video, videoUrl: classified.videoUrl });
@@ -287,6 +295,6 @@ export function introSources(videoUrl: string, rules: string): RichSource[] {
     else if (classified && "previewUrl" in classified) sources.push({ text: video, previewUrl: classified.previewUrl });
     else sources.push({ text: video, rich: true });
   }
-  if (rules.trim()) sources.push({ text: rules.trim(), rich: true });
+  if (rulesText) sources.push({ text: rulesText, rich: true });
   return sources;
 }

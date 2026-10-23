@@ -513,6 +513,8 @@ export async function migrateDailyMarathon(
   await ensureRiddleBank(connection);
   await ensureMessageTimeline(connection);
   await ensureTeamBroadcast(connection);
+  await ensureMarathonImages(connection);
+  await ensureSupportThread(connection);
 }
 
 const SQL_SCHEMA_FLAGS = `
@@ -773,6 +775,85 @@ async function ensureTeamBroadcast(connection: SqlConnection): Promise<void> {
         `ALTER TABLE support_tickets ADD KEY idx_support_tickets_forward (forward_message_id)`,
         [],
       );
+    } catch (error) {
+      if (!isDuplicate(error)) throw error;
+    }
+  }
+}
+
+/** Same tables as scripts/sql/056_marathon_images.sql. day_id 0 is the intro. */
+async function ensureMarathonImages(connection: SqlConnection): Promise<void> {
+  await connection.execute(
+    `CREATE TABLE IF NOT EXISTS marathon_images (
+      marathon_id INT NOT NULL,
+      day_id INT NOT NULL DEFAULT 0,
+      mime VARCHAR(32) NOT NULL,
+      bytes MEDIUMBLOB NOT NULL,
+      token BINARY(16) NOT NULL,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (marathon_id, day_id),
+      UNIQUE KEY uq_marathon_images_token (token),
+      CONSTRAINT fk_marathon_images_marathon FOREIGN KEY (marathon_id)
+        REFERENCES marathons (id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    [],
+  );
+  const broadcasts = await columnNames(connection, "marathon_team_broadcasts");
+  if (broadcasts.size > 0 && !broadcasts.has("photo_file_id")) {
+    await addColumn(
+      connection,
+      "marathon_team_broadcasts",
+      "photo_file_id",
+      "VARCHAR(128) NULL AFTER body",
+    );
+  }
+}
+
+/** Same tables as scripts/sql/057_support_ticket_thread.sql. */
+async function ensureSupportThread(connection: SqlConnection): Promise<void> {
+  const ticketColumns = await columnNames(connection, "support_tickets");
+  if (ticketColumns.size > 0 && !ticketColumns.has("body_kind")) {
+    await addColumn(
+      connection,
+      "support_tickets",
+      "body_kind",
+      "ENUM('text', 'photo') NOT NULL DEFAULT 'text' AFTER body",
+    );
+  }
+  for (const sql of [
+    `CREATE TABLE IF NOT EXISTS support_ticket_entries (
+      id BIGINT NOT NULL AUTO_INCREMENT,
+      ticket_id BIGINT NOT NULL,
+      author ENUM('student', 'staff') NOT NULL,
+      body VARCHAR(4000) NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_support_ticket_entries_ticket (ticket_id, id),
+      CONSTRAINT fk_support_ticket_entries_ticket
+        FOREIGN KEY (ticket_id) REFERENCES support_tickets (id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    `CREATE TABLE IF NOT EXISTS support_reply_links (
+      chat_id VARCHAR(32) NOT NULL,
+      message_id BIGINT NOT NULL,
+      ticket_id BIGINT NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (chat_id, message_id),
+      KEY idx_support_reply_links_ticket (ticket_id),
+      CONSTRAINT fk_support_reply_links_ticket
+        FOREIGN KEY (ticket_id) REFERENCES support_tickets (id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    `CREATE TABLE IF NOT EXISTS support_follow_waits (
+      chat_id VARCHAR(32) NOT NULL,
+      ticket_id BIGINT NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (chat_id),
+      KEY idx_support_follow_waits_ticket (ticket_id),
+      CONSTRAINT fk_support_follow_waits_ticket
+        FOREIGN KEY (ticket_id) REFERENCES support_tickets (id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  ]) {
+    try {
+      await connection.execute(sql, []);
     } catch (error) {
       if (!isDuplicate(error)) throw error;
     }

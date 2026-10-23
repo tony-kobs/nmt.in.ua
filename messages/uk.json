@@ -1108,6 +1108,9 @@
       "finalCtaUrl": "Посилання кнопки",
       "publicChatUrl": "Чат учасників",
       "introVideo": "Відео на вступ",
+      "introImage": "Зображення вступу",
+      "dayImage": "Зображення дня",
+      "removeImage": "Прибрати зображення",
       "inviteAudience": "Кого сповістити",
       "landingRiddleCount": "Загадок на сторінці",
       "scope": "Де показувати",
@@ -1171,6 +1174,8 @@
       "finalCtaUrl": "Шлях із / або повна адреса http:// чи https://.",
       "publicChatUrl": "Необов’язково. Якщо вказати, бот покаже посилання в допомозі і на вступі. Для onemath порожнє поле — https://t.me/nmt_onemath.",
       "introVideo": "Необов’язково. Посилання YouTube або Loom. Показується один раз на початку.",
+      "introImage": "Необов’язково. JPEG, PNG або WebP, до 1,5 МБ. Порожнє поле лишає поточне фото. Бот надсилає його разом із вступом.",
+      "dayImage": "Необов’язково. JPEG, PNG або WebP, до 1,5 МБ. Порожнє поле лишає поточне фото.",
       "inviteAudience": "Один раз, коли марафон стає активним. Чернетка за замовчуванням нікого не кличе. Повторне збереження запрошення не дублює. Картка на головній лишається для всіх.",
       "landingRiddleCount": "Скільки загадок випадково показати на лендінгу. Ціле число від 1 до 12. Типово 3.",
       "riddleScope": "Спільна загадка з’являється на марафонах цього предмета. «Лише цей марафон» лишається тут.",
@@ -1239,10 +1244,18 @@
       },
       "body": {
         "required": "Вкажіть текст.",
-        "placeholder": "Невідомий плейсхолдер. Дозволені лише name, day, topic, unlock_time, link, place, prev_place, delta, total, title і start_date у фігурних дужках."
+        "placeholder": "Невідомий плейсхолдер. Дозволені лише name, day, topic, unlock_time, link, place, prev_place, delta, total, title, start_date і id у фігурних дужках."
       },
       "introVideo": {
         "format": "Вступне відео має бути посиланням YouTube або Loom."
+      },
+      "introImage": {
+        "type": "Файл має бути JPEG, PNG або WebP.",
+        "size": "Файл більший за 1,5 МБ."
+      },
+      "dayImage": {
+        "type": "Файл має бути JPEG, PNG або WebP.",
+        "size": "Файл більший за 1,5 МБ."
       },
       "inviteAudience": {
         "format": "Оберіть, кого сповістити: нікого, усіх користувачів або тільки учнів."
@@ -1351,6 +1364,11 @@
         "bot_btn_support": "Кнопка «Написати команді»",
         "bot_support_ask": "Запит звернення",
         "bot_support_thanks": "Звернення прийнято",
+        "bot_support_reply_header": "Заголовок відповіді на звернення",
+        "bot_support_reply_photo": "Цитата фото без підпису",
+        "bot_support_reply_btn": "Кнопка «Відповісти»",
+        "bot_support_follow_ask": "Запит продовження звернення",
+        "bot_support_follow_thanks": "Продовження прийнято",
         "bot_day_done": "День уже зданий",
         "bot_finished": "Марафон завершено",
         "bot_archived": "Марафон в архіві",
@@ -2228,7 +2246,10 @@
   "Support": {
     "kicker": "Адмін",
     "title": "Звернення",
-    "lead": "Повідомлення з бота. Відповідь іде учаснику в Telegram.",
+    "lead": "Повідомлення з бота. Відповідь іде учаснику в Telegram: заголовок, цитата звернення і текст.",
+    "threadLabel": "Переписка",
+    "threadStudent": "Учасник",
+    "threadStaff": "Команда",
     "filterLabel": "Статус звернень",
     "listTitle": "Список",
     "empty": "Звернень немає.",
