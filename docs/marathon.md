@@ -159,39 +159,46 @@ Google-вхід **немає**. На формі лишається TODO: дод�
 | --- | --- |
 | `BREVO_API_KEY`, `MAIL_FROM` | Листи. Без ключа `sendMail` пише в лог. |
 | `SESSION_SECRET` | Сесія. Також запасний секрет підпису відписки. |
-| `MARATHON_CRON_SECRET` | `Authorization: Bearer …` для cron і для `GET /api/marathon/stats`. Якщо порожній — ендпоінт відповідає 401. |
+| `MARATHON_CRON_SECRET` | `Authorization: Bearer …` для ручного `POST /api/marathon/notifications/process`, для `GET …/health` і для `GET /api/marathon/stats`. Якщо порожній — ендпоінт відповідає 401. |
+| `MARATHON_SCHEDULER` | `on` або `off`. Порожнє: увімкнено, коли `NODE_ENV=production` (так стартує хост), і вимкнено в dev і тестах. |
 | `MARATHON_UNSUBSCRIBE_SECRET` | Необов’язково. Інакше береться `SESSION_SECRET`, потім `MARATHON_CRON_SECRET`. |
 | `TELEGRAM_BOT_TOKEN` | Токен бота від BotFather. Без пари з username кнопка «Прив’язати» показує, що бот вимкнено, а cron пропускає канал Telegram. |
 | `TELEGRAM_BOT_USERNAME` | Username бота без `@`. |
 | `TELEGRAM_WEBHOOK_SECRET` | Секрет заголовка `X-Telegram-Bot-Api-Secret-Token` для `POST /api/telegram/webhook`. |
 | `TELEGRAM_SUPPORT_CHAT_ID` | Необов’язково. Id чату команди, куди бот пересилає звернення. Той самий файл, що й `TELEGRAM_BOT_TOKEN`: store `/home/levelhst/nmt.in.ua/.env.production` (деплой копіює його в реліз і нічого не дописує). Локально — `.env.local`. Без змінної тікет лишається в адмінці. |
 
-### Cron
+### Розсилка
 
-Розклад — GitHub Actions [`.github/workflows/marathon-cron.yml`](../.github/workflows/marathon-cron.yml): `schedule` кожні 10 хвилин (`*/10 * * * *`) і ручний `workflow_dispatch`. Job — один `curl` (таймаут 70 с), `concurrency` не дає запускам накладатися, `timeout-minutes: 3`, permissions немає. Цього вистачає, щоб спіймати 09:00 і 19:00 за Києвом. Schedule на GitHub іде з гілки за замовчуванням (`main`), тож крон вмикається після релізу `dev` → `main`.
+Розклад живе в процесі Node. `src/instrumentation.ts` на старті сервера (`register`, лише runtime `nodejs`) викликає `startMarathonScheduler`. Перший тік іде одразу, далі кожні 60 секунд. Той самий код, що й `POST /api/marathon/notifications/process`: план розсилки, черга Telegram, відкладене видалення акаунтів. Виклик іде функцією, не HTTP.
 
-Зовнішній cron-job.org більше не використовуємо. nginx хостингу ukraine.com.ua перед сайтом відповідає йому 503, а прямий виклик того самого URL проходить.
+Хост уже ставить `NODE_ENV=production` у `scripts/hosting-remote-lib.sh`, тож планувальник увімкнений без нової змінної. `MARATHON_SCHEDULER=off` його гасить. У dev і тестах він вимкнений, доки змінна не `on`.
+
+Два процеси (панель інколи піднімає копію) не шлють двічі: у пам’яті тік не накладається, а в MySQL береться `GET_LOCK('nmt_marathon_notify')` на час тіку. Зайнятий лок — цей тік пропускається. З’єднання лока пінгується, щоб хост не закрив простій. Помилка тіку пишеться в лог і процес не падає. Рядок у лог з лічильниками є лише коли щось оброблено, зірвалось або пішло з черги.
+
+Ручний і запасний виклик лишається:
 
 ```text
 POST https://nmt.in.ua/api/marathon/notifications/process
 Header: Authorization: Bearer <MARATHON_CRON_SECRET>
 ```
 
-Той самий виклик досилає чергу Telegram, якщо попередній запит не встиг через ліміт функції. Секрет `MARATHON_CRON_SECRET` ставить власник репозиторію в GitHub Actions Secrets і кладе те саме значення в env на хості. У репозиторій секрет не потрапляє.
+Він бере той самий лок. Якщо тік уже йде, відповідь `200` і `{ "skipped": true }`. GitHub Actions `marathon-cron.yml` знято. Зовнішній cron-job.org для цього URL не потрібен: nginx хостингу перед ним відповідає 503, а поки job ще увімкнений, він лише конкурує за лок. Його треба вимкнути після деплою. Розклад GitHub на `main` ще стріляє, доки цей файл не зникне з релізу `dev` → `main`; лок не дає подвійної відправки.
 
-Кожен такий POST, який дорахував розсилку (навіть якщо частина листів не пішла), пише один рядок у `marathon_cron_heartbeat`: час і лічильники планувальника. Якщо планування впало і відповідь 500, час не оновлюється. Сторож для зовнішнього cron-job.org (POST кожні 10 хвилин):
+Кожен завершений тік додає рядок у `marathon_scheduler_runs` (`ran_at` — мілісекунди, `source` — `scheduler` або `http`, лічильники, `duration_ms`, `error`). Успіх планувальника — `error` порожній, навіть якщо частина листів не пішла. Якщо план упав, у рядку текст помилки, і цей запуск для здоров’я не рахується. Рядки старші за 7 днів стираються тим самим тіком. Стара таблиця `marathon_cron_heartbeat` більше не оновлюється.
+
+Сторож:
 
 ```text
 GET https://nmt.in.ua/api/marathon/notifications/health
 Header: Authorization: Bearer <MARATHON_CRON_SECRET>
 ```
 
-Відповідь без кешу:
+Відповідь без кешу. `200`, коли останній успішний тік не старший за 5 хвилин. Старший або його немає — `503` з тим самим JSON (`ok: false`):
 
 ```json
 {
   "lastRunAt": "2026-10-26T06:10:00.000Z",
-  "ageMinutes": 8,
+  "ageMinutes": 4,
   "ok": true,
   "lastCounts": { "processed": 4, "sent": 3, "failed": 1 },
   "pendingOutbox": 0,
@@ -199,7 +206,7 @@ Header: Authorization: Bearer <MARATHON_CRON_SECRET>
 }
 ```
 
-`ok` — `true`, коли останній успішний запуск був не давніше 25 хвилин. Немає жодного запуску: `lastRunAt` і `ageMinutes` і `lastCounts` — `null`, `ok` — `false`. `processed` — сума надісланих, пропущених і зірваних намірів цього тіку. `pendingOutbox` — рядки `marathon_telegram_outbox` зі статусом `pending`. `failedLast24h` — зірвані за 24 години рядки черги Telegram, черги повідомлень і `marathon_notifications` з `outcome = failed`. Той самий стан — бейдж зверху `/admin/marathons`. Міграція `scripts/sql/050_marathon_cron_heartbeat.sql`. Перед продом потрібен бекап бази.
+`processed` — сума надісланих, пропущених і зірваних намірів цього тіку. `pendingOutbox` — рядки `marathon_telegram_outbox` зі статусом `pending`. `failedLast24h` — зірвані за 24 години рядки черги Telegram, черги повідомлень і `marathon_notifications` з `outcome = failed`. Той самий стан — бейдж зверху `/admin/marathons` (зелений, поки `ok`). Міграція `scripts/sql/053_marathon_scheduler_runs.sql`. Перед продом потрібен бекап бази.
 
 ### Telegram
 
