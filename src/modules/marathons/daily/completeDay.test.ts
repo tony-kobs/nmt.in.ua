@@ -47,6 +47,7 @@ const versions = [
   { version: "053_marathon_scheduler_runs.sql" },
   { version: "054_team_chat_broadcast.sql" },
   { version: "055_marathon_day_time.sql" },
+  { version: "056_marathon_images.sql" },
 ];
 
 function harness(options?: { failInsert?: boolean; startedAt?: Date }) {

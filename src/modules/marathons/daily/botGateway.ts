@@ -30,6 +30,7 @@ import { renderCopy, renderResolved } from "./copy";
 import { botDayTimeNote, durationSeconds, totalKnownSeconds } from "./durationText";
 import { decideSlot, findSlotOverride } from "./messageTimeline";
 import { loadOverridesSafe } from "./messageOverrides";
+import { introImageAbsoluteUrl } from "./imageStore";
 import { expandSources, introSources } from "./telegramContent";
 import {
   currentDayNumber,
@@ -167,8 +168,15 @@ function pack(replies: TelegramReply[]): TelegramReply | null {
 function introFor(
   videoUrl: string,
   rules: string,
+  photoUrl = "",
 ): Outgoing[] {
-  return introSources(videoUrl, rules);
+  return introSources(videoUrl, rules, photoUrl);
+}
+
+function absoluteMedia(path: string | null | undefined): string {
+  const value = path?.trim() ?? "";
+  if (!value) return "";
+  return value.startsWith("/") ? absoluteUrl(value) : value;
 }
 
 function todayNumber(marathon: DailyMarathon, now: Date): number {
@@ -239,6 +247,7 @@ async function buildDay(
     tasks,
     passThreshold: marathon.passThreshold,
     introText: day.introText,
+    imageUrl: absoluteMedia(day.imageUrl),
     daysCount: marathon.daysCount,
     next: nextDay && nextUnlock
       ? {
@@ -274,7 +283,11 @@ export async function marathonBareStart(chatId: string): Promise<TelegramReply |
       name,
       link: mapUrl,
     });
-    messages.unshift(...introFor(linked.marathon.introVideoUrl, rules));
+    messages.unshift(...introFor(
+      linked.marathon.introVideoUrl,
+      rules,
+      await introImageAbsoluteUrl(linked.marathon.id),
+    ));
     await markIntroSeen(linked.marathon.id, linked.participant.userId, new Date());
   }
   return pack(toReplies(chatId, messages));
@@ -293,7 +306,11 @@ export async function marathonWelcome(chatId: string): Promise<TelegramReply | n
       name: name || "учаснику",
       link: mapUrl,
     });
-    messages.push(...introFor(linked.marathon.introVideoUrl, rules));
+    messages.push(...introFor(
+      linked.marathon.introVideoUrl,
+      rules,
+      await introImageAbsoluteUrl(linked.marathon.id),
+    ));
     await markIntroSeen(linked.marathon.id, linked.participant.userId, new Date());
   }
   if (linked) messages.push(...startText(copy, true, mapUrl, name));
@@ -654,7 +671,7 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
       day: day?.dayNumber,
       topic: day?.topic ?? marathon.title,
       link: mapUrl,
-    }));
+    }), await introImageAbsoluteUrl(marathon.id));
     const chat = publicChatNotice(marathon.publicChatUrl, copy);
     outgoing = [
       ...rules,
@@ -704,6 +721,7 @@ function withDayEdit(
     item.text.trim().length > 0
     && !item.formulaTex
     && !item.photoUrl
+    && !item.photoFileId
     && !item.albumUrls?.length
     && !item.videoUrl
     && !item.videoFileId

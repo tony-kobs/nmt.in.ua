@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import {
@@ -24,6 +25,7 @@ import {
 } from "@/modules/marathons/daily/forms";
 import type { DailyStatus } from "@/modules/marathons/daily/store";
 import {
+  AdminCheck,
   AdminField,
   AdminInput,
   AdminSelect,
@@ -40,6 +42,7 @@ import {
   marathonSectionStorageKey,
   sectionFields,
 } from "./settingsSections";
+import { MARATHON_IMAGE_ACCEPT } from "@/modules/marathons/daily/images";
 import css from "../marathon.module.css";
 
 type RiddleLink = { id: number; title: string };
@@ -66,6 +69,32 @@ function snapshotFrom(values: MarathonInput): Record<string, string> {
   };
 }
 
+function ImageFields({
+  name,
+  label,
+  hint,
+  currentUrl,
+  alt,
+  removeLabel,
+}: {
+  name: string;
+  label: string;
+  hint: string;
+  currentUrl?: string | null;
+  alt: string;
+  removeLabel: string;
+}) {
+  return (
+    <AdminField name={name} label={label} hint={hint}>
+      {currentUrl ? (
+        <Image className={css.shot} src={currentUrl} alt={alt} width={1200} height={800} unoptimized />
+      ) : null}
+      <AdminInput name={name} type="file" accept={MARATHON_IMAGE_ACCEPT} />
+      {currentUrl ? <AdminCheck name={`${name}Remove`} label={removeLabel} /> : null}
+    </AdminField>
+  );
+}
+
 function MarathonSettingsFields({
   values,
   storageScope,
@@ -73,6 +102,7 @@ function MarathonSettingsFields({
   status,
   statusSlot,
   riddles,
+  introImageUrl,
 }: {
   values: MarathonInput;
   storageScope: string;
@@ -80,6 +110,7 @@ function MarathonSettingsFields({
   status?: DailyStatus;
   statusSlot?: ReactNode;
   riddles?: RiddleLink[] | null;
+  introImageUrl?: string | null;
 }) {
   const t = useTranslations("Marathon");
   const storageKey = marathonSectionStorageKey(storageScope);
@@ -217,6 +248,14 @@ function MarathonSettingsFields({
                 spellCheck={false}
               />
             </AdminField>
+            <ImageFields
+              name="introImage"
+              label={t("fields.introImage")}
+              hint={t("hints.introImage")}
+              currentUrl={introImageUrl}
+              alt={values.title}
+              removeLabel={t("fields.removeImage")}
+            />
             <AdminField
               name="landingRiddleCount"
               label={t("fields.landingRiddleCount")}
@@ -369,10 +408,12 @@ export function MarathonSettingsForm({
   marathon,
   statusSlot,
   riddles,
+  introImageUrl,
 }: {
   marathon: MarathonInput & { id: number; status: DailyStatus };
   statusSlot?: ReactNode;
   riddles?: RiddleLink[];
+  introImageUrl?: string | null;
 }) {
   const t = useTranslations("Marathon");
   return (
@@ -392,6 +433,7 @@ export function MarathonSettingsForm({
         status={marathon.status}
         statusSlot={statusSlot}
         riddles={riddles ?? []}
+        introImageUrl={introImageUrl}
       />
     </ValidatedForm>
   );
@@ -586,6 +628,13 @@ export function AddDayForm({ marathonId }: { marathonId: number }) {
       <AdminField name="introText" label={t("fields.introText")}>
         <AdminTextarea name="introText" placeholder={t("intro")} />
       </AdminField>
+      <ImageFields
+        name="dayImage"
+        label={t("fields.dayImage")}
+        hint={t("hints.dayImage")}
+        alt={t("fields.dayImage")}
+        removeLabel={t("fields.removeImage")}
+      />
     </ValidatedForm>
   );
 }
@@ -595,11 +644,13 @@ export function UpdateDayForm({
   dayId,
   topic,
   introText,
+  imageUrl,
 }: {
   marathonId: number;
   dayId: number;
   topic: string;
   introText: string;
+  imageUrl?: string | null;
 }) {
   const t = useTranslations("Marathon");
   return (
@@ -618,6 +669,14 @@ export function UpdateDayForm({
       <AdminField name="introText" label={t("fields.introText")}>
         <AdminTextarea name="introText" defaultValue={introText} />
       </AdminField>
+      <ImageFields
+        name="dayImage"
+        label={t("fields.dayImage")}
+        hint={t("hints.dayImage")}
+        currentUrl={imageUrl}
+        alt={topic}
+        removeLabel={t("fields.removeImage")}
+      />
     </ValidatedForm>
   );
 }

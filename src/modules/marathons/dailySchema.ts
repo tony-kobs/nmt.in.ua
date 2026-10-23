@@ -513,6 +513,7 @@ export async function migrateDailyMarathon(
   await ensureRiddleBank(connection);
   await ensureMessageTimeline(connection);
   await ensureTeamBroadcast(connection);
+  await ensureMarathonImages(connection);
 }
 
 const SQL_SCHEMA_FLAGS = `
@@ -776,6 +777,34 @@ async function ensureTeamBroadcast(connection: SqlConnection): Promise<void> {
     } catch (error) {
       if (!isDuplicate(error)) throw error;
     }
+  }
+}
+
+/** Same tables as scripts/sql/056_marathon_images.sql. day_id 0 is the intro. */
+async function ensureMarathonImages(connection: SqlConnection): Promise<void> {
+  await connection.execute(
+    `CREATE TABLE IF NOT EXISTS marathon_images (
+      marathon_id INT NOT NULL,
+      day_id INT NOT NULL DEFAULT 0,
+      mime VARCHAR(32) NOT NULL,
+      bytes MEDIUMBLOB NOT NULL,
+      token BINARY(16) NOT NULL,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (marathon_id, day_id),
+      UNIQUE KEY uq_marathon_images_token (token),
+      CONSTRAINT fk_marathon_images_marathon FOREIGN KEY (marathon_id)
+        REFERENCES marathons (id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+    [],
+  );
+  const broadcasts = await columnNames(connection, "marathon_team_broadcasts");
+  if (broadcasts.size > 0 && !broadcasts.has("photo_file_id")) {
+    await addColumn(
+      connection,
+      "marathon_team_broadcasts",
+      "photo_file_id",
+      "VARCHAR(128) NULL AFTER body",
+    );
   }
 }
 

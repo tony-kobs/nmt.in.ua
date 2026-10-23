@@ -7,6 +7,7 @@ import { createPageMetadata } from "@/constants/seo";
 import { requireUser } from "@/modules/auth/getCurrentUser";
 import { listDayAccess } from "@/modules/marathons/daily/calendar";
 import { optionalTelegramBot } from "@/modules/marathons/daily/botLink";
+import { loadIntroImagePath } from "@/modules/marathons/daily/imageStore";
 import { getTelegramLinkRecord } from "@/modules/telegram/link";
 import { renderCopy, renderResolved, resolveCopy } from "@/modules/marathons/daily/copy";
 import { renderSafeMarkdown } from "@/modules/marathons/daily/richText";
@@ -44,7 +45,7 @@ export default async function MarathonMapPage({ params, searchParams }: PageProp
   const marathon = await getDailyBySlug(slug);
   if (!marathon || marathon.status === "draft" || marathon.status === "archived") notFound();
   if (marathon.status !== "active" && marathon.status !== "finished") notFound();
-  const [days, participant, progress, locale, copy, telegramRecord] = await Promise.all([
+  const [days, participant, progress, locale, copy, telegramRecord, introImageUrl] = await Promise.all([
     listDays(marathon.id),
     getParticipant(marathon.id, user.id),
     listProgress(marathon.id, user.id),
@@ -54,6 +55,7 @@ export default async function MarathonMapPage({ params, searchParams }: PageProp
       console.error("marathon channel telegram", error);
       return null;
     }),
+    loadIntroImagePath(marathon.id),
   ]);
   if (participant && !participant.introSeen) {
     try {
@@ -101,6 +103,7 @@ export default async function MarathonMapPage({ params, searchParams }: PageProp
       channelPrompt={channelPrompt}
       telegramLinked={Boolean(telegramRecord)}
       telegramUsername={telegramRecord?.username ?? null}
+      introImageUrl={introImageUrl}
       error={error}
       saved={saved}
       days={access.map((item) => {

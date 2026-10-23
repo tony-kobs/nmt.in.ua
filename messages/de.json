@@ -1108,6 +1108,9 @@
       "finalCtaUrl": "Button-Link",
       "publicChatUrl": "Teilnehmer-Chat",
       "introVideo": "Einführungsvideo",
+      "introImage": "Bild zur Einführung",
+      "dayImage": "Bild des Tages",
+      "removeImage": "Bild entfernen",
       "inviteAudience": "Wen benachrichtigen",
       "landingRiddleCount": "Rätsel auf der Seite",
       "scope": "Wo anzeigen",
@@ -1171,6 +1174,8 @@
       "finalCtaUrl": "Pfad mit / oder volle Adresse http:// bzw. https://.",
       "publicChatUrl": "Optional. Wenn gesetzt, zeigt der Bot den Link in der Hilfe und in der Einführung. Bei onemath bedeutet ein leeres Feld https://t.me/nmt_onemath.",
       "introVideo": "Optional. Ein YouTube- oder Loom-Link. Wird einmal am Anfang gezeigt.",
+      "introImage": "Optional. JPEG, PNG oder WebP, bis 1,5 MB. Ein leeres Feld lässt das aktuelle Foto. Der Bot sendet es mit der Einführung.",
+      "dayImage": "Optional. JPEG, PNG oder WebP, bis 1,5 MB. Ein leeres Feld lässt das aktuelle Foto.",
       "inviteAudience": "Einmal, wenn der Marathon aktiv wird. Ein Entwurf benachrichtigt niemanden. Erneutes Speichern sendet keine zweite Einladung. Die Karte auf der Startseite bleibt für alle sichtbar.",
       "landingRiddleCount": "Wie viele Rätsel die Seite zufällig zeigt. Ganze Zahl von 1 bis 12. Standard ist 3.",
       "riddleScope": "Ein gemeinsames Rätsel erscheint bei Marathons dieses Fachs. «Nur dieser Marathon» bleibt hier.",
@@ -1243,6 +1248,14 @@
       },
       "introVideo": {
         "format": "Das Einführungsvideo muss ein YouTube- oder Loom-Link sein."
+      },
+      "introImage": {
+        "type": "Die Datei muss JPEG, PNG oder WebP sein.",
+        "size": "Die Datei ist größer als 1,5 MB."
+      },
+      "dayImage": {
+        "type": "Die Datei muss JPEG, PNG oder WebP sein.",
+        "size": "Die Datei ist größer als 1,5 MB."
       },
       "inviteAudience": {
         "format": "Wähle, wen du benachrichtigen willst: niemanden, alle Nutzer oder nur Schüler."

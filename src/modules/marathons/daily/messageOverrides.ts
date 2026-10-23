@@ -245,24 +245,34 @@ async function executeOr(
   }
 }
 
-function readOutbox(payload: string): { text: string; dayNumber: number | null; kind: string | null } {
+function payloadText(payload: unknown): string {
+  if (typeof payload === "string") return payload;
+  if (payload instanceof Uint8Array) return new TextDecoder().decode(payload);
+  return "";
+}
+
+function readOutbox(payload: unknown): { text: string; dayNumber: number | null; kind: string | null } {
+  const raw = payloadText(payload);
   try {
-    const value = JSON.parse(payload) as {
+    const value = JSON.parse(raw) as {
       text?: unknown;
       schedule?: { dayNumber?: unknown; kind?: unknown };
     };
     const dayNumber = Number(value.schedule?.dayNumber);
     return {
-      text: typeof value.text === "string" ? value.text : payload.slice(0, 500),
+      text: typeof value.text === "string" ? value.text : raw.slice(0, 500),
       dayNumber: Number.isInteger(dayNumber) && dayNumber > 0 ? dayNumber : null,
       kind: typeof value.schedule?.kind === "string" ? value.schedule.kind : null,
     };
   } catch {
-    return { text: payload.slice(0, 500), dayNumber: null, kind: null };
+    return { text: raw.slice(0, 500), dayNumber: null, kind: null };
   }
 }
 
-export async function loadTimelineSnapshot(marathonId: number): Promise<TimelineSnapshot> {
+export async function loadTimelineSnapshot(
+  marathonId: number,
+  getConnection?: Conn,
+): Promise<TimelineSnapshot> {
   return withConn(async (connection) => {
     const peopleRows = await connection.query<{
       user_id: number;
@@ -386,7 +396,7 @@ export async function loadTimelineSnapshot(marathonId: number): Promise<Timeline
               COALESCE(NULLIF(TRIM(u.display_name), ''), u.login) AS who
        FROM marathon_telegram_outbox o
        LEFT JOIN user_telegram_accounts uta
-         ON CAST(uta.telegram_chat_id AS CHAR) = o.chat_id
+         ON uta.telegram_chat_id = CAST(o.chat_id AS UNSIGNED)
        LEFT JOIN app_users u ON u.id = uta.user_id
        WHERE o.marathon_id = ?
        ORDER BY o.id DESC
@@ -494,7 +504,7 @@ export async function loadTimelineSnapshot(marathonId: number): Promise<Timeline
         }];
       }),
     };
-  });
+  }, getConnection);
 }
 
 export async function rewriteOutbox(

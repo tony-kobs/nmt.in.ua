@@ -1108,6 +1108,9 @@
       "finalCtaUrl": "Button link",
       "publicChatUrl": "Participant chat",
       "introVideo": "Intro video",
+      "introImage": "Intro image",
+      "dayImage": "Day image",
+      "removeImage": "Remove image",
       "inviteAudience": "Who to notify",
       "landingRiddleCount": "Riddles on the page",
       "scope": "Where to show",
@@ -1171,6 +1174,8 @@
       "finalCtaUrl": "A path starting with / or a full http:// or https:// URL.",
       "publicChatUrl": "Optional. When set, the bot shows the link in Help and in the intro. For onemath an empty field means https://t.me/nmt_onemath.",
       "introVideo": "Optional. A YouTube or Loom link. Shown once at the start.",
+      "introImage": "Optional. JPEG, PNG, or WebP, up to 1.5 MB. An empty field keeps the current photo. The bot sends it with the intro.",
+      "dayImage": "Optional. JPEG, PNG, or WebP, up to 1.5 MB. An empty field keeps the current photo.",
       "inviteAudience": "Sent once, when the marathon becomes active. A draft notifies nobody. Saving again does not send another invitation. The home card stays visible to everyone.",
       "landingRiddleCount": "How many riddles to draw at random on the landing page. An integer from 1 to 12. Default is 3.",
       "riddleScope": "A shared riddle appears on marathons with this subject. “This marathon only” stays here.",
@@ -1243,6 +1248,14 @@
       },
       "introVideo": {
         "format": "The intro video must be a YouTube or Loom link."
+      },
+      "introImage": {
+        "type": "The file must be JPEG, PNG, or WebP.",
+        "size": "The file is larger than 1.5 MB."
+      },
+      "dayImage": {
+        "type": "The file must be JPEG, PNG, or WebP.",
+        "size": "The file is larger than 1.5 MB."
       },
       "inviteAudience": {
         "format": "Choose who to notify: nobody, all users, or students only."

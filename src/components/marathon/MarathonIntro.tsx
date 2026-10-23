@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
@@ -10,10 +11,12 @@ export async function MarathonIntro({
   marathon,
   rulesHtml,
   gate,
+  imageUrl,
 }: {
   marathon: DailyMarathon;
   rulesHtml: string;
   gate: boolean;
+  imageUrl?: string | null;
 }) {
   const t = await getTranslations("Marathon");
   const video = marathon.introVideoUrl;
@@ -22,6 +25,9 @@ export async function MarathonIntro({
     <div className={css.narrow}>
       <PageFrame kicker={t("kicker")} title={t("introTitle")} lead={marathon.title}>
         <div className={css.stack}>
+          {imageUrl ? (
+            <Image className={css.shot} src={imageUrl} alt={marathon.title} width={1200} height={800} unoptimized />
+          ) : null}
           {src ? (
             <div className={css.embed}>
               <iframe
