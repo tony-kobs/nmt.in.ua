@@ -990,7 +990,7 @@ export async function deliverDueMessageJobs(now: Date, deps?: {
             `/api/marathon/unsubscribe?m=${job.marathonId}&u=${job.userId}&t=${unsubscribeToken(job.marathonId, job.userId, secret)}`,
           )
         : null;
-      const mail = wrapMarathonMail({ rendered: job.body, unsubscribeUrl: unsub });
+      const mail = wrapMarathonMail({ rendered: job.body, unsubscribeUrl: unsub, kind: job.kind });
       const result = await sendMail({ to: email, subject: mail.subject, html: mail.html, text: mail.text });
       await setJobStatus(
         job.id,
