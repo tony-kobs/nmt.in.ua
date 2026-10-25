@@ -133,6 +133,10 @@
   font-family: var(--font-display);
 }
 
+.narrow .card {
+  background: var(--paper);
+}
+
 .title {
   margin: 0;
   font-family: var(--font-display);
@@ -181,6 +185,10 @@
   background: var(--surface);
   color: var(--ink);
   border-color: var(--line);
+}
+
+.narrow .buttonQuiet {
+  background: transparent;
 }
 
 .button:focus-visible,
@@ -428,34 +436,65 @@
 .days {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
   gap: var(--space-md);
+}
+
+.days > li {
+  display: flex;
+  min-width: 0;
 }
 
 .day {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
+  width: 100%;
   min-width: 0;
   min-height: 100%;
   padding: var(--space-md);
   text-decoration: none;
   color: inherit;
-  background: var(--grad-glass);
+  background: var(--paper);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.day .kicker {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none;
 }
 
 .day strong {
-  font-family: var(--font-display);
-  font-size: var(--fs-h4);
+  font-family: var(--font);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.day .meta {
+  margin-top: auto;
 }
 
 .locked {
-  opacity: 0.78;
+  background: var(--paper);
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--line) 62%, transparent);
+  box-shadow: none;
 }
 
 .passed {
-  box-shadow: inset 0 0 0 1px var(--green);
+  background: var(--green-bg);
+  box-shadow: var(--shadow-sm), inset 0 0 0 1px var(--green);
 }
 
 .meta {
@@ -1085,12 +1124,44 @@
 
 .badge {
   justify-self: start;
+  width: fit-content;
+  max-width: 100%;
   margin: 0;
   padding: 0.35rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--green) 40%, var(--line));
   border-radius: var(--radius-pill);
-  background: var(--grad-mint);
+  background: var(--green-bg);
   color: var(--green-dark);
   font-family: var(--font-display);
+  font-size: var(--fs-small);
+  box-shadow: none;
+}
+
+.finalHero {
+  display: grid;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: var(--space-lg);
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--green) 40%, var(--line));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.finalMark {
+  margin: 0;
+  color: var(--green-dark);
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.finalStats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-lg);
 }
 
 .badgeOn {
