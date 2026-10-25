@@ -253,7 +253,7 @@ async function buildDeliveries(
             `/api/marathon/unsubscribe?m=${marathon.marathonId}&u=${person.userId}&t=${unsubscribeToken(marathon.marathonId, person.userId, secret)}`,
           )
         : null;
-      const mail = wrapMarathonMail({ rendered, unsubscribeUrl: unsub });
+      const mail = wrapMarathonMail({ rendered, unsubscribeUrl: unsub, kind: intent.kind });
       deliveries.push({
         intent,
         email: person.email,
@@ -570,7 +570,7 @@ export async function sendCompletedDayFollowUp(input: {
           `/api/marathon/unsubscribe?m=${input.marathonId}&u=${input.person.userId}&t=${unsubscribeToken(input.marathonId, input.person.userId, secret)}`,
         )
       : null;
-    const mail = wrapMarathonMail({ rendered, unsubscribeUrl: unsub });
+    const mail = wrapMarathonMail({ rendered, unsubscribeUrl: unsub, kind: intent.kind });
     deliveries.push({
       intent,
       email: input.person.email,
@@ -710,7 +710,7 @@ export async function sendRankNotice(input: {
           });
         }
       } else {
-        const mail = wrapMarathonMail({ rendered: emailText, unsubscribeUrl: unsub });
+        const mail = wrapMarathonMail({ rendered: emailText, unsubscribeUrl: unsub, kind: "rank" });
         await sendMail({
           to: input.person.email,
           subject: mail.subject,

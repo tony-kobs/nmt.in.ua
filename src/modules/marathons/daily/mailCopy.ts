@@ -1,11 +1,24 @@
 import { absoluteUrl } from "@/modules/mail/sendMail";
+import {
+  marathonEmailTone,
+  renderMarathonEmail,
+  type MarathonEmailTone,
+} from "@/modules/mail/brandEmail";
 import { copySubject } from "./copy";
 
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
+function unsubscribeText(url: string | null): string {
+  return url
+    ? `\n\nВідписатися від листів марафону: ${url}`
+    : "\n\nВимкнути листи можна в кабінеті марафону.";
+}
+
+function letterHtml(body: string, unsubscribeUrl: string | null, tone: MarathonEmailTone): string {
+  return renderMarathonEmail({
+    body,
+    tone,
+    unsubscribeUrl,
+    logoUrl: absoluteUrl("/brand/levelup-book.png"),
+  });
 }
 
 export function marathonMail(input: {
@@ -26,14 +39,8 @@ export function marathonMail(input: {
     input.kind === "day_open"
       ? `У марафоні «${title}» відкрився день ${input.dayNumber} — ${topic}.`
       : `У марафоні «${title}» день ${input.dayNumber} (${topic}) ще не завершено.`;
-  const unsubscribe = input.unsubscribeUrl
-    ? `\n\nВідписатися від листів марафону: ${input.unsubscribeUrl}`
-    : "\n\nВимкнути листи можна в кабінеті марафону.";
-  const text = `${lead}\n\n${input.dayUrl}${unsubscribe}`;
-  const unsubHtml = input.unsubscribeUrl
-    ? `<p><a href="${escapeHtml(input.unsubscribeUrl)}">Відписатися від листів</a></p>`
-    : "<p>Вимкнути листи можна в кабінеті марафону.</p>";
-  const html = `<p>${escapeHtml(lead)}</p><p><a href="${escapeHtml(input.dayUrl)}">Відкрити день</a></p>${unsubHtml}`;
+  const text = `${lead}\n\n${input.dayUrl}${unsubscribeText(input.unsubscribeUrl)}`;
+  const html = letterHtml(`${lead}\n\n${input.dayUrl}`, input.unsubscribeUrl, input.kind);
   return { subject, text, html };
 }
 
@@ -53,21 +60,20 @@ export function marathonBotText(input: {
 export function wrapMarathonMail(input: {
   rendered: string;
   unsubscribeUrl: string | null;
+  /** Notification kind. Unknown values use the plain shell. */
+  kind?: string | null;
 }): { subject: string; text: string; html: string } {
   const subject = copySubject(input.rendered, "Марафон");
   const body = input.rendered.trim();
-  const unsubscribe = input.unsubscribeUrl
-    ? `\n\nВідписатися від листів марафону: ${input.unsubscribeUrl}`
-    : "\n\nВимкнути листи можна в кабінеті марафону.";
-  const text = `${body}${unsubscribe}`;
-  const unsubHtml = input.unsubscribeUrl
-    ? `<p><a href="${escapeHtml(input.unsubscribeUrl)}">Відписатися від листів</a></p>`
-    : "<p>Вимкнути листи можна в кабінеті марафону.</p>";
-  const html = body
-    .split(/\n{2,}/)
-    .map((part) => `<p>${escapeHtml(part).replaceAll("\n", "<br>")}</p>`)
-    .join("") + unsubHtml;
+  const text = `${body}${unsubscribeText(input.unsubscribeUrl)}`;
+  const html = letterHtml(body, input.unsubscribeUrl, marathonEmailTone(input.kind));
   return { subject, text, html };
+}
+
+/** Activation invite. Plain text stays the sentence plus the public link. */
+export function marathonInviteLetter(input: { body: string; link: string }): { text: string; html: string } {
+  const text = `${input.body}\n${input.link}`;
+  return { text, html: letterHtml(text, null, "plain") };
 }
 
 export function marathonDayUrl(slug: string, dayNumber: number): string {

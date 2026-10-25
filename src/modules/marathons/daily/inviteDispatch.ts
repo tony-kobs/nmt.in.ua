@@ -6,6 +6,7 @@ import {
   loadChannelPreferences,
 } from "@/modules/notifications/channelStore";
 import { absoluteUrl } from "@/modules/mail/sendMail";
+import { marathonInviteLetter } from "./mailCopy";
 import { notifyUser } from "@/modules/notifications/store";
 import { usableChatId } from "@/modules/telegram/linkSync";
 import { inviteNotification } from "./invites";
@@ -140,7 +141,13 @@ export async function dispatchMarathonInvites(
     const notify = deps.notify ?? notifyUser;
     const sendEmail = deps.sendEmail ?? (async (input) => {
       const { sendMail } = await import("@/modules/mail/sendMail");
-      const result = await sendMail({ to: input.to, subject: input.subject, text: input.text, html: input.text });
+      const letter = marathonInviteLetter({ body: note.body, link: publicLink });
+      const result = await sendMail({
+        to: input.to,
+        subject: input.subject,
+        text: input.text,
+        html: letter.html,
+      });
       return result.ok;
     });
     const sendTelegram = deps.sendTelegram ?? (async (chatId, text) => {
