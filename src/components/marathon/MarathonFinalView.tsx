@@ -39,13 +39,18 @@ export async function MarathonFinalView({
     <div className={css.narrow}>
       <PageFrame kicker={t("kicker")} title={t("finalTitle")} lead={marathon.title}>
         <div className={css.stack}>
-          {marathon.status === "finished" ? (
-            <p className={css.lead}>{t("finishedNote")}</p>
-          ) : null}
-          {summary ? <p className={css.lead}>{summary}</p> : null}
-          <p className={css.badge}>{badge}</p>
-          <p className={css.meta}>{t("streak", { count: participant.streak })}</p>
-          <p className={css.meta}>{t("totalTime", { time: totalTime })}</p>
+          <div className={css.finalHero}>
+            <p className={css.finalMark} aria-hidden="true">🏅 π</p>
+            {marathon.status === "finished" ? (
+              <p className={css.lead}>{t("finishedNote")}</p>
+            ) : null}
+            {summary ? <p className={css.lead}>{summary}</p> : null}
+            <div className={css.finalStats}>
+              <p className={css.badge}>{badge}</p>
+              <p className={css.meta}>{t("streak", { count: participant.streak })}</p>
+              <p className={css.meta}>{t("totalTime", { time: totalTime })}</p>
+            </div>
+          </div>
           <section className={css.stack} aria-labelledby="final-days">
             <h2 id="final-days">{t("daysHeading")}</h2>
             <ol className={css.days}>
