@@ -50,7 +50,7 @@ function makeSessionHeader() {
     expire_time: 9_999_999_999,
     theme_code: "GEO-07-ELEM-PLAN",
     theme_name: "Тема",
-    variant_label: null,
+    variant_label: null as string | null,
   };
 }
 
@@ -247,6 +247,43 @@ test("getSessionTasks still reads a completed session past its deadline (preserv
   });
 
   assert.equal(result.summary?.sessionId, 7);
+});
+
+test("getSessionTasks fills NMT matching rows when the bank only stored letters", async () => {
+  const row = {
+    ...makeRow(1),
+    name: "НМТ 2026 · 2 сесія · №17",
+    task_text:
+      "Узгодьте вираз (1–3) з тотожно рівним йому виразом (А – Д), якщо $a\\ne 0$.",
+    answer_1: "А",
+    answer_2: "Б",
+    answer_3: "В",
+    answer_4: "Г",
+    answer_5: "Д",
+    task_kind: "match" as const,
+  };
+  const { connection, calls } = makeConnection([row], {
+    ...makeSessionHeader(),
+    session_type: 4,
+    variant_label: "НМТ 2026 · 2 сесія",
+  });
+
+  const result = await getSessionTasks(42, 1, {
+    getConnection: async () => connection,
+  });
+
+  assert.match(calls[1]!.sql, /nmt_quiz_tasks/);
+  const task = result.tasks[0];
+  assert.ok(task);
+  assert.equal(task.taskKind, "match");
+  assert.match(task.taskText, /Узгодьте вираз/);
+  assert.equal(task.match?.leftTitle, "Вираз");
+  assert.match(task.match?.left[0] ?? "", /dfrac\{27\}/);
+  assert.deepEqual(
+    task.match?.right.map((option) => option.label),
+    ["А", "Б", "В", "Г", "Д"],
+  );
+  assert.doesNotMatch(JSON.stringify(task), /right_answer/);
 });
 
 test("getSessionTasks rejects an expired planned row before activation", async () => {

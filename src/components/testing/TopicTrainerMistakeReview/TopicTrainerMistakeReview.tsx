@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import type { SessionMistakeItem } from "@/modules/testing/getSessionMistakeReview";
 import { textbookTopicHref } from "@/content/learningMaterials/textbookHref";
 import { MathText } from "@/components/ui/MathText";
+import { NmtMatchTask } from "@/components/testing/NmtMatchTask/NmtMatchTask";
 import { TestTaskCard, taskKicker } from "@/components/testing/TestTaskCard";
 import css from "./TopicTrainerMistakeReview.module.css";
 
@@ -94,6 +95,12 @@ export function TopicTrainerMistakeReview({
                 ) : undefined
               }
             >
+            {item.match ? (
+              <NmtMatchTask
+                match={item.match}
+                imageAlt={t("taskImageAlt", { n: index + 1 })}
+              />
+            ) : null}
             {showThemeLinks ? (
               item.themeId != null && item.themeName ? (
                 <nav className={css.themeLinks} aria-label={item.themeName}>

@@ -18,14 +18,13 @@ import type { SessionMistakeItem } from "@/modules/testing/getSessionMistakeRevi
 import type { RecommendedAction } from "@/modules/recommendations";
 import { TopicTrainerSummary } from "@/components/testing/TopicTrainerSummary";
 import { MathText } from "@/components/ui/MathText";
-import { Select } from "@/components/ui/Select";
+import { NmtMatchTask } from "@/components/testing/NmtMatchTask/NmtMatchTask";
 import { TestTaskCard, optionLetter, taskKicker } from "@/components/testing/TestTaskCard";
 import cardCss from "@/components/testing/TestTaskCard/TestTaskCard.module.css";
 
 import styles from "./NmtTrainer.module.css";
 
 const NMT_DURATION_SEC = 60 * 60;
-const MATCH_LETTERS = ["a", "b", "c", "d", "e"] as const;
 
 type NmtTrainerProps = {
   sessionId: number;
@@ -40,6 +39,20 @@ function formatTime(seconds: number) {
   const minutes = Math.floor(safeSeconds / 60);
   const secs = safeSeconds % 60;
   return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+const MATCH_CYRILLIC_TO_LATIN: Record<string, string> = {
+  а: "a",
+  б: "b",
+  в: "c",
+  г: "d",
+  д: "e",
+};
+
+/** Stored keys are `1b;2d;3a`. A Cyrillic letter from an older client still fills the select. */
+function matchLetterAt(answerText: string, row: number): string {
+  const raw = answerText.match(new RegExp(`${row}([a-eабвгд])`, "i"))?.[1]?.toLowerCase() ?? "";
+  return MATCH_CYRILLIC_TO_LATIN[raw] ?? raw;
 }
 
 function TaskBody({
@@ -306,7 +319,11 @@ export function NmtTrainer({
         }
       >
         {kind === "mcq" ? (
-          <div className={cardCss.answers} role="group" aria-label={t("tasks")}>
+          <div
+            className={`${cardCss.answers} ${cardCss.answersStack}`}
+            role="group"
+            aria-label={t("tasks")}
+          >
             {currentTask.answers.map((answer) => {
               const isSelected = selectedAnswer === String(answer.number);
               return (
@@ -380,55 +397,32 @@ export function NmtTrainer({
           </form>
         ) : null}
 
-        {kind === "match" ? (
-          <form
-            className={styles.matchForm}
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (matchDraft.some((v) => !v)) return;
+        {kind === "match" && currentTask.match ? (
+          <NmtMatchTask
+            match={currentTask.match}
+            imageAlt={t("taskImageAlt", { n: currentIndex + 1 })}
+            instruction={t("matchLabel")}
+            pickLabel={t("matchPick")}
+            submitLabel={t("submitAnswer")}
+            rowLabel={(row) => t("matchRowLabel", { n: row })}
+            locked={locked}
+            selected={matchDraft.map((letter, row) =>
+              selectedAnswer ? matchLetterAt(selectedAnswer, row + 1) : letter,
+            )}
+            onSelect={(row, next) => {
+              const nextDraft = [...matchDraft] as [string, string, string];
+              nextDraft[row] = next;
+              setMatchDraftByMapping((prev) => ({
+                ...prev,
+                [currentTask.mappingId]: nextDraft,
+              }));
+            }}
+            onSubmit={() => {
+              if (matchDraft.some((value) => !value)) return;
               const answerText = `1${matchDraft[0]};2${matchDraft[1]};3${matchDraft[2]}`;
               void submitAnswer({ answerText, storeAs: answerText });
             }}
-          >
-            <p className={styles.openLabel}>{t("matchLabel")}</p>
-            {[0, 1, 2].map((row) => (
-              <label key={row} className={styles.matchRow}>
-                <span>{row + 1}</span>
-                <Select
-                  className={styles.matchSelect}
-                  value={
-                    selectedAnswer
-                      ? (selectedAnswer.match(
-                          new RegExp(`${row + 1}([a-e])`),
-                        )?.[1] ?? "")
-                      : matchDraft[row]
-                  }
-                  placeholder={t("matchPick")}
-                  disabled={locked}
-                  options={MATCH_LETTERS.map((letter) => ({
-                    value: letter,
-                    label: letter.toUpperCase(),
-                  }))}
-                  onChange={(next) => {
-                    if (!currentTask) return;
-                    const nextDraft = [...matchDraft] as [string, string, string];
-                    nextDraft[row] = next;
-                    setMatchDraftByMapping((prev) => ({
-                      ...prev,
-                      [currentTask.mappingId]: nextDraft,
-                    }));
-                  }}
-                />
-              </label>
-            ))}
-            <button
-              type="submit"
-              className={styles.openSubmit}
-              disabled={locked || matchDraft.some((v) => !v)}
-            >
-              {t("submitAnswer")}
-            </button>
-          </form>
+          />
         ) : null}
       </TestTaskCard>
 

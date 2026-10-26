@@ -83,12 +83,13 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(2.5rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
   gap: 6px;
 }
 
 .questionButton {
-  min-height: 40px;
+  min-width: 44px;
+  min-height: 44px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -271,8 +272,7 @@
   border: 1px solid var(--line-soft);
 }
 
-.openForm,
-.matchForm {
+.openForm {
   display: grid;
   gap: var(--space-sm);
   margin-top: var(--space-md);
@@ -293,17 +293,6 @@
   background: var(--surface);
   color: var(--ink);
   font: inherit;
-}
-
-.matchSelect {
-  min-width: 0;
-}
-
-.matchRow {
-  display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr);
-  gap: var(--space-sm);
-  align-items: center;
 }
 
 .openSubmit {

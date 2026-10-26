@@ -173,8 +173,25 @@ function isAnswerNumber(value: unknown): value is AnswerNumber {
   );
 }
 
-function normalizeAnswerText(value: string): string {
-  return value.trim().toLowerCase().replace(/\s+/g, "").replace(/,/g, ".");
+const MATCH_CYRILLIC_TO_LATIN: Record<string, string> = {
+  а: "a",
+  б: "b",
+  в: "c",
+  г: "d",
+  д: "e",
+};
+
+/**
+ * Open answers compare as compact decimals (`4,4` = `4.4`). Matching answers
+ * compare as `1b;2d;3a`. The trainer shows А Б В Г Д, so a Cyrillic letter
+ * after the row number is the same column as the latin code stored in the bank.
+ */
+export function normalizeAnswerText(value: string): string {
+  const compact = value.trim().toLowerCase().replace(/\s+/g, "").replace(/,/g, ".");
+  return compact.replace(/(\d)([абвгд])/g, (full, digit: string, letter: string) => {
+    const latin = MATCH_CYRILLIC_TO_LATIN[letter];
+    return latin ? `${digit}${latin}` : full;
+  });
 }
 
 export function validateCheckAnswerInput(input: unknown): CheckAnswerInput {

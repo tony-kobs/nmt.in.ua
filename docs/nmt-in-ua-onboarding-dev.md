@@ -197,7 +197,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `src/modules/content-import/` | CSV/JSON → БД |
 | `src/modules/admin-content/` | CRUD `quiz_tasks`: список, складність, легенда теми, видалення навіть якщо завдання вже в сесії (сесія перераховується) |
 | `src/modules/admin-profiles/` | Список / бан / видалення акаунтів |
-| `src/modules/testing/` | Старт, checkAnswer, finish, симулятор, таймер |
+| `src/modules/testing/` | Старт, checkAnswer, finish, симулятор, таймер. Логічні пари НМТ: `nmtMatch.ts` + `nmtMatchCatalog.json` (рядки 1–3 і варіанти А–Д, якщо в банку лише літери) |
 | `src/modules/stage2/` | Інтерактивні формати (окремі таблиці, не `task_sessions`) |
 | `src/modules/diagnostic/` | Публічна діагностика гостя/учня (окремо від topic-test) |
 | `src/modules/problemGenerators/` | Чисті генератори (без БД); зараз `fractionAddition` |
@@ -260,7 +260,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `theme_connections` | Граф «наступна тема» | `vertex_start` → `vertex_finish` |
 | `quiz_tasks` | Банк MCQ тренажера / діагностики | `right_answer_n` (1–4) лише на сервері до перевірки |
 | `problems` | Банк задачника (друк) | Read UI з JSON-каталогу; таблиця для імпорту |
-| `nmt_variants` / `nmt_quiz_tasks` / `nmt_variant_tasks` | Офіційні варіанти симулятора | **Не** змішувати з `quiz_tasks`. SQL `011`–`013` |
+| `nmt_variants` / `nmt_quiz_tasks` / `nmt_variant_tasks` | Офіційні варіанти симулятора | **Не** змішувати з `quiz_tasks`. SQL `011`–`013`. Старий імпорт matching клав у `answer_1..5` лише літери А–Д; тексти пар добирає `nmtMatchCatalog.json`, доки банк не переімпортують (`scripts/fetch-nmt-variants.mjs`, без запису в прод з цього репо) |
 | `task_sessions` | Спроба учня | `session_type` 1 user / 2 auto / 3 mentor / 4 NMT / **5 diagnostic**; status 1 done / 2 created / 3 planned. `user_id` і `theme_id` nullable + `guest_token`. `expire_time` — фіксований дедлайн 24 год від створення рядка |
 | `tasks2session` | Мапінг завдання↔сесія | `status` 0 / 1 / −1; той самий owner, що в сесії |
 | `site_feedback` | Відгук про сайт | `score` 1–10; `message` обов’язкове якщо score < 5. Після збереження адміни отримують `user_notifications` (`admin.feedback`) і лист; категорії `user_channel_preferences` на ці алерти не діють. Збій сповіщення не відкочує відгук |
