@@ -2,7 +2,7 @@
   min-width: 0;
   max-width: 100%;
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .formula {

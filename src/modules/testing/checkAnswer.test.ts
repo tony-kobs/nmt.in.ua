@@ -19,6 +19,7 @@ import { SESSION_STATUS_COMPLETED, SESSION_STATUS_CREATED } from "@/modules/sess
 import {
   checkAnswer,
   CheckAnswerError,
+  normalizeAnswerText,
   TASK_STATUS_CORRECT,
   TASK_STATUS_INCORRECT,
   TASK_STATUS_UNANSWERED,
@@ -554,4 +555,58 @@ test("a non-topic (NMT bank) task never gets a retry, matching pre-existing sing
   );
 
   assert.deepEqual(result, { correct: false, firstAttempt: true });
+});
+
+test("normalizeAnswerText keeps decimals and maps matching letters А–Д onto a–e", () => {
+  assert.equal(normalizeAnswerText(" 4,4 "), "4.4");
+  assert.equal(normalizeAnswerText("-35"), "-35");
+  assert.equal(normalizeAnswerText("1b;2d;3a"), "1b;2d;3a");
+  assert.equal(normalizeAnswerText("1Б; 2Г; 3А"), "1b;2d;3a");
+});
+
+test("a Cyrillic matching answer scores against the latin key", async () => {
+  const mock = makeConnection({
+    rows: [
+      makeRow({
+        task_type: 4,
+        session_type: 4,
+        task_kind: "match",
+        right_answer_n: null,
+        right_answer_text: "1b;2d;3a",
+      }),
+    ],
+  });
+
+  const correct = await checkAnswer(
+    {
+      userId: 1,
+      sessionId: 5,
+      mappingId: 10,
+      answerText: "1Б;2Г;3А",
+    },
+    { getConnection: async () => mock.connection },
+  );
+  assert.deepEqual(correct, { correct: true, firstAttempt: true });
+
+  const again = makeConnection({
+    rows: [
+      makeRow({
+        task_type: 4,
+        session_type: 4,
+        task_kind: "match",
+        right_answer_n: null,
+        right_answer_text: "1b;2d;3a",
+      }),
+    ],
+  });
+  const wrong = await checkAnswer(
+    {
+      userId: 1,
+      sessionId: 5,
+      mappingId: 10,
+      answerText: "1a;2a;3a",
+    },
+    { getConnection: async () => again.connection },
+  );
+  assert.deepEqual(wrong, { correct: false, firstAttempt: true });
 });

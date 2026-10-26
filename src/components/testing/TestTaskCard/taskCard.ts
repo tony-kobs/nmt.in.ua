@@ -19,3 +19,14 @@ export function taskKicker(
   if (trimmed.length > 72) return undefined;
   return trimmed;
 }
+
+/**
+ * Formulae and long options do not fit two columns at 375px.
+ * Short labels stay in two columns from 375; these wait until 768.
+ */
+export function topicOptionsStackUntilTablet(texts: readonly string[]): boolean {
+  return texts.some((text) => {
+    if (/\$|!\[/.test(text)) return true;
+    return text.trim().length > 48;
+  });
+}
