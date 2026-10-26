@@ -2,6 +2,7 @@ import type { SqlConnection } from "@/lib/db/mysql";
 import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
 import { TASK_TYPE_NMT } from "./startNmtSimulator";
 import { TASK_STATUS_INCORRECT } from "./types";
+import { resolveNmtMatch, type NmtMatchView } from "./nmtMatch";
 import {
   normalizeNmtComment,
   normalizeNmtRichText,
@@ -61,6 +62,8 @@ export type SessionMistakeItem = {
   themeId: number | null;
   themeCode: string | null;
   themeName: string | null;
+  /** Present when the missed item is an NMT matching task. */
+  match?: NmtMatchView;
 };
 
 type MistakeRow = {
@@ -89,9 +92,18 @@ function mapMistakeRow(row: MistakeRow, isNmt: boolean): SessionMistakeItem {
     typeof row.theme_id === "number" && row.theme_id > 0 ? row.theme_id : null;
   const themeCode = row.theme_code?.trim() || null;
   const themeName = row.theme_name?.trim() || null;
-  const taskText = isNmt
-    ? normalizeNmtRichText(row.task_text)
-    : row.task_text.trim();
+  const match = isNmt
+    ? resolveNmtMatch({
+        name: row.name,
+        taskText: row.task_text,
+        answers: [],
+      })
+    : null;
+  const taskText = match
+    ? match.stem
+    : isNmt
+      ? normalizeNmtRichText(row.task_text)
+      : row.task_text.trim();
   return {
     name: row.name.trim(),
     taskText,
@@ -105,6 +117,7 @@ function mapMistakeRow(row: MistakeRow, isNmt: boolean): SessionMistakeItem {
     themeId,
     themeCode,
     themeName,
+    ...(match ? { match: match.match } : {}),
   };
 }
 

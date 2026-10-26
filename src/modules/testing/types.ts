@@ -1,4 +1,5 @@
 import type { TopicTestMode } from "./topicTestMode";
+import type { NmtMatchView } from "./nmtMatch";
 
 export type AvailableTopicTheme = {
   id: number;
@@ -29,6 +30,11 @@ export type SessionTask = {
   hints?: { level: 1 | 2 | 3; text: string; isFinal: boolean }[];
   /** Present on simulator tasks from `nmt_quiz_tasks`. Topic tests omit it. */
   taskKind?: NmtTaskKind;
+  /**
+   * Matching stems 1–3 and options А–Д. Filled for `taskKind: "match"`
+   * even when the bank row only stored the letters.
+   */
+  match?: NmtMatchView;
 };
 
 /** Client-safe session score after finish (no answer key). */

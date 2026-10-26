@@ -47,7 +47,12 @@ import { skipDiagnosticTaskAction } from "@/modules/diagnostic/actions";
 import { SessionExpiredNotice } from "@/components/testing/SessionExpiredNotice";
 import { MathText } from "@/components/ui/MathText";
 import { TaskVisualArea } from "@/components/testing/TaskVisualArea";
-import { TestTaskCard, optionLetter, taskKicker } from "@/components/testing/TestTaskCard";
+import {
+  TestTaskCard,
+  optionLetter,
+  taskKicker,
+  topicOptionsStackUntilTablet,
+} from "@/components/testing/TestTaskCard";
 import cardCss from "@/components/testing/TestTaskCard/TestTaskCard.module.css";
 import { AnswerStateIcon } from "./AnswerStateIcon";
 import { useCountdownTimer } from "./useCountdownTimer";
@@ -720,7 +725,15 @@ export function TopicTrainer({
           ) : undefined
         }
       >
-        <div className={cardCss.answers} role="group" aria-label={t("answerOptions")}>
+        <div
+          className={clsx(
+            cardCss.answers,
+            topicOptionsStackUntilTablet(currentTask.answers.map((answer) => answer.text)) &&
+              cardCss.answersSingleUntilMd,
+          )}
+          role="group"
+          aria-label={t("answerOptions")}
+        >
           {currentTask.answers.map((answer) => {
             const isSelected = selectedAnswer === answer.number;
             const isRevealedCorrect =

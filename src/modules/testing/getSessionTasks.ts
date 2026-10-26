@@ -5,6 +5,7 @@ import {
 } from "@/modules/sessions/types";
 import { toTrainerSessionSummary } from "./finishTrainerSession";
 import { SESSION_TYPE_NMT_SIMULATOR } from "./startNmtSimulator";
+import { resolveNmtMatch } from "./nmtMatch";
 import { normalizeNmtRichText } from "./normalizeNmtRichText";
 import { nowUnixSec } from "./sessionElapsed";
 import { isSessionExpired } from "./sessionExpiry";
@@ -172,11 +173,20 @@ function mapRow(row: SessionTaskRow, isNmt: boolean): SessionTask {
     )
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
+  const match = isNmt
+    ? resolveNmtMatch({
+        name: row.name,
+        taskText: row.task_text,
+        answers,
+        taskKind: row.task_kind,
+      })
+    : null;
+
   return {
     mappingId: row.mapping_id,
     taskId: row.task_id,
     name: row.name.trim(),
-    taskText: normalize(row.task_text),
+    taskText: match?.stem ?? normalize(row.task_text),
     answers,
     status: row.status,
     ...(!isNmt && row.hint_level_unlocked ? { hints:
@@ -193,6 +203,7 @@ function mapRow(row: SessionTaskRow, isNmt: boolean): SessionTask {
           explanation: row.revealed_explanation?.trim() || null,
         } } : {}),
     ...(isNmt ? { taskKind: row.task_kind as NmtTaskKind } : {}),
+    ...(match ? { match: match.match } : {}),
   };
 }
 

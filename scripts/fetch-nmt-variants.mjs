@@ -15,6 +15,13 @@ import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  embedNmtMatch,
+  htmlToTaskText,
+  parseAnswersBlock,
+  parseMatchColumns,
+  tipToKind,
+} from "./lib/nmt-osvita-html.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_JSON = join(ROOT, "content/nmt-variants/variants.json");
@@ -49,38 +56,6 @@ function loadEnvLocal() {
   }
 }
 
-function stripTags(html) {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&ndash;/gi, "–")
-    .replace(/&mdash;/gi, "—")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&amp;/gi, "&")
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function latexToKatex(html) {
-  return html
-    .replace(/<latex\b[^>]*>([\s\S]*?)<\/latex>/gi, (_, body) => {
-      let inner = body.trim();
-      inner = inner
-        .replace(/^\$\$([\s\S]*)\$\$$/, "$1")
-        .replace(/^\\\(([\s\S]*)\\\)$/, "$1")
-        .replace(/^\\\[([\s\S]*)\\\]$/, "$1")
-        .trim();
-      if (/\\begin\{/.test(inner) || /\n/.test(inner)) {
-        return `$$${inner}$$`;
-      }
-      return `$${inner}$`;
-    })
-    .replace(/<\/?span[^>]*>/gi, "");
-}
-
 async function downloadImage(src) {
   const url = src.startsWith("http") ? src : `${BASE}${src}`;
   const ext = (url.match(/\.(png|jpe?g|gif|webp|svg)(?:\?|$)/i) || [, "png"])[1];
@@ -104,34 +79,6 @@ async function rewriteImages(html) {
     out = out.replace(m[0], `<img src="${local}" alt="" />`);
   }
   return out;
-}
-
-function htmlToTaskText(html) {
-  let t = latexToKatex(html);
-  t = t.replace(/<br\s*\/?>/gi, "\n");
-  t = t.replace(/<\/p>/gi, "\n");
-  t = t.replace(/<p[^>]*>/gi, "");
-  t = t.replace(/<img\b[^>]*\bsrc="([^"]+)"[^>]*>/gi, "![]($1)");
-  t = stripTags(t);
-  return t.replace(/\n{3,}/g, "\n\n").trim();
-}
-
-function parseAnswersBlock(blockHtml) {
-  const answers = [];
-  const re =
-    /<div class="answer"><span class="marker">([А-ДA-Ea-e])<\/span>([\s\S]*?)<\/div>/gi;
-  let m;
-  while ((m = re.exec(blockHtml))) {
-    answers.push(htmlToTaskText(m[2]));
-  }
-  return answers;
-}
-
-function tipToKind(tip) {
-  if (tip === 1) return "mcq";
-  if (tip === 13) return "match";
-  if (tip === 8) return "open";
-  return null;
 }
 
 async function parseVariant(meta) {
@@ -205,9 +152,18 @@ async function parseVariant(meta) {
       task.right_answer_n = LETTER_TO_N[result] ?? null;
       if (!task.right_answer_n) continue;
     } else if (kind === "match") {
-      // Keep column labels А–Д as answers for the matching UI.
+      // Columns are `.answers.col`, not `.answers`. The question div is only
+      // the stem; without this parse the bank stored the letters А–Д and the
+      // expressions never reached the trainer.
+      const columns = parseMatchColumns(chunk);
+      const letters = ["А", "Б", "В", "Г", "Д"];
+      const right = columns?.right ?? [];
       for (let i = 0; i < 5; i += 1) {
-        task[`answer_${i + 1}`] = answers[i] ?? ["А", "Б", "В", "Г", "Д"][i];
+        const text = right[i]?.trim() ?? "";
+        task[`answer_${i + 1}`] = text && text.length <= 255 ? text : letters[i];
+      }
+      if (columns) {
+        task.task_text = embedNmtMatch(taskText, columns);
       }
       task.right_answer_text = result;
     } else {
