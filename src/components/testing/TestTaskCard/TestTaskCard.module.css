@@ -269,7 +269,7 @@
 }
 
 @media (min-width: 375px) {
-  .answers:not(.answersStack) {
+  .answers:not(.answersStack):not(.answersSingleUntilMd) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -277,6 +277,10 @@
 @media (min-width: 768px) {
   .card {
     padding: var(--space-lg);
+  }
+
+  .answers.answersSingleUntilMd {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -286,6 +290,7 @@
   }
 }
 
-.answersStack {
+.answersStack,
+.answersSingleUntilMd {
   grid-template-columns: minmax(0, 1fr);
 }

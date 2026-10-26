@@ -1,2 +1,2 @@
 export { TestTaskCard } from "./TestTaskCard";
-export { optionLetter, taskKicker } from "./taskCard";
+export { optionLetter, taskKicker, topicOptionsStackUntilTablet } from "./taskCard";

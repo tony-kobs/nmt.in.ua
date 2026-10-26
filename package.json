@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "node server.js",
     "lint": "eslint",
-    "test": "node --require ./test/stub-server-only.cjs --import tsx --test \"src/**/*.test.ts\" \"lib/**/*.test.js\"",
+    "test": "node --require ./test/stub-server-only.cjs --import tsx --test \"src/**/*.test.ts\" \"lib/**/*.test.js\" \"scripts/**/*.test.mjs\"",
     "migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {

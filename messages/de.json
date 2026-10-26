@@ -2323,6 +2323,7 @@
     "matchRowLabel": "Buchstabe für Zeile {n}",
     "matchPick": "Wählen",
     "submitAnswer": "Antworten",
+    "pasteBlocked": "Einfügen ist im Simulator aus. Geben Sie die Antwort ein.",
     "errors": {
       "unfinished": "Bearbeiten Sie alle Aufgaben, bevor Sie den Test beenden.",
       "invalidInput": "Ungültige Daten.",

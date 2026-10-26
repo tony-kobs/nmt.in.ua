@@ -123,6 +123,11 @@ export function NmtTrainer({
   const answeringRef = useRef(false);
   const finishingRef = useRef(false);
   const [pendingMappingId, setPendingMappingId] = useState<number | null>(null);
+  const [pasteBlocked, setPasteBlocked] = useState(false);
+  const rejectExamPaste = (event: { preventDefault: () => void }) => {
+    event.preventDefault();
+    setPasteBlocked(true);
+  };
 
   const currentTask = tasks[currentIndex];
   const answeredCount = Object.keys(answered).length;
@@ -377,16 +382,31 @@ export function NmtTrainer({
               value={selectedAnswer ?? openDraft}
               onChange={(event) => {
                 if (!currentTask) return;
+                setPasteBlocked(false);
                 const value = event.target.value;
                 setOpenDraftByMapping((prev) => ({
                   ...prev,
                   [currentTask.mappingId]: value,
                 }));
               }}
+              onPaste={rejectExamPaste}
+              onDrop={rejectExamPaste}
+              onDragOver={(event) => event.preventDefault()}
+              onBeforeInput={(event) => {
+                const inputType = (event.nativeEvent as InputEvent).inputType;
+                if (inputType === "insertFromPaste" || inputType === "insertFromDrop") {
+                  rejectExamPaste(event);
+                }
+              }}
               disabled={locked}
               inputMode="decimal"
               autoComplete="off"
             />
+            {pasteBlocked ? (
+              <p className={styles.pasteHint} role="status">
+                {t("pasteBlocked")}
+              </p>
+            ) : null}
             <button
               type="submit"
               className={styles.openSubmit}

@@ -260,7 +260,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `theme_connections` | Граф «наступна тема» | `vertex_start` → `vertex_finish` |
 | `quiz_tasks` | Банк MCQ тренажера / діагностики | `right_answer_n` (1–4) лише на сервері до перевірки |
 | `problems` | Банк задачника (друк) | Read UI з JSON-каталогу; таблиця для імпорту |
-| `nmt_variants` / `nmt_quiz_tasks` / `nmt_variant_tasks` | Офіційні варіанти симулятора | **Не** змішувати з `quiz_tasks`. SQL `011`–`013`. Старий імпорт matching клав у `answer_1..5` лише літери А–Д; тексти пар добирає `nmtMatchCatalog.json`, доки банк не переімпортують (`scripts/fetch-nmt-variants.mjs`, без запису в прод з цього репо) |
+| `nmt_variants` / `nmt_quiz_tasks` / `nmt_variant_tasks` | Офіційні варіанти симулятора | **Не** змішувати з `quiz_tasks`. SQL `011`–`013`. Старий імпорт matching клав у `answer_1..5` лише літери А–Д. Показ добирає `nmtMatchCatalog.json`. Дозапис у базу — окремо `node scripts/backfill-nmt-match.mjs` (типово dry-run; `--apply` лише після бекапу на копії). Скрипт не читає `.env.production` і не входить у `npm run migrate` |
 | `task_sessions` | Спроба учня | `session_type` 1 user / 2 auto / 3 mentor / 4 NMT / **5 diagnostic**; status 1 done / 2 created / 3 planned. `user_id` і `theme_id` nullable + `guest_token`. `expire_time` — фіксований дедлайн 24 год від створення рядка |
 | `tasks2session` | Мапінг завдання↔сесія | `status` 0 / 1 / −1; той самий owner, що в сесії |
 | `site_feedback` | Відгук про сайт | `score` 1–10; `message` обов’язкове якщо score < 5. Після збереження адміни отримують `user_notifications` (`admin.feedback`) і лист; категорії `user_channel_preferences` на ці алерти не діють. Збій сповіщення не відкочує відгук |

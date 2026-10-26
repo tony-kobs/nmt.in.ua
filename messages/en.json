@@ -2323,6 +2323,7 @@
     "matchRowLabel": "Letter for row {n}",
     "matchPick": "Choose",
     "submitAnswer": "Submit answer",
+    "pasteBlocked": "Pasting is off in the simulator. Type the answer.",
     "errors": {
       "unfinished": "Complete all tasks before finishing the test.",
       "invalidInput": "Invalid data.",
