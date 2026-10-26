@@ -43,7 +43,7 @@
   padding: var(--space-md);
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-lg);
-  background: rgb(253 251 244 / 78%);
+  background: color-mix(in srgb, var(--sheet) 78%, transparent);
   box-shadow: var(--shadow-sm);
 }
 
@@ -87,7 +87,7 @@
   padding: 8px 16px;
   border-radius: var(--radius-pill);
   background: var(--grad-brand);
-  color: #fdfbf4;
+  color: var(--on-accent);
   font-size: var(--fs-small);
   font-weight: 700;
   text-decoration: none;
@@ -106,7 +106,7 @@
   padding: var(--space-md);
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-lg);
-  background: rgb(253 251 244 / 78%);
+  background: color-mix(in srgb, var(--sheet) 78%, transparent);
   color: var(--muted);
 }
 

@@ -55,6 +55,54 @@ const SQL_HAS_NMT = `
   LIMIT 1
 `;
 
+const SQL_HAS_NMT_MANY = `
+  SELECT DISTINCT session_id
+  FROM tasks2session
+  WHERE session_id IN (?) AND task_type = ?
+`;
+
+const SQL_TOPIC_MISTAKES_MANY = `
+  SELECT
+    t2s.session_id,
+    qt.name,
+    qt.task_text,
+    qt.comments,
+    t.id AS theme_id,
+    t.code AS theme_code,
+    t.name AS theme_name
+  FROM tasks2session t2s
+  INNER JOIN task_sessions ts ON ts.id = t2s.session_id
+  INNER JOIN quiz_tasks qt ON qt.id = t2s.task_id
+  LEFT JOIN themes t ON t.id = qt.theme_id
+  WHERE t2s.session_id IN (?)
+    AND ts.user_id = ?
+    AND ts.session_status = ?
+    AND COALESCE(t2s.first_attempt_status, t2s.status) = ?
+    AND t2s.task_type <> ?
+  ORDER BY t2s.id ASC
+`;
+
+const SQL_NMT_MISTAKES_MANY = `
+  SELECT
+    t2s.session_id,
+    qt.name,
+    qt.task_text,
+    qt.comments,
+    t.id AS theme_id,
+    t.code AS theme_code,
+    t.name AS theme_name
+  FROM tasks2session t2s
+  INNER JOIN task_sessions ts ON ts.id = t2s.session_id
+  INNER JOIN nmt_quiz_tasks qt ON qt.id = t2s.task_id
+  LEFT JOIN themes t ON t.id = qt.theme_id
+  WHERE t2s.session_id IN (?)
+    AND ts.user_id = ?
+    AND ts.session_status = ?
+    AND t2s.status = ?
+    AND t2s.task_type = ?
+  ORDER BY t2s.id ASC
+`;
+
 export type SessionMistakeItem = {
   name: string;
   taskText: string;
@@ -153,6 +201,66 @@ export async function getSessionMistakeReview(
     ]);
 
     return rows.map((row) => mapMistakeRow(row, isNmt));
+  } finally {
+    connection.release();
+  }
+}
+
+type MistakeRowWithSession = MistakeRow & { session_id: number };
+
+/** One round of queries for several sessions, in the caller's order. */
+export async function getSessionMistakeReviews(
+  sessionIds: number[],
+  userId: number,
+  deps: GetSessionMistakeReviewDeps = { getConnection: loadDefaultConnection },
+): Promise<Map<number, SessionMistakeItem[]>> {
+  const ids = [...new Set(sessionIds.filter(isPositiveInt))];
+  const grouped = new Map<number, SessionMistakeItem[]>();
+  if (ids.length === 0 || !isPositiveInt(userId)) return grouped;
+
+  const connection = await deps.getConnection();
+  try {
+    const nmtRows = await connection.query<{ session_id: number }>(SQL_HAS_NMT_MANY, [
+      ids,
+      TASK_TYPE_NMT,
+    ]);
+    const nmtIds = nmtRows.map((row) => Number(row.session_id));
+    const nmtSet = new Set(nmtIds);
+    const topicIds = ids.filter((id) => !nmtSet.has(id));
+    const params = [
+      userId,
+      SESSION_STATUS_COMPLETED,
+      TASK_STATUS_INCORRECT,
+      TASK_TYPE_NMT,
+    ] as const;
+
+    const push = (rows: MistakeRowWithSession[], isNmt: boolean) => {
+      for (const row of rows) {
+        const list = grouped.get(row.session_id) ?? [];
+        list.push(mapMistakeRow(row, isNmt));
+        grouped.set(row.session_id, list);
+      }
+    };
+
+    if (topicIds.length > 0) {
+      push(
+        await connection.query<MistakeRowWithSession>(SQL_TOPIC_MISTAKES_MANY, [
+          topicIds,
+          ...params,
+        ]),
+        false,
+      );
+    }
+    if (nmtIds.length > 0) {
+      push(
+        await connection.query<MistakeRowWithSession>(SQL_NMT_MISTAKES_MANY, [
+          nmtIds,
+          ...params,
+        ]),
+        true,
+      );
+    }
+    return grouped;
   } finally {
     connection.release();
   }

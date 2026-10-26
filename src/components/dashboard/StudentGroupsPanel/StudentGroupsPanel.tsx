@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { guardConfirmedSubmit } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { useTranslations } from "next-intl";
 import clsx from "clsx";
 import { InviteShare } from "@/components/dashboard/InviteShare";
@@ -177,9 +178,7 @@ function GroupCard({
       <form
         action={deleteAction}
         onSubmit={(event) => {
-          if (!window.confirm(t("deleteGroupConfirm", { name: group.name }))) {
-            event.preventDefault();
-          }
+          guardConfirmedSubmit(event, t("deleteGroupConfirm", { name: group.name }));
         }}
       >
         <input type="hidden" name="groupId" value={group.id} />

@@ -1,6 +1,5 @@
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import path from "node:path";
 import { initWasm, Resvg } from "@resvg/resvg-wasm";
 import { liteAdaptor } from "mathjax-full/js/adaptors/liteAdaptor.js";
 import { RegisterHTMLHandler } from "mathjax-full/js/handlers/html.js";
@@ -14,7 +13,9 @@ import { SVG } from "mathjax-full/js/output/svg.js";
  * resvg-wasm turns them into PNG. No native addon, so the same code runs
  * in a Vercel function. The wasm file is traced from this module.
  */
-const require = createRequire(path.join(process.cwd(), "package.json"));
+const require = createRequire(import.meta.url);
+/** Joined so webpack does not parse the wasm binary as a module. */
+const RESVG_WASM = ["@resvg/resvg-wasm", "index_bg.wasm"].join("/");
 const cache = new Map<string, Uint8Array>();
 const CACHE_LIMIT = 200;
 
@@ -49,7 +50,7 @@ function mathEngine(): Promise<MathEngine> {
 
 function wasmEngine() {
   if (!wasmReady) {
-    wasmReady = readFile(require.resolve("@resvg/resvg-wasm/index_bg.wasm")).then((bytes) =>
+    wasmReady = readFile(require.resolve(RESVG_WASM)).then((bytes) =>
       initWasm(bytes),
     );
   }

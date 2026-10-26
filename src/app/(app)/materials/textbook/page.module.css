@@ -191,8 +191,8 @@
   display: none;
 }
 
-/* Content column crosses ~800px on the 1240 artboard, not on the 768 one. */
-@container (min-width: 800px) {
+/* TOC sits beside the chapter once the column reaches the tablet band. */
+@container (min-width: 768px) {
   .layout {
     /* Content left, TOC sticky on the right */
     grid-template-columns: minmax(0, 1fr) minmax(210px, 260px);

@@ -18,7 +18,7 @@
   padding: 6px 14px;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-pill);
-  background: rgb(253 251 244 / 72%);
+  background: color-mix(in srgb, var(--sheet) 72%, transparent);
   color: var(--green-dark);
   font-size: var(--fs-kicker);
   font-weight: 700;

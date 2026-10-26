@@ -52,7 +52,7 @@
   max-width: 44rem;
   padding: 0.45rem 0.75rem;
   border-radius: var(--radius-md);
-  background: rgb(253 251 244 / 92%);
+  background: color-mix(in srgb, var(--sheet) 92%, transparent);
   color: var(--ink);
   font-size: var(--fs-lead);
   line-height: 1.55;
@@ -77,7 +77,7 @@
   max-width: 40rem;
   padding: 0.35rem 0.65rem;
   border-radius: var(--radius-md);
-  background: rgb(253 251 244 / 92%);
+  background: color-mix(in srgb, var(--sheet) 92%, transparent);
   color: var(--ink);
   font-size: var(--fs-small);
   line-height: 1.5;
@@ -99,7 +99,7 @@
   padding: var(--space-md) var(--space-lg);
   border: 1px dashed var(--line-soft);
   border-radius: var(--radius-lg);
-  background: rgb(253 251 244 / 72%);
+  background: color-mix(in srgb, var(--sheet) 72%, transparent);
 }
 
 .soonBadge {

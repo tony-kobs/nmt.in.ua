@@ -1,12 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   appendFeedbackPrompt,
   FEEDBACK_PROMPTED_KEY,
   wasFeedbackPrompted,
 } from "@/modules/feedback/promptLog";
-import { FeedbackDialog } from "./FeedbackDialog";
+
+const FeedbackDialog = dynamic(
+  () => import("./FeedbackDialog").then((mod) => mod.FeedbackDialog),
+  { ssr: false },
+);
 
 type PostTestFeedbackPromptProps = {
   sessionId: number;
@@ -47,6 +52,8 @@ export function PostTestFeedbackPrompt({
   }, [sessionId]);
 
   const close = useCallback(() => setOpen(false), []);
+
+  if (!open) return null;
 
   return (
     <FeedbackDialog

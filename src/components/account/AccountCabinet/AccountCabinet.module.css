@@ -19,7 +19,7 @@
 @supports not (backdrop-filter: blur(4px)) {
   .identity,
   .panel {
-    background: rgb(253 251 244 / 92%);
+    background: color-mix(in srgb, var(--sheet) 92%, transparent);
   }
 }
 
@@ -269,7 +269,7 @@
 
 .logout {
   border-color: var(--line-soft);
-  background: rgb(253 251 244 / 78%);
+  background: color-mix(in srgb, var(--sheet) 78%, transparent);
   color: var(--green-dark);
 }
 
@@ -287,11 +287,7 @@
 }
 
 .alert {
-  margin: 0;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  font-size: var(--fs-small);
-  font-weight: 600;
+  composes: base from "../../ui/Alert/Alert.module.css";
 }
 
 .alertError {

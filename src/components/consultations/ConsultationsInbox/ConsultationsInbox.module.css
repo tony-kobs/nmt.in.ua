@@ -48,7 +48,7 @@
 
 @supports not (backdrop-filter: blur(4px)) {
   .card {
-    background: rgb(253 251 244 / 92%);
+    background: color-mix(in srgb, var(--sheet) 92%, transparent);
   }
 }
 
@@ -142,7 +142,7 @@
   padding: 8px 14px;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-pill);
-  background: rgb(253 251 244 / 78%);
+  background: color-mix(in srgb, var(--sheet) 78%, transparent);
   color: var(--green-dark);
   font-weight: 700;
   cursor: pointer;
@@ -201,7 +201,7 @@
 
 .acknowledge {
   border: 1px solid var(--line-soft);
-  background: rgb(253 251 244 / 78%);
+  background: color-mix(in srgb, var(--sheet) 78%, transparent);
   color: var(--green-dark);
 }
 

@@ -68,7 +68,7 @@
 
 @supports not (backdrop-filter: blur(4px)) {
   .slip {
-    background: rgb(253 251 244 / 92%);
+    background: color-mix(in srgb, var(--sheet) 92%, transparent);
   }
 }
 

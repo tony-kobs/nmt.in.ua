@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
+import { DatabaseUnavailable } from "@/components/status/DatabaseUnavailable";
 import { StatusScene } from "@/components/status/StatusScene";
+import { isDatabaseUnavailable, rethrowNavigation } from "@/lib/db/unavailable";
 import { WelcomeLanding } from "@/components/welcome/WelcomeLanding";
 import { statusCopy } from "@/i18n/statusPages";
 import { createPageMetadata } from "@/constants/seo";
@@ -19,7 +21,19 @@ import { parseThemeQueryParam } from "@/modules/testing/parseThemeQueryParam";
  */
 
 export async function generateMetadata() {
-  const user = await optionalLiveUser();
+  let user;
+  try {
+    user = await optionalLiveUser();
+  } catch (error) {
+    rethrowNavigation(error);
+    if (!isDatabaseUnavailable(error)) throw error;
+    const t = await getTranslations("Metadata.home");
+    return createPageMetadata({
+      title: t("title"),
+      description: t("description"),
+      path: "/",
+    });
+  }
 
   if (!user) {
     const t = await getTranslations("Metadata.welcome");
@@ -72,11 +86,15 @@ function readPageParam(raw: string | string[] | undefined): number {
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
-  const [user, locale, params] = await Promise.all([
-    optionalLiveUser(),
-    getLocale(),
-    searchParams,
-  ]);
+  const [locale, params] = await Promise.all([getLocale(), searchParams]);
+  let user;
+  try {
+    user = await optionalLiveUser();
+  } catch (error) {
+    rethrowNavigation(error);
+    if (isDatabaseUnavailable(error)) return <DatabaseUnavailable />;
+    throw error;
+  }
 
   if (!user) {
     const messages = pickClientMessages(await getMessages(), "/");

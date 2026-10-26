@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import { askConfirm } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { useTranslations } from "next-intl";
 import clsx from "clsx";
 import { Select } from "@/components/ui/Select";
@@ -483,12 +484,22 @@ export function TeacherAssignWorkspace({
                   className={css.danger}
                   disabled={cancelPending}
                   onClick={(event) => {
-                    if (!window.confirm(t("cancelConfirm"))) {
-                      event.preventDefault();
-                    } else {
+                    const button = event.currentTarget;
+                    const form = button.form;
+                    if (button.dataset.confirmed === "1") {
+                      delete button.dataset.confirmed;
                       setPickedId(null);
                       setEditing(false);
+                      return;
                     }
+                    event.preventDefault();
+                    void askConfirm(t("cancelConfirm")).then((ok) => {
+                      if (!ok || !form) return;
+                      button.dataset.confirmed = "1";
+                      form.requestSubmit(button);
+                      setPickedId(null);
+                      setEditing(false);
+                    });
                   }}
                 >
                   {cancelPending ? t("cancelling") : t("cancel")}

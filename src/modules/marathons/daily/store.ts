@@ -1,5 +1,6 @@
 import "server-only";
 
+import { revalidateTag, unstable_cache } from "next/cache";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { resolveMarathonDelivery } from "@/modules/notifications/channels";
 import { saveUserChannelPreference } from "@/modules/notifications/channelStore";
@@ -302,7 +303,7 @@ export async function insertDailyMarathon(
   input: Omit<DailyMarathon, "id" | "status"> & { startsAt: number; endsAt: number },
   getConnection?: Conn,
 ): Promise<number> {
-  return withConn(async (connection) => {
+  const id = await withConn(async (connection) => {
     const result = await connection.execute(
       `INSERT INTO marathons
         (slug, title, description, status, starts_at, ends_at, min_tasks_per_session,
@@ -334,6 +335,8 @@ export async function insertDailyMarathon(
     );
     return result.insertId;
   }, getConnection);
+  invalidateMarathonHomeCache();
+  return id;
 }
 
 export async function updateDailyMarathon(
@@ -374,6 +377,7 @@ export async function updateDailyMarathon(
       ],
     );
   }, getConnection);
+  invalidateMarathonHomeCache();
 }
 
 export async function setDailyStatus(
@@ -387,6 +391,7 @@ export async function setDailyStatus(
       [status, id],
     );
   }, getConnection);
+  invalidateMarathonHomeCache();
 }
 
 export async function deleteDailyMarathon(id: number, getConnection?: Conn): Promise<void> {
@@ -420,6 +425,7 @@ export async function deleteDailyMarathon(id: number, getConnection?: Conn): Pro
     await connection.execute(`DELETE FROM marathons WHERE id = ? AND kind = 'daily'`, [id]);
     await deleteOrphanTaggedRiddles(connection);
   }, getConnection);
+  invalidateMarathonHomeCache();
 }
 
 export async function listDayTaskCounts(
@@ -2298,6 +2304,33 @@ async function buildHomeSpotlight(
     daysCount,
     board,
   };
+}
+
+export const MARATHON_HOME_CACHE_TAG = "marathon-home";
+
+export function invalidateMarathonHomeCache(): void {
+  try {
+    revalidateTag(MARATHON_HOME_CACHE_TAG, "max");
+  } catch {
+    // Unit tests call marathon writes outside a Next request store.
+  }
+}
+
+/** Guest cards on `/` and `/welcome`. Personalized home stays uncached. */
+export function loadGuestMarathonHomeState(): Promise<{
+  cards: HomeMarathonCard[];
+  invites: MarathonInvite[];
+  spotlight: HomeMarathonSpotlight | null;
+}> {
+  const load = () => loadMarathonHomeState({ userId: null, role: null });
+  try {
+    return unstable_cache(load, ["marathon-home-guest"], {
+      revalidate: 60,
+      tags: [MARATHON_HOME_CACHE_TAG],
+    })();
+  } catch {
+    return load();
+  }
 }
 
 export async function loadMarathonHomeState(

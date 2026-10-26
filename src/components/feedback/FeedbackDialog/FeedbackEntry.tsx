@@ -1,11 +1,16 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import clsx from "clsx";
 import type { FeedbackSource } from "@/modules/feedback/types";
 import { NavIcon } from "@/components/dashboard/AppSidebar/navIcons";
-import { FeedbackDialog } from "./FeedbackDialog";
+
+const FeedbackDialog = dynamic(
+  () => import("./FeedbackDialog").then((mod) => mod.FeedbackDialog),
+  { ssr: false },
+);
 import css from "./FeedbackDialog.module.css";
 
 type FeedbackEntryProps = {
@@ -49,12 +54,14 @@ export function FeedbackEntry({
           {t("leaveReview")}
         </span>
       </button>
-      <FeedbackDialog
-        open={open}
-        onClose={close}
-        source={source}
-        isGuest={isGuest}
-      />
+      {open ? (
+        <FeedbackDialog
+          open={open}
+          onClose={close}
+          source={source}
+          isGuest={isGuest}
+        />
+      ) : null}
     </>
   );
 }
