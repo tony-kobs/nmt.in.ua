@@ -1,57 +1,126 @@
 # Журнал не пушиться в dev напряму.
 # У PR на dev коміт із журналом лягає в гілку цього PR.
+# Push цього коміта йде від GITHUB_TOKEN. Подія pull_request:synchronize
+# від такого токена лишає запуск без jobs (схвалення воркфлоу) і червоний
+# хрестик на PR, тож synchronize тут немає. Нові коміти людини ловить push:
+# push від GITHUB_TOKEN воркфлоу не стартує. Якщо колись стартує, job і так
+# відсікає github-actions[bot].
+# PR лише з docs/changelog.md і docs/nmt-in-ua-onboarding-dev.md — це новини
+# релізу. Його opened теж іде від GITHUB_TOKEN, тому ці два шляхи в paths-ignore.
 # У PR dev → main відкривається окремий PR у dev із новинами релізу.
+# Поки той PR відкритий, push у dev оновлює новини.
 name: Changelog
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize, edited]
+    types: [opened, reopened, edited]
     branches: [dev, main]
+    paths-ignore:
+      - docs/changelog.md
+      - docs/nmt-in-ua-onboarding-dev.md
+  push:
+    branches-ignore:
+      - main
+      - changelog/**
 
 permissions:
   contents: write
   pull-requests: write
 
 concurrency:
-  group: changelog-${{ github.event.pull_request.number }}
+  group: changelog-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   record:
     if: >-
+      (github.event_name == 'pull_request' &&
       github.event.pull_request.merged == false &&
       github.event.pull_request.base.ref == 'dev' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       !startsWith(github.head_ref, 'changelog/') &&
-      github.actor != 'github-actions[bot]'
+      github.actor != 'github-actions[bot]') ||
+      (github.event_name == 'push' &&
+      github.ref != 'refs/heads/dev' &&
+      github.ref != 'refs/heads/main' &&
+      !startsWith(github.ref, 'refs/heads/changelog/') &&
+      github.actor != 'github-actions[bot]')
     runs-on: ubuntu-latest
     steps:
+      - name: Resolve the pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BASE: dev
+        run: |
+          write_env() {
+            local name="$1"
+            local value="$2"
+            local delim="DELIM_${name}_$$"
+            {
+              printf '%s<<%s\n' "$name" "$delim"
+              printf '%s\n' "$value"
+              printf '%s\n' "$delim"
+            } >> "$GITHUB_ENV"
+          }
+
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            number="$(jq -r '.pull_request.number // empty' "$GITHUB_EVENT_PATH")"
+            title="$(jq -r '.pull_request.title // empty' "$GITHUB_EVENT_PATH")"
+            url="$(jq -r '.pull_request.html_url // empty' "$GITHUB_EVENT_PATH")"
+            body="$(jq -r '.pull_request.body // empty' "$GITHUB_EVENT_PATH")"
+            author="$(jq -r '.pull_request.user.login // empty' "$GITHUB_EVENT_PATH")"
+            updated="$(jq -r '.pull_request.updated_at // empty' "$GITHUB_EVENT_PATH")"
+            head="$(jq -r '.pull_request.head.ref // empty' "$GITHUB_EVENT_PATH")"
+          else
+            json="$(gh pr list --repo "$REPO" --head "$GITHUB_REF_NAME" --base "$BASE" --state open --limit 1 --json number,title,url,body,author,updatedAt)"
+            number="$(printf '%s' "$json" | jq -r '.[0].number // empty')"
+            if [ -z "$number" ]; then
+              echo "No open pull request into ${BASE} for ${GITHUB_REF_NAME}."
+              echo "found=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            title="$(printf '%s' "$json" | jq -r '.[0].title // empty')"
+            url="$(printf '%s' "$json" | jq -r '.[0].url // empty')"
+            body="$(printf '%s' "$json" | jq -r '.[0].body // empty')"
+            author="$(printf '%s' "$json" | jq -r '.[0].author.login // empty')"
+            updated="$(printf '%s' "$json" | jq -r '.[0].updatedAt // empty')"
+            head="$GITHUB_REF_NAME"
+          fi
+
+          write_env PR_NUMBER "$number"
+          write_env PR_TITLE "$title"
+          write_env PR_URL "$url"
+          write_env PR_BODY "$body"
+          write_env PR_AUTHOR "$author"
+          write_env MERGED_AT "$updated"
+          write_env HEAD_REF "$head"
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          echo "head=${head}" >> "$GITHUB_OUTPUT"
+          echo "Pull request #${number}"
+
       - name: Checkout the pull request branch
+        if: steps.pr.outputs.found == 'true'
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ steps.pr.outputs.head }}
 
       - name: Setup Node
+        if: steps.pr.outputs.found == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 24
 
       - name: Record the pull request
+        if: steps.pr.outputs.found == 'true'
         env:
           TARGET: dev
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          PR_BODY: ${{ github.event.pull_request.body }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          MERGED_AT: ${{ github.event.pull_request.updated_at }}
           COMMENT_PATH: changelog-comment.txt
         run: node scripts/record-changelog.mjs
 
       - name: Commit journal onto the pull request branch
-        env:
-          HEAD: ${{ github.event.pull_request.head.ref }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+        if: steps.pr.outputs.found == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -61,13 +130,13 @@ jobs:
             exit 0
           fi
           git commit -m "docs: журнал змін з #${PR_NUMBER}"
-          git pull --rebase origin "$HEAD"
-          git push origin "HEAD:${HEAD}"
+          git pull --rebase origin "$HEAD_REF"
+          git push origin "HEAD:${HEAD_REF}"
 
       - name: Remind about the screencast
+        if: steps.pr.outputs.found == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
         run: |
           if [ ! -s changelog-comment.txt ]; then
@@ -82,40 +151,91 @@ jobs:
 
   release-news:
     if: >-
+      (github.event_name == 'pull_request' &&
       github.event.pull_request.merged == false &&
       github.event.pull_request.base.ref == 'main' &&
       github.event.pull_request.head.ref == 'dev' &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'push' &&
+      github.ref == 'refs/heads/dev' &&
+      github.actor != 'github-actions[bot]')
     runs-on: ubuntu-latest
     steps:
+      - name: Resolve the release pull request
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BASE: main
+        run: |
+          write_env() {
+            local name="$1"
+            local value="$2"
+            local delim="DELIM_${name}_$$"
+            {
+              printf '%s<<%s\n' "$name" "$delim"
+              printf '%s\n' "$value"
+              printf '%s\n' "$delim"
+            } >> "$GITHUB_ENV"
+          }
+
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            number="$(jq -r '.pull_request.number // empty' "$GITHUB_EVENT_PATH")"
+            title="$(jq -r '.pull_request.title // empty' "$GITHUB_EVENT_PATH")"
+            url="$(jq -r '.pull_request.html_url // empty' "$GITHUB_EVENT_PATH")"
+            body="$(jq -r '.pull_request.body // empty' "$GITHUB_EVENT_PATH")"
+            author="$(jq -r '.pull_request.user.login // empty' "$GITHUB_EVENT_PATH")"
+            updated="$(jq -r '.pull_request.updated_at // empty' "$GITHUB_EVENT_PATH")"
+          else
+            json="$(gh pr list --repo "$REPO" --head dev --base "$BASE" --state open --limit 1 --json number,title,url,body,author,updatedAt)"
+            number="$(printf '%s' "$json" | jq -r '.[0].number // empty')"
+            if [ -z "$number" ]; then
+              echo "No open pull request from dev into ${BASE}."
+              echo "found=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            title="$(printf '%s' "$json" | jq -r '.[0].title // empty')"
+            url="$(printf '%s' "$json" | jq -r '.[0].url // empty')"
+            body="$(printf '%s' "$json" | jq -r '.[0].body // empty')"
+            author="$(printf '%s' "$json" | jq -r '.[0].author.login // empty')"
+            updated="$(printf '%s' "$json" | jq -r '.[0].updatedAt // empty')"
+          fi
+
+          write_env PR_NUMBER "$number"
+          write_env PR_TITLE "$title"
+          write_env PR_URL "$url"
+          write_env PR_BODY "$body"
+          write_env PR_AUTHOR "$author"
+          write_env MERGED_AT "$updated"
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          echo "Release pull request #${number}"
+
       - name: Checkout dev
+        if: steps.pr.outputs.found == 'true'
         uses: actions/checkout@v4
         with:
           ref: dev
 
       - name: Setup Node
+        if: steps.pr.outputs.found == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 24
 
       - name: Collect news for the release
+        if: steps.pr.outputs.found == 'true'
         env:
           TARGET: main
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          PR_BODY: ${{ github.event.pull_request.body }}
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          MERGED_AT: ${{ github.event.pull_request.updated_at }}
         run: node scripts/record-changelog.mjs
 
       - name: Open a pull request into dev
+        if: steps.pr.outputs.found == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          BRANCH: changelog/release-${{ github.event.pull_request.number }}
         run: |
+          # PR_NUMBER приходить зі змінної, яку попередній крок записав у GITHUB_ENV.
+          BRANCH="changelog/release-${PR_NUMBER}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/changelog.md docs/nmt-in-ua-onboarding-dev.md
@@ -125,16 +245,73 @@ jobs:
           fi
           git commit -m "docs: новини релізу #${PR_NUMBER}"
           # Лише гілка changelog/release-*. dev і main цей push не чіпає.
-          git push --force-with-lease origin "HEAD:${BRANCH}"
-          existing="$(gh pr list --repo "$REPO" --head "$BRANCH" --base dev --state open --json number --jq '.[0].number')"
-          if [ -n "$existing" ]; then
-            echo "Updated pull request #${existing}"
-            exit 0
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            git fetch --no-tags origin "refs/heads/${BRANCH}:refs/remotes/origin/${BRANCH}"
+            git push --force-with-lease origin "HEAD:${BRANCH}"
+          else
+            git push origin "HEAD:${BRANCH}"
           fi
-          gh pr create --repo "$REPO" --base dev --head "$BRANCH" --title "docs: новини релізу #${PR_NUMBER}" --body "$(cat <<EOF
+
+          body_file="$(mktemp)"
+          cat > "$body_file" <<EOF
           Новини для релізу #${PR_NUMBER}.
 
           Це звичайний pull request у \`dev\`. Після approve і мерджу рядки «Для учня і викладача» входять у реліз \`dev\` → \`main\`.
-
           EOF
-          )"
+
+          fail_open() {
+            local detail="$1"
+            local flat
+            flat="$(printf '%s' "$detail" | tr '\n' ' ')"
+            echo "Не вдалося відкрити pull request ${BRANCH} → dev."
+            printf '%s\n' "$detail"
+            if printf '%s\n' "$detail" | grep -F "not permitted to create or approve pull requests" >/dev/null; then
+              echo "::error::GitHub Actions не може створювати pull request. Увімкніть у репозиторії Settings → Actions → General → Allow GitHub Actions to create and approve pull requests, потім перезапустіть цей job."
+            else
+              echo "::error::Не вдалося відкрити pull request ${BRANCH} → dev. ${flat}"
+            fi
+            exit 1
+          }
+
+          edit_pr() {
+            local number="$1"
+            local err
+            err="$(mktemp)"
+            if gh pr edit "$number" --repo "$REPO" --title "docs: новини релізу #${PR_NUMBER}" --body-file "$body_file" 2>"$err"; then
+              echo "Updated pull request #${number}"
+              return 0
+            fi
+            fail_open "$(cat "$err")"
+          }
+
+          open_number="$(gh pr list --repo "$REPO" --head "$BRANCH" --base dev --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$open_number" ]; then
+            edit_pr "$open_number"
+            exit 0
+          fi
+
+          closed_number="$(gh pr list --repo "$REPO" --head "$BRANCH" --base dev --state closed --json number,state --jq 'first(.[] | select(.state == "CLOSED") | .number) // empty')"
+          if [ -n "$closed_number" ]; then
+            reopen_err="$(mktemp)"
+            if ! gh pr reopen "$closed_number" --repo "$REPO" 2>"$reopen_err"; then
+              fail_open "$(cat "$reopen_err")"
+            fi
+            edit_pr "$closed_number"
+            exit 0
+          fi
+
+          create_out="$(mktemp)"
+          create_err="$(mktemp)"
+          if gh pr create --repo "$REPO" --base dev --head "$BRANCH" --title "docs: новини релізу #${PR_NUMBER}" --body-file "$body_file" >"$create_out" 2>"$create_err"; then
+            cat "$create_out"
+            exit 0
+          fi
+
+          # Між list і create PR міг з’явитись. Тоді оновлюємо його, а не падаємо.
+          open_number="$(gh pr list --repo "$REPO" --head "$BRANCH" --base dev --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$open_number" ]; then
+            edit_pr "$open_number"
+            exit 0
+          fi
+
+          fail_open "$(cat "$create_err")"
