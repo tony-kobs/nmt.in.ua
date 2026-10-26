@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { guardConfirmedSubmit } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
@@ -173,9 +174,7 @@ export function AccountPhotoPanel({ user }: AccountPhotoPanelProps) {
             <form
               action={removeAction}
               onSubmit={(event) => {
-                if (!window.confirm(t("photoRemoveConfirm"))) {
-                  event.preventDefault();
-                }
+                guardConfirmedSubmit(event, t("photoRemoveConfirm"));
               }}
             >
               <button

@@ -128,7 +128,7 @@
   padding-inline-end: calc(var(--space-lg) + 2.75rem);
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-lg);
-  background: rgb(253 251 244 / 78%);
+  background: color-mix(in srgb, var(--sheet) 78%, transparent);
   box-shadow: var(--shadow-sm);
   overflow-x: auto;
 }

@@ -2147,6 +2147,10 @@
       "title": "Lehrbuch",
       "description": "Theorie und Formeln nach Zertifizierungsthemen — ein Lehrbuch mit Inhaltsverzeichnis."
     },
+    "notFound": {
+      "title": "Seite nicht gefunden",
+      "description": "Diese Seite gibt es nicht. Zurück zur Startseite von nmt.in.ua und weiter zur NMT-Mathevorbereitung."
+    },
     "problems": {
       "title": "Aufgabensammlung",
       "description": "Druckbarer Test nach Thema: Aufgabentabelle zum Ausdrucken und Austeilen."

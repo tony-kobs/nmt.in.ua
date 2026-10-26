@@ -115,85 +115,6 @@
   background: var(--green-soft);
 }
 
-.task {
-  padding: var(--space-lg);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-lg);
-  background: var(--grad-glass);
-  box-shadow: var(--shadow-sm);
-}
-
-.taskName {
-  margin: 0 0 var(--space-md);
-  color: var(--subtle);
-  font-size: var(--fs-small);
-  font-weight: 600;
-}
-
-.taskText {
-  margin-bottom: var(--space-lg);
-  font-size: var(--fs-body);
-  line-height: 1.5;
-}
-
-.answers {
-  display: grid;
-  gap: var(--space-sm);
-}
-
-.answer {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  width: 100%;
-  min-height: 48px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  cursor: pointer;
-  text-align: left;
-  font-size: var(--fs-body);
-  transition:
-    border-color var(--t) var(--ease),
-    background-color var(--t) var(--ease);
-}
-
-.answer:hover:not(:disabled) {
-  border-color: var(--green);
-  background: var(--green-bg);
-}
-
-.answer:disabled {
-  cursor: default;
-}
-
-.selected {
-  border-color: var(--green);
-  background: var(--green-bg);
-  color: var(--green-dark);
-  font-weight: 700;
-}
-
-.answerNumber {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  flex: 0 0 30px;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  font-size: var(--fs-small);
-  font-weight: 800;
-}
-
-.selected .answerNumber {
-  border-color: var(--green);
-  background: var(--green);
-  color: #f6f1e2;
-}
-
 .footer {
   display: flex;
   justify-content: space-between;
@@ -328,7 +249,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .progressBar,
-  .answer,
   .questionButton,
   .footer button {
     transition: none;

@@ -75,7 +75,7 @@
   margin: 0;
   padding: 0.45rem 0.75rem;
   border-radius: var(--radius-md);
-  background: rgb(253 251 244 / 92%);
+  background: color-mix(in srgb, var(--sheet) 92%, transparent);
   color: var(--ink);
   font-size: var(--fs-lead);
   line-height: 1.55;
@@ -275,7 +275,7 @@
     linear-gradient(rgb(17 94 89 / 7%) 1px, transparent 1px),
     linear-gradient(90deg, rgb(17 94 89 / 7%) 1px, transparent 1px);
   background-size: auto, auto, 16px 16px, 16px 16px;
-  box-shadow: inset 0 1px 0 rgb(253 251 244 / 90%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--sheet) 90%, transparent);
 }
 
 .name {

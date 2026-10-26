@@ -11,7 +11,8 @@ import {
 import { touchLoginSession } from "@/modules/auth/userSessions";
 import type { MarathonInvite } from "@/modules/marathons/daily/invite";
 import { ensureStudentMarathonInvites } from "@/modules/marathons/daily/invites";
-import { ensureTopicTestReminders } from "@/modules/notifications/topicReminders";
+import { DatabaseUnavailable } from "@/components/status/DatabaseUnavailable";
+import { isDatabaseUnavailable, rethrowNavigation } from "@/lib/db/unavailable";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { headers } from "next/headers";
@@ -28,7 +29,14 @@ export default async function AppLayout({
   const pathname = headerStore.get("x-pathname") ?? "/";
   const locale = await getLocale();
   const messages = pickClientMessages(await getMessages(), pathname);
-  const user = await optionalLiveUser();
+  let user;
+  try {
+    user = await optionalLiveUser();
+  } catch (error) {
+    rethrowNavigation(error);
+    if (isDatabaseUnavailable(error)) return <DatabaseUnavailable />;
+    throw error;
+  }
 
   let cabinetScope = user?.cabinetScope ?? "full";
   let invites: MarathonInvite[] = [];
@@ -45,14 +53,9 @@ export default async function AppLayout({
     try {
       invites = (await ensureStudentMarathonInvites(user.id)).invites;
     } catch (error) {
+      rethrowNavigation(error);
+      if (isDatabaseUnavailable(error)) return <DatabaseUnavailable />;
       console.error("marathon invites", error);
-    }
-    if (user.role === "student") {
-      try {
-        await ensureTopicTestReminders(user.id);
-      } catch (error) {
-        console.error("topic test reminders", error);
-      }
     }
   }
 

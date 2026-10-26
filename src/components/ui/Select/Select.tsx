@@ -9,14 +9,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import clsx from "clsx";
-import {
-  popoverExit,
-  popoverHidden,
-  popoverShown,
-  tweenFast,
-} from "@/lib/motionPresets";
 import { useIsClient } from "@/lib/useIsClient";
 import { findTypeaheadIndex, isTypeaheadChar } from "./findTypeaheadIndex";
 import css from "./Select.module.css";
@@ -118,7 +111,6 @@ export function Select({
   const [highlight, setHighlight] = useState(0);
   const [box, setBox] = useState<MenuBox | null>(null);
   const portalReady = useIsClient();
-  const reduceMotion = useReducedMotion();
   const isOpen = open && !cannotOpen;
 
   const selectedIndex = options.findIndex((option) => option.value === current);
@@ -336,21 +328,14 @@ export function Select({
           />
         </svg>
       </button>
-      {portalReady
+      {portalReady && isOpen && box
         ? createPortal(
-            <AnimatePresence>
-              {isOpen && box ? (
-                <motion.div
-                  key="select-menu"
+            <div
                   ref={menuRef}
                   id={listId}
                   className={css.menu}
                   role="listbox"
                   aria-labelledby={triggerId}
-                  initial={reduceMotion ? false : popoverHidden}
-                  animate={popoverShown}
-                  exit={reduceMotion ? { opacity: 0 } : popoverExit}
-                  transition={reduceMotion ? { duration: 0.01 } : tweenFast}
                   style={{
                     position: "fixed",
                     top: box.top,
@@ -402,9 +387,7 @@ export function Select({
                       </div>
                     );
                   })}
-                </motion.div>
-              ) : null}
-            </AnimatePresence>,
+                </div>,
             document.body,
           )
         : null}

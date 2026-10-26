@@ -69,9 +69,19 @@ export type RegisterActionState =
   | { status: "idle" }
   | { status: "error", code: RegistrationFieldError | "serverError" };
 
+type LoginActionDeps = {
+  findUserByEmail?: typeof findUserByEmail;
+  verifyPassword?: typeof verifyPassword;
+  recordLoginPresence?: typeof recordLoginPresence;
+  setSessionCookie?: typeof setSessionCookie;
+  redirectTo?: (path: string) => never;
+  cancelDeletion?: (userId: number) => Promise<void>;
+};
+
 export async function loginAction(
   _prev: LoginActionState,
   formData: FormData,
+  deps: LoginActionDeps = {},
 ): Promise<LoginActionState> {
   const parsed = validateSchema(loginUserSchema, {
     email: String(formData.get("email") ?? ""),
@@ -89,9 +99,11 @@ export async function loginAction(
   const { email, password } = parsed.value;
   const nextPath = safeInternalPath(formData.get("next"));
 
-  const user = await findUserByEmail(email);
+  const lookup = deps.findUserByEmail ?? findUserByEmail;
+  const checkPassword = deps.verifyPassword ?? verifyPassword;
+  const user = await lookup(email);
 
-  if (!user || !verifyPassword(password, user.passwordHash)) {
+  if (!user || !checkPassword(password, user.passwordHash)) {
     return { status: "error", code: "invalidCredentials" };
   }
 
@@ -103,15 +115,20 @@ export async function loginAction(
     return { status: "error", code: "emailUnverified" };
   }
 
-  await recordLoginPresence(user.id);
+  await (deps.recordLoginPresence ?? recordLoginPresence)(user.id);
   try {
-    const { cancelDeletionOnLogin } = await import("@/modules/admin-profiles/accountDeletion");
-    const { getConnection } = await import("@/lib/db/mysql");
-    await cancelDeletionOnLogin(user.id, { getConnection });
+    if (deps.cancelDeletion) {
+      await deps.cancelDeletion(user.id);
+    } else {
+      const { cancelDeletionOnLogin } = await import("@/modules/admin-profiles/accountDeletion");
+      const { getConnection } = await import("@/lib/db/mysql");
+      await cancelDeletionOnLogin(user.id, { getConnection });
+    }
   } catch (error) {
     console.error("login: cancel scheduled deletion failed", error);
   }
-  await setSessionCookie(user);
+  await (deps.setSessionCookie ?? setSessionCookie)(user);
+  if (deps.redirectTo) return deps.redirectTo(nextPath);
   redirect(nextPath);
 }
 

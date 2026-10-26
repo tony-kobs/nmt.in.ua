@@ -59,7 +59,7 @@
   padding: 0 10px;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-pill);
-  background: rgb(253 251 244 / 88%);
+  background: color-mix(in srgb, var(--sheet) 88%, transparent);
   color: var(--ink);
   font: inherit;
   font-size: var(--fs-small);
@@ -81,7 +81,7 @@
 .pageNumActive {
   border-color: transparent;
   background: var(--grad-brand);
-  color: #fdfbf4;
+  color: var(--on-accent);
   box-shadow: 0 8px 18px rgb(12 90 84 / 22%);
   cursor: default;
 }
@@ -95,7 +95,7 @@
   border: 0;
   border-radius: var(--radius-pill);
   background: var(--grad-brand);
-  color: #fdfbf4;
+  color: var(--on-accent);
   font: inherit;
   font-size: var(--fs-small);
   font-weight: 700;
@@ -118,7 +118,7 @@
   box-shadow: none;
   cursor: not-allowed;
   pointer-events: none;
-  background: rgb(253 251 244 / 78%);
+  background: color-mix(in srgb, var(--sheet) 78%, transparent);
   color: var(--muted);
   border: 1px solid var(--line-soft);
 }
@@ -154,8 +154,8 @@
   }
 
   .pageNum {
-    min-width: 40px;
-    min-height: 40px;
+    min-width: 44px;
+    min-height: 44px;
     padding: 0 8px;
   }
 }

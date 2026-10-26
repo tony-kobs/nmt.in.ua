@@ -20,7 +20,7 @@
 
 @supports not (backdrop-filter: blur(4px)) {
   .panel {
-    background: rgb(253 251 244 / 92%);
+    background: color-mix(in srgb, var(--sheet) 92%, transparent);
   }
 }
 
@@ -152,7 +152,7 @@
 
 .cancelBtn {
   border-color: var(--line-soft);
-  background: rgb(253 251 244 / 78%);
+  background: color-mix(in srgb, var(--sheet) 78%, transparent);
   color: var(--green-dark);
 }
 
@@ -323,7 +323,7 @@
   padding: 8px 16px;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-pill);
-  background: rgb(253 251 244 / 78%);
+  background: color-mix(in srgb, var(--sheet) 78%, transparent);
   color: var(--green-dark);
   font: inherit;
   font-weight: 700;
@@ -347,7 +347,7 @@
   padding: 0 4px;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-md);
-  background: rgb(253 251 244 / 90%);
+  background: color-mix(in srgb, var(--sheet) 90%, transparent);
   color: var(--ink);
   font: inherit;
   font-weight: 700;
@@ -413,7 +413,7 @@
   padding: 10px 12px;
   border: 1px dashed var(--line-soft);
   border-radius: var(--radius-md);
-  background: rgb(253 251 244 / 78%);
+  background: color-mix(in srgb, var(--sheet) 78%, transparent);
   color: var(--ink);
   font-size: var(--fs-body);
   overflow-x: auto;
@@ -439,7 +439,7 @@
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-md);
   overflow: clip;
-  background: rgb(253 251 244 / 72%);
+  background: color-mix(in srgb, var(--sheet) 72%, transparent);
 }
 
 .formHead,
@@ -474,11 +474,7 @@
 }
 
 .alert {
-  margin: 0;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  font-size: var(--fs-small);
-  font-weight: 600;
+  composes: base from "../../ui/Alert/Alert.module.css";
 }
 
 .alertError {

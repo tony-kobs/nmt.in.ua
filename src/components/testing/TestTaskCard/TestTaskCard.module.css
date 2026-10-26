@@ -160,41 +160,46 @@
   outline-offset: 2px;
 }
 
-/* Neutral "picked" state for modes that keep the choice on screen.
-   Diagnostic does not use it: the next task replaces the card at once. */
+/* Picked, still unchecked. Outline in the brand teal so it stays distinct
+   from the filled correct / key state below. */
 .optionSelected {
-  border-color: var(--blue);
-  background: var(--blue-soft);
-  color: var(--blue);
+  border: 2px solid var(--green-fill);
+  background: var(--surface);
+  color: var(--ink);
   font-weight: 700;
+  box-shadow: 0 0 0 3px var(--green-soft);
 }
 
 .option:has(:checked) {
-  border-color: var(--blue);
-  background: var(--blue-soft);
-  color: var(--blue);
+  border: 2px solid var(--green-fill);
+  background: var(--surface);
+  color: var(--ink);
   font-weight: 700;
+  box-shadow: 0 0 0 3px var(--green-soft);
 }
 
 .optionCorrect {
-  border-color: var(--green);
+  border: 1px solid var(--green);
   background: var(--green-bg);
   color: var(--green-dark);
   font-weight: 700;
+  box-shadow: none;
 }
 
 .optionWrong {
-  border-color: color-mix(in srgb, crimson 55%, var(--border));
+  border: 1px solid color-mix(in srgb, crimson 55%, var(--border));
   background: color-mix(in srgb, crimson 10%, var(--surface));
   color: crimson;
   font-weight: 700;
+  box-shadow: none;
 }
 
 .optionKey {
-  border-color: var(--green);
+  border: 1px solid var(--green);
   background: var(--green-bg);
   color: var(--green-dark);
   font-weight: 700;
+  box-shadow: none;
 }
 
 .optionFrozen {

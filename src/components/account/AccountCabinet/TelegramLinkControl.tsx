@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { guardConfirmedSubmit } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { useTranslations } from "next-intl";
 import {
   createTelegramLinkAction,
@@ -35,7 +36,7 @@ export function TelegramLinkControl({
           <form
             action={unlink}
             onSubmit={(event) => {
-              if (!window.confirm(t("telegramUnlinkConfirm"))) event.preventDefault();
+              guardConfirmedSubmit(event, t("telegramUnlinkConfirm"));
             }}
           >
             <button className={css.joinQuiet} disabled={unlinkPending} type="submit">

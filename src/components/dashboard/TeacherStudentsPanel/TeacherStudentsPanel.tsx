@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState, type FormEvent } from "react";
+import { guardConfirmedSubmit } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import clsx from "clsx";
@@ -405,16 +406,13 @@ export function TeacherStudentsPanel({
                 <form
                   action={unlinkAction}
                   onSubmit={(event) => {
-                    if (
-                      !window.confirm(
-                        t("unlinkConfirm", {
-                          name: student.displayName,
-                          login: student.login,
-                        }),
-                      )
-                    ) {
-                      event.preventDefault();
-                    }
+                    guardConfirmedSubmit(
+                      event,
+                      t("unlinkConfirm", {
+                        name: student.displayName,
+                        login: student.login,
+                      }),
+                    );
                   }}
                 >
                   <input

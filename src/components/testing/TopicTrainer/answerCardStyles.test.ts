@@ -26,13 +26,19 @@ function ruleBody(className: string): string {
   return match[1];
 }
 
-test(".optionSelected (diagnostic's persistent post-submit state) is neutral, not green/red", () => {
+test(".optionSelected is a brand outline, not the filled correct state or --blue", () => {
   const selected = ruleBody("optionSelected");
-  assert.doesNotMatch(
-    selected,
-    /--green|crimson/,
-    ".optionSelected must not reuse the correct/incorrect colors — diagnostic mode never leaves this state, so any correctness color leaks for the rest of the session",
-  );
+  assert.match(selected, /--green-fill/);
+  assert.match(selected, /--green-soft/);
+  assert.doesNotMatch(selected, /--green-bg|crimson|--blue/);
+});
+
+test("graded option rules follow .optionSelected so they win the cascade", () => {
+  const selectedAt = css.indexOf(".optionSelected");
+  const correctAt = css.indexOf(".optionCorrect");
+  const wrongAt = css.indexOf(".optionWrong");
+  const keyAt = css.indexOf(".optionKey");
+  assert.ok(selectedAt >= 0 && correctAt > selectedAt && wrongAt > selectedAt && keyAt > selectedAt);
 });
 
 test(".optionCorrect and .optionWrong keep their correctness colors for Practice/exam feedback", () => {

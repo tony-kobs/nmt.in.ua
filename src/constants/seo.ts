@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 export const SITE_NAME = "LevelUP";
 export const SITE_SHORT_NAME = "LevelUP";
-export const BRAND_SLOGAN = "Прокачай свої знання";
 export const SITE_TAGLINE = "підготовка до НМТ з математики";
 
 export const SITE_DESCRIPTION =
@@ -187,20 +186,5 @@ export function buildWebApplicationJsonLd() {
       priceCurrency: "UAH",
     },
     publisher: { "@id": `${siteUrl}/#organization` },
-  };
-}
-
-export function buildBreadcrumbJsonLd(
-  items: Array<{ name: string; path: string }>,
-) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: items.map((item, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      name: item.name,
-      item: absoluteUrl(item.path),
-    })),
   };
 }

@@ -4,12 +4,10 @@ import { useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import clsx from "clsx";
-import { motion, useReducedMotion } from "motion/react";
 import { SkipLink } from "@/components/ui/SkipLink";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { BrandWord } from "@/components/brand/BrandWord";
 import { SITE_NAME } from "@/constants/seo";
-import { revealHidden, revealShown, tweenSlow } from "@/lib/motionPresets";
 import { NotebookSpinner } from "@/components/status/NotebookSpinner";
 import type { statusCopy } from "@/i18n/statusPages";
 import css from "./StatusScene.module.css";
@@ -31,7 +29,6 @@ export function StatusScene({
   reset,
   digest,
 }: StatusSceneProps) {
-  const reduce = useReducedMotion();
   const regionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -50,7 +47,7 @@ export function StatusScene({
       : variant === "error"
         ? "/status/error.webp"
         : null;
-  const Region = layout === "embed" ? motion.section : motion.main;
+  const Region = layout === "embed" ? "section" : "main";
 
   return (
     <div className={clsx(css.page, layout === "embed" && css.embed)}>
@@ -76,9 +73,6 @@ export function StatusScene({
           className={css.card}
           aria-labelledby="status-title"
           aria-busy={variant === "loading" || undefined}
-          initial={reduce ? false : revealHidden}
-          animate={revealShown}
-          transition={tweenSlow}
         >
           <p className={css.kicker}>
             {"code" in pack ? (

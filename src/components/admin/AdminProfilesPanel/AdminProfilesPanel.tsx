@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { guardConfirmedSubmit } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -271,9 +272,7 @@ export function AdminProfilesPanel({
                               : t("banConfirm", {
                                   name: profile.displayName,
                                 });
-                            if (!window.confirm(message)) {
-                              event.preventDefault();
-                            }
+                            guardConfirmedSubmit(event, message);
                           }}
                         >
                           <input
@@ -304,15 +303,10 @@ export function AdminProfilesPanel({
                           <form
                             action={promoteAction}
                             onSubmit={(event) => {
-                              if (
-                                !window.confirm(
-                                  t("promoteConfirm", {
-                                    name: profile.displayName,
-                                  }),
-                                )
-                              ) {
-                                event.preventDefault();
-                              }
+                              guardConfirmedSubmit(
+                                event,
+                                t("promoteConfirm", { name: profile.displayName }),
+                              );
                             }}
                           >
                             <input type="hidden" name="userId" value={profile.id} />
@@ -329,15 +323,10 @@ export function AdminProfilesPanel({
                           <form
                             action={unlinkAction}
                             onSubmit={(event) => {
-                              if (
-                                !window.confirm(
-                                  t("unlinkTelegramConfirm", {
-                                    name: profile.displayName,
-                                  }),
-                                )
-                              ) {
-                                event.preventDefault();
-                              }
+                              guardConfirmedSubmit(
+                                event,
+                                t("unlinkTelegramConfirm", { name: profile.displayName }),
+                              );
                             }}
                           >
                             <input type="hidden" name="userId" value={profile.id} />
@@ -354,13 +343,10 @@ export function AdminProfilesPanel({
                           <form
                             action={cancelAction}
                             onSubmit={(event) => {
-                              if (
-                                !window.confirm(
-                                  t("cancelDeletionConfirm", { name: profile.displayName }),
-                                )
-                              ) {
-                                event.preventDefault();
-                              }
+                              guardConfirmedSubmit(
+                                event,
+                                t("cancelDeletionConfirm", { name: profile.displayName }),
+                              );
                             }}
                           >
                             <input type="hidden" name="userId" value={profile.id} />
@@ -377,15 +363,10 @@ export function AdminProfilesPanel({
                           <form
                             action={deleteAction}
                             onSubmit={(event) => {
-                              if (
-                                !window.confirm(
-                                  t("deleteConfirm", {
-                                    name: profile.displayName,
-                                  }),
-                                )
-                              ) {
-                                event.preventDefault();
-                              }
+                              guardConfirmedSubmit(
+                                event,
+                                t("deleteConfirm", { name: profile.displayName }),
+                              );
                             }}
                           >
                             <input type="hidden" name="userId" value={profile.id} />

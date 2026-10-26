@@ -50,7 +50,8 @@ export async function notifyAssignedSessions(
 
 /**
  * Bell reminder for topic tests the student started and has not finished.
- * Called from the cabinet layout. `once` keeps one row per session.
+ * Called from the student home and the presence heartbeat (about once a minute),
+ * not from every cabinet navigation. `once` keeps one row per session.
  */
 export async function ensureTopicTestReminders(
   userId: number,

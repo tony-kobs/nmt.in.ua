@@ -1,0 +1,31 @@
+.base {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.error {
+  border: 1px solid color-mix(in srgb, crimson 45%, var(--line));
+  background: color-mix(in srgb, crimson 10%, var(--surface));
+  color: crimson;
+}
+
+.success {
+  border: 1px solid var(--green);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.hint {
+  border: 1px solid var(--line-soft);
+  background: var(--surface-muted);
+  color: var(--muted);
+}
+
+.notice {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+}

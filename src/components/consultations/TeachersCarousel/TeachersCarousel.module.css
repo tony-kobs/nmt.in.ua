@@ -107,7 +107,7 @@
 
 @supports not (backdrop-filter: blur(4px)) {
   .card {
-    background: rgb(253 251 244 / 92%);
+    background: color-mix(in srgb, var(--sheet) 92%, transparent);
   }
 }
 
@@ -193,8 +193,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 36px;
-  min-height: 36px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   border: 0;
   border-radius: var(--radius-md);
@@ -253,7 +253,7 @@
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1240px) {
   .track {
     grid-auto-columns: calc((100% - var(--space-sm)) / 2);
   }

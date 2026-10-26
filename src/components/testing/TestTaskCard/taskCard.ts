@@ -1,5 +1,24 @@
 const OPTION_LETTERS = ["А", "Б", "В", "Г", "Д", "Е"] as const;
 
+export type GradedOptionState = "idle" | "selected" | "correct" | "wrong" | "key";
+
+/**
+ * A revealed correct, key, or wrong state wins over the picked outline.
+ * The outline stays only while the answer is not yet graded.
+ */
+export function gradedOptionState(input: {
+  selected?: boolean;
+  correct?: boolean;
+  wrong?: boolean;
+  key?: boolean;
+}): GradedOptionState {
+  if (input.correct) return "correct";
+  if (input.key) return "key";
+  if (input.wrong) return "wrong";
+  if (input.selected) return "selected";
+  return "idle";
+}
+
 /** 0-based index → літера варіанта, як у шкільному тесті (А, Б, В…). */
 export function optionLetter(index: number): string {
   return OPTION_LETTERS[index] ?? String(index + 1);

@@ -19,7 +19,7 @@
   overflow: auto;
   overscroll-behavior: contain;
   padding: var(--space-lg);
-  border: 1px solid rgb(253 251 244 / 72%);
+  border: 1px solid color-mix(in srgb, var(--sheet) 72%, transparent);
   border-radius: var(--radius-lg);
   background: var(--grad-glass);
   box-shadow: var(--shadow-lg);
@@ -32,7 +32,7 @@
   }
 
   .dialog {
-    background: rgb(253 251 244 / 96%);
+    background: color-mix(in srgb, var(--sheet) 96%, transparent);
   }
 }
 
@@ -161,7 +161,7 @@
 .submit {
   border: 0;
   background: var(--grad-brand);
-  color: #fdfbf4;
+  color: var(--on-accent);
   box-shadow: 0 12px 26px rgb(12 90 84 / 28%);
 }
 
@@ -173,16 +173,12 @@
 
 .later {
   border: 1px solid var(--line-soft);
-  background: rgb(253 251 244 / 78%);
+  background: color-mix(in srgb, var(--sheet) 78%, transparent);
   color: var(--ink);
 }
 
 .alert {
-  margin: 0;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  font-size: var(--fs-small);
-  font-weight: 600;
+  composes: base from "../../ui/Alert/Alert.module.css";
 }
 
 .alertError {

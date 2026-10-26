@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { guardConfirmedSubmit } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import {
   useActionState,
   useEffect,
@@ -420,9 +421,7 @@ export function AdminContentEditor({
                 const key = anyInUse
                   ? "deleteSelectedConfirmInUse"
                   : "deleteSelectedConfirm";
-                if (!window.confirm(t(key, { count: selectedIds.length }))) {
-                  event.preventDefault();
-                }
+                guardConfirmedSubmit(event, t(key, { count: selectedIds.length }));
               }}
             >
               {selectedIds.map((id) => (
@@ -512,9 +511,7 @@ export function AdminContentEditor({
                             const key = task.inUse
                               ? "deleteConfirmInUse"
                               : "deleteConfirm";
-                            if (!window.confirm(t(key, { name: task.label }))) {
-                              event.preventDefault();
-                            }
+                            guardConfirmedSubmit(event, t(key, { name: task.label }));
                           }}
                         >
                           <input type="hidden" name="taskId" value={task.id} />

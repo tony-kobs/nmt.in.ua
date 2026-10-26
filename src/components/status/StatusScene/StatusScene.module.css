@@ -60,6 +60,24 @@
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow-md);
+  animation: statusIn var(--t-slow) var(--ease);
+}
+
+@keyframes statusIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
 }
 
 .kicker {
@@ -162,7 +180,7 @@
 
 .ghost {
   border: 1px solid var(--line-soft);
-  background: rgb(253 251 244 / 78%);
+  background: color-mix(in srgb, var(--sheet) 78%, transparent);
   color: var(--green-dark);
 }
 
