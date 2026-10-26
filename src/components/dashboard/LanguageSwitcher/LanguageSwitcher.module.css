@@ -11,7 +11,7 @@
   padding: 6px 12px 6px 10px;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-pill);
-  background: rgb(253 251 244 / 78%);
+  background: color-mix(in srgb, var(--sheet) 78%, transparent);
   color: var(--ink);
   font: inherit;
   font-size: var(--fs-small);
@@ -85,11 +85,29 @@
   margin: 0;
   padding: 6px;
   list-style: none;
-  border: 1px solid rgb(253 251 244 / 72%);
+  border: 1px solid color-mix(in srgb, var(--sheet) 72%, transparent);
   border-radius: var(--radius-lg);
   background: var(--grad-glass);
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(14px);
+  animation: menuIn var(--t) var(--ease);
+}
+
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu {
+    animation: none;
+  }
 }
 
 @supports not (backdrop-filter: blur(4px)) {

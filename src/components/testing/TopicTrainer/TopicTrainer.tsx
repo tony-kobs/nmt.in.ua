@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { askConfirm } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import {
@@ -614,7 +615,7 @@ export function TopicTrainer({
   }
 
   async function handleAbortUltimate() {
-    if (!window.confirm(t("confirmAbortUltimate"))) {
+    if (!(await askConfirm(t("confirmAbortUltimate")))) {
       return;
     }
     await finishUltimate();

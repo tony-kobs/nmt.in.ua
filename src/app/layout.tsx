@@ -12,7 +12,7 @@ import {
   siteIcons,
 } from "@/constants/seo";
 import { DeploymentSkewReload } from "@/components/status/DeploymentSkewReload";
-import { QueryProvider } from "@/components/providers/QueryProvider";
+import { ConfirmHost } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { getLocale } from "next-intl/server";
 import "./globals.css";
 
@@ -80,7 +80,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html lang={locale} className={`${inter.variable} ${manrope.variable}`}>
       <body>
         <DeploymentSkewReload />
-        <QueryProvider>{children}</QueryProvider>
+        <ConfirmHost locale={locale} />
+        {children}
       </body>
     </html>
   );

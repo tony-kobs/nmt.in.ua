@@ -82,7 +82,7 @@
   margin: 0;
   padding: 0.45rem 0.75rem;
   border-radius: var(--radius-md);
-  background: rgb(253 251 244 / 92%);
+  background: color-mix(in srgb, var(--sheet) 92%, transparent);
   color: var(--ink);
   font-size: var(--fs-lead);
   line-height: 1.6;
@@ -340,7 +340,7 @@
   max-width: 34rem;
   padding: 0.45rem 0.75rem;
   border-radius: var(--radius-md);
-  background: rgb(253 251 244 / 92%);
+  background: color-mix(in srgb, var(--sheet) 92%, transparent);
   color: var(--ink);
   font-size: var(--fs-lead);
   line-height: 1.6;
@@ -378,7 +378,7 @@
   padding: 10px 12px;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-md);
-  background: rgb(253 251 244 / 72%);
+  background: color-mix(in srgb, var(--sheet) 72%, transparent);
 }
 
 .heroStepNum {

@@ -1,6 +1,7 @@
 .card {
   display: flex;
-  gap: var(--space-lg);
+  flex-direction: column;
+  gap: var(--space-md);
   width: 100%;
   margin-inline: auto;
   padding: var(--space-lg);
@@ -17,8 +18,8 @@
 .avatar {
   display: grid;
   place-items: center;
-  width: 112px;
-  height: 112px;
+  width: 96px;
+  height: 96px;
   overflow: hidden;
   border: 3px solid var(--green-bg);
   border-radius: 50%;
@@ -38,6 +39,7 @@
 
 .header {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-md);
@@ -57,7 +59,7 @@
 .name {
   margin: 0;
   font-family: var(--font-display);
-  font-size: var(--fs-body);
+  font-size: var(--fs-h3);
   font-weight: 700;
   line-height: 1.25;
 }
@@ -71,6 +73,7 @@
 .lessonMeta {
   display: flex;
   flex: none;
+  align-self: flex-start;
   align-items: baseline;
   gap: 8px;
   padding: 9px 15px;
@@ -207,7 +210,7 @@
 
 .detailsContent {
   display: grid;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   max-width: 48rem;
   margin-top: var(--space-sm);
   padding-top: var(--space-sm);
@@ -275,37 +278,40 @@
   opacity: 0.7;
 }
 
-@media (max-width: 767px) {
+.pageTop {
+  margin-bottom: var(--space-sm);
+}
+
+@media (min-width: 768px) {
   .pageTop {
-    margin-bottom: var(--space-sm);
+    margin-bottom: 0;
   }
 
   .card {
-    flex-direction: column;
-    gap: var(--space-md);
-    padding: var(--space-lg);
+    flex-direction: row;
+    gap: var(--space-lg);
   }
 
   .avatar {
-    width: 96px;
-    height: 96px;
+    width: 112px;
+    height: 112px;
   }
 
   .header {
-    flex-direction: column;
-    gap: var(--space-md);
+    flex-direction: row;
+    align-items: flex-start;
   }
 
   .lessonMeta {
-    align-self: flex-start;
+    align-self: auto;
   }
 
   .name {
-    font-size: var(--fs-h3);
+    font-size: var(--fs-body);
   }
 
   .detailsContent {
-    gap: var(--space-md);
+    gap: var(--space-sm);
   }
 }
 

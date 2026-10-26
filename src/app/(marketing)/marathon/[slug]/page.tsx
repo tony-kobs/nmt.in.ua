@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { DatabaseUnavailable } from "@/components/status/DatabaseUnavailable";
 import { DiagnosticShell } from "@/components/diagnostic/DiagnosticShell";
+import { isDatabaseUnavailable, rethrowNavigation } from "@/lib/db/unavailable";
 import { MarathonLanding } from "@/components/marathon/MarathonLanding";
 import { createPageMetadata } from "@/constants/seo";
 import { getCurrentUser } from "@/modules/auth/getCurrentUser";
@@ -22,29 +24,55 @@ function one(value: string | string[] | undefined): string | undefined {
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
   const t = await getTranslations("Metadata.marathon");
-  const marathon = await getDailyBySlug(slug);
-  return createPageMetadata({
-    title: marathon?.title ?? t("title"),
-    description: t("description"),
-    path: `/marathon/${slug}`,
-  });
+  try {
+    const marathon = await getDailyBySlug(slug);
+    return createPageMetadata({
+      title: marathon?.title ?? t("title"),
+      description: t("description"),
+      path: `/marathon/${slug}`,
+    });
+  } catch (error) {
+    rethrowNavigation(error);
+    if (!isDatabaseUnavailable(error)) throw error;
+    return createPageMetadata({
+      title: t("title"),
+      description: t("description"),
+      path: `/marathon/${slug}`,
+    });
+  }
 }
 
 export default async function MarathonLandingPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const query = await searchParams;
-  const marathon = await getDailyBySlug(slug);
+  let marathon;
+  try {
+    marathon = await getDailyBySlug(slug);
+  } catch (error) {
+    rethrowNavigation(error);
+    if (isDatabaseUnavailable(error)) return <DatabaseUnavailable />;
+    throw error;
+  }
   if (!marathon || marathon.status === "draft" || marathon.status === "archived") notFound();
-  const [riddles, user, board] = await Promise.all([
-    loadLandingRiddles({
-      marathonId: marathon.id,
-      subject: marathon.subject,
-      count: marathon.landingRiddleCount,
-      session: await readRiddleSession(),
-    }),
-    getCurrentUser(),
-    marathon.status === "finished" ? loadMarathonBoard(marathon.id) : Promise.resolve([]),
-  ]);
+  let riddles;
+  let user;
+  let board;
+  try {
+    [riddles, user, board] = await Promise.all([
+      loadLandingRiddles({
+        marathonId: marathon.id,
+        subject: marathon.subject,
+        count: marathon.landingRiddleCount,
+        session: await readRiddleSession(),
+      }),
+      getCurrentUser(),
+      marathon.status === "finished" ? loadMarathonBoard(marathon.id) : Promise.resolve([]),
+    ]);
+  } catch (error) {
+    rethrowNavigation(error);
+    if (isDatabaseUnavailable(error)) return <DatabaseUnavailable />;
+    throw error;
+  }
   return (
     <DiagnosticShell>
       <MarathonLanding

@@ -29,7 +29,6 @@ export {
   TeacherProfileError,
 } from "./store";
 export { listPublicTeachersForCarousel } from "./listPublicTeachers";
-export { listPublicTeachersForLanding } from "./listPublicTeachersForLanding";
 export { rateTeacher, RateTeacherError } from "./rateTeacher";
 export type { RateTeacherInput, RateTeacherResult } from "./rateTeacher";
 export { saveTeacherProfileAction, rateTeacherAction } from "./actions";

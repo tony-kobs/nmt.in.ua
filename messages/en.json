@@ -2147,6 +2147,10 @@
       "title": "Textbook",
       "description": "Theory and formulas by certification topics — one textbook with a table of contents."
     },
+    "notFound": {
+      "title": "Page not found",
+      "description": "This page does not exist. Go back to the nmt.in.ua home page and continue NMT math prep."
+    },
     "problems": {
       "title": "Problem Bank",
       "description": "Printable per-topic test: a table of tasks to print and hand to students."

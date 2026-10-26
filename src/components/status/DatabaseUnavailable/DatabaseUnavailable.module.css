@@ -1,0 +1,57 @@
+.page {
+  display: grid;
+  align-content: center;
+  min-height: 100dvh;
+  padding: var(--section-y) var(--container-pad);
+  color: var(--ink);
+}
+
+.card {
+  display: grid;
+  gap: var(--space-md);
+  width: min(100%, 36rem);
+  margin-inline: auto;
+  padding: var(--space-lg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-h1);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.lead {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+}
+
+.link {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
+  background: var(--grad-brand);
+  color: var(--on-accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.link:hover,
+.link:focus-visible {
+  background: var(--grad-brand-hover);
+}
+
+.link:active {
+  background: var(--grad-brand-active);
+}

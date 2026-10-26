@@ -9,7 +9,7 @@
 
 @supports not (backdrop-filter: blur(4px)) {
   .panel {
-    background: rgb(253 251 244 / 92%);
+    background: color-mix(in srgb, var(--sheet) 92%, transparent);
   }
 }
 
@@ -36,7 +36,7 @@
   gap: var(--space-sm);
   padding: 10px 12px;
   border-radius: var(--radius-md);
-  background: rgb(253 251 244 / 72%);
+  background: color-mix(in srgb, var(--sheet) 72%, transparent);
   color: var(--ink);
   font-size: var(--fs-small);
   font-weight: 650;

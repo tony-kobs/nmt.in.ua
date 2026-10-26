@@ -148,6 +148,24 @@ const SQL_LIST_MEMBERS = `
   ORDER BY u.display_name ASC, u.id ASC
 `;
 
+const SQL_LIST_MEMBERS_FOR_ASSIGNMENTS = `
+  SELECT
+    m.assignment_id,
+    m.student_user_id,
+    u.login,
+    u.display_name,
+    m.session_id,
+    s.session_status,
+    s.tasks_number,
+    s.right_number,
+    s.time
+  FROM mentor_assignment_members m
+  INNER JOIN app_users u ON u.id = m.student_user_id
+  LEFT JOIN task_sessions s ON s.id = m.session_id
+  WHERE m.assignment_id IN (?)
+  ORDER BY u.display_name ASC, u.id ASC
+`;
+
 function uniquePositiveInts(values: number[]): number[] {
   return [...new Set(values.filter(isPositiveInt))];
 }
@@ -452,16 +470,24 @@ export async function listMentorAssignments(
     const rows = await connection.query<AssignmentRow>(SQL_LIST_ASSIGNMENTS, [
       teacherUserId,
     ]);
-    const summaries: MentorAssignmentSummary[] = [];
-    for (const row of rows) {
-      const members = mapMembers(
-        await connection.query<MemberRow>(SQL_LIST_MEMBERS, [row.id]),
-        row.due_at,
-        nowSec
+    const membersByAssignment = new Map<number, MemberRow[]>();
+    if (rows.length > 0) {
+      const memberRows = await connection.query<MemberRow & { assignment_id: number }>(
+        SQL_LIST_MEMBERS_FOR_ASSIGNMENTS,
+        [rows.map((row) => row.id)],
       );
-      summaries.push(summarize(row, members));
+      for (const member of memberRows) {
+        const bucket = membersByAssignment.get(member.assignment_id) ?? [];
+        bucket.push(member);
+        membersByAssignment.set(member.assignment_id, bucket);
+      }
     }
-    return summaries;
+    return rows.map((row) =>
+      summarize(
+        row,
+        mapMembers(membersByAssignment.get(row.id) ?? [], row.due_at, nowSec),
+      ),
+    );
   } finally {
     connection.release();
   }

@@ -1,18 +1,31 @@
 .reveal {
-  /* Motion owns the motion; this class is a no-JS / reduced-motion fallback. */
+  animation: revealIn var(--t-slow) var(--ease) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+@keyframes revealIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (scripting: none) {
   .reveal {
-    opacity: 1 !important;
-    transform: none !important;
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .reveal {
-    opacity: 1 !important;
-    transform: none !important;
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }
-

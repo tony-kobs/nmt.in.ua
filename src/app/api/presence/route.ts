@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureCookieLoginSession, getSessionPayload } from "@/modules/auth/getCurrentUser";
+import { ensureTopicTestReminders } from "@/modules/notifications/topicReminders";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,11 @@ export async function POST(): Promise<NextResponse> {
 
   try {
     await ensureCookieLoginSession();
+    if (session.role === "student") {
+      await ensureTopicTestReminders(session.userId).catch((error: unknown) => {
+        console.error("topic test reminders", error);
+      });
+    }
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("POST /api/presence failed", error);

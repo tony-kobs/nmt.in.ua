@@ -26,7 +26,7 @@ import {
   type TaskSessionRecord,
 } from "@/modules/sessions/types";
 import { nowUnixSec } from "@/modules/testing/sessionElapsed";
-import { getSessionMistakeReview } from "@/modules/testing/getSessionMistakeReview";
+import { getSessionMistakeReviews } from "@/modules/testing/getSessionMistakeReview";
 import { getTranslations } from "next-intl/server";
 import {
   pickOpenMarathonDay,
@@ -245,9 +245,11 @@ async function loadMarathonDay(
 
 async function loadAdvice(userId: number, sessionIds: number[]) {
   const t = (await getTranslations("Recommendations")) as RecommendationTranslator;
+  const reviews = await getSessionMistakeReviews(sessionIds, userId);
   for (const sessionId of sessionIds) {
-    const mistakes = await getSessionMistakeReview(sessionId, userId);
-    const advice = pickTodayAdvice(recommendFromSessionMistakes(mistakes, t));
+    const advice = pickTodayAdvice(
+      recommendFromSessionMistakes(reviews.get(sessionId) ?? [], t),
+    );
     if (advice) return advice;
   }
   return null;

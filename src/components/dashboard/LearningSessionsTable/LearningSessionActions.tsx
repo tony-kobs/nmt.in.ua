@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { guardConfirmedSubmit } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { useActionState } from "react";
 import { useTranslations } from "next-intl";
 import {
@@ -44,9 +45,7 @@ export function SessionActions({ row }: { row: LearningSessionRow }) {
         action={formAction}
         className={css.cancelForm}
         onSubmit={(event) => {
-          if (!window.confirm(t("cancelConfirm", { theme: row.themeName }))) {
-            event.preventDefault();
-          }
+          guardConfirmedSubmit(event, t("cancelConfirm", { theme: row.themeName }));
         }}
       >
         <input type="hidden" name="sessionId" value={row.id} />

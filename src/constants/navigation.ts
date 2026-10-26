@@ -120,7 +120,3 @@ export function getNavItem(href: string): NavItem {
   }
   return item;
 }
-
-export function isNavRouteReady(href: string): boolean {
-  return getNavItem(href).status === "ready";
-}

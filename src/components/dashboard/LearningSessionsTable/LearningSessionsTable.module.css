@@ -101,7 +101,7 @@
   border: 0;
   border-radius: var(--radius-pill);
   background: var(--grad-brand);
-  color: #fdfbf4;
+  color: var(--on-accent);
   font: inherit;
   font-size: var(--fs-small);
   font-weight: 700;
@@ -117,7 +117,7 @@
   transform: none;
   cursor: not-allowed;
   pointer-events: none;
-  background: rgb(253 251 244 / 78%);
+  background: color-mix(in srgb, var(--sheet) 78%, transparent);
   color: var(--muted);
   border: 1px solid var(--line-soft);
   box-shadow: none;
@@ -267,7 +267,7 @@
 
 .scoreNone {
   color: var(--muted);
-  background: rgb(253 251 244 / 88%);
+  background: color-mix(in srgb, var(--sheet) 88%, transparent);
 }
 
 .tableWrap {

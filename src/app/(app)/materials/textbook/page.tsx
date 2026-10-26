@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { MaterialDocument } from "@/components/learningMaterials/MaterialDocument";
 import { TextbookHashRedirect } from "@/components/learningMaterials/TextbookHashRedirect";
 import { getTextbookBlocks } from "@/content/learningMaterials";
@@ -12,10 +13,10 @@ type TextbookPageProps = {
 };
 
 export async function generateMetadata() {
+  const t = await getTranslations("Metadata.materials");
   return createPageMetadata({
-    title: "Підручник",
-    description:
-      "Загальний підручник з математики зі змістом, теорією та формулами.",
+    title: t("title"),
+    description: t("description"),
     path: "/materials/textbook",
   });
 }

@@ -30,7 +30,7 @@
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   background: var(--grad-brand);
-  color: #fdfbf4;
+  color: var(--on-accent);
   font-weight: 700;
   cursor: pointer;
 }
@@ -41,11 +41,7 @@
 }
 
 .alert {
-  margin: 0;
-  padding: 10px 14px;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  composes: base from "../../ui/Alert/Alert.module.css";
 }
 
 .alertError {

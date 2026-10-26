@@ -11,7 +11,7 @@ import { DevTeam } from "../DevTeam";
 import { Faq } from "../Faq";
 import { Features } from "../Features";
 import { MarathonHomeCards } from "@/components/marathon/MarathonHomeCards";
-import { loadMarathonHomeState } from "@/modules/marathons/daily/store";
+import { loadGuestMarathonHomeState } from "@/modules/marathons/daily/store";
 import { Hero } from "../Hero";
 import { LandingFooter } from "../LandingFooter";
 import { LandingHeader } from "../LandingHeader";
@@ -26,7 +26,7 @@ const structuredData = [
 
 export async function WelcomeLanding() {
   const t = await getTranslations("Common");
-  const home = await loadMarathonHomeState({ userId: null, role: null }).catch((error: unknown) => {
+  const home = await loadGuestMarathonHomeState().catch((error: unknown) => {
     console.error("marathon home", error);
     return { cards: [], invites: [], spotlight: null };
   });

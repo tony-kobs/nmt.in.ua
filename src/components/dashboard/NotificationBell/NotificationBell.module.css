@@ -13,7 +13,7 @@
   padding: 0;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-pill);
-  background: rgb(253 251 244 / 78%);
+  background: color-mix(in srgb, var(--sheet) 78%, transparent);
   color: var(--ink);
   cursor: pointer;
 }

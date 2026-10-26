@@ -1,18 +1,10 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { setLocale } from "@/i18n/actions";
-import {
-  overlayHidden,
-  popoverExit,
-  popoverHidden,
-  popoverShown,
-  tweenFast,
-} from "@/lib/motionPresets";
 import { LocaleFlag } from "./LocaleFlag";
 import css from "./LanguageSwitcher.module.css";
 
@@ -31,7 +23,6 @@ export function LanguageSwitcher() {
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
-  const reduceMotion = useReducedMotion();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
 
@@ -104,19 +95,8 @@ export function LanguageSwitcher() {
         </svg>
       </button>
 
-      <AnimatePresence>
-        {open ? (
-          <motion.ul
-            key="lang-menu"
-            id={menuId}
-            className={css.menu}
-            role="menu"
-            aria-label={t("aria")}
-            initial={reduceMotion ? false : popoverHidden}
-            animate={popoverShown}
-            exit={reduceMotion ? overlayHidden : popoverExit}
-            transition={reduceMotion ? { duration: 0.01 } : tweenFast}
-          >
+      {open ? (
+          <ul id={menuId} className={css.menu} role="menu" aria-label={t("aria")}>
             {LOCALES.map((item) => {
               const active = item === locale;
               return (
@@ -155,9 +135,8 @@ export function LanguageSwitcher() {
                 </li>
               );
             })}
-          </motion.ul>
+          </ul>
         ) : null}
-      </AnimatePresence>
     </div>
   );
 }

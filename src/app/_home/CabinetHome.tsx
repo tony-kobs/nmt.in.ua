@@ -19,6 +19,9 @@ import { findUserById } from "@/modules/auth/users";
 import { canImportContent, type AuthUser } from "@/modules/auth/types";
 import { SavedToast } from "@/components/marathon/SavedToast";
 import { ensureStudentMarathonInvites } from "@/modules/marathons/daily/invites";
+import { ensureTopicTestReminders } from "@/modules/notifications/topicReminders";
+import { DatabaseUnavailable } from "@/components/status/DatabaseUnavailable";
+import { isDatabaseUnavailable, rethrowNavigation } from "@/lib/db/unavailable";
 import { loadStudentToday } from "@/modules/today/loadStudentToday";
 
 type CabinetHomeProps = {
@@ -33,7 +36,17 @@ type CabinetHomeProps = {
 };
 
 /** Loaded only for authenticated `/` — keeps cabinet out of the guest graph. */
-export async function CabinetHome({
+export async function CabinetHome(props: CabinetHomeProps) {
+  try {
+    return await CabinetHomeLoaded(props);
+  } catch (error) {
+    rethrowNavigation(error);
+    if (isDatabaseUnavailable(error)) return <DatabaseUnavailable />;
+    throw error;
+  }
+}
+
+async function CabinetHomeLoaded({
   locale,
   user,
   displayName,
@@ -52,6 +65,12 @@ export async function CabinetHome({
           return { cards: [], invites: [], spotlight: null };
         })
       : { cards: [], invites: [], spotlight: null };
+
+  if (user.role === "student") {
+    await ensureTopicTestReminders(user.id).catch((error: unknown) => {
+      console.error("topic test reminders", error);
+    });
+  }
 
   if (user.role === "teacher") {
     redirect("/assign");

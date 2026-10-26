@@ -17,7 +17,7 @@
 
 @supports not (backdrop-filter: blur(4px)) {
   .panel {
-    background: rgb(253 251 244 / 92%);
+    background: color-mix(in srgb, var(--sheet) 92%, transparent);
   }
 }
 
@@ -58,7 +58,7 @@
 
 .detailsList {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: var(--space-md);
   margin: 0;
 }
@@ -83,18 +83,18 @@
 }
 
 .motivation {
-  grid-column: 1 / -1;
+  grid-column: auto;
   padding-top: var(--space-md);
   border-top: 1px solid var(--line-soft);
 }
 
-@media (max-width: 720px) {
+@media (min-width: 768px) {
   .detailsList {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .motivation {
-    grid-column: auto;
+    grid-column: 1 / -1;
   }
 }
 
@@ -106,9 +106,16 @@
 }
 
 .actionButtons {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
-  justify-content: flex-end;
+  justify-content: stretch;
+}
+
+.actionButtons form,
+.approveButton,
+.rejectButton {
+  width: 100%;
 }
 
 .approveButton,
@@ -162,7 +169,7 @@
 }
 
 .confirmRejectButton {
-  justify-self: end;
+  justify-self: stretch;
   border: 0;
   background: crimson;
   color: white;
@@ -182,24 +189,18 @@
   font-weight: 700;
 }
 
-@media (max-width: 720px) {
+@media (min-width: 768px) {
   .actionButtons {
-    justify-content: stretch;
+    display: flex;
+    justify-content: flex-end;
   }
 
   .actionButtons form,
   .approveButton,
-  .rejectButton {
-    width: 100%;
-  }
-
-  .actionButtons {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-
+  .rejectButton,
   .confirmRejectButton {
-    justify-self: stretch;
+    width: auto;
+    justify-self: end;
   }
 }
 
