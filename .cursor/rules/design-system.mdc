@@ -192,6 +192,12 @@ npm run lint && npm test && npm run build
 
 ## Журнал змін
 
+### 2026-10-28 — іконка вкладки
+
+- Знак LevelUP (стрілка і книжка) у `favicon.ico` (16/32/48), PNG 32/192/512, Apple Touch 180 і maskable 192/512. Папір maskable і Apple — `--page`.
+- `app/favicon.ico` (чорний трикутник) прибрано, щоб не було другого `<link rel="icon">`. Маніфест: PNG з явними розмірами, не `image/svg+xml`.
+- Перевірити вкладку на 375 і 1440 (Chrome / Firefox / Safari) і `/manifest.webmanifest`.
+
 ### 2026-10-26 — аудит: картка завдання, заглушка бази, 44px
 
 - Обраний варіант у `TestTaskCard` — контур `--green-fill` і кільце `--green-soft`. Правильний лишається заливкою `--green-bg`, неправильний і ключ не змінювались.

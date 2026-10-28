@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://nmt.in.ua">
-    <img src="public/favicon.svg" alt="Знак nmt.in.ua" width="80" height="80">
+    <img src="public/favicon.png" alt="Знак nmt.in.ua" width="80" height="80">
   </a>
 </p>
 
