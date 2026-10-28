@@ -34,8 +34,14 @@ export const DEFAULT_OG_IMAGE_ALT =
   "LevelUP — підготовка до НМТ з математики: тренажер, тести за темами та симулятор";
 
 export const ICON_PATHS = {
-  favicon: "/favicon.png",
+  /** Multi-size ICO: 16, 32 and 48. Browsers request /favicon.ico even without a tag. */
+  faviconIco: "/favicon.ico",
+  icon32: "/icons/icon-32.png",
+  icon192: "/icons/icon-192.png",
+  icon512: "/icons/icon-512.png",
   appleTouch: "/icons/apple-touch-icon.png",
+  maskable192: "/icons/maskable-192.png",
+  maskable512: "/icons/maskable-512.png",
 } as const;
 
 export function getSiteUrl(): string {
@@ -132,10 +138,21 @@ export function createPageMetadata({
   };
 }
 
-/** Root layout icons + PWA hints (manifest is generated separately). */
+/**
+ * One set of brand icons. `app/favicon.ico` is not used: Next would also emit
+ * a hardcoded 16×16 link and the old file was the default triangle.
+ */
 export function siteIcons(): Metadata["icons"] {
   return {
-    icon: [{ url: ICON_PATHS.favicon, type: "image/png" }],
+    icon: [
+      {
+        url: ICON_PATHS.faviconIco,
+        sizes: "16x16 32x32 48x48",
+        type: "image/x-icon",
+      },
+      { url: ICON_PATHS.icon32, sizes: "32x32", type: "image/png" },
+      { url: ICON_PATHS.icon192, sizes: "192x192", type: "image/png" },
+    ],
     apple: [{ url: ICON_PATHS.appleTouch, sizes: "180x180", type: "image/png" }],
   };
 }

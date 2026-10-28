@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- LevelUP mark. Traced from levelup-mark.png; there was no vector source. -->
+  <g id="mark">
+    <path fill="#123c70" d="M20 81 L23 82 L23 94 L47 95 L60 102 L73 95 L97 94 L97 82 L100 81 L101 97 L76 98 L60 106 L44 98 L19 97 L20 81 Z"/>
+    <path fill="#35b7ae" d="M24 72 L32 69 L47 71 L58 78 L58 98 L41 90 L24 91 Z"/>
+    <path fill="#35b7ae" d="M96 72 L88 69 L73 71 L62 78 L62 98 L79 90 L96 91 Z"/>
+    <path fill="#123c70" d="M58 78 H62 V100 L60 106 L58 100 Z"/>
+    <path fill="#123c70" d="M60 58 L71 65 L67 70 L60 66 L53 70 L49 65 Z"/>
+    <path fill="#35b7ae" d="M60 12 L85 38 H76 V60 L60 52 L44 60 V38 H35 Z"/>
+  </g>
+</svg>
