@@ -4,10 +4,17 @@ import { DatabaseUnavailable } from "@/components/status/DatabaseUnavailable";
 import { DiagnosticShell } from "@/components/diagnostic/DiagnosticShell";
 import { isDatabaseUnavailable, rethrowNavigation } from "@/lib/db/unavailable";
 import { MarathonLanding } from "@/components/marathon/MarathonLanding";
+import { MarathonParking } from "@/components/marathon/MarathonParking";
 import { createPageMetadata } from "@/constants/seo";
 import { getCurrentUser } from "@/modules/auth/getCurrentUser";
 import { readRiddleSession } from "@/modules/marathons/daily/riddleSession";
-import { getDailyBySlug, loadLandingRiddles, loadMarathonBoard } from "@/modules/marathons/daily/store";
+import { marathonOpensAt, publicMarathonPhase } from "@/modules/marathons/daily/publicPage";
+import {
+  getParticipant,
+  getPublicDailyBySlug,
+  loadLandingRiddles,
+  loadMarathonBoard,
+} from "@/modules/marathons/daily/store";
 import { readUtm } from "@/modules/marathons/daily/utm";
 
 export const dynamic = "force-dynamic";
@@ -24,11 +31,20 @@ function one(value: string | string[] | undefined): string | undefined {
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
   const t = await getTranslations("Metadata.marathon");
+  const missing = await getTranslations("Metadata.notFound");
+  const hidden = createPageMetadata({
+    title: missing("title"),
+    description: missing("description"),
+    path: `/marathon/${slug}`,
+    noIndex: true,
+  });
   try {
-    const marathon = await getDailyBySlug(slug);
+    const marathon = await getPublicDailyBySlug(slug);
+    const phase = publicMarathonPhase(marathon, new Date());
+    if (!marathon || phase === "hidden") return hidden;
     return createPageMetadata({
-      title: marathon?.title ?? t("title"),
-      description: t("description"),
+      title: marathon.title.trim() || slug,
+      description: marathon.description || t("description"),
       path: `/marathon/${slug}`,
     });
   } catch (error) {
@@ -45,15 +61,50 @@ export async function generateMetadata({ params }: PageProps) {
 export default async function MarathonLandingPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const query = await searchParams;
+  const now = new Date();
   let marathon;
   try {
-    marathon = await getDailyBySlug(slug);
+    marathon = await getPublicDailyBySlug(slug);
   } catch (error) {
     rethrowNavigation(error);
     if (isDatabaseUnavailable(error)) return <DatabaseUnavailable />;
     throw error;
   }
-  if (!marathon || marathon.status === "draft" || marathon.status === "archived") notFound();
+  const phase = publicMarathonPhase(marathon, now);
+  if (!marathon || phase === "hidden") notFound();
+  const utm = readUtm({
+    utm_source: one(query.utm_source),
+    utm_medium: one(query.utm_medium),
+    utm_campaign: one(query.utm_campaign),
+    utm_content: one(query.utm_content),
+    utm_term: one(query.utm_term),
+  });
+  if (phase === "parking") {
+    let user;
+    let joined = false;
+    try {
+      user = await getCurrentUser();
+      if (user) {
+        joined = Boolean(await getParticipant(marathon.id, user.id)) || one(query.joined) === "1";
+      }
+    } catch (error) {
+      rethrowNavigation(error);
+      if (isDatabaseUnavailable(error)) return <DatabaseUnavailable />;
+      throw error;
+    }
+    return (
+      <DiagnosticShell>
+        <MarathonParking
+          marathon={marathon}
+          opensAt={marathonOpensAt(marathon)}
+          loggedIn={Boolean(user)}
+          joined={joined}
+          error={one(query.error)}
+          utm={utm}
+        />
+      </DiagnosticShell>
+    );
+  }
   let riddles;
   let user;
   let board;
@@ -82,13 +133,7 @@ export default async function MarathonLandingPage({ params, searchParams }: Page
         board={board}
         viewerId={user?.id ?? null}
         error={one(query.error)}
-        utm={readUtm({
-          utm_source: one(query.utm_source),
-          utm_medium: one(query.utm_medium),
-          utm_campaign: one(query.utm_campaign),
-          utm_content: one(query.utm_content),
-          utm_term: one(query.utm_term),
-        })}
+        utm={utm}
       />
     </DiagnosticShell>
   );

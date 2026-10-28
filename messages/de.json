@@ -883,6 +883,10 @@
     "showHint": "Hinweis",
     "showAnswer": "Antwort",
     "join": "Mitmachen",
+    "parkingLead": "Der Marathon ist noch nicht offen. Du kannst schon jetzt mitmachen — die Aufgaben erscheinen zur Startzeit.",
+    "parkingWhen": "Start {when}",
+    "parkingJoin": "Mitmachen",
+    "parkingJoined": "Du bist schon dabei. Die Aufgaben öffnen sich zur Startzeit.",
     "haveAccount": "Ich habe schon ein Konto",
     "finishedNote": "Dieser Marathon ist beendet. Die Ergebnisse bleiben sichtbar.",
     "finishedMap": "Meine Karte und Ergebnisse",
@@ -1088,7 +1092,8 @@
     "copied": "Kopiert",
     "copyFailed": "Kopieren fehlgeschlagen. Markiere den Link und kopiere ihn von Hand.",
     "publicLinkLabel": "Öffentlicher Link",
-    "draftHidden": "Die Seite ist nicht öffentlich, solange der Status nicht «{status}» ist.",
+    "draftHidden": "Unter diesem Link liegt schon eine Warteseite: Name, Beschreibung, falls vorhanden, und «Mitmachen». Aufgaben öffnen sich, wenn der Kurs aktiv ist und die Startzeit da ist.",
+    "archiveHidden": "Die Seite bleibt verborgen, solange der Kurs im Archiv ist.",
     "defaults": {
       "finalCta": "Weiter lernen"
     },

@@ -126,7 +126,6 @@ async function MarathonAdminCard({
   const t = await getTranslations("Marathon");
   const locale = await getLocale();
   const uiLocale = durationLocale(locale);
-  const hidden = marathon.status === "draft" || marathon.status === "archived";
   const focusLabel = !stats
     ? ""
     : stats.focus === "today"
@@ -152,7 +151,10 @@ async function MarathonAdminCard({
       <p className={css.statusBadge} data-status={marathon.status}>
         {t(`status.${marathon.status}`)}
       </p>
-      <MarathonPublicLink href={publicHref(marathon.slug)} draft={hidden} />
+      <MarathonPublicLink
+        href={publicHref(marathon.slug)}
+        visibility={marathon.status === "archived" ? "hidden" : marathon.status === "draft" ? "waiting" : undefined}
+      />
       {stats ? (
         <dl className={css.cardStats}>
           <div>
@@ -492,7 +494,9 @@ export async function MarathonAdminEditor({
         <div className={css.editorTop}>
           <MarathonPublicLink
             href={publicHref(marathon.slug)}
-            draft={marathon.status === "draft" || marathon.status === "archived"}
+            visibility={
+              marathon.status === "archived" ? "hidden" : marathon.status === "draft" ? "waiting" : undefined
+            }
           />
           <MarathonFunnelStrip funnel={funnel} />
         </div>

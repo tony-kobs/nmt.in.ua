@@ -3,8 +3,10 @@ import { getTranslations } from "next-intl/server";
 import { DiagnosticShell } from "@/components/diagnostic/DiagnosticShell";
 import { MarathonJoin } from "@/components/marathon/MarathonJoin";
 import { createPageMetadata } from "@/constants/seo";
+import { isDatabaseUnavailable, rethrowNavigation } from "@/lib/db/unavailable";
 import { getCurrentUser } from "@/modules/auth/getCurrentUser";
-import { getDailyBySlug } from "@/modules/marathons/daily/store";
+import { publicMarathonPhase } from "@/modules/marathons/daily/publicPage";
+import { getPublicDailyBySlug } from "@/modules/marathons/daily/store";
 import { readUtm } from "@/modules/marathons/daily/utm";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +23,25 @@ function one(value: string | string[] | undefined): string | undefined {
 export async function generateMetadata({ params }: PageProps) {
   const { slug } = await params;
   const t = await getTranslations("Metadata.marathonJoin");
+  const missing = await getTranslations("Metadata.notFound");
+  let open = false;
+  try {
+    const marathon = await getPublicDailyBySlug(slug);
+    const phase = publicMarathonPhase(marathon, new Date());
+    open = phase === "parking" || phase === "open";
+  } catch (error) {
+    rethrowNavigation(error);
+    if (!isDatabaseUnavailable(error)) throw error;
+    open = true;
+  }
+  if (!open) {
+    return createPageMetadata({
+      title: missing("title"),
+      description: missing("description"),
+      path: `/marathon/${slug}/join`,
+      noIndex: true,
+    });
+  }
   return createPageMetadata({
     title: t("title"),
     description: t("description"),
@@ -32,10 +53,12 @@ export async function generateMetadata({ params }: PageProps) {
 export default async function MarathonJoinPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const query = await searchParams;
-  const marathon = await getDailyBySlug(slug);
-  if (!marathon || marathon.status !== "active") notFound();
+  const marathon = await getPublicDailyBySlug(slug);
+  const phase = publicMarathonPhase(marathon, new Date());
+  if (!marathon || (phase !== "parking" && phase !== "open")) notFound();
   const user = await getCurrentUser();
-  if (user) redirect(`/marathon/${slug}/map`);
+  if (user && phase === "open") redirect(`/marathon/${slug}/map`);
+  if (user) redirect(`/marathon/${slug}`);
   return (
     <DiagnosticShell>
       <MarathonJoin
