@@ -156,6 +156,11 @@ const textbookSources: Partial<Record<string, TextbookSource[]>> = {
   ],
 };
 
+/** Theme codes that already have theory in the static conspects. */
+export function textbookThemeCodes(): string[] {
+  return Object.keys(textbookSources);
+}
+
 function getParagraphText(block: MaterialContentBlock): string {
   if (block.type !== "paragraph") {
     return "";

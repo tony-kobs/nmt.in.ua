@@ -53,5 +53,6 @@ node scripts/migrate.mjs --check
 | `055_marathon_day_time.sql` | час дня в `marathon_day_progress`: `started_at`, `submitted_at`, `duration_seconds`. Старі рядки лишаються NULL. Перед продом — бекап бази |
 | `056_marathon_images.sql` | фото вступу і дня (`marathon_images`, `day_id = 0` — вступ) і `marathon_team_broadcasts.photo_file_id` для фото в `/all`. Перед продом — бекап бази |
 | `057_support_ticket_thread.sql` | `support_tickets.body_kind`, переписка `support_ticket_entries`, прив’язка повідомлення бота `support_reply_links`, очікування продовження `support_follow_waits`. Перед продом — бекап бази |
+| `059_textbook_sections.sql` | текст підручника за темою (`textbook_sections`: чернетка `body` і опублікований `published_body`). Перед продом — бекап бази. Читання розділу нічого не публікує: поки `published_body` порожній, учень бачить статичний конспект. Якщо перша збірка вже встигла сама опублікувати втратну копію, один раз `node scripts/clear-textbook-autoseed.mjs` (план) і з `--yes` (запис). Скрипт чіпає лише рядки, чий `published_body` збігається зі знімком `scripts/data/textbook-autoseed-snapshot.json` |
 
 Два файли з префіксом `044` — різні версії: `044_notification_channels_and_invites.sql` і `044_user_sessions.sql`. Ключ журналу — повне ім’я файлу.

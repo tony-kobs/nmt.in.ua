@@ -67,6 +67,12 @@ export const DASHBOARD_NAV: NavItem[] = [
     status: "ready",
   },
   {
+    href: "/admin/textbook",
+    label: "Текст підручника",
+    description: "Редагування теорії за темами. На сайті видно лише опублікований текст.",
+    status: "ready",
+  },
+  {
     href: "/problems",
     label: "Задачник",
     description:
