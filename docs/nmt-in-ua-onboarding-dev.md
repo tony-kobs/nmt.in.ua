@@ -323,8 +323,8 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `/profiles` | Лише admin | Бан / видалення. Звичайний акаунт: лист Brevo, 14 днів, «Зберегти акаунт» або вхід. Забанений — одразу і без листа. Демо й власний акаунт захищені |
 | `/tasks/new`, `/tasks/[id]` | Лише admin | Редактор одного `quiz_tasks` |
 | `/materials`, `/materials/[slug]` | Учень+ | Редірект → `/materials/textbook` |
-| `/materials/textbook` | Учень+ | Один розділ `?topic=<themes.code>`. Текст — опублікований з `/admin/textbook` |
-| `/admin/textbook` | Лише admin | Чернетка і публікація тексту теми |
+| `/materials/textbook` | Учень+ | Один розділ `?topic=<themes.code>`. Опублікований текст з `/admin/textbook`; інакше статичний конспект |
+| `/admin/textbook` | Лише admin | Чернетка і публікація. Читання не пише `published_body` |
 | `/problems` | Учень+ | Друкований тест по темі |
 | `/account` | Учень+ | Фото / пароль / вихід. Викладач — візитка; адмін — без навчальних віджетів |
 | `/assign` | teacher/admin (сторінка `requireRole`; учень не в меню) | Призначити тест |
@@ -398,7 +398,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 
 | Задача | Де копати | Складність | Нотатка |
 | --- | --- | --- | --- |
-| 6.1 Підручник + `themes.code` | `src/content/learningMaterials`, `src/modules/textbook`, `/materials/textbook`, `/admin/textbook` | Середня | ✅ 08–09.09: лише підручник; `/materials` і slug → редірект. 28.10: адмін публікує текст у `textbook_sections` (`059`) |
+| 6.1 Підручник + `themes.code` | `src/content/learningMaterials`, `src/modules/textbook`, `/materials/textbook`, `/admin/textbook` | Середня | ✅ 08–09.09: лише підручник; `/materials` і slug → редірект. 28.10: адмін публікує текст у `textbook_sections` (`059`). Учень бачить статичний конспект, доки адмін не натисне «Опублікувати» |
 | 6.5 Банк 30–40 / тему | `content-import` | Контент | Спочатку розширити `varchar(50)` у відповідях |
 | 6.8 Варіанти НМТ | `startNmtSimulator`, `/simulator`, `nmt_variants*` | Середня | ✅ 09.09 |
 | 6.6 Задачник | `src/app/problems`, таблиця `problems` | Середня | ✅ 08.09 (UI з JSON-каталогу, без MySQL на read) |
