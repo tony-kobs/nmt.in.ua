@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { MaterialDocument } from "@/components/learningMaterials/MaterialDocument";
 import { TextbookHashRedirect } from "@/components/learningMaterials/TextbookHashRedirect";
-import { getTextbookBlocks } from "@/content/learningMaterials";
+import { getPublishedTextbookBlocks } from "@/modules/textbook/store";
 import { textbookTopicHref } from "@/content/learningMaterials/textbookHref";
 import { createPageMetadata } from "@/constants/seo";
 import { getThemes } from "@/modules/themes/getThemes";
@@ -43,7 +43,7 @@ export default async function TextbookPage({ searchParams }: TextbookPageProps) 
       ? themes[activeIndex + 1]
       : null;
 
-  const blocks = active ? getTextbookBlocks(active.code) : [];
+  const blocks = active ? await getPublishedTextbookBlocks(active.code) : [];
   const titleId = active ? `topic-title-${active.code}` : "topic-title";
 
   return (

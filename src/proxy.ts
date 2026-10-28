@@ -36,6 +36,8 @@ function requiresAdmin(pathname: string): boolean {
   return (
     pathname === "/settings" ||
     pathname.startsWith("/settings/") ||
+    pathname === "/admin/textbook" ||
+    pathname.startsWith("/admin/textbook/") ||
     pathname === "/profiles" ||
     pathname.startsWith("/profiles/") ||
     pathname === "/feedback" ||
