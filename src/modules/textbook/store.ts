@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { SqlConnection } from "@/lib/db/mysql";
-import { getTextbookBlocks, textbookThemeCodes } from "@/content/learningMaterials/textbook";
+import { getTextbookBlocks } from "@/content/learningMaterials/textbook";
 import type { MaterialContentBlock } from "@/content/learningMaterials/sourceBlocks";
 import { blocksToTextbookMarkup, parseTextbookMarkup } from "./markup";
 import { ensureTextbookSchema } from "./schema";
@@ -15,49 +15,8 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-let seeding: Promise<void> | null = null;
-let seedMarkup: Array<{ code: string; body: string }> | null = null;
-
-function markupSeed(): Array<{ code: string; body: string }> {
-  if (!seedMarkup) {
-    seedMarkup = textbookThemeCodes()
-      .map((code) => ({
-        code,
-        body: blocksToTextbookMarkup(getTextbookBlocks(code)),
-      }))
-      .filter((row) => row.body.trim().length > 0);
-  }
-  return seedMarkup;
-}
-
-async function insertSeed(getConnection: Conn): Promise<void> {
-  const rows = markupSeed();
-  const connection = await getConnection();
-  try {
-    for (const row of rows) {
-      await connection.execute(
-        `INSERT IGNORE INTO textbook_sections (theme_code, body, published_body)
-         VALUES (?, ?, ?)`,
-        [row.code, row.body, row.body],
-      );
-    }
-  } finally {
-    connection.release();
-  }
-}
-
-/** Fills themes that still have no row. Later edits stay as the admin saved them. */
-export async function ensureTextbookSeed(
-  getConnection: Conn = loadDefaultConnection,
-): Promise<void> {
-  await ensureTextbookSchema(getConnection);
-  if (!seeding) {
-    seeding = insertSeed(getConnection).catch((error: unknown) => {
-      seeding = null;
-      throw error;
-    });
-  }
-  await seeding;
+function staticMarkup(themeCode: string): string {
+  return blocksToTextbookMarkup(getTextbookBlocks(themeCode));
 }
 
 export type TextbookSectionState = {
@@ -65,47 +24,81 @@ export type TextbookSectionState = {
   draft: boolean;
 };
 
-export async function listTextbookSectionStates(
+export type TextbookEditorSource = {
+  /** Saved draft, or the static conspect markup when nothing is stored. */
+  body: string;
+  /** Non-empty published markup. Null means the student still sees the static conspect. */
+  publishedBody: string | null;
+};
+
+/**
+ * Reads one section. Does not insert a row and does not copy static text into
+ * `published_body`. A missing table or a dead database falls back to the conspect.
+ */
+export async function loadTextbookEditorSource(
+  themeCode: string,
   getConnection: Conn = loadDefaultConnection,
-): Promise<Map<string, TextbookSectionState>> {
-  await ensureTextbookSeed(getConnection);
-  const connection = await getConnection();
+): Promise<TextbookEditorSource> {
+  const fallback: TextbookEditorSource = {
+    body: staticMarkup(themeCode),
+    publishedBody: null,
+  };
   try {
-    const rows = await connection.query<{
-      theme_code: string;
-      published: number;
-      draft: number;
-    }>(
-      `SELECT theme_code,
-              (published_body IS NOT NULL AND CHAR_LENGTH(TRIM(published_body)) > 0) AS published,
-              NOT (body <=> published_body) AS draft
-       FROM textbook_sections`,
-    );
-    return new Map(
-      rows.map((row) => [
-        row.theme_code,
-        { published: Number(row.published) === 1, draft: Number(row.draft) === 1 },
-      ]),
-    );
-  } finally {
-    connection.release();
+    await ensureTextbookSchema(getConnection);
+    const connection = await getConnection();
+    try {
+      const rows = await connection.query<{
+        body: string;
+        published_body: string | null;
+      }>(
+        `SELECT body, published_body
+         FROM textbook_sections
+         WHERE theme_code = ?
+         LIMIT 1`,
+        [themeCode],
+      );
+      const row = rows[0];
+      if (!row) return fallback;
+      const published = row.published_body?.trim() ? row.published_body : null;
+      return { body: row.body ?? "", publishedBody: published };
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error("textbook editor read failed", error);
+    return fallback;
   }
 }
 
-export async function loadTextbookDraft(
-  themeCode: string,
+export async function listTextbookSectionStates(
   getConnection: Conn = loadDefaultConnection,
-): Promise<string> {
-  await ensureTextbookSeed(getConnection);
-  const connection = await getConnection();
+): Promise<Map<string, TextbookSectionState>> {
   try {
-    const rows = await connection.query<{ body: string }>(
-      `SELECT body FROM textbook_sections WHERE theme_code = ? LIMIT 1`,
-      [themeCode],
-    );
-    return rows[0]?.body ?? "";
-  } finally {
-    connection.release();
+    await ensureTextbookSchema(getConnection);
+    const connection = await getConnection();
+    try {
+      const rows = await connection.query<{
+        theme_code: string;
+        published: number;
+        draft: number;
+      }>(
+        `SELECT theme_code,
+                (published_body IS NOT NULL AND CHAR_LENGTH(TRIM(published_body)) > 0) AS published,
+                NOT (body <=> published_body) AS draft
+         FROM textbook_sections`,
+      );
+      return new Map(
+        rows.map((row) => [
+          row.theme_code,
+          { published: Number(row.published) === 1, draft: Number(row.draft) === 1 },
+        ]),
+      );
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error("textbook section list failed", error);
+    return new Map();
   }
 }
 
@@ -113,18 +106,24 @@ export async function getPublishedTextbookBlocks(
   themeCode: string,
   getConnection: Conn = loadDefaultConnection,
 ): Promise<MaterialContentBlock[]> {
-  await ensureTextbookSeed(getConnection);
-  const connection = await getConnection();
+  const fallback = () => getTextbookBlocks(themeCode);
   try {
-    const rows = await connection.query<{ published_body: string | null }>(
-      `SELECT published_body FROM textbook_sections WHERE theme_code = ? LIMIT 1`,
-      [themeCode],
-    );
-    const body = rows[0]?.published_body ?? "";
-    if (!body.trim()) return [];
-    return parseTextbookMarkup(body);
-  } finally {
-    connection.release();
+    await ensureTextbookSchema(getConnection);
+    const connection = await getConnection();
+    try {
+      const rows = await connection.query<{ published_body: string | null }>(
+        `SELECT published_body FROM textbook_sections WHERE theme_code = ? LIMIT 1`,
+        [themeCode],
+      );
+      const body = rows[0]?.published_body ?? "";
+      if (!body.trim()) return fallback();
+      return parseTextbookMarkup(body);
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error("textbook published read failed", error);
+    return fallback();
   }
 }
 
@@ -144,7 +143,7 @@ export async function saveTextbookSection(input: {
   getConnection?: Conn;
 }): Promise<boolean> {
   const getConnection = input.getConnection ?? loadDefaultConnection;
-  await ensureTextbookSeed(getConnection);
+  await ensureTextbookSchema(getConnection);
   const connection = await getConnection();
   try {
     if (!(await themeExists(connection, input.themeCode))) return false;

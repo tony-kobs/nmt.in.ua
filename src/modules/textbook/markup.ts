@@ -159,17 +159,23 @@ function runsToInline(runs: MaterialTextRun[]): string {
   return out;
 }
 
+type Align = "left" | "center" | "right" | "both";
+
 function paragraphLine(block: MaterialParagraphBlock): string {
-  const inline = runsToInline(block.runs);
+  const inline = runsToInline(block.runs).replace(/[ \t]*\n[ \t]*/g, " ");
   if (!inline.trim()) return "";
-  if (block.variant === "sectionHeading") return `# ${inline}`;
-  if (block.variant === "subheading") return `## ${inline}`;
-  if (block.variant === "listItem") return `- ${inline}`;
-  return escapeStructuralLine(inline);
+  let core = inline;
+  if (block.variant === "sectionHeading") core = `# ${inline}`;
+  else if (block.variant === "subheading") core = `## ${inline}`;
+  else if (block.variant === "listItem") core = `- ${inline}`;
+  else core = escapeStructuralLine(inline);
+  return `@${block.align} ${core}`;
 }
 
 function escapeStructuralLine(line: string): string {
-  if (/^(#{1,2} |- |\||:::|!\[)/.test(line)) return `\\${line}`;
+  if (/^(#{1,2} |- |\||:::|!\[|@(?:left|center|right|both) )/.test(line)) {
+    return `\\${line}`;
+  }
   return line;
 }
 
@@ -178,99 +184,34 @@ function imageLine(alt: string, src: string): string {
   return `![${safeAlt}](${src})`;
 }
 
-function cellMarkup(blocks: MaterialContentBlock[]): string | null {
-  const parts: string[] = [];
-  for (const block of blocks) {
-    if (block.type === "paragraph") {
-      const line = runsToInline(block.runs).replace(/\s+/g, " ").trim();
-      if (line) parts.push(line);
-      continue;
-    }
-    if (block.type === "image") {
-      parts.push(imageLine(block.alt, block.src));
-      continue;
-    }
-    return null;
-  }
-  return parts.join(" ").replace(/\|/g, "\\|");
-}
-
-function simpleTable(block: MaterialTableBlock): string | null {
-  if (block.rows.length === 0) return null;
-  const lines: string[] = [];
-  for (const row of block.rows) {
-    const cells: string[] = [];
-    for (const cell of row.cells) {
-      if (cell.colSpan && cell.colSpan > 1) return null;
-      const text = cellMarkup(cell.blocks);
-      if (text === null) return null;
-      cells.push(text);
-    }
-    if (cells.length === 0) return null;
-    lines.push(`| ${cells.join(" | ")} |`);
-  }
-  return lines.join("\n");
-}
-
-function cellHasVisibleContent(blocks: MaterialContentBlock[]): boolean {
-  return blocks.some((block) => {
-    if (block.type === "paragraph") return block.runs.some((run) => run.text.trim());
-    if (block.type === "image") return true;
-    if (block.type === "table") {
-      if (block.variant === "graphPaper") return false;
-      return block.rows.some((row) =>
-        row.cells.some((cell) => cellHasVisibleContent(cell.blocks)),
-      );
-    }
-    return false;
-  });
-}
-
-function serializeGraphCell(blocks: MaterialContentBlock[]): string {
-  const lines = [":::graph"];
-  for (const block of blocks) {
-    if (block.type === "table" && block.variant === "graphPaper") continue;
-    for (const chunk of serializeBlock(block)) {
-      lines.push(...chunk.split("\n"));
-    }
-  }
-  lines.push(":::");
-  return lines.join("\n");
-}
-
 function serializeTable(block: MaterialTableBlock): string[] {
-  if (block.variant === "graphPaper") return [":::graph\n:::"];
-  if (block.graphExercise) {
-    const chunks: string[] = [];
-    for (const row of block.rows) {
-      for (const cell of row.cells) {
-        if (!cellHasVisibleContent(cell.blocks)) continue;
-        chunks.push(serializeGraphCell(cell.blocks));
-      }
-    }
-    return chunks;
+  if (block.variant === "graphPaper") {
+    const cols = block.columnWidths.length || GRAPH_COLUMNS;
+    const rows = block.rows.length || GRAPH_ROWS;
+    const width = block.columnWidths[0] ?? 284;
+    return [`:::paper ${rows} ${cols} ${width}`];
   }
 
-  if (block.variant === "layout") {
-    const flat: string[] = [];
-    for (const row of block.rows) {
-      for (const cell of row.cells) {
-        flat.push(...serializeBlocks(cell.blocks));
-      }
-    }
-    return flat;
-  }
-
-  const table = simpleTable(block);
-  if (table) return [table];
-
-  const flat: string[] = [];
+  const flags = [block.variant === "layout" ? "layout" : "grid"];
+  if (block.graphExercise) flags.push("graph");
+  if (block.equalColumns) flags.push("equal");
+  if (block.topAligned) flags.push("top");
+  const lines = [
+    `:::table ${flags.join(" ")} widths=${block.columnWidths.join(",")}`,
+  ];
   for (const row of block.rows) {
+    lines.push(":::row");
     for (const cell of row.cells) {
-      flat.push(...serializeBlocks(cell.blocks));
+      const span = cell.colSpan && cell.colSpan > 1 ? ` span=${cell.colSpan}` : "";
+      lines.push(`:::cell${span}`);
+      const body = serializeBlocks(cell.blocks);
+      if (body.length > 0) lines.push(body.join("\n\n"));
+      lines.push(":::endcell");
     }
+    lines.push(":::endrow");
   }
-  return flat;
+  lines.push(":::endtable");
+  return [lines.join("\n")];
 }
 
 function serializeBlock(block: MaterialContentBlock): string[] {
@@ -301,13 +242,21 @@ export function safeImageSrc(src: string): string | null {
 function paragraphBlock(
   line: string,
   variant: MaterialParagraphBlock["variant"],
+  align: Align | null,
 ): MaterialParagraphBlock {
   const runs = parseInline(line);
   const onlyDisplay =
     runs.length === 1 && runs[0]?.math === true && runs[0].text.startsWith("\\[");
-  const align =
+  const inferred: Align =
     onlyDisplay ? "center" : variant === "listItem" || variant === "body" ? "both" : "left";
-  return { type: "paragraph", variant, align, runs };
+  return { type: "paragraph", variant, align: align ?? inferred, runs };
+}
+
+function splitAlign(line: string): { align: Align | null; rest: string } {
+  if (!line.startsWith("@")) return { align: null, rest: line };
+  const match = /^(left|center|right|both) ([\s\S]*)$/.exec(line.slice(1));
+  if (!match) return { align: null, rest: line };
+  return { align: match[1] as Align, rest: match[2] };
 }
 
 function splitTableRow(line: string): string[] {
@@ -409,11 +358,129 @@ function unescapeLine(line: string): string | null {
     line.startsWith("\\- ") ||
     line.startsWith("\\|") ||
     line.startsWith("\\:::") ||
-    line.startsWith("\\![")
+    line.startsWith("\\![") ||
+    /^\\@(?:left|center|right|both) /.test(line)
   ) {
     return line.slice(1);
   }
   return null;
+}
+
+type Fence = { inner: string[]; next: number };
+
+function isOpener(line: string, kind: "table" | "row" | "cell"): boolean {
+  if (kind === "row") return line === ":::row";
+  return line === `:::${kind}` || line.startsWith(`:::${kind} `);
+}
+
+function readUntilEnd(
+  lines: string[],
+  index: number,
+  kind: "table" | "row" | "cell",
+): Fence {
+  const end = `:::end${kind}`;
+  const inner: string[] = [];
+  let depth = 1;
+  while (index < lines.length) {
+    const trimmed = (lines[index] ?? "").trim();
+    if (trimmed === end) {
+      depth -= 1;
+      if (depth === 0) return { inner, next: index + 1 };
+    } else if (isOpener(trimmed, kind)) {
+      depth += 1;
+    }
+    inner.push(lines[index] ?? "");
+    index += 1;
+  }
+  return { inner, next: index };
+}
+
+function parsePaper(line: string): MaterialTableBlock | null {
+  const match = /^:::paper (\d+) (\d+)(?: (\d+))?$/.exec(line.trim());
+  if (!match) return null;
+  const rows = Math.min(Math.max(Number(match[1]), 1), 40);
+  const cols = Math.min(Math.max(Number(match[2]), 1), 40);
+  const width = Math.max(Number(match[3] ?? 284), 1);
+  return {
+    type: "table",
+    variant: "graphPaper",
+    columnWidths: Array.from({ length: cols }, () => width),
+    rows: Array.from({ length: rows }, () => ({
+      cells: Array.from({ length: cols }, () => ({ blocks: [] })),
+    })),
+  };
+}
+
+function parseStructuredTable(header: string, inner: string[]): MaterialTableBlock {
+  const widthsMatch = /\swidths=([0-9,]+)\s*$/.exec(header);
+  const widths = widthsMatch
+    ? widthsMatch[1].split(",").filter(Boolean).map((value) => Number(value))
+    : [];
+  const flagText = header
+    .replace(/^:::table\s*/, "")
+    .replace(/\swidths=[0-9,]+\s*$/, "")
+    .trim();
+  const flags = new Set(flagText.split(/\s+/).filter(Boolean));
+  const rows = parseStructuredRows(inner);
+  const columnCount = Math.max(
+    widths.length,
+    ...rows.map((row) =>
+      row.reduce((sum, cell) => sum + (cell.colSpan ?? 1), 0),
+    ),
+    1,
+  );
+  const table: MaterialTableBlock = {
+    type: "table",
+    variant: flags.has("layout") ? "layout" : "grid",
+    columnWidths:
+      widths.length > 0
+        ? widths
+        : Array.from({ length: columnCount }, () => 1000),
+    rows: rows.map((row) => ({ cells: row })),
+  };
+  if (flags.has("equal")) table.equalColumns = true;
+  if (flags.has("graph")) table.graphExercise = true;
+  if (flags.has("top")) table.topAligned = true;
+  return table;
+}
+
+function parseStructuredRows(lines: string[]): MaterialTableBlock["rows"][number]["cells"][] {
+  const rows: MaterialTableBlock["rows"][number]["cells"][] = [];
+  let index = 0;
+  while (index < lines.length) {
+    if (lines[index]?.trim() !== ":::row") {
+      index += 1;
+      continue;
+    }
+    const fence = readUntilEnd(lines, index + 1, "row");
+    rows.push(parseStructuredCells(fence.inner));
+    index = fence.next;
+  }
+  return rows;
+}
+
+function parseStructuredCells(
+  lines: string[],
+): MaterialTableBlock["rows"][number]["cells"] {
+  const cells: MaterialTableBlock["rows"][number]["cells"] = [];
+  let index = 0;
+  while (index < lines.length) {
+    const header = lines[index]?.trim() ?? "";
+    const span = /^:::cell(?: span=(\d+))?$/.exec(header);
+    if (!span) {
+      index += 1;
+      continue;
+    }
+    const fence = readUntilEnd(lines, index + 1, "cell");
+    const colSpan = Number(span[1] ?? 1);
+    const cell: MaterialTableBlock["rows"][number]["cells"][number] = {
+      blocks: parseLines(fence.inner),
+    };
+    if (colSpan > 1) cell.colSpan = colSpan;
+    cells.push(cell);
+    index = fence.next;
+  }
+  return cells;
 }
 
 function parseLines(lines: string[]): MaterialContentBlock[] {
@@ -454,28 +521,42 @@ function parseLines(lines: string[]): MaterialContentBlock[] {
       index += 1;
       continue;
     }
-    const plain = unescapeLine(line);
-    if (plain !== null) {
-      blocks.push(paragraphBlock(plain, "body"));
+    if (line.trim().startsWith(":::paper ")) {
+      const paper = parsePaper(line);
+      if (paper) blocks.push(paper);
       index += 1;
       continue;
     }
-    if (line.startsWith("## ")) {
-      blocks.push(paragraphBlock(line.slice(3), "subheading"));
+    if (line.trim() === ":::table" || line.trim().startsWith(":::table ")) {
+      const fence = readUntilEnd(lines, index + 1, "table");
+      blocks.push(parseStructuredTable(line.trim(), fence.inner));
+      index = fence.next;
+      continue;
+    }
+    const aligned = splitAlign(line);
+    const plain = unescapeLine(aligned.rest);
+    const text = plain ?? aligned.rest;
+    if (plain !== null && aligned.align === null) {
+      blocks.push(paragraphBlock(plain, "body", null));
       index += 1;
       continue;
     }
-    if (line.startsWith("# ")) {
-      blocks.push(paragraphBlock(line.slice(2), "sectionHeading"));
+    if (text.startsWith("## ")) {
+      blocks.push(paragraphBlock(text.slice(3), "subheading", aligned.align));
       index += 1;
       continue;
     }
-    if (line.startsWith("- ")) {
-      blocks.push(paragraphBlock(line.slice(2), "listItem"));
+    if (text.startsWith("# ")) {
+      blocks.push(paragraphBlock(text.slice(2), "sectionHeading", aligned.align));
       index += 1;
       continue;
     }
-    blocks.push(paragraphBlock(line, "body"));
+    if (text.startsWith("- ")) {
+      blocks.push(paragraphBlock(text.slice(2), "listItem", aligned.align));
+      index += 1;
+      continue;
+    }
+    blocks.push(paragraphBlock(text, "body", aligned.align));
     index += 1;
   }
   return blocks;

@@ -1,16 +1,19 @@
 import { TextbookSectionList } from "@/components/admin/TextbookEditor";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { createPageMetadata } from "@/constants/seo";
+import { getTextbookBlocks } from "@/content/learningMaterials/textbook";
 import { requireRole } from "@/modules/auth/getCurrentUser";
 import { getThemes } from "@/modules/themes/getThemes";
 import { listTextbookSectionStates } from "@/modules/textbook/store";
+import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
+  const t = await getTranslations("TextbookEditor");
   return createPageMetadata({
-    title: "Текст підручника",
-    description: "Редагування теорії за темами. На сайті видно лише опублікований текст.",
+    title: t("title"),
+    description: t("description"),
     path: "/admin/textbook",
     noIndex: true,
   });
@@ -22,6 +25,7 @@ export default async function AdminTextbookPage({
   searchParams: Promise<{ error?: string | string[] }>;
 }) {
   await requireRole(["admin"]);
+  const t = await getTranslations("TextbookEditor");
   const query = await searchParams;
   const error = Array.isArray(query.error) ? query.error[0] : query.error;
   const [themes, states] = await Promise.all([
@@ -30,15 +34,9 @@ export default async function AdminTextbookPage({
   ]);
 
   return (
-    <PageFrame
-      kicker="Адмін"
-      title="Текст підручника"
-      lead="Оберіть тему, виправте текст і опублікуйте. Чернетка учням не показується."
-    >
-      {error === "code" || error === "theme" ? (
-        <p role="alert">Такої теми немає. Оберіть її зі списку.</p>
-      ) : null}
+    <PageFrame kicker={t("kicker")} title={t("title")} lead={t("listLead")}>
       <TextbookSectionList
+        error={error === "code" || error === "theme" ? error : null}
         items={themes.map((theme) => {
           const state = states.get(theme.code);
           return {
@@ -46,6 +44,7 @@ export default async function AdminTextbookPage({
             name: theme.name,
             published: state?.published ?? false,
             draft: state?.draft ?? false,
+            fromConspect: getTextbookBlocks(theme.code).length > 0,
           };
         })}
       />

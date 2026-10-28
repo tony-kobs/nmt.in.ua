@@ -18,7 +18,7 @@
 .notice,
 .error {
   margin: 0;
-  padding: 12px 16px;
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
   line-height: 1.45;
 }
@@ -82,7 +82,7 @@
 
 .sample {
   overflow-x: auto;
-  padding: 12px;
+  padding: var(--space-sm);
   border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--ink);
@@ -94,7 +94,7 @@
   min-height: 18rem;
   max-height: 70dvh;
   margin: 0;
-  padding: 14px 16px;
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -116,7 +116,7 @@
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  padding: 10px 18px;
+  padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-pill);
   font: inherit;
   font-weight: 700;
@@ -132,7 +132,7 @@
 .publish {
   border: 1px solid transparent;
   background: var(--grad-brand);
-  color: #f6f1e2;
+  color: var(--on-accent);
 }
 
 .quiet:disabled,
@@ -154,6 +154,13 @@
   font-family: var(--font-display);
   font-size: var(--fs-h3);
   color: var(--ink);
+}
+
+.note {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 1.45;
 }
 
 .publicLink {
