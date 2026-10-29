@@ -1,0 +1,58 @@
+.rich {
+  display: grid;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.promptImage {
+  display: block;
+  width: 100%;
+  max-width: 36rem;
+  height: auto;
+}
+
+.reveal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: start;
+  min-height: 44px;
+  margin-top: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reveal:hover {
+  border-color: var(--green-fill);
+}
+
+.answer {
+  display: grid;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius);
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.answer p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.missing {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  line-height: 1.45;
+}

@@ -2,7 +2,19 @@ import katex from "katex";
 import { isUploadPlaceholderSrc } from "./imageLimits";
 import { safeImageSrc } from "./markup";
 
-export type TextbookLintCode = "formula" | "fence" | "fence-end" | "image" | "paper" | "math";
+import { isBankTaskLine, listTextbookTaskRefs, parseBankTaskLine } from "./bankTask";
+import { lineHasImportReview } from "./importMarkers";
+
+export type TextbookLintCode =
+  | "formula"
+  | "fence"
+  | "fence-end"
+  | "image"
+  | "paper"
+  | "math"
+  | "task"
+  | "task-missing"
+  | "import";
 
 export type TextbookLintIssue = {
   line: number;
@@ -15,7 +27,7 @@ const formulaOk = new Set<string>();
 
 type Frame = { kind: "table" | "row" | "cell" | "graph"; line: number };
 
-function formulaError(formula: string): string | null {
+export function textbookFormulaError(formula: string): string | null {
   const body = formula.trim();
   if (formulaOk.has(body)) return null;
   try {
@@ -86,6 +98,13 @@ export function lintTextbookMarkup(source: string): TextbookLintIssue[] {
   lines.forEach((raw, index) => {
     const lineNo = index + 1;
     const line = raw.trim();
+    if (lineHasImportReview(raw)) {
+      issues.push({ line: lineNo, code: "import", detail: "" });
+    }
+    if (isBankTaskLine(line)) {
+      if (!parseBankTaskLine(line)) issues.push({ line: lineNo, code: "task", detail: "" });
+      return;
+    }
     const closing = endKind(line);
     if (closing) {
       const top = stack[stack.length - 1];
@@ -126,7 +145,7 @@ export function lintTextbookMarkup(source: string): TextbookLintIssue[] {
       return;
     }
     for (const formula of math.formulas) {
-      const detail = formulaError(formula);
+      const detail = textbookFormulaError(formula);
       if (detail) issues.push({ line: lineNo, code: "formula", detail });
     }
   });
@@ -137,4 +156,12 @@ export function lintTextbookMarkup(source: string): TextbookLintIssue[] {
     issues.push({ line: frame.line, code: "fence", detail: `:::${frame.kind}` });
   }
   return issues;
+}
+
+/** Ids the bank lookup confirmed are gone. Line numbers follow the current draft. */
+export function missingTaskLint(source: string, missing: readonly string[]): TextbookLintIssue[] {
+  const gone = new Set(missing);
+  return listTextbookTaskRefs(source).flatMap((item) =>
+    gone.has(item.ref) ? [{ line: item.line, code: "task-missing" as const, detail: item.ref }] : [],
+  );
 }

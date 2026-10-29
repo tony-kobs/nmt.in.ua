@@ -12,6 +12,7 @@ import {
 import type { TextbookVersionSummary } from "@/modules/textbook/draftTypes";
 import { parseTextbookMarkup } from "@/modules/textbook/markup";
 import css from "./TextbookEditor.module.css";
+import { useBankTaskLookup } from "./useBankTasks";
 
 type TextbookVersionListProps = {
   code: string;
@@ -38,6 +39,7 @@ export function TextbookVersionList({
   const [missing, setMissing] = useState(false);
   const [busy, setBusy] = useState(false);
   const blocks = useMemo(() => (preview === null ? [] : parseTextbookMarkup(preview)), [preview]);
+  const bankLookup = useBankTaskLookup(preview ?? "");
 
   async function toggle(id: number) {
     if (openId === id) {
@@ -124,7 +126,11 @@ export function TextbookVersionList({
                 <div className={css.versionPreview}>
                   {loading ? <p className={css.note}>{t("versionsLoading")}</p> : null}
                   {!loading && preview !== null && blocks.length > 0 ? (
-                    <MaterialDocument blocks={blocks} />
+                    <MaterialDocument
+                      blocks={blocks}
+                      bankTasks={bankLookup.tasks}
+                      bankMode={bankLookup.settled ? "admin" : "student"}
+                    />
                   ) : null}
                   {!loading && preview !== null && blocks.length === 0 ? (
                     <p className={css.empty}>{t("draftEmpty")}</p>
