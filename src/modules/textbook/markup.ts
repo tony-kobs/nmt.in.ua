@@ -4,6 +4,7 @@ import type {
   MaterialTableBlock,
   MaterialTextRun,
 } from "@/content/learningMaterials/sourceBlocks";
+import { parseBankTaskLine } from "./bankTask";
 
 type InlineFlags = {
   bold?: true;
@@ -220,6 +221,7 @@ function serializeBlock(block: MaterialContentBlock): string[] {
     return line ? [line] : [];
   }
   if (block.type === "image") return [imageLine(block.alt, block.src)];
+  if (block.type === "bankTask") return [`:::task ${block.bank}:${block.id}`];
   return serializeTable(block);
 }
 
@@ -489,6 +491,12 @@ function parseLines(lines: string[]): MaterialContentBlock[] {
   while (index < lines.length) {
     const line = lines[index] ?? "";
     if (!line.trim()) {
+      index += 1;
+      continue;
+    }
+    if (line.trim().startsWith(":::task")) {
+      const task = parseBankTaskLine(line);
+      if (task) blocks.push({ type: "bankTask", bank: task.bank, id: task.id });
       index += 1;
       continue;
     }

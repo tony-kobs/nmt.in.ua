@@ -7,6 +7,8 @@ import { getTextbookBlocks } from "@/content/learningMaterials/textbook";
 import { textbookTopicHref } from "@/content/learningMaterials/textbookHref";
 import { requireRole } from "@/modules/auth/getCurrentUser";
 import { getThemes } from "@/modules/themes/getThemes";
+import { bankTaskRefsInBlocks } from "@/modules/textbook/bankTask";
+import { loadBankTaskViews } from "@/modules/textbook/bankTaskStore";
 import { parseTextbookMarkup, blocksToTextbookMarkup } from "@/modules/textbook/markup";
 import { listTextbookVersions, loadTextbookEditorSource } from "@/modules/textbook/store";
 
@@ -49,6 +51,8 @@ export default async function AdminTextbookEditorPage({
     listTextbookVersions(theme.code),
   ]);
   const staticBlocks = getTextbookBlocks(theme.code);
+  const studentBlocks = source.publishedBody ? parseTextbookMarkup(source.publishedBody) : staticBlocks;
+  const bankLoad = await loadBankTaskViews(bankTaskRefsInBlocks(studentBlocks));
   const saved = first(query.saved);
   const savedState = saved === "published" || saved === "draft" ? saved : null;
 
@@ -63,9 +67,8 @@ export default async function AdminTextbookEditorPage({
         staticBody={blocksToTextbookMarkup(staticBlocks)}
         publishedBody={source.publishedBody}
         versions={versions}
-        studentBlocks={
-          source.publishedBody ? parseTextbookMarkup(source.publishedBody) : staticBlocks
-        }
+        studentBlocks={studentBlocks}
+        studentTasks={bankLoad.ok ? bankLoad.tasks : {}}
         saved={savedState}
         error={first(query.error)}
         publicHref={textbookTopicHref(theme.code)}

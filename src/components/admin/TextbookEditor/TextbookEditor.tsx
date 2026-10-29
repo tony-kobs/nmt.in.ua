@@ -7,6 +7,9 @@ import { useLocale, useTranslations } from "next-intl";
 import { MaterialDocument } from "@/components/learningMaterials/MaterialDocument";
 import { askConfirm } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import type { MaterialContentBlock } from "@/content/learningMaterials/sourceBlocks";
+import { bankTaskMarkup, type BankKind, type BankTaskView } from "@/modules/textbook/bankTask";
+import type { ImportSummary } from "@/modules/textbook/importHtml";
+import { htmlLooksRich, replaceImageReviews, uploadedImageMarkup } from "@/modules/textbook/importMarkers";
 import { formatKyivClock } from "@/lib/relativeTime";
 import {
   autosaveTextbookDraftAction,
@@ -40,8 +43,10 @@ import {
   uploadPlaceholder,
   type SnippetId,
 } from "@/modules/textbook/templates";
+import { BankTaskPicker } from "./BankTaskPicker";
 import css from "./TextbookEditor.module.css";
 import { TextbookVersionList } from "./TextbookVersionList";
+import { useBankTaskLookup } from "./useBankTasks";
 
 type TextbookEditorProps = {
   code: string;
@@ -52,6 +57,7 @@ type TextbookEditorProps = {
   staticBody: string;
   publishedBody: string | null;
   studentBlocks: MaterialContentBlock[];
+  studentTasks?: Record<string, BankTaskView>;
   versions: TextbookVersionSummary[];
   saved: "draft" | "published" | null;
   error: string | null;
@@ -137,6 +143,7 @@ export function TextbookEditor({
   staticBody,
   publishedBody,
   studentBlocks,
+  studentTasks = {},
   versions,
   saved,
   error,
@@ -146,6 +153,7 @@ export function TextbookEditor({
   const locale = useLocale();
   const fieldRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const docxRef = useRef<HTMLInputElement>(null);
   const dragDepth = useRef(0);
   const serverKey = `${code}\0${initialRevision}\0${initialUpdatedAt ?? ""}\0${initialBody}`;
   const [seenServer, setSeenServer] = useState(serverKey);
@@ -163,6 +171,9 @@ export function TextbookEditor({
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<UploadError | null>(null);
   const [pickingTemplate, setPickingTemplate] = useState(false);
+  const [pickingBank, setPickingBank] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importNote, setImportNote] = useState<string | null>(null);
   const [backupOffer, setBackupOffer] = useState<DraftBackup | null>(null);
   const bodyRef = useRef(body);
   const savedBodyRef = useRef(savedBody);
@@ -243,7 +254,7 @@ export function TextbookEditor({
       !autosaveReady({
         body,
         savedBody,
-        uploading: uploading > 0,
+        uploading: uploading > 0 || importing,
         saving: savingRef.current,
         held: heldRef.current || conflict,
       })
@@ -309,10 +320,14 @@ export function TextbookEditor({
       setConflict(false);
       setStatus("saved");
     }
-  }, [body, savedBody, uploading, conflict, code]);
+  }, [body, savedBody, uploading, importing, conflict, code]);
 
+  const bankLookup = useBankTaskLookup(previewBody);
   const blocks = useMemo(() => parseTextbookMarkup(previewBody), [previewBody]);
-  const issues = useMemo(() => lintTextbookMarkup(previewBody), [previewBody]);
+  const issues = useMemo(
+    () => [...lintTextbookMarkup(previewBody), ...bankLookup.missing],
+    [previewBody, bankLookup.missing],
+  );
   const studentNote =
     publishedBody !== null && body === publishedBody
       ? t("seesPublished")
@@ -365,6 +380,102 @@ export function TextbookEditor({
     const edit = applyTextbookSnippet(bodyRef.current, start, end, id);
     writeBody(edit.value, { start: edit.selectionStart, end: edit.selectionEnd });
     setPane("editor");
+  }
+
+  function insertAtCaret(markup: string) {
+    const field = fieldRef.current;
+    const start = field?.selectionStart ?? bodyRef.current.length;
+    const end = field?.selectionEnd ?? start;
+    const edit = insertMarkupBlock(bodyRef.current, start, end, markup);
+    writeBody(edit.value, { start: edit.selectionStart, end: edit.selectionEnd });
+    setPane("editor");
+  }
+
+  function describeImport(summary: ImportSummary): string {
+    const parts = [
+      t("importSummary", {
+        headings: summary.headings,
+        paragraphs: summary.paragraphs,
+        lists: summary.lists,
+        tables: summary.tables,
+        images: summary.images,
+        formulas: summary.formulas,
+      }),
+    ];
+    if (summary.reviewFormulas || summary.reviewImages || summary.reviewTables) {
+      parts.push(
+        t("importReview", {
+          reviewFormulas: summary.reviewFormulas,
+          reviewImages: summary.reviewImages,
+          reviewTables: summary.reviewTables,
+        }),
+      );
+    }
+    if (summary.numberedAsBullets) parts.push(t("importNumbered"));
+    if (summary.deepHeadings) parts.push(t("importHeadings"));
+    return parts.join(" ");
+  }
+
+  async function readImport(form: FormData): Promise<{ markup: string; summary: ImportSummary } | null> {
+    let response: Response;
+    try {
+      response = await fetch("/api/admin/textbook-import", { method: "POST", body: form });
+    } catch {
+      return null;
+    }
+    let payload: { ok?: boolean; markup?: string; summary?: ImportSummary };
+    try {
+      payload = (await response.json()) as { ok?: boolean; markup?: string; summary?: ImportSummary };
+    } catch {
+      return null;
+    }
+    if (!response.ok || !payload.ok || payload.markup === undefined || !payload.summary) return null;
+    return { markup: payload.markup, summary: payload.summary };
+  }
+
+  async function importRichHtml(html: string, files: File[]) {
+    setImporting(true);
+    setImportNote(null);
+    const form = new FormData();
+    form.set("html", html);
+    const imported = await readImport(form);
+    if (!imported) {
+      setImporting(false);
+      setImportNote(t("importFailed"));
+      return;
+    }
+    const uploaded: string[] = [];
+    for (const file of files) {
+      const error = clientImageError(file);
+      if (error) {
+        setUploadError(error);
+        continue;
+      }
+      const saved = await postTextbookImage(file);
+      if (saved.ok) uploaded.push(uploadedImageMarkup(t("imageAlt"), saved.src));
+      else setUploadError(saved.error);
+    }
+    const replaced = replaceImageReviews(imported.markup, uploaded);
+    const rest = uploaded.slice(replaced.used);
+    const markup = rest.length === 0 ? replaced.markup : `${replaced.markup}\n\n${rest.join("\n\n")}`.trim();
+    if (markup) insertAtCaret(markup);
+    setImporting(false);
+    setImportNote(describeImport(imported.summary));
+  }
+
+  async function importDocxFile(file: File) {
+    setImporting(true);
+    setImportNote(null);
+    const form = new FormData();
+    form.set("file", file);
+    const imported = await readImport(form);
+    setImporting(false);
+    if (!imported) {
+      setImportNote(t("importFailed"));
+      return;
+    }
+    if (imported.markup) insertAtCaret(imported.markup);
+    setImportNote(describeImport(imported.summary));
   }
 
   async function applyTemplate(kind: TopicTemplateKind) {
@@ -554,11 +665,14 @@ export function TextbookEditor({
     if (issueCode === "fence-end") return t("issueFenceEnd", { line, detail });
     if (issueCode === "image") return t("issueImage", { line });
     if (issueCode === "paper") return t("issuePaper", { line });
+    if (issueCode === "task") return t("issueTask", { line });
+    if (issueCode === "task-missing") return t("issueTaskMissing", { line, detail });
+    if (issueCode === "import") return t("issueImport", { line });
     return t("issueMath", { line });
   };
 
   const visibleIssues = issues.slice(0, ISSUE_LIMIT);
-  const locked = conflict || status === "saving" || uploading > 0;
+  const locked = conflict || status === "saving" || uploading > 0 || importing;
 
   return (
     <div className={css.wrap}>
@@ -610,7 +724,7 @@ export function TextbookEditor({
         action={saveTextbookSectionAction}
         onSubmit={(event) => {
           if (timerRef.current) window.clearTimeout(timerRef.current);
-          if (conflict || savingRef.current || uploading > 0) event.preventDefault();
+          if (conflict || savingRef.current || uploading > 0 || importing) event.preventDefault();
         }}
       >
         <input type="hidden" name="code" value={code} />
@@ -677,8 +791,19 @@ export function TextbookEditor({
                   {t(`insert.${id}`)}
                 </button>
               ))}
+              <button
+                className={css.tool}
+                type="button"
+                aria-expanded={pickingBank}
+                onClick={() => setPickingBank((open) => !open)}
+              >
+                {t("insertBank")}
+              </button>
               <button className={css.tool} type="button" onClick={() => fileRef.current?.click()}>
                 {t("pickFile")}
+              </button>
+              <button className={css.tool} type="button" onClick={() => docxRef.current?.click()}>
+                {t("importDocx")}
               </button>
               <button
                 className={css.tool}
@@ -692,6 +817,15 @@ export function TextbookEditor({
                 {t("insertTemplate")}
               </button>
             </div>
+            {pickingBank ? (
+              <BankTaskPicker
+                onClose={() => setPickingBank(false)}
+                onInsert={(bank: BankKind, id: number) => {
+                  insertAtCaret(bankTaskMarkup(bank, id));
+                  setPickingBank(false);
+                }}
+              />
+            ) : null}
             <input
               ref={fileRef}
               className={css.file}
@@ -702,6 +836,17 @@ export function TextbookEditor({
                 const files = [...(event.target.files ?? [])];
                 event.target.value = "";
                 if (files.length > 0) void uploadFiles(files);
+              }}
+            />
+            <input
+              ref={docxRef}
+              className={css.file}
+              type="file"
+              accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) void importDocxFile(file);
               }}
             />
             <details className={css.help}>
@@ -734,6 +879,16 @@ export function TextbookEditor({
             {uploading > 0 ? (
               <p className={css.notice} role="status" aria-busy="true">
                 {t("uploading")}
+              </p>
+            ) : null}
+            {importing ? (
+              <p className={css.notice} role="status" aria-busy="true">
+                {t("importing")}
+              </p>
+            ) : null}
+            {importNote ? (
+              <p className={css.notice} role="status">
+                {importNote}
               </p>
             ) : null}
             {uploadError ? (
@@ -777,7 +932,13 @@ export function TextbookEditor({
                   setBody(event.target.value);
                 }}
                 onPaste={(event) => {
+                  const html = event.clipboardData.getData("text/html");
                   const files = imageFiles(event.clipboardData);
+                  if (html && htmlLooksRich(html)) {
+                    event.preventDefault();
+                    void importRichHtml(html, files);
+                    return;
+                  }
                   if (files.length === 0) return;
                   event.preventDefault();
                   void uploadFiles(files);
@@ -803,7 +964,11 @@ export function TextbookEditor({
               {t("draftPreview")}
             </h2>
             {blocks.length > 0 ? (
-              <MaterialDocument blocks={blocks} />
+              <MaterialDocument
+                blocks={blocks}
+                bankTasks={bankLookup.tasks}
+                bankMode={bankLookup.settled ? "admin" : "student"}
+              />
             ) : (
               <p className={css.empty}>{t("draftEmpty")}</p>
             )}
@@ -848,7 +1013,7 @@ export function TextbookEditor({
           </a>
         </div>
         {studentBlocks.length > 0 ? (
-          <MaterialDocument blocks={studentBlocks} />
+          <MaterialDocument blocks={studentBlocks} bankTasks={studentTasks} bankMode="student" />
         ) : (
           <p className={css.empty}>{t("studentEmpty")}</p>
         )}
