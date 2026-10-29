@@ -20,7 +20,10 @@ function connection(state: {
     query: async <T>(sql: string) => {
       const text = sql.replace(/\s+/g, " ").trim();
       if (text.includes("schema_migrations")) {
-        return [{ version: "059_textbook_sections.sql" }] as T[];
+        return [
+          { version: "059_textbook_sections.sql" },
+          { version: "061_textbook_section_versions.sql" },
+        ] as T[];
       }
       if (state.fail) {
         throw Object.assign(new Error("database down"), { code: "ECONNREFUSED" });
@@ -58,6 +61,8 @@ test("reading a textbook section does not publish static markup", async () => {
   assert.deepEqual(missing, staticBlocks);
   const editor = await loadTextbookEditorSource(code, getConnection);
   assert.equal(editor.publishedBody, null);
+  assert.equal(editor.revision, 0);
+  assert.equal(editor.updatedAt, null);
   assert.equal(editor.body, blocksToTextbookMarkup(staticBlocks));
   assert.equal(state.executed.some((sql) => /INSERT/i.test(sql)), false);
 

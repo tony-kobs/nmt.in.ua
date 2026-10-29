@@ -99,6 +99,18 @@ export function formatRelativeAgo(
   return phrase(age, language(locale));
 }
 
+/** Hour and minute in Europe/Kyiv, 24-hour, for a short «saved at» line. */
+export function formatKyivClock(iso: string, locale: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: "Europe/Kyiv",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(date);
+}
+
 /** Exact Europe/Kyiv date and time for a tooltip or a meta line. */
 export function formatKyivDateTime(iso: string, locale: string): string {
   const date = new Date(iso);
