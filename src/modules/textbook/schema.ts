@@ -13,6 +13,17 @@ const SQL_CREATE_TEXTBOOK_SECTIONS = `
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 `;
 
+const SQL_CREATE_TEXTBOOK_IMAGES = `
+  CREATE TABLE IF NOT EXISTS textbook_images (
+    content_hash CHAR(64) NOT NULL,
+    mime VARCHAR(32) NOT NULL,
+    bytes MEDIUMBLOB NOT NULL,
+    byte_length INT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (content_hash)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+`;
+
 async function loadDefaultConnection(): Promise<SqlConnection> {
   const { getConnection } = await import("@/lib/db/mysql");
   return getConnection();
@@ -28,6 +39,20 @@ export async function ensureTextbookSchema(
     getConnection,
     async (connection) => {
       await connection.execute(SQL_CREATE_TEXTBOOK_SECTIONS, []);
+    },
+  );
+}
+
+/** Uploaded textbook figures. Same bytes share one row (`content_hash`). */
+export async function ensureTextbookImageSchema(
+  getConnection: () => Promise<SqlConnection> = loadDefaultConnection,
+): Promise<void> {
+  await ensureSchemaOnce(
+    "textbook-images",
+    ["060_textbook_images.sql"],
+    getConnection,
+    async (connection) => {
+      await connection.execute(SQL_CREATE_TEXTBOOK_IMAGES, []);
     },
   );
 }
