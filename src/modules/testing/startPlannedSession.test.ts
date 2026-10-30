@@ -18,6 +18,7 @@ function makeSession(
   expireTime = 9_999_999_999,
   availableAt: number | null = null,
   difficulty: number | null = 1,
+  learningSessionId: number | null = null,
 ) {
   return {
     id: 12,
@@ -27,6 +28,7 @@ function makeSession(
     expire_time: expireTime,
     available_at: availableAt,
     difficulty,
+    learning_session_id: learningSessionId,
   };
 }
 
@@ -47,6 +49,9 @@ function makeConnection(options: {
       }
       if (sql.includes("COUNT(*)")) {
         return [{ mapping_count: options.mappingCount ?? 0 }] as never[];
+      }
+      if (sql.includes("FROM session_tasks")) {
+        return (options.tasks ?? []) as never[];
       }
       if (sql.includes("FROM quiz_tasks")) {
         return (options.tasks ?? [{ id: 1 }, { id: 2 }]) as never[];
@@ -119,6 +124,39 @@ test("startPlannedSession inserts mappings and activates planned session", async
     call.sql.includes("UPDATE task_sessions"),
   );
   assert.deepEqual(update?.params, [2, SESSION_STATUS_CREATED, 12]);
+});
+
+test("startPlannedSession uses the teacher session list in order", async () => {
+  const { connection, queryCalls, executeCalls } = makeConnection({
+    session: makeSession(SESSION_STATUS_PLANNED, 9_999_999_999, null, 1, 7),
+    tasks: [
+      { id: 30 },
+      { id: 10 },
+      { id: 20 },
+    ],
+  });
+
+  const result = await startPlannedSession(
+    { userId: 1, sessionId: 12 },
+    { getConnection: async () => connection, ensureSchema: async () => {} },
+  );
+
+  assert.deepEqual(result.taskIds, [30, 10, 20]);
+  const taskSelect = queryCalls.find((call) => call.sql.includes("session_tasks"));
+  assert.deepEqual(taskSelect?.params, [7]);
+  assert.equal(
+    queryCalls.some((call) => call.sql.includes("FROM quiz_tasks")),
+    false,
+  );
+  const mapping = executeCalls.find((call) =>
+    call.sql.includes("INSERT INTO tasks2session"),
+  );
+  const linked: number[] = [];
+  const params = mapping?.params ?? [];
+  for (let index = 1; index < params.length; index += 5) {
+    linked.push(Number(params[index]));
+  }
+  assert.deepEqual(linked, [30, 10, 20]);
 });
 
 test("startPlannedSession without mentor difficulty picks any theme tasks", async () => {
