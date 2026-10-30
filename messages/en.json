@@ -884,6 +884,10 @@
     "showHint": "Hint",
     "showAnswer": "Answer",
     "join": "Join",
+    "parkingLead": "This marathon is not open yet. You can join now — the tasks appear at the start time.",
+    "parkingWhen": "Starts {when}",
+    "parkingJoin": "Join",
+    "parkingJoined": "You are already in. Tasks open at the start time.",
     "haveAccount": "I already have an account",
     "finishedNote": "This marathon has finished. Results stay available.",
     "finishedMap": "My map and results",
@@ -1089,7 +1093,8 @@
     "copied": "Copied",
     "copyFailed": "Could not copy. Select the link and copy it manually.",
     "publicLinkLabel": "Public link",
-    "draftHidden": "The page is not public until the status is “{status}”.",
+    "draftHidden": "This link already opens a waiting page: the name, the description when there is one, and a join button. Tasks open once the course is active and the start time has passed.",
+    "archiveHidden": "The page stays hidden while the course is archived.",
     "defaults": {
       "finalCta": "Continue learning"
     },

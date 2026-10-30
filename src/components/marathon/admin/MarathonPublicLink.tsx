@@ -6,11 +6,12 @@ import css from "../marathon.module.css";
 
 export function MarathonPublicLink({
   href,
-  draft,
+  visibility,
   prominent,
 }: {
   href: string;
-  draft: boolean;
+  /** `waiting` — public parking page. `hidden` — archived, real 404. */
+  visibility?: "waiting" | "hidden";
   prominent?: boolean;
 }) {
   const t = useTranslations("Marathon");
@@ -41,7 +42,7 @@ export function MarathonPublicLink({
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          aria-describedby={draft ? noteId : undefined}
+          aria-describedby={visibility ? noteId : undefined}
         >
           {href}
         </a>
@@ -59,9 +60,14 @@ export function MarathonPublicLink({
           {t("copyFailed")}
         </p>
       ) : null}
-      {draft ? (
+      {visibility === "waiting" ? (
         <p id={noteId} className={css.meta}>
-          {t("draftHidden", { status: t("status.active") })}
+          {t("draftHidden")}
+        </p>
+      ) : null}
+      {visibility === "hidden" ? (
+        <p id={noteId} className={css.meta}>
+          {t("archiveHidden")}
         </p>
       ) : null}
     </div>

@@ -42,6 +42,7 @@ import {
   type RankInput,
 } from "./leaderboard";
 import { durationSeconds } from "./durationText";
+import { calendarDate } from "./publicPage";
 import { clampLandingRiddleCount } from "./riddleQuiz";
 import { deleteOrphanTaggedRiddles } from "./riddleStore";
 import { submitOpenedDay, type SubmitSuccess } from "./submit";
@@ -173,8 +174,7 @@ function flag(value: unknown): boolean {
 }
 
 function isoDate(value: unknown): string {
-  const match = /^(\d{4}-\d{2}-\d{2})/.exec(String(value ?? ""));
-  return match?.[1] ?? "";
+  return calendarDate(value);
 }
 
 function asMs(value: unknown): number | null {
@@ -219,7 +219,7 @@ function mapMarathon(row: {
   landing_riddle_count?: number | null;
   public_chat_url?: string | null;
   status: string;
-}): DailyMarathon | null {
+}, options?: { requireStart?: boolean }): DailyMarathon | null {
   if (
     row.status !== "draft" &&
     row.status !== "active" &&
@@ -229,7 +229,7 @@ function mapMarathon(row: {
     return null;
   }
   const startDate = isoDate(row.start_date);
-  if (!startDate) return null;
+  if (options?.requireStart !== false && !startDate) return null;
   return {
     id: row.id,
     slug: row.slug,
@@ -271,8 +271,9 @@ export async function listDailyMarathons(getConnection?: Conn): Promise<DailyMar
   }, getConnection);
 }
 
-export async function getDailyBySlug(
+async function readDailyBySlug(
   slug: string,
+  requireStart: boolean,
   getConnection?: Conn,
 ): Promise<DailyMarathon | null> {
   return withConn(async (connection) => {
@@ -281,8 +282,23 @@ export async function getDailyBySlug(
       `SELECT ${MARATHON_SELECT} FROM marathons WHERE slug = ? AND kind = 'daily' LIMIT 1`,
       [slug],
     );
-    return rows[0] ? mapMarathon(rows[0]) : null;
+    return rows[0] ? mapMarathon(rows[0], { requireStart }) : null;
   }, getConnection);
+}
+
+export async function getDailyBySlug(
+  slug: string,
+  getConnection?: Conn,
+): Promise<DailyMarathon | null> {
+  return readDailyBySlug(slug, true, getConnection);
+}
+
+/** Public page lookup. A row with no readable start date still comes back. */
+export async function getPublicDailyBySlug(
+  slug: string,
+  getConnection?: Conn,
+): Promise<DailyMarathon | null> {
+  return readDailyBySlug(slug, false, getConnection);
 }
 
 export async function getDailyById(
