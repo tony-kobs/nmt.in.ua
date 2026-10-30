@@ -1,0 +1,249 @@
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+}
+
+.backRow {
+  margin: 0;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--green);
+  font-weight: 700;
+}
+
+.form,
+.deleteForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
+}
+
+.split,
+.bankRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
+  align-items: end;
+}
+
+.field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2xs);
+}
+
+.label {
+  color: var(--subtle);
+  font-size: var(--fs-kicker);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.input:focus-visible {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: var(--ring);
+}
+
+.locked {
+  margin: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+}
+
+.lead,
+.hint,
+.empty,
+.note {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  color: var(--ink);
+}
+
+.bank,
+.listSection {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
+}
+
+.warn {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--green) 35%, var(--line));
+  border-radius: var(--radius);
+  background: var(--green-bg);
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.hits,
+.taskList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.hit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.hitText {
+  margin: 0;
+  flex: 1 1 12rem;
+  min-width: 0;
+  color: var(--ink);
+}
+
+.taskBlock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2xs);
+}
+
+.taskTools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+
+.submit,
+.secondary,
+.tool,
+.toolDanger,
+.danger {
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: var(--radius-pill);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.submit {
+  justify-self: start;
+  border: 1px solid transparent;
+  background: var(--grad-brand);
+  color: var(--on-accent);
+}
+
+.secondary,
+.tool {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.toolDanger,
+.danger {
+  border: 1px solid color-mix(in srgb, crimson 35%, var(--line));
+  background: color-mix(in srgb, crimson 10%, var(--surface));
+  color: #8f1d3d;
+}
+
+.submit:disabled,
+.secondary:disabled,
+.tool:disabled,
+.danger:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.ok {
+  color: var(--green-dark);
+}
+
+.bad {
+  color: #8f1d1d;
+}
+
+.missing {
+  display: grid;
+  gap: var(--space-2xs);
+  padding: var(--space-md);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.missingTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-h4);
+}
+
+.missingBody {
+  margin: 0;
+  color: var(--muted);
+}
+
+.promptImage {
+  display: block;
+  width: 100%;
+  max-width: 28rem;
+  height: auto;
+}
+
+.rich {
+  display: grid;
+  gap: var(--space-2xs);
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .split {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.6fr);
+  }
+
+  .bankRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .submit,
+  .secondary,
+  .tool,
+  .toolDanger,
+  .danger {
+    transition: none;
+  }
+}

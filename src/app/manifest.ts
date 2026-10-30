@@ -22,20 +22,26 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "portrait-primary",
     icons: [
       {
-        src: ICON_PATHS.favicon,
-        sizes: "any",
-        type: "image/svg+xml",
-        purpose: "any",
-      },
-      {
-        src: ICON_PATHS.appleTouch,
-        sizes: "180x180",
+        src: ICON_PATHS.icon192,
+        sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: ICON_PATHS.appleTouch,
-        sizes: "180x180",
+        src: ICON_PATHS.icon512,
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: ICON_PATHS.maskable192,
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "maskable",
+      },
+      {
+        src: ICON_PATHS.maskable512,
+        sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
       },

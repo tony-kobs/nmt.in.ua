@@ -108,6 +108,7 @@ export const ADMIN_NAV_HREFS = [
   "/",
   "/profiles",
   "/materials/textbook",
+  "/admin/textbook",
   "/problems",
   "/feedback",
   "/leaderboard",

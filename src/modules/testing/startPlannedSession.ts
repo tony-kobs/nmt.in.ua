@@ -10,6 +10,7 @@ import { nowUnixSec } from "./sessionElapsed";
 import { isSessionExpired } from "./sessionExpiry";
 import { TOPIC_TEST_TASK_COUNT } from "./startTopicTest";
 import { ensureMentorAssignmentsSchema } from "@/modules/mentor-assignments/schema";
+import { ensureTeacherSessionsSchema } from "@/modules/teacher-sessions/schema";
 
 const TASK_TYPE_TOPIC = 1;
 const TASK_STATUS_UNANSWERED = 0;
@@ -22,7 +23,8 @@ const SQL_SELECT_SESSION = `
     ts.session_status,
     ts.expire_time,
     ma.available_at,
-    ma.difficulty
+    ma.difficulty,
+    ma.session_id AS learning_session_id
   FROM task_sessions ts
   LEFT JOIN mentor_assignment_members mam ON mam.session_id = ts.id
   LEFT JOIN mentor_assignments ma ON ma.id = mam.assignment_id
@@ -38,6 +40,13 @@ const SQL_COUNT_MAPPINGS = `
 
 const SQL_SELECT_TASK_IDS = `SELECT id FROM quiz_tasks WHERE theme_id = ?`;
 const SQL_SELECT_TASK_IDS_BY_DIFFICULTY = `${SQL_SELECT_TASK_IDS} AND difficulty = ?`;
+const SQL_SELECT_LEARNING_TASKS = `
+  SELECT st.quiz_task_id AS id
+  FROM session_tasks st
+  INNER JOIN quiz_tasks q ON q.id = st.quiz_task_id
+  WHERE st.session_id = ?
+  ORDER BY st.position ASC, st.id ASC
+`;
 
 const SQL_INSERT_MAPPING_PREFIX =
   "INSERT INTO tasks2session (task_type, task_id, session_id, user_id, status) VALUES ";
@@ -94,6 +103,8 @@ type SessionRow = {
   available_at: number | null;
   /** From mentor assignment LEFT JOIN — null for auto-planned sessions. */
   difficulty: number | null;
+  /** Teacher session (`sessions.id`) when the assignment was linked. */
+  learning_session_id?: number | null;
 };
 
 type CountRow = {
@@ -140,7 +151,10 @@ export async function startPlannedSession(
 
   await (
     deps.ensureSchema ??
-    (() => ensureMentorAssignmentsSchema(deps.getConnection))
+    (async () => {
+      await ensureMentorAssignmentsSchema(deps.getConnection);
+      await ensureTeacherSessionsSchema(deps.getConnection);
+    })
   )();
 
   try {
@@ -217,25 +231,37 @@ export async function startPlannedSession(
         );
       }
 
-      const difficulty =
-        typeof session.difficulty === "number" &&
-        Number.isInteger(session.difficulty) &&
-        session.difficulty > 0
-          ? session.difficulty
-          : null;
-      const pool =
-        difficulty == null
-          ? await connection.query<{ id: number }>(SQL_SELECT_TASK_IDS, [
-              session.theme_id,
-            ])
-          : await connection.query<{ id: number }>(
-              SQL_SELECT_TASK_IDS_BY_DIFFICULTY,
-              [session.theme_id, difficulty],
-            );
-      const taskIds = sampleRandomIds(
-        pool.map((row) => row.id),
-        TOPIC_TEST_TASK_COUNT
-      );
+      const learningRaw = Number(session.learning_session_id);
+      const learningSessionId =
+        Number.isInteger(learningRaw) && learningRaw > 0 ? learningRaw : null;
+      let taskIds: number[];
+      if (learningSessionId != null) {
+        const ordered = await connection.query<{ id: number }>(
+          SQL_SELECT_LEARNING_TASKS,
+          [learningSessionId],
+        );
+        taskIds = ordered.map((row) => Number(row.id)).filter((id) => id > 0);
+      } else {
+        const difficulty =
+          typeof session.difficulty === "number" &&
+          Number.isInteger(session.difficulty) &&
+          session.difficulty > 0
+            ? session.difficulty
+            : null;
+        const pool =
+          difficulty == null
+            ? await connection.query<{ id: number }>(SQL_SELECT_TASK_IDS, [
+                session.theme_id,
+              ])
+            : await connection.query<{ id: number }>(
+                SQL_SELECT_TASK_IDS_BY_DIFFICULTY,
+                [session.theme_id, difficulty],
+              );
+        taskIds = sampleRandomIds(
+          pool.map((row) => row.id),
+          TOPIC_TEST_TASK_COUNT
+        );
+      }
       const taskCount = taskIds.length;
 
       if (taskCount === 0) {

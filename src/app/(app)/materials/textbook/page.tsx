@@ -2,7 +2,9 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { MaterialDocument } from "@/components/learningMaterials/MaterialDocument";
 import { TextbookHashRedirect } from "@/components/learningMaterials/TextbookHashRedirect";
-import { getTextbookBlocks } from "@/content/learningMaterials";
+import { bankTaskRefsInBlocks } from "@/modules/textbook/bankTask";
+import { loadBankTaskViews } from "@/modules/textbook/bankTaskStore";
+import { getPublishedTextbookBlocks } from "@/modules/textbook/store";
 import { textbookTopicHref } from "@/content/learningMaterials/textbookHref";
 import { createPageMetadata } from "@/constants/seo";
 import { getThemes } from "@/modules/themes/getThemes";
@@ -43,7 +45,9 @@ export default async function TextbookPage({ searchParams }: TextbookPageProps) 
       ? themes[activeIndex + 1]
       : null;
 
-  const blocks = active ? getTextbookBlocks(active.code) : [];
+  const blocks = active ? await getPublishedTextbookBlocks(active.code) : [];
+  const bankLoad = await loadBankTaskViews(bankTaskRefsInBlocks(blocks));
+  const bankTasks = bankLoad.ok ? bankLoad.tasks : {};
   const titleId = active ? `topic-title-${active.code}` : "topic-title";
 
   return (
@@ -76,7 +80,7 @@ export default async function TextbookPage({ searchParams }: TextbookPageProps) 
 
               {blocks.length > 0 ? (
                 <div className={css.topicBody}>
-                  <MaterialDocument blocks={blocks} />
+                  <MaterialDocument blocks={blocks} bankTasks={bankTasks} bankMode="student" />
                 </div>
               ) : (
                 <p className={css.emptyMessage}>Матеріал готується</p>

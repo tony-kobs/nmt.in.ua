@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatKyivDateTime, formatRelativeAgo, relativeAgo, ukCountForm } from "./relativeTime";
+import { formatKyivClock, formatKyivDateTime, formatRelativeAgo, relativeAgo, ukCountForm } from "./relativeTime";
 
 const HOUR = 60;
 const DAY = 24 * HOUR;
@@ -90,6 +90,11 @@ test("English and German switch the singular at one", () => {
   assert.equal(formatRelativeAgo(3 * DAY, "de"), "vor 3 Tagen");
   assert.equal(formatRelativeAgo(2 * 30 * DAY, "de"), "vor 2 Monaten");
   assert.equal(formatRelativeAgo(2 * 12 * 30 * DAY, "de"), "vor 2 Jahren");
+});
+
+test("formatKyivClock is the Kyiv hour and minute", () => {
+  assert.match(formatKyivClock("2026-01-10T18:41:00.000Z", "uk"), /20:41/);
+  assert.equal(formatKyivClock("not-a-date", "uk"), "");
 });
 
 test("formatKyivDateTime shows the Kyiv wall clock, not UTC", () => {
