@@ -1,10 +1,13 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import Link from "next/link";
 import { askConfirm } from "@/components/ui/ConfirmDialog/ConfirmDialog";
 import { useTranslations } from "next-intl";
 import clsx from "clsx";
+import { SessionTaskCard } from "@/components/dashboard/TeacherSessionEditor";
 import { Select } from "@/components/ui/Select";
+import type { TeacherSessionSummary } from "@/modules/teacher-sessions";
 import type { AvailableTopicTheme } from "@/modules/testing/types";
 import type {
   MentorAssignmentDetail,
@@ -31,6 +34,7 @@ type TeacherAssignWorkspaceProps = {
   themes: AvailableTopicTheme[];
   students: AssignStudentOption[];
   assignments: MentorAssignmentSummary[];
+  sessions: TeacherSessionSummary[];
   /** Preloaded details keyed by assignment id for first paint. */
   detailsById: Record<number, MentorAssignmentDetail>;
 };
@@ -60,15 +64,22 @@ export function TeacherAssignWorkspace({
   themes,
   students,
   assignments,
+  sessions,
   detailsById,
 }: TeacherAssignWorkspaceProps) {
   const t = useTranslations("TeacherAssign");
+  const sessionsT = useTranslations("TeacherSessions");
   const dateLocale =
     typeof document !== "undefined"
       ? document.documentElement.lang || "uk-UA"
       : "uk-UA";
 
+  const [assignMode, setAssignMode] = useState<"quick" | "session">("quick");
   const [scheduleMode, setScheduleMode] = useState<"now" | "datetime">("now");
+  const readySessions = sessions.filter((session) => session.taskCount > 0);
+  const [learningSessionId, setLearningSessionId] = useState(
+    () => String(readySessions[0]?.id ?? ""),
+  );
   const [selectedIds, setSelectedIds] = useState<Set<number>>(
     () => new Set(students.map((s) => s.studentUserId))
   );
@@ -192,6 +203,44 @@ export function TeacherAssignWorkspace({
   }
 
   return (
+    <div className={css.stack}>
+      <section className={css.panel} aria-labelledby="teacher-sessions-title">
+        <div className={css.sectionHead}>
+          <h2 id="teacher-sessions-title" className={css.panelTitle}>
+            {sessionsT("sectionTitle")}
+          </h2>
+          <Link className={css.submit} href="/assign/sessions/new">
+            {sessionsT("newSession")}
+          </Link>
+        </div>
+        <p className={css.panelLead}>{sessionsT("sectionLead")}</p>
+        {sessions.length === 0 ? (
+          <p className={css.empty}>{sessionsT("sectionEmpty")}</p>
+        ) : (
+          <ul className={css.sessionGrid}>
+            {sessions.map((session) => (
+              <li key={session.id}>
+                <Link className={css.sessionCard} href={`/assign/sessions/${session.id}`}>
+                  <span className={css.assignTheme}>{session.title}</span>
+                  <span className={css.assignMeta}>
+                    {sessionsT("meta", {
+                      theme: session.themeName,
+                      level: session.difficulty,
+                      count: session.taskCount,
+                    })}
+                  </span>
+                  {session.assignmentCount > 0 ? (
+                    <span className={css.assignMeta}>
+                      {sessionsT("assignedMeta", { count: session.assignmentCount })}
+                    </span>
+                  ) : null}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
     <div className={css.layout}>
       <section
         className={css.panel}
@@ -206,33 +255,85 @@ export function TeacherAssignWorkspace({
           <p className={css.empty}>{t("noStudents")}</p>
         ) : (
           <form action={createAction} className={css.form}>
-            <label className={css.field}>
-              <span className={css.label}>{t("topic")}</span>
-              <Select
-                name="themeId"
-                defaultValue={String(themes[0]!.id)}
-                disabled={createPending}
-                required
-                options={themes.map((theme) => ({
-                  value: String(theme.id),
-                  label: theme.name,
-                }))}
-              />
-            </label>
+            <fieldset className={css.fieldset}>
+              <legend className={css.label}>{t("modeLabel")}</legend>
+              <div className={css.scheduleRow}>
+                <label className={css.radio}>
+                  <input
+                    type="radio"
+                    name="assignMode"
+                    value="quick"
+                    checked={assignMode === "quick"}
+                    onChange={() => setAssignMode("quick")}
+                    disabled={createPending}
+                  />
+                  <span>{t("modeQuick")}</span>
+                </label>
+                <label className={css.radio}>
+                  <input
+                    type="radio"
+                    name="assignMode"
+                    value="session"
+                    checked={assignMode === "session"}
+                    onChange={() => setAssignMode("session")}
+                    disabled={createPending}
+                  />
+                  <span>{t("modeSession")}</span>
+                </label>
+              </div>
+            </fieldset>
 
-            <label className={css.field}>
-              <span className={css.label}>{t("difficulty")}</span>
-              <input
-                className={css.input}
-                type="number"
-                name="difficulty"
-                min="1"
-                step="1"
-                defaultValue="1"
-                required
-                disabled={createPending}
-              />
-            </label>
+            {assignMode === "session" ? (
+              readySessions.length === 0 ? (
+                <p className={css.empty}>{t("noReadySessions")}</p>
+              ) : (
+                <label className={css.field}>
+                  <span className={css.label}>{t("sessionPick")}</span>
+                  <Select
+                    name="learningSessionId"
+                    value={learningSessionId}
+                    onChange={setLearningSessionId}
+                    disabled={createPending}
+                    required
+                    options={readySessions.map((session) => ({
+                      value: String(session.id),
+                      label: session.title,
+                    }))}
+                  />
+                </label>
+              )
+            ) : (
+              <>
+                <p className={css.panelLead}>{t("quickNote")}</p>
+                <label className={css.field}>
+                  <span className={css.label}>{t("topic")}</span>
+                  <Select
+                    name="themeId"
+                    defaultValue={String(themes[0]!.id)}
+                    disabled={createPending}
+                    required
+                    options={themes.map((theme) => ({
+                      value: String(theme.id),
+                      label: theme.name,
+                    }))}
+                  />
+                </label>
+
+                <label className={css.field}>
+                  <span className={css.label}>{t("difficulty")}</span>
+                  <input
+                    className={css.input}
+                    type="number"
+                    name="difficulty"
+                    min="1"
+                    step="1"
+                    defaultValue="1"
+                    required
+                    disabled={createPending}
+                  />
+                </label>
+              </>
+            )}
 
             <fieldset className={css.fieldset}>
               <legend className={css.label}>{t("when")}</legend>
@@ -319,7 +420,11 @@ export function TeacherAssignWorkspace({
             <button
               type="submit"
               className={css.submit}
-              disabled={createPending || selectedIds.size === 0}
+              disabled={
+                createPending ||
+                selectedIds.size === 0 ||
+                (assignMode === "session" && readySessions.length === 0)
+              }
             >
               {createPending ? t("assigning") : t("assign")}
             </button>
@@ -432,6 +537,9 @@ export function TeacherAssignWorkspace({
                             overdue: row.overdueCount,
                             total: row.memberCount,
                           })}
+                          {row.sessionTitle
+                            ? ` · ${row.sessionTitle}`
+                            : ""}
                         </span>
                       </button>
                     </li>
@@ -454,6 +562,30 @@ export function TeacherAssignWorkspace({
                 date: formatDueAt(activeDetail.dueAt, dateLocale),
               })}
             </p>
+
+            {activeDetail.learningSessionId ? (
+              <p className={css.detailLead}>
+                <Link href={`/assign/sessions/${activeDetail.learningSessionId}`}>
+                  {t("openSession")}
+                </Link>
+                {activeDetail.sessionTitle ? ` · ${activeDetail.sessionTitle}` : ""}
+              </p>
+            ) : null}
+
+            <h4 className={css.detailTitle}>{t("tasksTitle")}</h4>
+            {activeDetail.tasks.length === 0 ? (
+              <p className={css.empty}>
+                {activeDetail.learningSessionId ? t("tasksEmpty") : t("tasksPending")}
+              </p>
+            ) : (
+              <ol className={css.taskList}>
+                {activeDetail.tasks.map((task, index) => (
+                  <li key={`${task.id}-${task.position}`}>
+                    <SessionTaskCard task={task} index={index} />
+                  </li>
+                ))}
+              </ol>
+            )}
 
             <ul className={css.memberList}>
               {activeDetail.members.map((member) => (
@@ -594,6 +726,7 @@ export function TeacherAssignWorkspace({
           </div>
         ) : null}
       </section>
+    </div>
     </div>
   );
 }

@@ -175,7 +175,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `src/app/(app)/feedback/` | Список відгуків (лише admin) |
 | `src/app/(app)/profiles/` | Профілі: бан / видалення (лише admin). Звичайний акаунт — 14 днів і лист; забанений — одразу |
 | `src/app/(app)/tasks/` | CRUD завдання банку (лише admin) |
-| `src/app/(app)/assign/` | Призначити тест (teacher/admin) |
+| `src/app/(app)/assign/` | Призначити тест і навчальні сесії викладача (teacher/admin). Редактор: `/assign/sessions/new`, `/assign/sessions/[id]` |
 | `src/app/(app)/students/` | Мої учні, групи, інвайти |
 | `src/app/(app)/practice/fractions/` | Генерована практика дробів |
 | `src/app/(app)/practice/interactive/` | Редірект → `/?tab=interactive` |
@@ -206,6 +206,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `src/modules/sessions/` | Список сесій, createMentorSession, сесії класу викладача |
 | `src/modules/results/` | Агрегати `/results` + `teacherStudentResults` |
 | `src/modules/mentor-assignments/` | Групове призначення тестів (`/assign`) |
+| `src/modules/teacher-sessions/` | Навчальна сесія викладача: назва, тема, рівень, порядок `quiz_tasks`. Швидке призначення створює сесію саме |
 | `src/modules/teacher-students/` | Roster, групи, інвайти, створення учня |
 | `src/modules/teachers/` | Візитка + карусель/рейтинги на `/consultations` + список для лендінгу |
 | `src/modules/consultations/` | Заявки учня + інбокс викладача |
@@ -268,7 +269,8 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `user_self_scores` | Самооцінка, **історія** | рівно один з `user_id` / `guest_token`; `score` 1–10. `007` |
 | `teacher_students` | Roster | unique pair викладач↔учень. `017` |
 | `student_groups` / `student_group_members` / `student_invites` | Групи й інвайти | одна група на викладача на учня; код 14 днів. `034` |
-| `mentor_assignments` / `mentor_assignment_members` | Групове ДЗ | тема + `due_at` + `session_id`. `033` |
+| `mentor_assignments` / `mentor_assignment_members` | Групове ДЗ | тема + `due_at`. `mentor_assignments.session_id` — навчальна сесія викладача (`062`). `mentor_assignment_members.session_id` — спроба учня в `task_sessions`. `033` |
+| `sessions` / `session_tasks` | Список завдань викладача | `title`, `theme_id`, `difficulty`, `origin` manual/quick/migrated, порядок `quiz_task_id`. Не плутати з `task_sessions` і `user_sessions`. `062`. Бекап перед продом, далі `npm run migrate` |
 | `practice_stage2_attempts` + `order_tasks` / `find_error_tasks` / `graph_tasks` / `matching_tasks` / `blank_tasks` | Stage 2 | **не** `task_sessions`. Міграції `026`–`031` |
 | `practice_interactive_rounds` / `practice_interactive_round_tasks` | Раунд із 20 задач (5 форматів × 4) | `031` |
 
@@ -297,7 +299,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | Звичайний тест | `/` → TopicTestStart | скільки впишеш (макс. банк теми) | Розбір одразу (колір + іконка; без банера «Правильно») |
 | Симулятор НМТ | `/simulator` | офіційний варіант, 60 хв | `session_type = 4`, банк `nmt_quiz_tasks` |
 | Авто-сесія | з’являється на `/sessions` | як тест | Створює recommend після фінішу |
-| Ментор-сесія | викладач на `/assign` | як тест | `session_type = 3`; групове призначення з дедлайном |
+| Ментор-сесія | викладач на `/assign` | список навчальної сесії, інакше до 10 випадкових | `session_type = 3`; `mentor_assignments.session_id` фіксує завдання. Старт учня бере цей порядок |
 | Діагностика | `/diagnostic` (публічний) | до 10; стоп при 3 fail@1 | `session_type = 5`, `theme_id = NULL`; без самооцінки перед темами |
 | Stage 2 | `/?tab=interactive` | раунд 20 задач | Окремі таблиці; одна повторна спроба, потім reveal |
 | Практика дробів | `/practice/fractions` | генератор, 5 рівнів | Без рядків у `task_sessions` |
@@ -327,7 +329,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | `/admin/textbook` | Лише admin | Чернетка і публікація. Читання не пише `published_body`. Кнопки блоків, живий перегляд (з 1240 поруч, вужче — вкладки), картинки в `textbook_images` (`060`). Шаблон алгебри або геометрії, автозбереження чернетки, історія публікацій (`061`, «Відновити» повертає текст у чернетку). «Задача з банку» і «Імпорт» `.docx` / вставка з Word чи Google Docs. Нової таблиці немає |
 | `/problems` | Учень+ | Друкований тест по темі |
 | `/account` | Учень+ | Фото / пароль / вихід. Викладач — візитка; адмін — без навчальних віджетів |
-| `/assign` | teacher/admin (сторінка `requireRole`; учень не в меню) | Призначити тест |
+| `/assign`, `/assign/sessions/new`, `/assign/sessions/[id]` | teacher/admin (сторінка `requireRole`; учень не в меню) | Навчальні сесії і призначення. Картка призначення показує завдання |
 | `/students`, `/students/[id]` | teacher/admin (`proxy`) | Roster + статистика учня |
 | `/join`, `/join/[code]` | Учень (гість → логін, код у шляху) | Прийняти інвайт |
 | `/consultations` | Учень+ | Карусель викладачів + заявка / інбокс |
@@ -406,7 +408,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | 6.2 Відгук | `src/modules/feedback` | Мала | ✅ |
 | Консультації | `/consultations` | Мала | ✅ 17.09: карусель публічних викладачів + рейтинг + персональна заявка; черга викладачів без змін |
 | Мої учні | `src/modules/teacher-students`, `/students`, `/join` | Середня | ✅ 21.09: групи, інвайти 14 днів, статистика учня, «Приєднати» з консультації. 22.09: викладач створює обліковий запис учня (8.3). SQL `034`. 02.10: email валідується, лист підтвердження (24 год) або лог без `BREVO_API_KEY`; вхід не блокується, банер на `/account` |
-| Призначити тест | `src/modules/mentor-assignments`, `/assign` | Середня | ✅ 17.09: мульти-учні, дедлайн, статуси зелений/рожевий, скасування й зміна списку |
+| Призначити тест | `src/modules/mentor-assignments`, `src/modules/teacher-sessions`, `/assign` | Середня | ✅ 17.09: мульти-учні, дедлайн, статуси. 30.10: навчальна сесія (ручний набір, добір за темою і рівнем, перегляд з ключем). Одна сесія призначається кілька разів. Швидке призначення створює сесію саме. Міграція `062` — вручну після бекапу. Статистика по кожному завданню учня — пізніше |
 | Результати учнів | `/results`, `teacherStudentResults` | Мала | ✅ 17.09: «усі учні» у випадайці, worst-first; клік по темі → середні учнів |
 | Сесії учнів | `/sessions`, `teacherLearningSessions` | Мала | ✅ 17.09: усі / один учень; картки→таблиця; детальні бали без старту/скасування |
 | Публічна візитка викладача | `src/modules/teachers`, `/account`, `/t/{slug}` | Мала | ✅ 13.09; адмін без візитки з 16.09 |

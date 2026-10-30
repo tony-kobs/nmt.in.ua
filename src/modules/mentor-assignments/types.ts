@@ -1,3 +1,5 @@
+import type { SessionTaskView } from "@/modules/teacher-sessions/types";
+
 export type AssignmentScheduleMode = "now" | "datetime";
 
 export type AssignmentStatus = "active" | "cancelled";
@@ -19,6 +21,9 @@ export type MentorAssignmentSummary = {
   memberCount: number;
   completedCount: number;
   overdueCount: number;
+  /** Teacher session (`sessions.id`). Null until the backfill migration runs. */
+  learningSessionId: number | null;
+  sessionTitle: string | null;
 };
 
 export type MentorAssignmentMember = {
@@ -31,6 +36,7 @@ export type MentorAssignmentMember = {
 
 export type MentorAssignmentDetail = MentorAssignmentSummary & {
   members: MentorAssignmentMember[];
+  tasks: SessionTaskView[];
 };
 
 export type MentorAssignmentsErrorCode =
@@ -42,6 +48,8 @@ export type MentorAssignmentsErrorCode =
   | "not_found"
   | "cancelled"
   | "forbidden"
+  | "session_not_found"
+  | "session_empty"
   | "db_error";
 
 export class MentorAssignmentsError extends Error {
