@@ -11,11 +11,11 @@ import { readRiddleSession } from "@/modules/marathons/daily/riddleSession";
 import { marathonOpensAt, publicMarathonPhase } from "@/modules/marathons/daily/publicPage";
 import {
   getParticipant,
-  getPublicDailyBySlug,
   loadLandingRiddles,
   loadMarathonBoard,
 } from "@/modules/marathons/daily/store";
 import { readUtm } from "@/modules/marathons/daily/utm";
+import { loadPublicMarathon } from "../publicMarathon";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: PageProps) {
     noIndex: true,
   });
   try {
-    const marathon = await getPublicDailyBySlug(slug);
+    const marathon = await loadPublicMarathon(slug);
     const phase = publicMarathonPhase(marathon, new Date());
     if (!marathon || phase === "hidden") return hidden;
     return createPageMetadata({
@@ -64,7 +64,7 @@ export default async function MarathonLandingPage({ params, searchParams }: Page
   const now = new Date();
   let marathon;
   try {
-    marathon = await getPublicDailyBySlug(slug);
+    marathon = await loadPublicMarathon(slug);
   } catch (error) {
     rethrowNavigation(error);
     if (isDatabaseUnavailable(error)) return <DatabaseUnavailable />;
