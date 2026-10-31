@@ -6,8 +6,8 @@ import { createPageMetadata } from "@/constants/seo";
 import { isDatabaseUnavailable, rethrowNavigation } from "@/lib/db/unavailable";
 import { getCurrentUser } from "@/modules/auth/getCurrentUser";
 import { publicMarathonPhase } from "@/modules/marathons/daily/publicPage";
-import { getPublicDailyBySlug } from "@/modules/marathons/daily/store";
 import { readUtm } from "@/modules/marathons/daily/utm";
+import { loadPublicMarathon } from "../publicMarathon";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: PageProps) {
   const missing = await getTranslations("Metadata.notFound");
   let open = false;
   try {
-    const marathon = await getPublicDailyBySlug(slug);
+    const marathon = await loadPublicMarathon(slug);
     const phase = publicMarathonPhase(marathon, new Date());
     open = phase === "parking" || phase === "open";
   } catch (error) {
@@ -53,7 +53,7 @@ export async function generateMetadata({ params }: PageProps) {
 export default async function MarathonJoinPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const query = await searchParams;
-  const marathon = await getPublicDailyBySlug(slug);
+  const marathon = await loadPublicMarathon(slug);
   const phase = publicMarathonPhase(marathon, new Date());
   if (!marathon || (phase !== "parking" && phase !== "open")) notFound();
   const user = await getCurrentUser();
