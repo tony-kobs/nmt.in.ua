@@ -65,6 +65,7 @@ export function TeacherStudentsPanel({
   );
   const [copiedLogin, setCopiedLogin] = useState<string | null>(null);
   const [createEmailInvalid, setCreateEmailInvalid] = useState(false);
+  const [addEmailInvalid, setAddEmailInvalid] = useState(false);
   const credentialsCopied =
     createState.status === "success" && copiedLogin === createState.login;
   const [unlinkState, unlinkAction, unlinkPending] = useActionState(
@@ -285,19 +286,32 @@ export function TeacherStudentsPanel({
           <p className={css.panelLead}>{t("addLead")}</p>
         </div>
 
-        <form action={addAction} className={css.form}>
+        <form
+          action={addAction}
+          className={css.form}
+          onSubmit={(event: FormEvent<HTMLFormElement>) => {
+            const value = String(new FormData(event.currentTarget).get("email") ?? "");
+            if (!isValidEmailAddress(value)) {
+              event.preventDefault();
+              setAddEmailInvalid(true);
+              return;
+            }
+            setAddEmailInvalid(false);
+          }}
+        >
           <div className={css.formRow}>
             <label className={css.field}>
-              <span className={css.label}>{t("login")}</span>
+              <span className={css.label}>{t("addEmail")}</span>
               <input
                 className={css.input}
-                type="text"
-                name="login"
-                autoComplete="off"
+                type="email"
+                inputMode="email"
+                name="email"
+                autoComplete="email"
                 spellCheck={false}
                 required
-                maxLength={LOGIN_MAX_LEN}
-                placeholder={t("loginPlaceholder")}
+                maxLength={EMAIL_MAX_LEN}
+                placeholder={t("addEmailPlaceholder")}
                 disabled={addPending}
               />
             </label>
@@ -305,7 +319,7 @@ export function TeacherStudentsPanel({
               {addPending ? t("adding") : t("add")}
             </button>
           </div>
-          <span className={css.hint}>{t("loginHint")}</span>
+          <span className={css.hint}>{t("addEmailHint")}</span>
         </form>
 
         {addState.status === "success" ? (
@@ -314,9 +328,13 @@ export function TeacherStudentsPanel({
           </p>
         ) : null}
 
-        {addState.status === "error" ? (
+        {addEmailInvalid || addState.status === "error" ? (
           <p className={clsx(css.alert, css.alertError)} role="alert">
-            {t(`errors.${addState.code}`)}
+            {addEmailInvalid
+              ? t("errors.invalid_email")
+              : t(
+                  `errors.${addState.status === "error" ? addState.code : "invalid_email"}`,
+                )}
           </p>
         ) : null}
       </section>

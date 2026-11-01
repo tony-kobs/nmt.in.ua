@@ -153,7 +153,7 @@ export function LearningSessionsTable({
                   ) : null}
                   <th scope="col" className={css.colNarrow}>%</th>
                   {showExtendedInfo ? (
-                    <th scope="col" className={css.colNarrow}>
+                    <th scope="col" className={css.colDuration}>
                       {t("timeSeconds")}
                     </th>
                   ) : null}
@@ -196,12 +196,12 @@ export function LearningSessionsTable({
                       {formatPercent(row.percent)}
                     </td>
                     {showExtendedInfo ? (
-                      <td className={css.colNarrow}>
+                      <td className={css.colDuration}>
                         {formatDurationSeconds(row.timeSec, locale)}
                       </td>
                     ) : null}
                     <td className={css.colTimePer}>
-                      {formatTimePerTask(row.timePerTaskSec)}
+                      {formatTimePerTask(row.timePerTaskSec, locale)}
                     </td>
                     {showExtendedInfo ? (
                       <>

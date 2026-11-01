@@ -177,6 +177,7 @@ export function TopicTrainer({
   const [hintsByMappingId, setHintsByMappingId] = useState<Record<number, HintProgress>>(
     () => Object.fromEntries(tasks.filter((task) => task.hints?.length).map((task) => [task.mappingId, task.hints!])),
   );
+  const [hintNoticeByMappingId, setHintNoticeByMappingId] = useState<Record<number, string>>({});
   const [hintLoading, setHintLoading] = useState(false);
   const [similarTaskLoading, setSimilarTaskLoading] = useState(false);
   const [pendingMappingId, setPendingMappingId] = useState<number | null>(null);
@@ -299,6 +300,7 @@ export function TopicTrainer({
     ? resultsByMappingId[currentTask.mappingId]
     : undefined;
   const hintProgress = currentTask ? hintsByMappingId[currentTask.mappingId] : undefined;
+  const hintNotice = currentTask ? hintNoticeByMappingId[currentTask.mappingId] : undefined;
   const isPending =
     currentTask != null && pendingMappingId === currentTask.mappingId;
   const isLast = currentIndex === total - 1;
@@ -445,23 +447,41 @@ export function TopicTrainer({
   async function handleShowNextHint() {
     if (!isPractice || hintLoading) return;
     const nextLevel = ((hintProgress?.length ?? 0) + 1) as HintLevel;
-    if (nextLevel > 3) return;
+    if (nextLevel > 3 || !currentTask) return;
+    const mappingId = currentTask.mappingId;
     setHintLoading(true);
+    setHintNoticeByMappingId((prev) => {
+      if (!prev[mappingId]) return prev;
+      const next = { ...prev };
+      delete next[mappingId];
+      return next;
+    });
     try {
       const result = await getTaskHintLevelAction({
         sessionId,
-        mappingId: currentTask.mappingId,
+        mappingId,
         level: nextLevel,
       });
       if (result.status === "success" && result.available && result.text && result.level) {
         setHintsByMappingId((prev) => ({
           ...prev,
-          [currentTask.mappingId]: [
-            ...(prev[currentTask.mappingId] ?? []),
+          [mappingId]: [
+            ...(prev[mappingId] ?? []),
             { level: result.level as HintLevel, text: result.text as string, isFinal: result.isFinal },
           ],
         }));
+        return;
       }
+      setHintNoticeByMappingId((prev) => ({
+        ...prev,
+        [mappingId]:
+          result.status === "error" ? t("hintFailed") : t("hintUnavailable"),
+      }));
+    } catch {
+      setHintNoticeByMappingId((prev) => ({
+        ...prev,
+        [mappingId]: t("hintFailed"),
+      }));
     } finally {
       setHintLoading(false);
     }
@@ -709,7 +729,9 @@ export function TopicTrainer({
             <>
               <span>{t("retryPrompt")}</span>
               {hintProgress?.map((rung) => (
-                <MathText key={rung.level} text={rung.text} />
+                <div key={rung.level} className={css.hintText}>
+                  <MathText text={rung.text} />
+                </div>
               ))}
             </>
           ) : showVerdict && checkResult && !checkResult.correct ? (
@@ -815,6 +837,11 @@ export function TopicTrainer({
       {isPractice && checkResult?.retryAvailable &&
       (!hintProgress || !hintProgress[hintProgress.length - 1]?.isFinal) ? (
         <div className={css.practicePanel}>
+          {hintNotice ? (
+            <p className={css.hintText} role="status">
+              {hintNotice}
+            </p>
+          ) : null}
           <button
             type="button"
             className={css.hintButton}

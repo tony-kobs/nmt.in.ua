@@ -142,9 +142,6 @@ export async function getTaskHint(
         row.status === TASK_STATUS_INCORRECT;
 
       const comment = row.comments?.trim() || "";
-      if (row.first_attempt_status != null && row.retry_used !== 1 && row.session_status !== SESSION_STATUS_COMPLETED) {
-        return { available: false, hint: null };
-      }
       if (!eligible || comment === "") {
         return { available: false, hint: null };
       }

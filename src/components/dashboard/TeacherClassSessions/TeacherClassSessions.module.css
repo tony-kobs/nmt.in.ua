@@ -413,7 +413,7 @@
 }
 
 .colTheme {
-  width: 18%;
+  width: 14%;
   font-weight: 700;
   overflow-wrap: break-word;
   hyphens: auto;
@@ -425,8 +425,14 @@
   white-space: nowrap;
 }
 
+.colTime {
+  width: 12%;
+  font-variant-numeric: tabular-nums;
+  white-space: normal;
+}
+
 .colDate {
-  width: 15%;
+  width: 13%;
   font-variant-numeric: tabular-nums;
 }
 
@@ -452,7 +458,7 @@
 }
 
 .colStatus {
-  width: 13%;
+  width: 12%;
 }
 
 .colStatus .status {

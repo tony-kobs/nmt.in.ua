@@ -156,9 +156,9 @@ export function formatDurationSeconds(seconds: number, locale = "uk"): string {
   return formatMarathonDuration(seconds, durationLocale(locale));
 }
 
-export function formatTimePerTask(seconds: number | null): string {
+export function formatTimePerTask(seconds: number | null, locale = "uk"): string {
   if (seconds === null) return "—";
-  return seconds.toFixed(1).replace(".", ",");
+  return formatDurationSeconds(seconds, locale);
 }
 
 function asUnixSec(value: unknown): number | null {

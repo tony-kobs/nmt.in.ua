@@ -66,7 +66,7 @@ export function LearningSessionCard({
         </div>
         <div>
           <dt>{t("timePerTest")}</dt>
-          <dd>{formatTimePerTask(row.timePerTaskSec)}</dd>
+          <dd>{formatTimePerTask(row.timePerTaskSec, locale)}</dd>
         </div>
         {extended ? (
           <>
