@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { SqlConnection } from "@/lib/db/mysql";
 import {
-  linkStudentByLogin,
-  validateLinkStudentByLoginInput,
+  linkStudentByEmail,
+  validateLinkStudentByEmailInput,
 } from "./linkStudent";
 import { TeacherStudentsError } from "./types";
 
@@ -74,33 +74,47 @@ function makeConnection(options: {
   return { connection, calls };
 }
 
-test("validateLinkStudentByLoginInput trims and lowercases login", () => {
+test("validateLinkStudentByEmailInput trims and lowercases email", () => {
   assert.deepEqual(
-    validateLinkStudentByLoginInput({
+    validateLinkStudentByEmailInput({
       teacherUserId: 2,
-      login: "  Demo-Student  ",
+      email: "  Pupil@School.UA  ",
     }),
-    { teacherUserId: 2, login: "demo-student" },
+    { teacherUserId: 2, email: "pupil@school.ua" },
   );
 });
 
-test("validateLinkStudentByLoginInput rejects a missing teacher or blank login", () => {
+test("validateLinkStudentByEmailInput rejects a missing teacher or a bad email", () => {
   assert.throws(
-    () => validateLinkStudentByLoginInput({ teacherUserId: 0, login: "a" }),
+    () =>
+      validateLinkStudentByEmailInput({
+        teacherUserId: 0,
+        email: "pupil@school.ua",
+      }),
     (error: unknown) =>
       error instanceof TeacherStudentsError && error.code === "invalid_input",
   );
   assert.throws(
-    () => validateLinkStudentByLoginInput({ teacherUserId: 2, login: "   " }),
+    () =>
+      validateLinkStudentByEmailInput({ teacherUserId: 2, email: "   " }),
     (error: unknown) =>
-      error instanceof TeacherStudentsError && error.code === "invalid_input",
+      error instanceof TeacherStudentsError && error.code === "invalid_email",
+  );
+  assert.throws(
+    () =>
+      validateLinkStudentByEmailInput({
+        teacherUserId: 2,
+        email: "not-an-email",
+      }),
+    (error: unknown) =>
+      error instanceof TeacherStudentsError && error.code === "invalid_email",
   );
 });
 
-test("linkStudentByLogin inserts a unique pair for an existing student", async () => {
+test("linkStudentByEmail inserts a unique pair for an existing student", async () => {
   const mock = makeConnection({ user: studentRow() });
-  const result = await linkStudentByLogin(
-    { teacherUserId: 2, login: "demo-student" },
+  const result = await linkStudentByEmail(
+    { teacherUserId: 2, email: "  Pupil@School.UA " },
     { getConnection: async () => mock.connection },
   );
 
@@ -109,6 +123,10 @@ test("linkStudentByLogin inserts a unique pair for an existing student", async (
   assert.equal(result.student.login, "demo-student");
   assert.equal(result.student.displayName, "Олена Коваленко");
 
+  const lookup = mock.calls.find((call) => call.sql.includes("FROM app_users"));
+  assert.equal(lookup?.params?.[0], "pupil@school.ua");
+  assert.match(String(lookup?.sql), /LOWER\(TRIM\(email\)\)/);
+
   const insert = mock.calls.find((call) =>
     call.sql.includes("INSERT INTO teacher_students"),
   );
@@ -116,12 +134,12 @@ test("linkStudentByLogin inserts a unique pair for an existing student", async (
   assert.deepEqual(insert!.params, [2, 1]);
 });
 
-test("linkStudentByLogin returns not_found when the login is missing", async () => {
+test("linkStudentByEmail returns not_found when the email is missing", async () => {
   const mock = makeConnection({ user: null });
   await assert.rejects(
     () =>
-      linkStudentByLogin(
-        { teacherUserId: 2, login: "nobody" },
+      linkStudentByEmail(
+        { teacherUserId: 2, email: "nobody@school.ua" },
         { getConnection: async () => mock.connection },
       ),
     (error: unknown) =>
@@ -133,7 +151,7 @@ test("linkStudentByLogin returns not_found when the login is missing", async () 
   );
 });
 
-test("linkStudentByLogin rejects a teacher or admin login", async () => {
+test("linkStudentByEmail rejects a teacher or admin email", async () => {
   const mock = makeConnection({
     user: studentRow({
       id: 2,
@@ -144,8 +162,8 @@ test("linkStudentByLogin rejects a teacher or admin login", async () => {
   });
   await assert.rejects(
     () =>
-      linkStudentByLogin(
-        { teacherUserId: 3, login: "demo-teacher" },
+      linkStudentByEmail(
+        { teacherUserId: 3, email: "teacher@school.ua" },
         { getConnection: async () => mock.connection },
       ),
     (error: unknown) =>
@@ -153,14 +171,14 @@ test("linkStudentByLogin rejects a teacher or admin login", async () => {
   );
 });
 
-test("linkStudentByLogin rejects linking the teacher's own account", async () => {
+test("linkStudentByEmail rejects linking the teacher's own account", async () => {
   const mock = makeConnection({
     user: studentRow({ id: 2, login: "self", role: "student" }),
   });
   await assert.rejects(
     () =>
-      linkStudentByLogin(
-        { teacherUserId: 2, login: "self" },
+      linkStudentByEmail(
+        { teacherUserId: 2, email: "self@school.ua" },
         { getConnection: async () => mock.connection },
       ),
     (error: unknown) =>
@@ -168,12 +186,12 @@ test("linkStudentByLogin rejects linking the teacher's own account", async () =>
   );
 });
 
-test("linkStudentByLogin returns already_linked for an existing pair", async () => {
+test("linkStudentByEmail returns already_linked for an existing pair", async () => {
   const mock = makeConnection({ user: studentRow(), existing: true });
   await assert.rejects(
     () =>
-      linkStudentByLogin(
-        { teacherUserId: 2, login: "demo-student" },
+      linkStudentByEmail(
+        { teacherUserId: 2, email: "pupil@school.ua" },
         { getConnection: async () => mock.connection },
       ),
     (error: unknown) =>
@@ -181,12 +199,12 @@ test("linkStudentByLogin returns already_linked for an existing pair", async () 
   );
 });
 
-test("linkStudentByLogin maps a duplicate-key race to already_linked", async () => {
+test("linkStudentByEmail maps a duplicate-key race to already_linked", async () => {
   const mock = makeConnection({ user: studentRow(), duplicate: true });
   await assert.rejects(
     () =>
-      linkStudentByLogin(
-        { teacherUserId: 2, login: "demo-student" },
+      linkStudentByEmail(
+        { teacherUserId: 2, email: "pupil@school.ua" },
         { getConnection: async () => mock.connection },
       ),
     (error: unknown) =>

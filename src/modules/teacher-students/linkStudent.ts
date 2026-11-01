@@ -1,5 +1,8 @@
 import type { SqlConnection } from "@/lib/db/mysql";
-import { LOGIN_MAX_LEN, normalizeLogin } from "@/modules/auth/validateRegistration";
+import {
+  isValidEmailAddress,
+  normalizeEmail,
+} from "@/modules/auth/validateRegistration";
 import {
   ensureTeacherStudentsSchema,
   loadTeacherStudentsConnection,
@@ -10,12 +13,12 @@ import {
   type TeacherStudentLink,
 } from "./types";
 
-export type LinkStudentByLoginInput = {
+export type LinkStudentByEmailInput = {
   teacherUserId: number;
-  login: string;
+  email: string;
 };
 
-export type LinkStudentByLoginResult = {
+export type LinkStudentByEmailResult = {
   created: boolean;
   student: TeacherStudentLink;
 };
@@ -31,10 +34,10 @@ type UserLookupRow = {
   role: string;
 };
 
-const SQL_FIND_USER_BY_LOGIN = `
+const SQL_FIND_USER_BY_EMAIL = `
   SELECT id, login, display_name, role
   FROM app_users
-  WHERE login = ?
+  WHERE LOWER(TRIM(email)) = ?
   LIMIT 1
 `;
 
@@ -78,9 +81,9 @@ function mapLinkedStudent(row: {
   };
 }
 
-export function validateLinkStudentByLoginInput(
+export function validateLinkStudentByEmailInput(
   raw: unknown,
-): LinkStudentByLoginInput {
+): LinkStudentByEmailInput {
   if (typeof raw !== "object" || raw === null) {
     throw new TeacherStudentsError(
       "Request payload must be an object.",
@@ -88,7 +91,7 @@ export function validateLinkStudentByLoginInput(
     );
   }
 
-  const { teacherUserId, login } = raw as Record<string, unknown>;
+  const { teacherUserId, email } = raw as Record<string, unknown>;
   if (!isPositiveInt(teacherUserId)) {
     throw new TeacherStudentsError(
       "teacherUserId must be a positive integer.",
@@ -96,39 +99,42 @@ export function validateLinkStudentByLoginInput(
     );
   }
 
-  if (typeof login !== "string") {
-    throw new TeacherStudentsError("login is required.", "invalid_input");
+  if (typeof email !== "string") {
+    throw new TeacherStudentsError("email is required.", "invalid_email");
   }
 
-  const normalized = normalizeLogin(login);
-  if (!normalized || normalized.length > LOGIN_MAX_LEN) {
-    throw new TeacherStudentsError("login is invalid.", "invalid_input");
+  const normalized = normalizeEmail(email);
+  if (!isValidEmailAddress(normalized)) {
+    throw new TeacherStudentsError("email is invalid.", "invalid_email");
   }
 
-  return { teacherUserId, login: normalized };
+  return { teacherUserId, email: normalized };
 }
 
 /**
- * Links a student to a teacher by exact login (trimmed, lowercased).
+ * Links a student to a teacher by email (trimmed, lowercased).
  * `teacherUserId` must come from the trusted session, never the client.
  */
-export async function linkStudentByLogin(
+export async function linkStudentByEmail(
   rawInput: unknown,
   deps: LinkStudentDeps = { getConnection: loadTeacherStudentsConnection },
-): Promise<LinkStudentByLoginResult> {
-  const input = validateLinkStudentByLoginInput(rawInput);
+): Promise<LinkStudentByEmailResult> {
+  const input = validateLinkStudentByEmailInput(rawInput);
   await ensureTeacherStudentsSchema(deps.getConnection);
 
   try {
     const connection = await deps.getConnection();
     try {
       const users = await connection.query<UserLookupRow>(
-        SQL_FIND_USER_BY_LOGIN,
-        [input.login],
+        SQL_FIND_USER_BY_EMAIL,
+        [input.email],
       );
       const user = users[0];
       if (!user) {
-        throw new TeacherStudentsError("User not found.", "not_found");
+        throw new TeacherStudentsError(
+          "No student with that email.",
+          "not_found",
+        );
       }
       if (user.role !== "student") {
         throw new TeacherStudentsError(
@@ -200,7 +206,7 @@ export async function linkStudentByLogin(
         "already_linked",
       );
     }
-    console.error("linkStudentByLogin: unexpected database error", error);
+    console.error("linkStudentByEmail: unexpected database error", error);
     throw new TeacherStudentsError("Database operation failed.", "db_error");
   }
 }

@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   buildLearningSessionRows,
   formatDurationSeconds,
+  formatTimePerTask,
   resolveSessionDisplayStatus,
   SESSION_STATUS_COMPLETED,
   SESSION_STATUS_CREATED,
@@ -209,4 +210,10 @@ test("session time is minutes and seconds, not a raw second count", () => {
   assert.equal(formatDurationSeconds(3600 + 3 * 60, "uk"), "1 год 03 хв");
   assert.equal(formatDurationSeconds(0), "—");
   assert.equal(formatDurationSeconds(3661, "en"), "1 h 01 min");
+  assert.equal(formatTimePerTask(96), "1 хв 36 с");
+  assert.equal(formatTimePerTask(69), "1 хв 09 с");
+  assert.equal(formatTimePerTask(5.6), "0 хв 05 с");
+  assert.equal(formatTimePerTask(null), "—");
+  assert.equal(formatTimePerTask(3661, "en"), "1 h 01 min");
+  assert.equal(formatTimePerTask(69).includes(","), false);
 });

@@ -160,14 +160,20 @@ test("rung 3 unlocks once the retry has been consumed", async () => {
   });
 });
 
-test("a legacy task with no authored ladder is entirely unavailable while the retry is pending (its only content is the answer)", async () => {
+test("a legacy task with only comments shows that hint on the first click, while the retry is still open", async () => {
   const mock = makeConnection([
     makeRow({ hint_direction: null, hint_rule: null, retry_used: 0 }),
   ]);
   const result = await getTaskHintLevel(validInput, {
     getConnection: async () => mock.connection,
   });
-  assert.deepEqual(result, { available: false, level: null, text: null, isFinal: false });
+  assert.deepEqual(result, {
+    available: true,
+    level: 1,
+    text: "Full worked example: ...",
+    isFinal: true,
+  });
+  assert.equal(mock.row.hint_level_unlocked, 1);
 });
 
 test("a task missing the rule rung does not leak the explanation at level 2 while the retry is pending", async () => {
@@ -187,6 +193,22 @@ test("re-requesting an already-unlocked rung is idempotent, not rejected", async
   );
   assert.equal(result.available, true);
   assert.equal(result.text, "Look at the sign of the coefficient.");
+});
+
+test("a legacy task with a blank comment stays unavailable instead of showing an empty hint", async () => {
+  const mock = makeConnection([
+    makeRow({
+      hint_direction: null,
+      hint_rule: null,
+      comments: "   ",
+      retry_used: 0,
+    }),
+  ]);
+  const result = await getTaskHintLevel(validInput, {
+    getConnection: async () => mock.connection,
+  });
+  assert.deepEqual(result, { available: false, level: null, text: null, isFinal: false });
+  assert.equal(mock.row.hint_level_unlocked, 0);
 });
 
 test("legacy task without an authored ladder degrades straight to the explanation, marked final", async () => {

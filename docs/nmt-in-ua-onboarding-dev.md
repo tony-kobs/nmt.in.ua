@@ -238,7 +238,7 @@ Merge в `main` запускає [`.github/workflows/deploy-hosting.yml`](../.gi
 | Рекомендації | `src/modules/recommendations` | `getStudentTopicStats`, `recommendNextActions`, `persistRecommendations` |
 | Сесії | `src/modules/sessions` | `getLearningSessions`, `createMentorSession`, `teacherLearningSessions` |
 | Призначення | `src/modules/mentor-assignments` | `createMentorAssignment`, list/detail, cancel, update members |
-| Учні викладача | `src/modules/teacher-students` | `createStudentForTeacher`, `linkStudentByLogin`, групи, інвайти |
+| Учні викладача | `src/modules/teacher-students` | `createStudentForTeacher`, `linkStudentByEmail`, групи, інвайти |
 | Самооцінка | `src/modules/self-score` | історія 1–10; на `/results` селект; діагностика більше не пише overall |
 | Діагностика | `src/modules/diagnostic` | окремо від `testing`; guest cookie + `claimGuestProgress` при реєстрації |
 | Генератори | `src/modules/problemGenerators` | без БД/Next. `fractionAddition` |

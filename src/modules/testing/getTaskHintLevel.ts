@@ -101,7 +101,14 @@ function isHintLevel(value: unknown): value is HintLevel {
   return value === 1 || value === 2 || value === 3;
 }
 
-/** Authored analogous examples never reveal the current answer; legacy explanation fallback requires a consumed retry. */
+/**
+ * Authored analogous examples never reveal the current answer.
+ * A missing later rung falls back to `comments` only after the retry, so the
+ * ladder does not skip straight to the worked solution.
+ * A task with no ladder at all stores its hint in `comments` (the admin
+ * field «Підказка / коментар»). The button is only on screen while the
+ * retry is still open, so that text has to come back on the first click.
+ */
 function resolveRung(
   row: HintRow,
   level: HintLevel,
@@ -115,10 +122,7 @@ function resolveRung(
     retryConsumed ? { text: explanation, isFinal: true } : { text: null, isFinal: false };
 
   if (direction == null) {
-    // Legacy task: no ladder authored at all — the only content it has IS
-    // the answer-revealing explanation, so it's gated exactly like a
-    // resolved rung 3 above.
-    return explanationGate();
+    return { text: explanation, isFinal: true };
   }
   if (level === 1) {
     return { text: direction, isFinal: false };
