@@ -110,7 +110,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const initialPage = readPageParam(params.page);
   const saved = readThemeParam(params.saved) === "1";
   const [{ CabinetHome }, needsCookieUpgrade] = await Promise.all([
-    import("./_home/CabinetHome"),
+    import("../_home/CabinetHome"),
     sessionCookieNeedsUpgrade(),
   ]);
 

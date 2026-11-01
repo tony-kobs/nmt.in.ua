@@ -41,6 +41,7 @@ import {
   type AdminFormState,
 } from "./forms";
 import { isCopyKey } from "./copy";
+import { marathonJoinNextPath } from "./publicPage";
 import { activationBlockers, marathonIsReady } from "./readiness";
 import { sendCompletedDayFollowUp, sendRankNotice } from "./notificationsJob";
 import { seedMathMarathon } from "./seed";
@@ -55,6 +56,7 @@ import {
   getRiddleById,
   getDailyBySlug,
   getParticipant,
+  getPublicDailyBySlug,
   insertDailyMarathon,
   insertDay,
   insertMaterial,
@@ -613,8 +615,10 @@ async function openMarathon(slug: string) {
 export async function joinMarathonAction(formData: FormData): Promise<void> {
   const user = await requireUser();
   const slug = readText(formData.get("slug"), 64);
-  const marathon = await openMarathon(slug);
-  if (!marathon || marathon.status !== "active") redirect(`/marathon/${slug}?error=closed`);
+  const marathon = await getPublicDailyBySlug(slug);
+  if (!marathon || (marathon.status !== "draft" && marathon.status !== "active")) {
+    redirect(`/marathon/${slug}?error=closed`);
+  }
   await joinParticipant(marathon.id, user.id, utmJsonFromForm(formData));
   await notifyMarathonRegistration({
     marathonId: marathon.id,
@@ -626,10 +630,12 @@ export async function joinMarathonAction(formData: FormData): Promise<void> {
   } catch (error) {
     console.error("marathon invite read", error);
   }
+  const nextPath = marathonJoinNextPath(slug, marathon);
+  revalidatePath(`/marathon/${slug}`);
   revalidatePath(`/marathon/${slug}/map`);
   revalidatePath("/marathon");
   revalidatePath("/");
-  redirect(`/marathon/${slug}/map`);
+  redirect(nextPath);
 }
 
 export async function declineMarathonAction(formData: FormData): Promise<void> {
@@ -652,7 +658,13 @@ export async function declineMarathonAction(formData: FormData): Promise<void> {
 type RegisterMarathonDeps = {
   loadMarathon?: (
     slug: string,
-  ) => Promise<{ id: number; status: string } | null>;
+  ) => Promise<{
+    id: number;
+    status: string;
+    startDate?: string;
+    unlockHour?: string;
+    daysCount?: number;
+  } | null>;
   createUser?: typeof createUser;
   joinParticipant?: typeof joinParticipant;
   sendVerificationMail?: typeof sendRegistrationVerificationMail;
@@ -672,8 +684,8 @@ export async function registerMarathonAction(
   const back = `/marathon/${slug}/join`;
   const marathon = deps.loadMarathon
     ? await deps.loadMarathon(slug)
-    : await openMarathon(slug);
-  if (!marathon || marathon.status !== "active") {
+    : await getPublicDailyBySlug(slug);
+  if (!marathon || (marathon.status !== "active" && marathon.status !== "draft")) {
     return go(`${back}?error=closed`);
   }
   const name = readText(formData.get("name"), 100);
@@ -752,7 +764,7 @@ export async function registerMarathonAction(
   } catch (error) {
     console.error("registerMarathonAction mail", error);
   }
-  const nextPath = safeInternalPath(`/marathon/${slug}/map`);
+  const nextPath = safeInternalPath(marathonJoinNextPath(slug, marathon));
   if (deps.rememberReturn) {
     await deps.rememberReturn(nextPath);
   } else {

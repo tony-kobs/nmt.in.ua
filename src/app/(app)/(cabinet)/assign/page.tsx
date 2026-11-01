@@ -8,6 +8,7 @@ import {
   getMentorAssignmentDetail,
   listMentorAssignments,
 } from "@/modules/mentor-assignments";
+import { listTeacherSessions } from "@/modules/teacher-sessions";
 import { getTeacherStudents } from "@/modules/teacher-students/getTeacherStudents";
 import { getAvailableTopicThemes } from "@/modules/testing/getAvailableTopicThemes";
 import type { MentorAssignmentDetail } from "@/modules/mentor-assignments";
@@ -27,7 +28,7 @@ export default async function AssignPage() {
   const user = await requireRole(["teacher", "admin"]);
   const t = await getTranslations("TeacherAssign");
 
-  const [themes, students, assignments] = await Promise.all([
+  const [themes, students, assignments, sessions] = await Promise.all([
     getAvailableTopicThemes(),
     getTeacherStudents(user.id).catch((error) => {
       console.error("assign: getTeacherStudents failed", error);
@@ -35,6 +36,10 @@ export default async function AssignPage() {
     }),
     listMentorAssignments(user.id).catch((error) => {
       console.error("assign: listMentorAssignments failed", error);
+      return [];
+    }),
+    listTeacherSessions(user.id).catch((error) => {
+      console.error("assign: listTeacherSessions failed", error);
       return [];
     }),
   ]);
@@ -60,6 +65,7 @@ export default async function AssignPage() {
           displayName: row.displayName,
         }))}
         assignments={assignments}
+        sessions={sessions}
         detailsById={detailsById}
       />
     </PageFrame>

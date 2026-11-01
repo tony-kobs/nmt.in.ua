@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { sampleRandomIds } from "@/lib/sampleRandomIds";
 import {
   SESSION_STATUS_COMPLETED,
   SESSION_STATUS_PLANNED,
@@ -10,6 +11,14 @@ import {
   notifyAssignedSessions,
   type AssignedSessionNotice,
 } from "@/modules/notifications/topicReminders";
+import { ensureTeacherSessionsSchema } from "@/modules/teacher-sessions/schema";
+import {
+  insertQuickSession,
+  listSessionTaskViews,
+  readAssignableSession,
+} from "@/modules/teacher-sessions/store";
+import { TeacherSessionsError } from "@/modules/teacher-sessions/types";
+import type { SessionTaskView } from "@/modules/teacher-sessions/types";
 import { resolveAssignmentSchedule } from "./dueAt";
 import { ensureTeacherStudentsSchema } from "@/modules/teacher-students/schema";
 import {
@@ -31,6 +40,8 @@ export { resolveAssignmentDueAt, resolveAssignmentSchedule } from "./dueAt";
 type Deps = {
   getConnection: () => Promise<SqlConnection>;
   nowSec?: () => number;
+  ensureSchema?: () => Promise<void>;
+  notify?: (notes: AssignedSessionNotice[]) => Promise<void>;
 };
 
 type AssignmentRow = {
@@ -45,6 +56,8 @@ type AssignmentRow = {
   schedule_mode: AssignmentScheduleMode;
   status: "active" | "cancelled";
   created_at: number;
+  learning_session_id: number | null;
+  session_title: string | null;
 };
 
 type MemberRow = {
@@ -60,15 +73,14 @@ type MemberRow = {
 
 const SQL_THEME = `SELECT id, name FROM themes WHERE id = ? LIMIT 1`;
 
-const SQL_COUNT_TASKS_AT_DIFFICULTY = `
-  SELECT COUNT(*) AS total
-  FROM quiz_tasks
-  WHERE theme_id = ? AND difficulty = ?
+const SQL_SELECT_TASK_IDS_AT_DIFFICULTY = `
+  SELECT id FROM quiz_tasks WHERE theme_id = ? AND difficulty = ?
 `;
 
 const SQL_INSERT_ASSIGNMENT = `
   INSERT INTO mentor_assignments (
     teacher_user_id,
+    session_id,
     theme_id,
     difficulty,
     tasks_number,
@@ -77,7 +89,7 @@ const SQL_INSERT_ASSIGNMENT = `
     schedule_mode,
     status,
     created_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?)
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
 `;
 
 const SQL_INSERT_MEMBER = `
@@ -104,9 +116,12 @@ const SQL_LIST_ASSIGNMENTS = `
     a.due_at,
     a.schedule_mode,
     a.status,
-    a.created_at
+    a.created_at,
+    a.session_id AS learning_session_id,
+    ls.title AS session_title
   FROM mentor_assignments a
   INNER JOIN themes t ON t.id = a.theme_id
+  LEFT JOIN sessions ls ON ls.id = a.session_id
   WHERE a.teacher_user_id = ?
     AND a.status = 'active'
   ORDER BY a.created_at DESC, a.id DESC
@@ -124,9 +139,12 @@ const SQL_GET_ASSIGNMENT = `
     a.due_at,
     a.schedule_mode,
     a.status,
-    a.created_at
+    a.created_at,
+    a.session_id AS learning_session_id,
+    ls.title AS session_title
   FROM mentor_assignments a
   INNER JOIN themes t ON t.id = a.theme_id
+  LEFT JOIN sessions ls ON ls.id = a.session_id
   WHERE a.id = ?
   LIMIT 1
 `;
@@ -168,6 +186,26 @@ const SQL_LIST_MEMBERS_FOR_ASSIGNMENTS = `
 
 function uniquePositiveInts(values: number[]): number[] {
   return [...new Set(values.filter(isPositiveInt))];
+}
+
+async function ensureAssignmentSchema(deps: Deps): Promise<void> {
+  if (deps.ensureSchema) {
+    await deps.ensureSchema();
+    return;
+  }
+  await ensureMentorAssignmentsSchema(deps.getConnection);
+  await ensureTeacherStudentsSchema(deps.getConnection);
+  await ensureTeacherSessionsSchema(deps.getConnection);
+}
+
+function mapSessionError(error: TeacherSessionsError): MentorAssignmentsError {
+  if (error.code === "not_found") {
+    return new MentorAssignmentsError("Session not found.", "session_not_found");
+  }
+  if (error.code === "forbidden") {
+    return new MentorAssignmentsError("Forbidden.", "forbidden");
+  }
+  return new MentorAssignmentsError("Database operation failed.", "db_error");
 }
 
 async function assertStudentsLinked(
@@ -301,6 +339,11 @@ function summarize(
     scheduleMode: row.schedule_mode,
     status: row.status,
     createdAt: row.created_at,
+    learningSessionId:
+      row.learning_session_id != null && Number(row.learning_session_id) > 0
+        ? Number(row.learning_session_id)
+        : null,
+    sessionTitle: row.session_title?.trim() || null,
     memberCount: members.length,
     completedCount: members.filter((m) => m.progress === "completed").length,
     overdueCount: members.filter((m) => m.progress === "overdue").length,
@@ -318,16 +361,42 @@ export type CreateMentorAssignmentInput = {
   /** Unix seconds — end of the completion window (required). */
   dueAtUnix?: number | null;
   tasksNumber?: number;
+  /**
+   * Ready teacher session. Theme, level and task count come from it.
+   * Omit to quick-assign: an implicit session is created from the bank.
+   */
+  sessionId?: number | null;
 };
 
 export async function createMentorAssignment(
   input: CreateMentorAssignmentInput,
   deps: Deps = { getConnection: loadMentorAssignmentsConnection }
 ): Promise<MentorAssignmentDetail> {
-  if (!isPositiveInt(input.teacherUserId) || !isPositiveInt(input.themeId)) {
+  const readySessionId =
+    input.sessionId == null
+      ? null
+      : isPositiveInt(input.sessionId)
+        ? input.sessionId
+        : null;
+  if (input.sessionId != null && readySessionId == null) {
+    throw new MentorAssignmentsError(
+      "sessionId must be a positive integer.",
+      "invalid_input",
+    );
+  }
+  if (
+    readySessionId == null &&
+    (!isPositiveInt(input.teacherUserId) || !isPositiveInt(input.themeId))
+  ) {
     throw new MentorAssignmentsError(
       "teacherUserId and themeId must be positive integers.",
       "invalid_input"
+    );
+  }
+  if (!isPositiveInt(input.teacherUserId)) {
+    throw new MentorAssignmentsError(
+      "teacherUserId must be a positive integer.",
+      "invalid_input",
     );
   }
   if (input.scheduleMode !== "now" && input.scheduleMode !== "datetime") {
@@ -337,7 +406,7 @@ export async function createMentorAssignment(
     );
   }
 
-  if (!isPositiveInt(input.difficulty)) {
+  if (readySessionId == null && !isPositiveInt(input.difficulty)) {
     throw new MentorAssignmentsError(
       "difficulty must be a positive integer.",
       "invalid_input"
@@ -345,13 +414,12 @@ export async function createMentorAssignment(
   }
 
   const studentIds = uniquePositiveInts(input.studentIds);
-  const tasksNumber =
+  const requestedTasks =
     input.tasksNumber != null && isPositiveInt(input.tasksNumber)
       ? input.tasksNumber
       : TOPIC_TEST_TASK_COUNT;
 
-  await ensureMentorAssignmentsSchema(deps.getConnection);
-  await ensureTeacherStudentsSchema(deps.getConnection);
+  await ensureAssignmentSchema(deps);
   const connection = await deps.getConnection();
   const nowSec = deps.nowSec ?? nowUnixSec;
   let assignmentId = 0;
@@ -361,25 +429,70 @@ export async function createMentorAssignment(
   try {
     await connection.beginTransaction();
 
+    let themeId = input.themeId;
+    let difficulty = input.difficulty;
+    let tasksNumber = requestedTasks;
+    let learningSessionId = readySessionId;
+
+    if (readySessionId != null) {
+      let ready;
+      try {
+        ready = await readAssignableSession(
+          connection,
+          readySessionId,
+          input.teacherUserId,
+        );
+      } catch (error) {
+        await connection.rollback();
+        if (error instanceof TeacherSessionsError) throw mapSessionError(error);
+        throw error;
+      }
+      if (ready.taskCount < 1) {
+        await connection.rollback();
+        throw new MentorAssignmentsError(
+          "The session has no tasks yet.",
+          "session_empty",
+        );
+      }
+      themeId = ready.themeId;
+      difficulty = ready.difficulty;
+      tasksNumber = ready.taskCount;
+    }
+
     const themes = await connection.query<{ id: number; name: string }>(
       SQL_THEME,
-      [input.themeId]
+      [themeId]
     );
     if (!themes[0]) {
       await connection.rollback();
       throw new MentorAssignmentsError("Theme not found.", "theme_not_found");
     }
 
-    const taskCounts = await connection.query<{ total: number | string }>(
-      SQL_COUNT_TASKS_AT_DIFFICULTY,
-      [input.themeId, input.difficulty]
-    );
-    if (Number(taskCounts[0]?.total ?? 0) < 1) {
-      await connection.rollback();
-      throw new MentorAssignmentsError(
-        "No quiz tasks at this difficulty for the theme.",
-        "insufficient_tasks"
+    if (readySessionId == null) {
+      const pool = await connection.query<{ id: number }>(
+        SQL_SELECT_TASK_IDS_AT_DIFFICULTY,
+        [themeId, difficulty],
       );
+      const taskIds = sampleRandomIds(
+        pool.map((row) => Number(row.id)),
+        requestedTasks,
+      );
+      if (taskIds.length < 1) {
+        await connection.rollback();
+        throw new MentorAssignmentsError(
+          "No quiz tasks at this difficulty for the theme.",
+          "insufficient_tasks"
+        );
+      }
+      tasksNumber = taskIds.length;
+      learningSessionId = await insertQuickSession(connection, {
+        teacherUserId: input.teacherUserId,
+        themeId,
+        themeName: themes[0].name,
+        difficulty,
+        taskIds,
+        nowSec: nowSec(),
+      });
     }
 
     await assertStudentsLinked(connection, input.teacherUserId, studentIds);
@@ -391,11 +504,16 @@ export async function createMentorAssignment(
       nowSec()
     );
     const createdAt = nowSec();
+    if (learningSessionId == null) {
+      await connection.rollback();
+      throw new MentorAssignmentsError("Failed to create session.", "db_error");
+    }
 
     const inserted = await connection.execute(SQL_INSERT_ASSIGNMENT, [
       input.teacherUserId,
-      input.themeId,
-      input.difficulty,
+      learningSessionId,
+      themeId,
+      difficulty,
       tasksNumber,
       schedule.availableAt,
       schedule.dueAt,
@@ -415,7 +533,7 @@ export async function createMentorAssignment(
       const sessionId = await insertMemberSession(
         connection,
         studentId,
-        input.themeId,
+        themeId,
         tasksNumber,
         schedule.dueAt
       );
@@ -440,13 +558,14 @@ export async function createMentorAssignment(
   } catch (error) {
     await connection.rollback().catch(() => undefined);
     if (error instanceof MentorAssignmentsError) throw error;
+    if (error instanceof TeacherSessionsError) throw mapSessionError(error);
     console.error("createMentorAssignment: unexpected error", error);
     throw new MentorAssignmentsError("Database operation failed.", "db_error");
   } finally {
     connection.release();
   }
 
-  if (committed) await notifyAssignedSessions(pendingNotes);
+  if (committed) await (deps.notify ?? notifyAssignedSessions)(pendingNotes);
 
   return getMentorAssignmentDetail(assignmentId, input.teacherUserId, deps);
 }
@@ -462,7 +581,7 @@ export async function listMentorAssignments(
     );
   }
 
-  await ensureMentorAssignmentsSchema(deps.getConnection);
+  await ensureAssignmentSchema(deps);
   const connection = await deps.getConnection();
   const nowSec = (deps.nowSec ?? nowUnixSec)();
 
@@ -505,7 +624,7 @@ export async function getMentorAssignmentDetail(
     );
   }
 
-  await ensureMentorAssignmentsSchema(deps.getConnection);
+  await ensureAssignmentSchema(deps);
   const connection = await deps.getConnection();
   const nowSec = (deps.nowSec ?? nowUnixSec)();
 
@@ -526,7 +645,11 @@ export async function getMentorAssignmentDetail(
       row.due_at,
       nowSec
     );
-    return { ...summarize(row, members), members };
+    const tasks: SessionTaskView[] =
+      row.learning_session_id != null && Number(row.learning_session_id) > 0
+        ? await listSessionTaskViews(connection, Number(row.learning_session_id))
+        : [];
+    return { ...summarize(row, members), members, tasks };
   } finally {
     connection.release();
   }
@@ -544,7 +667,7 @@ export async function cancelMentorAssignment(
     );
   }
 
-  await ensureMentorAssignmentsSchema(deps.getConnection);
+  await ensureAssignmentSchema(deps);
   const connection = await deps.getConnection();
 
   try {
@@ -621,8 +744,7 @@ export async function updateMentorAssignmentMembers(
 
   const wanted = uniquePositiveInts(input.studentIds);
 
-  await ensureMentorAssignmentsSchema(deps.getConnection);
-  await ensureTeacherStudentsSchema(deps.getConnection);
+  await ensureAssignmentSchema(deps);
   const connection = await deps.getConnection();
   const nowSec = deps.nowSec ?? nowUnixSec;
   const pendingNotes: AssignedSessionNotice[] = [];

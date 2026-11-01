@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/modules/auth/getCurrentUser";
 import { canManageStudents } from "@/modules/auth/types";
-import { linkStudentByLogin, LinkStudentByLoginResult } from "./linkStudent";
+import { linkStudentByEmail, LinkStudentByEmailResult } from "./linkStudent";
 import { unlinkStudent } from "./unlinkStudent";
 import { TeacherStudentsError } from "./types";
 
@@ -14,6 +14,7 @@ export type AddTeacherStudentActionState =
 
 export type AddTeacherStudentActionErrorCode =
   | "invalid_input"
+  | "invalid_email"
   | "not_found"
   | "not_a_student"
   | "already_linked"
@@ -33,7 +34,7 @@ export type UnlinkTeacherStudentActionErrorCode =
 
 type AddDeps = {
   requireUser: typeof requireUser;
-  linkStudentByLogin: typeof linkStudentByLogin;
+  linkStudentByEmail: typeof linkStudentByEmail;
   revalidatePath: typeof revalidatePath;
 };
 
@@ -48,6 +49,7 @@ function mapAddError(
 ): AddTeacherStudentActionErrorCode {
   switch (error.code) {
     case "invalid_input":
+    case "invalid_email":
     case "not_found":
     case "not_a_student":
     case "already_linked":
@@ -73,14 +75,14 @@ function mapUnlinkError(
 }
 
 /**
- * Teacher/admin adds a student by login. Teacher id comes from the session.
+ * Teacher/admin adds a student by email. Teacher id comes from the session.
  */
 export async function addTeacherStudentAction(
   _prev: AddTeacherStudentActionState,
   formData: FormData,
   deps: AddDeps = {
     requireUser,
-    linkStudentByLogin,
+    linkStudentByEmail,
     revalidatePath,
   },
 ): Promise<AddTeacherStudentActionState> {
@@ -89,12 +91,12 @@ export async function addTeacherStudentAction(
     return { status: "error", code: "forbidden" };
   }
 
-  const login = String(formData.get("login") ?? "");
+  const email = String(formData.get("email") ?? "");
 
   try {
-    const result: LinkStudentByLoginResult = await deps.linkStudentByLogin({
+    const result: LinkStudentByEmailResult = await deps.linkStudentByEmail({
       teacherUserId: user.id,
-      login,
+      email,
     });
     deps.revalidatePath("/students");
     return {

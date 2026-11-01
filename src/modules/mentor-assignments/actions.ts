@@ -69,12 +69,15 @@ export async function createMentorAssignmentAction(
 ): Promise<MentorAssignmentActionState> {
   try {
     const user = await requireRole(["teacher", "admin"]);
+    const rawSession = String(formData.get("learningSessionId") ?? "").trim();
+    const learningSessionId = rawSession ? Number(rawSession) : null;
     const themeId = Number(formData.get("themeId"));
     const detail = await createMentorAssignment({
       teacherUserId: user.id,
-      themeId,
+      themeId: Number.isInteger(themeId) && themeId > 0 ? themeId : 0,
       difficulty: readDifficulty(formData),
       studentIds: readStudentIds(formData),
+      sessionId: learningSessionId,
       scheduleMode: readScheduleMode(formData),
       availableAtUnix: readLocalDateTimeUnix(formData, "availableAtLocal"),
       dueAtUnix: readLocalDateTimeUnix(formData, "dueAtLocal"),

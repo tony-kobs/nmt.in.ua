@@ -1285,8 +1285,8 @@
 
 .boardRow {
   display: grid;
-  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
-  gap: var(--space-sm);
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: 0.1rem var(--space-sm);
   align-items: baseline;
   min-width: 0;
   padding: var(--space-xs) var(--space-sm);
@@ -1303,8 +1303,11 @@
 }
 
 .boardPoints {
-  text-align: end;
-  overflow-wrap: anywhere;
+  grid-column: 2;
+  min-width: 0;
+  text-align: start;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .boardPlace {
@@ -1313,7 +1316,20 @@
 
 .boardName {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+@media (min-width: 768px) {
+  .boardRow {
+    grid-template-columns: 2.5rem minmax(8rem, 1fr) minmax(0, max-content);
+    gap: var(--space-sm);
+  }
+
+  .boardPoints {
+    grid-column: auto;
+    text-align: end;
+  }
 }
 
 .boardGap {

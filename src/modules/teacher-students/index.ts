@@ -2,12 +2,12 @@ export type { TeacherStudentLink, TeacherStudentsErrorCode } from "./types";
 export { TeacherStudentsError, isPositiveInt } from "./types";
 export { ensureTeacherStudentsSchema } from "./schema";
 export {
-  linkStudentByLogin,
-  validateLinkStudentByLoginInput,
+  linkStudentByEmail,
+  validateLinkStudentByEmailInput,
 } from "./linkStudent";
 export type {
-  LinkStudentByLoginInput,
-  LinkStudentByLoginResult,
+  LinkStudentByEmailInput,
+  LinkStudentByEmailResult,
 } from "./linkStudent";
 export { unlinkStudent, validateUnlinkStudentInput } from "./unlinkStudent";
 export type { UnlinkStudentInput } from "./unlinkStudent";

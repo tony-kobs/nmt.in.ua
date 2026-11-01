@@ -5,7 +5,7 @@ import {
   addTeacherStudentAction,
   unlinkTeacherStudentAction,
 } from "./actions";
-import { linkStudentByLogin } from "./linkStudent";
+import { linkStudentByEmail } from "./linkStudent";
 import { unlinkStudent } from "./unlinkStudent";
 import { TeacherStudentsError } from "./types";
 
@@ -48,16 +48,16 @@ test("addTeacherStudentAction uses the session user id, not the form", async () 
         groupName: null,
       },
     };
-  }) as typeof linkStudentByLogin;
+  }) as typeof linkStudentByEmail;
 
   const form = new FormData();
-  form.set("login", "demo-student");
+  form.set("email", "  Pupil@School.UA ");
   form.set("teacherUserId", "999");
 
   const paths: string[] = [];
   const state = await addTeacherStudentAction(idleAdd, form, {
     requireUser: async () => teacher,
-    linkStudentByLogin: spy,
+    linkStudentByEmail: spy,
     revalidatePath: (path) => {
       paths.push(path);
     },
@@ -68,7 +68,7 @@ test("addTeacherStudentAction uses the session user id, not the form", async () 
     displayName: "Олена Коваленко",
     login: "demo-student",
   });
-  assert.deepEqual(captured, { teacherUserId: 2, login: "demo-student" });
+  assert.deepEqual(captured, { teacherUserId: 2, email: "  Pupil@School.UA " });
   assert.deepEqual(paths, ["/students"]);
 });
 
@@ -87,17 +87,17 @@ test("addTeacherStudentAction allows admin the same as teacher", async () => {
         groupName: null,
       },
     };
-  }) as typeof linkStudentByLogin;
+  }) as typeof linkStudentByEmail;
 
   const form = new FormData();
-  form.set("login", "demo-student");
+  form.set("email", "pupil@school.ua");
   await addTeacherStudentAction(idleAdd, form, {
     requireUser: async () => admin,
-    linkStudentByLogin: spy,
+    linkStudentByEmail: spy,
     revalidatePath: () => {},
   });
 
-  assert.deepEqual(captured, { teacherUserId: 3, login: "demo-student" });
+  assert.deepEqual(captured, { teacherUserId: 3, email: "pupil@school.ua" });
 });
 
 test("addTeacherStudentAction forbids a student from managing the list", async () => {
@@ -115,13 +115,13 @@ test("addTeacherStudentAction forbids a student from managing the list", async (
         groupName: null,
       },
     };
-  }) as typeof linkStudentByLogin;
+  }) as typeof linkStudentByEmail;
 
   const form = new FormData();
-  form.set("login", "other");
+  form.set("email", "other@school.ua");
   const state = await addTeacherStudentAction(idleAdd, form, {
     requireUser: async () => student,
-    linkStudentByLogin: spy,
+    linkStudentByEmail: spy,
     revalidatePath: () => {},
   });
 
@@ -132,17 +132,33 @@ test("addTeacherStudentAction forbids a student from managing the list", async (
 test("addTeacherStudentAction maps domain errors for the client", async () => {
   const spy = (async () => {
     throw new TeacherStudentsError("hidden", "not_found");
-  }) as typeof linkStudentByLogin;
+  }) as typeof linkStudentByEmail;
 
   const form = new FormData();
-  form.set("login", "ghost");
+  form.set("email", "ghost@school.ua");
   const state = await addTeacherStudentAction(idleAdd, form, {
     requireUser: async () => teacher,
-    linkStudentByLogin: spy,
+    linkStudentByEmail: spy,
     revalidatePath: () => {},
   });
 
   assert.deepEqual(state, { status: "error", code: "not_found" });
+});
+
+test("addTeacherStudentAction keeps an invalid email as invalid_email", async () => {
+  const spy = (async () => {
+    throw new TeacherStudentsError("hidden", "invalid_email");
+  }) as typeof linkStudentByEmail;
+
+  const form = new FormData();
+  form.set("email", "not-an-email");
+  const state = await addTeacherStudentAction(idleAdd, form, {
+    requireUser: async () => teacher,
+    linkStudentByEmail: spy,
+    revalidatePath: () => {},
+  });
+
+  assert.deepEqual(state, { status: "error", code: "invalid_email" });
 });
 
 test("unlinkTeacherStudentAction scopes delete to the session teacher", async () => {

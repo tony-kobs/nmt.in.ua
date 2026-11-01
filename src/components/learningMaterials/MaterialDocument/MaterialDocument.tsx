@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import clsx from "clsx";
+import { BankTaskSlot } from "@/components/learningMaterials/BankTaskCard/BankTaskCard";
 import { MathText } from "@/components/ui/MathText";
 import type {
   MaterialContentBlock,
@@ -7,13 +8,23 @@ import type {
   MaterialTableBlock,
   MaterialTextRun,
 } from "@/content/learningMaterials/sourceBlocks";
+import type { BankTaskView } from "@/modules/textbook/bankTask";
 import css from "./MaterialDocument.module.css";
 
 const NativeImage = "img";
 
+type BankContext = {
+  tasks: Record<string, BankTaskView>;
+  mode: "student" | "admin";
+};
+
+const EMPTY_BANK: BankContext = { tasks: {}, mode: "student" };
+
 type MaterialDocumentProps = {
   blocks: MaterialContentBlock[];
   sectionTargets?: MaterialSectionTarget[];
+  bankTasks?: Record<string, BankTaskView>;
+  bankMode?: "student" | "admin";
 };
 
 export type MaterialSectionTarget = {
@@ -132,6 +143,7 @@ function renderTable(
   inTable: boolean,
   sectionTargets: MaterialSectionTarget[],
   claimedAnchors: Set<string>,
+  bank: BankContext,
 ) {
   const totalWidth = block.columnWidths.reduce((sum, width) => sum + width, 0);
   const isScrollableTable = block.variant !== "layout";
@@ -217,6 +229,7 @@ function renderTable(
                     true,
                     sectionTargets,
                     claimedAnchors,
+                    bank,
                   )}
                 </td>
               ))}
@@ -234,6 +247,7 @@ function renderBlocks(
   inTable = false,
   sectionTargets: MaterialSectionTarget[] = [],
   claimedAnchors = new Set<string>(),
+  bank: BankContext = EMPTY_BANK,
 ) {
   return blocks.map((block, index) => {
     const key = `${prefix}-${index}`;
@@ -248,6 +262,11 @@ function renderBlocks(
       if (target) claimedAnchors.add(target.id);
 
       return renderParagraph(block, key, inTable, target?.id);
+    }
+
+    if (block.type === "bankTask") {
+      const ref = `${block.bank}:${block.id}`;
+      return <BankTaskSlot key={key} view={bank.tasks[ref]} missingRef={ref} mode={bank.mode} />;
     }
 
     if (block.type === "image") {
@@ -276,6 +295,7 @@ function renderBlocks(
       inTable,
       sectionTargets,
       claimedAnchors,
+      bank,
     );
   });
 }
@@ -283,10 +303,13 @@ function renderBlocks(
 export function MaterialDocument({
   blocks,
   sectionTargets = [],
+  bankTasks,
+  bankMode = "student",
 }: MaterialDocumentProps) {
+  const bank: BankContext = { tasks: bankTasks ?? {}, mode: bankMode };
   return (
     <div className={css.document}>
-      {renderBlocks(blocks, "block", false, sectionTargets)}
+      {renderBlocks(blocks, "block", false, sectionTargets, new Set(), bank)}
     </div>
   );
 }

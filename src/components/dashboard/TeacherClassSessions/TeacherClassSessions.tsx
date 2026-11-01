@@ -128,7 +128,7 @@ function filterValue(
     case "time":
       return formatDurationSeconds(row.timeSec, locale);
     case "speed":
-      return formatTimePerTask(row.timePerTaskSec);
+      return formatTimePerTask(row.timePerTaskSec, locale);
     case "when":
       return dateOnlyLabel(row.startTimeLabel);
     case "createdBy":
@@ -436,8 +436,8 @@ export function TeacherClassSessions({
       { key: "theme", label: t("theme"), className: css.colTheme },
       { key: "correct", label: t("scoreDetail"), className: css.colNarrow },
       { key: "percent", label: "%", className: css.colNarrow },
-      { key: "time", label: t("time"), className: css.colNarrow },
-      { key: "speed", label: t("speed"), className: css.colNarrow },
+      { key: "time", label: t("time"), className: css.colTime },
+      { key: "speed", label: t("speed"), className: css.colTime },
       { key: "when", label: t("when"), className: css.colDate },
       { key: "createdBy", label: t("createdBy"), className: css.colCreated },
       { key: "status", label: t("status"), className: css.colStatus },
@@ -601,7 +601,7 @@ export function TeacherClassSessions({
                     </div>
                     <div>
                       <dt>{t("speed")}</dt>
-                      <dd>{formatTimePerTask(row.timePerTaskSec)}</dd>
+                      <dd>{formatTimePerTask(row.timePerTaskSec, locale)}</dd>
                     </div>
                       <div>
                         <dt>{t("when")}</dt>
@@ -669,11 +669,11 @@ export function TeacherClassSessions({
                             {formatPercent(row.percent)}
                           </span>
                         </td>
-                        <td className={css.colNarrow}>
+                        <td className={css.colTime}>
                           {formatDurationSeconds(row.timeSec, locale)}
                         </td>
-                        <td className={css.colNarrow}>
-                          {formatTimePerTask(row.timePerTaskSec)}
+                        <td className={css.colTime}>
+                          {formatTimePerTask(row.timePerTaskSec, locale)}
                         </td>
                         <td className={css.colDate}>
                           <DateCell label={row.startTimeLabel} />

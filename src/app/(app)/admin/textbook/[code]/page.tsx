@@ -7,8 +7,10 @@ import { getTextbookBlocks } from "@/content/learningMaterials/textbook";
 import { textbookTopicHref } from "@/content/learningMaterials/textbookHref";
 import { requireRole } from "@/modules/auth/getCurrentUser";
 import { getThemes } from "@/modules/themes/getThemes";
+import { bankTaskRefsInBlocks } from "@/modules/textbook/bankTask";
+import { loadBankTaskViews } from "@/modules/textbook/bankTaskStore";
 import { parseTextbookMarkup, blocksToTextbookMarkup } from "@/modules/textbook/markup";
-import { loadTextbookEditorSource } from "@/modules/textbook/store";
+import { listTextbookVersions, loadTextbookEditorSource } from "@/modules/textbook/store";
 
 export const dynamic = "force-dynamic";
 
@@ -44,8 +46,13 @@ export default async function AdminTextbookEditorPage({
   const themes = await getThemes();
   const theme = themes.find((item) => item.code === code);
   if (!theme) notFound();
-  const source = await loadTextbookEditorSource(theme.code);
+  const [source, versions] = await Promise.all([
+    loadTextbookEditorSource(theme.code),
+    listTextbookVersions(theme.code),
+  ]);
   const staticBlocks = getTextbookBlocks(theme.code);
+  const studentBlocks = source.publishedBody ? parseTextbookMarkup(source.publishedBody) : staticBlocks;
+  const bankLoad = await loadBankTaskViews(bankTaskRefsInBlocks(studentBlocks));
   const saved = first(query.saved);
   const savedState = saved === "published" || saved === "draft" ? saved : null;
 
@@ -55,11 +62,13 @@ export default async function AdminTextbookEditorPage({
         code={theme.code}
         name={theme.name}
         initialBody={source.body}
+        initialRevision={source.revision}
+        initialUpdatedAt={source.updatedAt}
         staticBody={blocksToTextbookMarkup(staticBlocks)}
         publishedBody={source.publishedBody}
-        studentBlocks={
-          source.publishedBody ? parseTextbookMarkup(source.publishedBody) : staticBlocks
-        }
+        versions={versions}
+        studentBlocks={studentBlocks}
+        studentTasks={bankLoad.ok ? bankLoad.tasks : {}}
         saved={savedState}
         error={first(query.error)}
         publicHref={textbookTopicHref(theme.code)}

@@ -126,3 +126,51 @@ test("marathon join does not send a letter when the email is already taken", asy
   );
   assert.equal(mailed, false);
 });
+
+test("draft registration returns to the public waiting page", async () => {
+  let returnPath = "";
+  await assert.rejects(
+    () =>
+      registerMarathonAction(joinForm(), {
+        loadMarathon: async () => ({ id: 5, status: "draft" }),
+        createUser: async () => student,
+        joinParticipant: async () => {},
+        sendVerificationMail: async () => ({ ok: true }),
+        rememberReturn: async (path) => {
+          returnPath = path;
+        },
+        redirectTo: (path) => {
+          throw new Redirected(path);
+        },
+      }),
+    (error: unknown) => error instanceof Redirected,
+  );
+  assert.equal(returnPath, "/marathon/math-5?joined=1");
+});
+
+test("active registration before the start returns to the waiting page", async () => {
+  let returnPath = "";
+  await assert.rejects(
+    () =>
+      registerMarathonAction(joinForm(), {
+        loadMarathon: async () => ({
+          id: 5,
+          status: "active",
+          startDate: "2099-01-02",
+          unlockHour: "09:00",
+          daysCount: 3,
+        }),
+        createUser: async () => student,
+        joinParticipant: async () => {},
+        sendVerificationMail: async () => ({ ok: true }),
+        rememberReturn: async (path) => {
+          returnPath = path;
+        },
+        redirectTo: (path) => {
+          throw new Redirected(path);
+        },
+      }),
+    (error: unknown) => error instanceof Redirected,
+  );
+  assert.equal(returnPath, "/marathon/math-5?joined=1");
+});

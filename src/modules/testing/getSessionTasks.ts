@@ -45,6 +45,12 @@ const SQL_SESSION_TASKS = `
     CASE WHEN t2s.hint_level_unlocked >= 1 THEN qt.hint_direction ELSE NULL END AS hint_direction,
     CASE WHEN t2s.hint_level_unlocked >= 2 THEN qt.hint_rule ELSE NULL END AS hint_rule,
     CASE WHEN t2s.hint_level_unlocked >= 3 THEN qt.hint_example ELSE NULL END AS hint_example,
+    CASE
+      WHEN t2s.hint_level_unlocked >= 1
+        AND (qt.hint_direction IS NULL OR TRIM(qt.hint_direction) = '')
+      THEN qt.comments
+      ELSE NULL
+    END AS hint_comment,
     CASE WHEN t2s.retry_used = 1 AND t2s.status = -1 THEN qt.right_answer_n ELSE NULL END AS revealed_answer,
     CASE WHEN t2s.retry_used = 1 AND t2s.status = -1 THEN qt.comments ELSE NULL END AS revealed_explanation,
     qt.name,
@@ -104,6 +110,7 @@ type SessionTaskRow = {
   hint_direction?: string | null;
   hint_rule?: string | null;
   hint_example?: string | null;
+  hint_comment?: string | null;
   revealed_answer?: number | null;
   revealed_explanation?: string | null;
   name: string;
@@ -151,6 +158,24 @@ export function validateSessionId(sessionId: unknown): number {
   return sessionId;
 }
 
+function unlockedHints(row: SessionTaskRow): NonNullable<SessionTask["hints"]> {
+  const unlocked = row.hint_level_unlocked ?? 0;
+  const ladder = [row.hint_direction, row.hint_rule, row.hint_example];
+  const rungs = ladder.flatMap((text, index) =>
+    index < unlocked && text?.trim()
+      ? [{
+          level: (index + 1) as 1 | 2 | 3,
+          text: text.trim(),
+          isFinal: index === 2,
+        }]
+      : [],
+  );
+  if (rungs.length > 0) return rungs;
+  const comment = row.hint_comment?.trim();
+  if (!comment) return [];
+  return [{ level: 1, text: comment, isFinal: true }];
+}
+
 function mapRow(row: SessionTaskRow, isNmt: boolean): SessionTask {
   const normalize = isNmt
     ? (value: string) => normalizeNmtRichText(value)
@@ -189,11 +214,9 @@ function mapRow(row: SessionTaskRow, isNmt: boolean): SessionTask {
     taskText: match?.stem ?? normalize(row.task_text),
     answers,
     status: row.status,
-    ...(!isNmt && row.hint_level_unlocked ? { hints:
-      [row.hint_direction, row.hint_rule, row.hint_example].flatMap((text, index) =>
-        index < row.hint_level_unlocked! && text?.trim()
-          ? [{ level: (index + 1) as 1 | 2 | 3, text: text.trim(), isFinal: index === 2 }]
-          : []) } : {}),
+    ...(!isNmt && row.hint_level_unlocked
+      ? { hints: unlockedHints(row) }
+      : {}),
     ...(!isNmt && row.first_attempt_status === -1 && row.status === -1 && row.retry_used === 0
       ? { retryAvailable: true } : {}),
     ...(!isNmt && row.retry_used === 1 && row.status === -1

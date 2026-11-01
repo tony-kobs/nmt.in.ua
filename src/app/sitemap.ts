@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { PUBLIC_PAGE_PATHS } from "@/constants/publicRoutes";
 import { absoluteUrl } from "@/constants/seo";
 import { isDatabaseUnavailable } from "@/lib/db/unavailable";
+import { SITEMAP_DAILY_STATUSES } from "@/modules/marathons/daily/publicPage";
 
 /** `/t` is a public prefix for `/t/{slug}` cards — there is no index page.
  *  Verify/reset links are token URLs — keep them out of the sitemap.
@@ -29,13 +30,16 @@ function staticEntries(now: Date): MetadataRoute.Sitemap {
   }));
 }
 
-/** Active daily marathons and public teacher cards. Empty when the database is down. */
+/** Shareable daily marathons (waiting page, open course, finished results) and public teacher cards. */
 export async function loadSitemapDynamicPaths(): Promise<string[]> {
   const { getConnection } = await import("@/lib/db/mysql");
   const connection = await getConnection();
   try {
     const marathons = await connection.query<{ slug: string }>(
-      `SELECT slug FROM marathons WHERE kind = 'daily' AND status = 'active' ORDER BY id DESC`,
+      `SELECT slug FROM marathons
+       WHERE kind = 'daily' AND status IN (${SITEMAP_DAILY_STATUSES.map(() => "?").join(", ")})
+       ORDER BY id DESC`,
+      [...SITEMAP_DAILY_STATUSES],
     );
     const teachers = await connection.query<{ slug: string }>(
       `SELECT slug FROM teacher_profiles WHERE is_public = 1 AND slug <> '' ORDER BY slug ASC`,

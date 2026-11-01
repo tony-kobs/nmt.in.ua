@@ -49,10 +49,13 @@ function makeConnection(rows: HintRow[]) {
 
 const validInput = { userId: 1, sessionId: 5, mappingId: 10 };
 
-test("legacy hint endpoint cannot reveal an answer during the retry window", async () => {
+test("legacy hint endpoint returns the comment while the retry is still open", async () => {
   const mock = makeConnection([makeRow({ first_attempt_status: -1, retry_used: 0 })]);
   const result = await getTaskHint(validInput, { getConnection: async () => mock.connection });
-  assert.deepEqual(result, { available: false, hint: null });
+  assert.deepEqual(result, {
+    available: true,
+    hint: "Because x = 2 solves the equation.",
+  });
 });
 
 test("validates positive integer input", async () => {

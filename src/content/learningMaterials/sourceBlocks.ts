@@ -26,7 +26,17 @@ export type MaterialTableBlock = {
   topAligned?: true;
   rows: { cells: MaterialTableCell[] }[];
 };
-export type MaterialContentBlock = MaterialParagraphBlock | MaterialImageBlock | MaterialTableBlock;
+/** Live reference to a row in quiz_tasks, nmt_quiz_tasks, or problems. */
+export type MaterialBankTaskBlock = {
+  type: "bankTask";
+  bank: "quiz" | "nmt" | "problem";
+  id: number;
+};
+export type MaterialContentBlock =
+  | MaterialParagraphBlock
+  | MaterialImageBlock
+  | MaterialTableBlock
+  | MaterialBankTaskBlock;
 
 export const materialSourceBlocks: Record<string, MaterialContentBlock[]> =
 {
