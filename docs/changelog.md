@@ -12,7 +12,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/285
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-01 — fix: учня за поштою, підказка тесту і час сесії (#282)
 
