@@ -26,10 +26,10 @@ git checkout -b feature/коротка-назва
 
 | Ситуація | Хто |
 | --- | --- |
-| Рев’ю і мердж pull request у `dev`, доступ, база, архітектура | Антон, GitHub [@tony-kobs](https://github.com/tony-kobs) |
-| Застряг довше ніж на годину | Антон або Валентин (Valentyn), GitHub [@groteskzp](https://github.com/groteskzp) |
+| Рев’ю і мердж pull request у `dev`, доступ, база, архітектура | Антон у Telegram. У pull request його згадують як [@tony-kobs](https://github.com/tony-kobs) |
+| Застряг довше ніж на годину | Антон або Валентин (Valentyn) у Telegram. У pull request Валентина згадують як [@groteskzp](https://github.com/groteskzp) |
 
-Окремих чатів у цьому гіді немає: пиши цим двом на GitHub.
+Писати їм у Telegram. Ніки дає Антон у перший день, у цьому гіді їх немає.
 
 ### Шари
 

@@ -27,8 +27,8 @@ nmt.in.ua — тренажер підготовки до НМТ з матема�
 
 ## 3. Перший день
 
-- Напиши Антону ([@tony-kobs](https://github.com/tony-kobs)): доступ на запис у `tony-kobs/nmt.in.ua` і параметри MySQL.
-- Node.js 20+ і npm. Клон, одразу `git checkout dev`. У `main` не працюємо.
+- Напиши Антону в Telegram: доступ на запис у `tony-kobs/nmt.in.ua`, параметри MySQL і контакти. Ніки в Telegram дає він у перший день, у цьому гіді їх немає. У pull request Антона згадують як [@tony-kobs](https://github.com/tony-kobs).
+- Node.js 24 (як на хостингу і в CI) і npm. Версія записана в `.nvmrc`. Клон, одразу `git checkout dev`. У `main` не працюємо.
 - Скопіюй `.env.example` у `.env.local` і заповни лише `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`. `DB_PORT` у прикладі вже `3306`. Інші рядки не вигадуй. Якщо базу ділите з кимось, додай свій `SESSION_SECRET` (`openssl rand -hex 32`).
 - `npm install && npm run dev` → <http://localhost:3000>
 - Зареєструй учня на `/register`. Адміна підвищують так: `node scripts/promote-admin.mjs <login>`.
@@ -49,6 +49,8 @@ npm install
 cp .env.example .env.local
 npm run dev
 ```
+
+Перед `npm install` постав Node.js 24 (як на хостингу і в CI). Номер лежить у `.nvmrc`: за наявності nvm достатньо `nvm use`.
 
 Секрети не комітити. `.env*` у gitignore, крім `.env.example`.
 
@@ -107,27 +109,29 @@ npm run dev
 
 ## 6. Розігрів
 
-Один раз на репозиторій, до справжньої задачі. Мета — пройти цикл: гілка, маленький diff, тест, pull request у `dev`, рев’ю Антона, мердж.
+Свій цикл до справжньої задачі: гілка, маленький diff, тест, pull request у `dev`, рев’ю Антона, мердж. Кожен учень робить свій ключ і свій тест, чужий не чіпає.
 
-Якщо в `messages/uk.json` уже є ключ `Warmup.line`, розігрів уже змерджений. Візьми задачу в Trello і не додавай другий такий ключ.
+Ключ — логін GitHub у нижньому регістрі. У next-intl ключ не може містити `.`: бібліотека ділить шлях по крапці (`INVALID_KEY`). Дефіс можна. Логін GitHub складається з літер, цифр і дефісів, тож іншої заміни не треба: `Student-Login` стає `student-login`.
 
-1. Свіжий `dev`:
+Якщо твій ключ уже є — розігрів пройдено. Візьми задачу в Trello.
+
+1. Свіжий `dev`. Нижче замість `student-login` підстав свій логін за правилом вище.
 
    ```bash
    git checkout dev
    git pull origin dev
-   git checkout -b feature/warmup-line
+   git checkout -b feature/warmup-student-login
    ```
 
-2. Додай один рядок у три словники. Новий об’єкт поруч з іншими верхнього рівня (не забудь кому після попереднього, інакше JSON не розбереться):
+2. Додай один рядок у три словники, в об’єкт `Warmup` на верхньому рівні. Якщо об’єкта ще немає, створи його і не забудь кому після попереднього. Якщо він уже є, допиши лише свій ключ і не замінюй чужі:
 
-   - `messages/uk.json`: `"Warmup": { "line": "Перший рядок розігріву" }`
-   - `messages/en.json`: `"Warmup": { "line": "First warm-up line" }`
-   - `messages/de.json`: `"Warmup": { "line": "Erste Aufwärmzeile" }`
+   - `messages/uk.json`: `"student-login": "Перший рядок розігріву"`
+   - `messages/en.json`: `"student-login": "First warm-up line"`
+   - `messages/de.json`: `"student-login": "Erste Aufwärmzeile"`
 
-   Рядок на сторінку не виводь. У українському тексті не став прямі лапки `"`. Тест `src/i18n/ukCopy.test.ts` це ламає і ще звіряє, що ключі `uk.json` і `en.json` збігаються. Німецький файл той тест не читає, тому свій тест має торкнутись усіх трьох.
+   Рядок на сторінку не виводь. В українському тексті не став прямі лапки `"`. `src/i18n/ukCopy.test.ts` вимагає той самий набір ключів у `uk.json` і `en.json` і ламається на таких лапках. Багато ключів у `Warmup` цьому тесту не заважають, якщо uk і en збігаються. de той тест не читає, тому свій тест має торкнутись усіх трьох файлів.
 
-3. Файл `src/i18n/warmup.test.ts`:
+3. Файл `src/i18n/warmup-student-login.test.ts`. Ключ із дефісом у тесті читай дужками, `uk.Warmup[key]`, бо крапка JavaScript такий логін не прочитає:
 
    ```ts
    import assert from "node:assert/strict";
@@ -137,22 +141,24 @@ npm run dev
    import en from "../../messages/en.json";
    import uk from "../../messages/uk.json";
 
-   test("Warmup.line is present in uk, en and de", () => {
-     assert.equal(uk.Warmup.line, "Перший рядок розігріву");
-     assert.equal(en.Warmup.line, "First warm-up line");
-     assert.equal(de.Warmup.line, "Erste Aufwärmzeile");
+   const key = "student-login";
+
+   test("warmup line is present in uk, en and de", () => {
+     assert.equal(uk.Warmup[key], "Перший рядок розігріву");
+     assert.equal(en.Warmup[key], "First warm-up line");
+     assert.equal(de.Warmup[key], "Erste Aufwärmzeile");
    });
    ```
 
 4. Перевір саме цей файл, потім увесь набір:
 
    ```bash
-   node --require ./test/stub-server-only.cjs --import tsx --test src/i18n/warmup.test.ts
+   node --require ./test/stub-server-only.cjs --import tsx --test src/i18n/warmup-student-login.test.ts
    npm test
    npm run lint
    ```
 
-5. Закоміть, запуш `feature/warmup-line` і відкрий pull request у `dev`. Тіло — шаблон [`.github/pull_request_template.md`](../.github/pull_request_template.md): секції «Для команди», «Для учня і викладача», «Скрінкаст». У скрінкасті постав «потрібен» і встав посилання на запис, де видно зелений тест і три файли. Галочку «схвалено показувати» не ставь: її ставить Антон, якщо відео можна лишити в журналі. Верстки тут немає, знімки ширин не потрібні.
+5. Закоміть, запуш `feature/warmup-student-login` і відкрий pull request у `dev`. Тіло — шаблон [`.github/pull_request_template.md`](../.github/pull_request_template.md). Заповни всі секції: «Для команди», «Для учня і викладача», «Скрінкаст» і чекліст «Здано». У «Скрінкаст» постав «потрібен» і встав посилання на запис, де видно зелений тест і три файли. Галочку «схвалено показувати» не ставь: її ставить Антон, якщо відео можна лишити в журналі. Верстки тут немає, у «Здано» рядок про ширини прибери.
 
 6. Антон ([@tony-kobs](https://github.com/tony-kobs)) рев’ює і мерджить у `dev`. Сам у `dev` і в `main` не мердж.
 
