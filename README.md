@@ -130,7 +130,7 @@
 
 ## Для розробників
 
-Новому учаснику: [онбординг](docs/onboarding.md), далі [як робити задачу](docs/contributing.md). Беклог — [docs/Goldener-Rechner-beklog-PM.md](docs/Goldener-Rechner-beklog-PM.md). Пам’ятка релізу — [`.cursor/rules/deploy-hosting.mdc`](.cursor/rules/deploy-hosting.mdc).
+Новому учаснику: [онбординг](docs/onboarding.md), далі [як робити задачу](docs/contributing.md). Задачі призначає Антон у Trello. Пам’ятка релізу — [`.cursor/rules/deploy-hosting.mdc`](.cursor/rules/deploy-hosting.mdc).
 
 Потрібні Node.js 20+ і npm. Працюйте з гілки `dev`: у `main` напряму не пушимо, merge в `main` одразу деплоїть хостинг.
 

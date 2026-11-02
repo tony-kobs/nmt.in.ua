@@ -78,7 +78,6 @@ Cursor і інші моделі дозволені. Перед здачею ти
 | `src/app/globals.css` | Токени. Новий колір — сюди |
 | `.cursor/rules/design-system.mdc` | Верстка. Читати перед CSS |
 | `scripts/sql/` | Міграції. Застосування — [`schema-migrations.md`](./schema-migrations.md) |
-| `docs/Goldener-Rechner-beklog-PM.md` | Беклог |
 | `docs/marathon.md` | Денний марафон, якщо задача про нього |
 
 Логіка тесту не живе в компоненті. З `page.tsx` у MySQL не ходять.
@@ -235,4 +234,4 @@ uk / en / de через next-intl. Мова в cookie, префікса `/en` в
 
 Один pull request — одна зміна. Фікс і нова фіча краще окремо.
 
-Беклог, якщо закрив пункт: [`Goldener-Rechner-beklog-PM.md`](./Goldener-Rechner-beklog-PM.md). Сетап і вільні задачі — [онбординг](./onboarding.md). Карта, контакти і цей порядок здачі — цей файл.
+Сетап — [онбординг](./onboarding.md). Карта, контакти і цей порядок здачі — цей файл. Задачу береш у Trello: доступ дає Антон.
