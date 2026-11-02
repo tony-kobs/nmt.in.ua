@@ -56,8 +56,8 @@ export function applyChangelog({ changelog, onboarding, notes, meta, target }) {
     entries = [entry, ...entries.filter((item) => item.number !== entry.number)];
     if (notes.needed && (!notes.link || !notes.approved)) {
       comment = notes.link
-        ? "<!-- changelog-screencast -->\nЗапис скрінкаста вже є. Постав у описі PR галочку «схвалено показувати» — тоді посилання з’явиться в гіді."
-        : "<!-- changelog-screencast -->\nУ описі PR стоїть «скрінкаст потрібен». Додай рядок «Посилання» і галочку «схвалено показувати». До схвалення відео в гід не потрапляє.";
+        ? "<!-- changelog-screencast -->\nПосилання на скрінкаст уже є. Галочку «схвалено показувати» ставить той, хто приймає pull request, якщо відео можна лишати в журналі."
+        : "<!-- changelog-screencast -->\nУ описі PR стоїть «скрінкаст потрібен». Додай рядок «Посилання». Галочку «схвалено показувати» ставить той, хто приймає pull request.";
     }
   } else {
     entries = entries.map((item) => ({ ...item, released: "yes" }));
@@ -68,9 +68,16 @@ export function applyChangelog({ changelog, onboarding, notes, meta, target }) {
 
   return {
     changelog: renderChangelog(changelog, entries, news),
-    onboarding: replaceBlock(onboarding, "wiki", renderWiki(entries.slice(0, 8))),
+    onboarding: wikiMirror(onboarding, renderWiki(entries.slice(0, 8))),
     comment,
   };
+}
+
+function wikiMirror(onboarding, wiki) {
+  if (typeof onboarding !== "string" || !onboarding.includes("<!-- changelog:wiki -->")) {
+    return onboarding ?? "";
+  }
+  return replaceBlock(onboarding, "wiki", wiki);
 }
 
 function plainSection(body, heading) {

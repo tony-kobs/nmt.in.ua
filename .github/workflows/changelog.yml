@@ -5,8 +5,9 @@
 # хрестик на PR, тож synchronize тут немає. Нові коміти людини ловить push:
 # push від GITHUB_TOKEN воркфлоу не стартує. Якщо колись стартує, job і так
 # відсікає github-actions[bot].
-# PR лише з docs/changelog.md і docs/nmt-in-ua-onboarding-dev.md — це новини
+# PR лише з docs/changelog.md і старим вказівником гіда — це новини
 # релізу. Його opened теж іде від GITHUB_TOKEN, тому ці два шляхи в paths-ignore.
+# Журнал пишеться лише в docs/changelog.md. Вказівник гіда дія більше не чіпає.
 # У PR dev → main відкривається окремий PR у dev із новинами релізу.
 # Поки той PR відкритий, push у dev оновлює новини.
 name: Changelog
@@ -124,7 +125,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/changelog.md docs/nmt-in-ua-onboarding-dev.md
+          git add docs/changelog.md
           if git diff --cached --quiet; then
             echo "Journal already matches this pull request."
             exit 0
@@ -238,7 +239,7 @@ jobs:
           BRANCH="changelog/release-${PR_NUMBER}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/changelog.md docs/nmt-in-ua-onboarding-dev.md
+          git add docs/changelog.md
           if git diff --cached --quiet; then
             echo "No news to publish."
             exit 0
