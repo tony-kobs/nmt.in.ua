@@ -1,3 +1,7 @@
+# nmt.in.ua
+
+Новому учаснику: [docs/onboarding.md](docs/onboarding.md). Як робити задачу: [docs/contributing.md](docs/contributing.md). Правила, які треба тримати в diff, лежать у `.cursor/rules/`.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

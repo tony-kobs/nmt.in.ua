@@ -1,0 +1,27 @@
+# Lint і тести на pull request у dev. Секретів і бази немає.
+# Тести, яким потрібна жива MySQL, самі пропускаються без DB_HOST.
+name: CI
+
+on:
+  pull_request:
+    branches: [dev]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-test:
+    name: lint-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: node scripts/check-sql-numbers.mjs
