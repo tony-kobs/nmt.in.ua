@@ -37,16 +37,13 @@
 --
 -- NOTE: like 026/027, written and reviewed against this repo's schema
 -- conventions but NOT executed against a live/production MySQL instance in
--- this environment (no local MySQL reachable — see docs/mentor-tasks.md
--- 6.9 section for what was checked). Validate on a staging copy first.
+-- this environment (no local MySQL reachable). Validate on a staging copy first.
 --
 -- Content sourcing: every task below is original, internally authored
 -- content — no external source was used (same standard as the existing
 -- `quiz_tasks`/`nmt_quiz_tasks` bank, which also carries no citations).
 -- Every numeric fact was verified by direct computation while writing this
--- file (shown inline in each `comments` explanation) rather than invented;
--- see `docs/content-review/stage2-tasks-2026-09-16.md` for the full worked
--- verification of every item.
+-- file (shown inline in each `comments` explanation) rather than invented.
 
 -- ===== Shared attempts table =====================================
 
@@ -227,8 +224,7 @@ CREATE TABLE IF NOT EXISTS blank_task_blanks (
 
 -- ===== Seed content (4 items each: 3 original + 1 same-topic variant) ====
 -- Every computed fact below is verified by direct arithmetic in the
--- accompanying `comments` explanation; full worked verification also in
--- docs/content-review/stage2-tasks-2026-09-16.md.
+-- accompanying `comments` explanation.
 
 -- --- order_tasks ---------------------------------------------------
 INSERT IGNORE INTO order_tasks (id, theme_id, difficulty, name, task_text, hint_direction, hint_rule, comments) VALUES
