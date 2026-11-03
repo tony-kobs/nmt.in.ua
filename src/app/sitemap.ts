@@ -9,6 +9,8 @@ import { SITEMAP_DAILY_STATUSES } from "@/modules/marathons/daily/publicPage";
  *  Paid `/register/teacher` is paused (redirects to `/register?role=teacher`). */
 const SITEMAP_EXCLUDED = new Set([
   "/t",
+  "/login",
+  "/register",
   "/verify-email",
   "/keep-account",
   "/forgot-password",
