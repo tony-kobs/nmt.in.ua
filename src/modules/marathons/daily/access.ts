@@ -21,23 +21,23 @@ export type SidebarLink = {
 const ADMIN_NAV_SET = new Set<string>(ADMIN_NAV_HREFS);
 
 const NAV_ICONS: Record<string, NavIconName> = {
-  "/": "spark",
+  "/": "sun",
   "/topic": "bolt",
   "/results": "chart",
   "/sessions": "timer",
   "/assign": "notebook",
   "/students": "cap",
-  "/profiles": "cap",
+  "/profiles": "id",
   "/simulator": "target",
   "/materials/textbook": "book",
-  "/admin/textbook": "book",
-  "/problems": "notebook",
-  "/feedback": "spark",
-  "/settings": "bolt",
+  "/admin/textbook": "pen",
+  "/problems": "pencil",
+  "/feedback": "chat",
+  "/settings": "gear",
   "/consultations": "mail",
   "/leaderboard": "trophy",
   "/admin/marathons": "flame",
-  "/admin/support": "mail",
+  "/admin/support": "headset",
 };
 
 const NAV_KEYS: Record<string, string> = {
@@ -60,7 +60,7 @@ const NAV_KEYS: Record<string, string> = {
   "/admin/support": "support",
 };
 
-const MARATHON_ICON: NavIconName = "flame";
+const MARATHON_ICON: NavIconName = "flag";
 
 export function isMarathonOnlyStudent(
   role: UserRole,
