@@ -2045,10 +2045,10 @@
     "sheetMeta": "{theme}: {count, plural, one {# Aufgabe} other {# Aufgaben}}",
     "caption": "{count, plural, one {# Aufgabe} other {# Aufgaben}}",
     "colPrompt": "Aufgabe",
-    "colA": "1",
-    "colB": "2",
-    "colC": "3",
-    "colD": "4",
+    "colA": "А",
+    "colB": "Б",
+    "colC": "В",
+    "colD": "Г",
     "colKey": "Schlüssel"
   },
   "Feedback": {

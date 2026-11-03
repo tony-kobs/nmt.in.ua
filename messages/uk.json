@@ -2045,10 +2045,10 @@
     "sheetMeta": "{theme}: {count, plural, one {# завдання} few {# завдання} many {# завдань} other {# завдань}}",
     "caption": "{count, plural, one {# завдання} few {# завдання} many {# завдань} other {# завдань}}",
     "colPrompt": "Завдання",
-    "colA": "1",
-    "colB": "2",
-    "colC": "3",
-    "colD": "4",
+    "colA": "А",
+    "colB": "Б",
+    "colC": "В",
+    "colD": "Г",
     "colKey": "Ключ"
   },
   "Feedback": {

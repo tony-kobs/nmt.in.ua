@@ -2045,10 +2045,10 @@
     "sheetMeta": "{theme}: {count, plural, one {# task} other {# tasks}}",
     "caption": "{count, plural, one {# task} other {# tasks}}",
     "colPrompt": "Task",
-    "colA": "1",
-    "colB": "2",
-    "colC": "3",
-    "colD": "4",
+    "colA": "А",
+    "colB": "Б",
+    "colC": "В",
+    "colD": "Г",
     "colKey": "Key"
   },
   "Feedback": {
