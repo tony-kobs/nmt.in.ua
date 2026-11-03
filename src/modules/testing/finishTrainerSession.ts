@@ -3,7 +3,7 @@ import {
   SESSION_STATUS_COMPLETED,
   sessionPercent,
 } from "@/modules/sessions/types";
-import { nowUnixSec, resolveSessionElapsedSec } from "./sessionElapsed";
+import { NMT_DURATION_SEC, nowUnixSec, resolveSessionElapsedSec } from "./sessionElapsed";
 import { isSessionExpired } from "./sessionExpiry";
 import { nmtMathScaleScore, scoreNmtPaper, type NmtScoreKind } from "./nmtScore";
 import { TASK_TYPE_NMT } from "./startNmtSimulator";
@@ -174,14 +174,28 @@ export function validateFinishTrainerSessionInput(
       "invalid_input",
     );
   }
-  const { userId, sessionId } = input as Record<string, unknown>;
+  const raw = input as Record<string, unknown>;
+  const { userId, sessionId } = raw;
   if (!isPositiveInt(userId) || !isPositiveInt(sessionId)) {
     throw new FinishTrainerSessionError(
       "userId and sessionId must be positive integers.",
       "invalid_input",
     );
   }
-  return { userId, sessionId };
+  const capTimeSec =
+    typeof raw.capTimeSec === "number" &&
+    Number.isFinite(raw.capTimeSec) &&
+    raw.capTimeSec >= 0
+      ? Math.floor(raw.capTimeSec)
+      : undefined;
+  return {
+    userId,
+    sessionId,
+    ...(raw.markUnansweredAsIncorrect === true
+      ? { markUnansweredAsIncorrect: true }
+      : {}),
+    ...(capTimeSec !== undefined ? { capTimeSec } : {}),
+  };
 }
 
 export function toTrainerSessionSummary(
@@ -302,10 +316,12 @@ export async function finishTrainerSession(
         (row) => row.status === TASK_STATUS_CORRECT,
       ).length;
       const elapsed = resolveSessionElapsedSec(session.start_time, nowSec());
+      const capped =
+        session.session_type === 4
+          ? NMT_DURATION_SEC
+          : input.capTimeSec;
       const timeSec =
-        input.capTimeSec !== undefined
-          ? Math.min(elapsed.timeSec, input.capTimeSec)
-          : elapsed.timeSec;
+        capped !== undefined ? Math.min(elapsed.timeSec, capped) : elapsed.timeSec;
 
       const updated = await connection.execute(SQL_UPDATE_SESSION, [
         rightNumber,

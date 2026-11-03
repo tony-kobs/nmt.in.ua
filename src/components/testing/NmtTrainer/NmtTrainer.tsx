@@ -21,10 +21,10 @@ import { MathText } from "@/components/ui/MathText";
 import { NmtMatchTask } from "@/components/testing/NmtMatchTask/NmtMatchTask";
 import { TestTaskCard, optionLetter, taskKicker } from "@/components/testing/TestTaskCard";
 import cardCss from "@/components/testing/TestTaskCard/TestTaskCard.module.css";
+import { useCountdownTimer } from "@/components/testing/TopicTrainer/useCountdownTimer";
+import { NMT_DURATION_SEC } from "@/modules/testing/sessionElapsed";
 
 import styles from "./NmtTrainer.module.css";
-
-const NMT_DURATION_SEC = 60 * 60;
 
 type NmtTrainerProps = {
   sessionId: number;
@@ -101,7 +101,6 @@ export function NmtTrainer({
   const locale = useLocale() as "uk" | "en" | "de";
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answered, setAnswered] = useState<Record<number, string>>({});
-  const [remainingSeconds, setRemainingSeconds] = useState(NMT_DURATION_SEC);
   const [isFinishing, setIsFinishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openDraftByMapping, setOpenDraftByMapping] = useState<
@@ -151,7 +150,6 @@ export function NmtTrainer({
         sessionId,
         locale,
         markUnansweredAsIncorrect: true,
-        capTimeSec: NMT_DURATION_SEC,
       });
 
       if (result.status === "error") {
@@ -175,19 +173,18 @@ export function NmtTrainer({
     finishRef.current = finish;
   }, [finish]);
 
+  const { remainingSec: remainingSeconds, sessionExpired } = useCountdownTimer({
+    sessionId,
+    enabled: summary == null,
+    durationSec: NMT_DURATION_SEC,
+    onExpire: () => {
+      void finishRef.current({ timedOut: true });
+    },
+  });
+
   useEffect(() => {
-    if (summary) return;
-    let remaining = NMT_DURATION_SEC;
-    const timer = window.setInterval(() => {
-      remaining -= 1;
-      setRemainingSeconds(remaining);
-      if (remaining <= 0) {
-        window.clearInterval(timer);
-        void finishRef.current({ timedOut: true });
-      }
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [summary]);
+    if (sessionExpired) setError("sessionExpired");
+  }, [sessionExpired]);
 
   const isTimeOver = remainingSeconds <= 0;
 
@@ -219,6 +216,10 @@ export function NmtTrainer({
     }
 
     if (result.status === "error") {
+      if (result.code === "timeUp") {
+        void finish({ timedOut: true });
+        return;
+      }
       setError(result.code);
       return;
     }

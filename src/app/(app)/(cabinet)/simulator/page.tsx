@@ -28,6 +28,7 @@ export default async function SimulatorPage() {
           {t("title")}
         </h1>
         <p className={css.description}>{t("description")}</p>
+        <p className={css.description}>{t("timeHint")}</p>
       </header>
 
       <SimulatorStart variants={variants} />

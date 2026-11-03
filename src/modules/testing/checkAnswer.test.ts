@@ -45,6 +45,7 @@ type MappingRow = {
   session_type: number;
   session_status: number;
   expire_time: number;
+  start_time?: number;
   practice_streak: number;
 };
 
@@ -614,4 +615,30 @@ test("a Cyrillic matching answer scores against the latin key", async () => {
   assert.deepEqual(wrong, { correct: false, firstAttempt: true });
   const partial = again.calls.find((call) => call.sql.includes("awarded_points"));
   assert.deepEqual(partial?.params, [-1, -1, 1, 10]);
+});
+
+test("an NMT answer is rejected once the server clock has passed 60 minutes", async () => {
+  const start = 1_700_000_000;
+  const mock = makeConnection({
+    rows: [
+      makeRow({
+        task_type: 4,
+        session_type: 4,
+        start_time: start,
+      }),
+    ],
+  });
+
+  await assert.rejects(
+    () =>
+      checkAnswer(
+        { ...validInput, answerNumber: 2 },
+        {
+          getConnection: async () => mock.connection,
+          nowSec: () => start + 60 * 60,
+        },
+      ),
+    (error: unknown) => error instanceof CheckAnswerError && error.code === "time_up",
+  );
+  assert.ok(mock.isRolledBack());
 });

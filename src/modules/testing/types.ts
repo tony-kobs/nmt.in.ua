@@ -87,6 +87,7 @@ export type CheckAnswerErrorCode =
   | "notFound"
   | "sessionCompleted"
   | "sessionExpired"
+  | "timeUp"
   | "generic";
 
 export type RevealedAnswerAction = {

@@ -2307,6 +2307,7 @@
     "eyebrow": "NMT",
     "title": "NMT Simulator",
     "description": "Official papers from recent years: pick one or a random variant. 60 minutes, review at the end.",
+    "timeHint": "On the real exam, maths and Ukrainian share one 120-minute block. 60 minutes here is a recommended split. Reloading does not reset the clock: it runs from the session start on the server.",
     "tasks": "Tasks",
     "tasksCount": "{count, plural, one {# task} other {# tasks}}",
     "timer": "60 min",
@@ -2351,6 +2352,7 @@
       "notFound": "The session or task was not found.",
       "sessionCompleted": "This session has already been completed.",
       "sessionExpired": "This session's 24-hour lifetime has expired.",
+      "timeUp": "The simulator time is up.",
       "generic": "An error occurred. Please try again."
     }
   },

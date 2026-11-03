@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   formatElapsedClock,
+  NMT_DURATION_SEC,
+  remainingExamSeconds,
   resolveSessionElapsedSec,
 } from "./sessionElapsed";
 
@@ -24,6 +26,15 @@ test("resolveSessionElapsedSec fills missing start_time", () => {
     timeSec: 1,
     startTime: 1_700_000_050,
   });
+});
+
+test("remainingExamSeconds follows the server start and stops at zero", () => {
+  const start = 1_700_000_000;
+  assert.equal(remainingExamSeconds(start, start, NMT_DURATION_SEC), NMT_DURATION_SEC);
+  assert.equal(remainingExamSeconds(start, start + 90, NMT_DURATION_SEC), NMT_DURATION_SEC - 90);
+  assert.equal(remainingExamSeconds(start, start + NMT_DURATION_SEC, NMT_DURATION_SEC), 0);
+  assert.equal(remainingExamSeconds(start, start + NMT_DURATION_SEC + 30, NMT_DURATION_SEC), 0);
+  assert.equal(remainingExamSeconds(0, start, NMT_DURATION_SEC), NMT_DURATION_SEC);
 });
 
 test("formatElapsedClock pads minutes and seconds", () => {

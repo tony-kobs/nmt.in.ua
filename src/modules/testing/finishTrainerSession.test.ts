@@ -369,3 +369,24 @@ test("an NMT finish stores partial matching points and the 2026 scale", async ()
   const points = mock.calls.find((call) => call.sql.includes("SET test_points"));
   assert.deepEqual(points?.params, [5, 6, 5]);
 });
+
+test("an NMT finish caps stored time at 60 minutes even if the client asks for more", async () => {
+  const start = 1_700_000_000;
+  const mock = makeConnection({
+    session: makeSession({
+      session_type: 4,
+      start_time: start,
+    } as Partial<SessionRow>),
+    statuses: [TASK_STATUS_CORRECT],
+  });
+
+  const result = await finishTrainerSession(
+    { ...validInput, capTimeSec: 9_999, markUnansweredAsIncorrect: true },
+    {
+      getConnection: async () => mock.connection,
+      nowSec: () => start + 60 * 60 + 400,
+    },
+  );
+
+  assert.equal(result.timeSec, 60 * 60);
+});
