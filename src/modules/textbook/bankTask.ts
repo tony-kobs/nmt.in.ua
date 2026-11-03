@@ -1,4 +1,5 @@
 import type { MaterialContentBlock } from "@/content/learningMaterials/sourceBlocks";
+import { ANSWER_LETTERS } from "@/constants/answerLetters";
 
 export const BANK_KINDS = ["quiz", "nmt", "problem"] as const;
 
@@ -41,7 +42,7 @@ export type BankTaskHit = {
   excerpt: string;
 };
 
-const LETTERS = ["А", "Б", "В", "Г", "Д", "Е"] as const;
+const LETTERS = ANSWER_LETTERS.slice(0, 6);
 const REF = /^(quiz|nmt|problem):([1-9]\d{0,8})$/;
 const MYSQL_INT_MAX = 2147483647;
 
