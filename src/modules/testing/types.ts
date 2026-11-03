@@ -28,6 +28,12 @@ export type SessionTask = {
   retryAvailable?: boolean;
   revealed?: RevealedAnswerAction;
   hints?: { level: 1 | 2 | 3; text: string; isFinal: boolean }[];
+  /**
+   * Short nudge for the card lightbulb. Null when the task has none.
+   * Never the worked solution (`hint_example`) and never a comment that
+   * states the correct answer.
+   */
+  cardHint?: string | null;
   /** Present on simulator tasks from `nmt_quiz_tasks`. Topic tests omit it. */
   taskKind?: NmtTaskKind;
   /**

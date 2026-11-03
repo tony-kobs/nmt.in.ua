@@ -120,6 +120,21 @@ type CheckResult = {
   revealed?: RevealedAnswerAction;
 };
 
+function HintBulb() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3 11c.4.4.8 1 1 1.6V17h4v-1.4c.2-.6.6-1.2 1-1.6A6 6 0 0 0 12 3Z"
+      />
+    </svg>
+  );
+}
+
 /** One task's hint-ladder progress: rungs already fetched, in order. */
 type HintProgress = { level: HintLevel; text: string; isFinal: boolean }[];
 
@@ -167,6 +182,7 @@ export function TopicTrainer({
   );
   const [hintNoticeByMappingId, setHintNoticeByMappingId] = useState<Record<number, string>>({});
   const [hintLoading, setHintLoading] = useState(false);
+  const [hintOpen, setHintOpen] = useState(false);
   const [similarTaskLoading, setSimilarTaskLoading] = useState(false);
   const [pendingMappingId, setPendingMappingId] = useState<number | null>(null);
   const [isFinishing, setIsFinishing] = useState(false);
@@ -287,6 +303,10 @@ export function TopicTrainer({
   const checkResult = currentTask
     ? resultsByMappingId[currentTask.mappingId]
     : undefined;
+  useEffect(() => {
+    setHintOpen(false);
+  }, [currentTask?.mappingId]);
+
   const hintProgress = currentTask ? hintsByMappingId[currentTask.mappingId] : undefined;
   const hintNotice = currentTask ? hintNoticeByMappingId[currentTask.mappingId] : undefined;
   const isPending =
@@ -792,6 +812,25 @@ export function TopicTrainer({
             );
           })}
         </div>
+        {isPractice && currentTask.cardHint ? (
+          <div className={css.hintRow}>
+            <button
+              type="button"
+              className={css.hintBulb}
+              aria-expanded={hintOpen}
+              aria-controls="task-hint"
+              onClick={() => setHintOpen((open) => !open)}
+            >
+              <HintBulb />
+              <span className="visually-hidden">{t("showHint")}</span>
+            </button>
+            {hintOpen ? (
+              <p id="task-hint" className={css.hintNudge}>
+                <MathText text={currentTask.cardHint} />
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </TestTaskCard>
 
       {isPending ? (

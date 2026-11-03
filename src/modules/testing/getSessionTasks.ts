@@ -6,6 +6,7 @@ import {
 } from "@/modules/sessions/types";
 import { toTrainerSessionSummary } from "./finishTrainerSession";
 import { nmtMathScaleScore } from "./nmtScore";
+import { selectCardHint } from "./cardHint";
 import { SESSION_TYPE_NMT_SIMULATOR } from "./startNmtSimulator";
 import { resolveNmtMatch } from "./nmtMatch";
 import { normalizeNmtRichText } from "./normalizeNmtRichText";
@@ -65,7 +66,10 @@ const SQL_SESSION_TASKS = `
     qt.answer_3,
     qt.answer_4,
     NULL AS answer_5,
-    'mcq' AS task_kind
+    'mcq' AS task_kind,
+    qt.hint_direction AS card_direction,
+    qt.hint_rule AS card_rule,
+    qt.comments AS card_comments
   FROM tasks2session t2s
   INNER JOIN quiz_tasks qt ON qt.id = t2s.task_id
   WHERE t2s.session_id = ?
@@ -120,6 +124,9 @@ type SessionTaskRow = {
   hint_comment?: string | null;
   revealed_answer?: number | null;
   revealed_explanation?: string | null;
+  card_direction?: string | null;
+  card_rule?: string | null;
+  card_comments?: string | null;
   name: string;
   task_text: string;
   answer_1: string | null;
@@ -232,6 +239,19 @@ function mapRow(row: SessionTaskRow, isNmt: boolean): SessionTask {
           correctAnswerText: answers.find((answer) => answer.number === row.revealed_answer)?.text ?? null,
           explanation: row.revealed_explanation?.trim() || null,
         } } : {}),
+    ...(!isNmt && selectCardHint({
+      direction: row.card_direction,
+      rule: row.card_rule,
+      comments: row.card_comments,
+    })
+      ? {
+          cardHint: selectCardHint({
+            direction: row.card_direction,
+            rule: row.card_rule,
+            comments: row.card_comments,
+          }),
+        }
+      : {}),
     ...(isNmt ? { taskKind: row.task_kind as NmtTaskKind } : {}),
     ...(match ? { match: match.match } : {}),
   };
