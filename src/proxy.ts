@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { isKnownPage } from "@/constants/appRoutes";
 import { PUBLIC_PAGE_PATHS } from "@/constants/publicRoutes";
 import { hasPermission } from "@/modules/auth/permissions";
 import { isMarathonManagePath, isPublicMarathonPath } from "@/modules/marathons/daily/routes";
@@ -78,6 +79,8 @@ function authGuard(
   if (skipsAuth(pathname)) return null;
 
   if (!session) {
+    // Unknown URLs are not protected pages. Let the app render its 404.
+    if (!isKnownPage(pathname)) return null;
     const loginUrl = new URL(absoluteSiteUrl("/login"));
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
