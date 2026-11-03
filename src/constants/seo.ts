@@ -104,7 +104,14 @@ export function createPageMetadata({
     keywords: SITE_KEYWORDS,
     alternates: {
       canonical: url,
-      languages: { "uk-UA": url },
+      // uk/en/de share one URL. The language comes from the NEXT_LOCALE
+      // cookie or Accept-Language, not from a path prefix.
+      languages: {
+        uk: url,
+        en: url,
+        de: url,
+        "x-default": url,
+      },
     },
     category: "education",
     openGraph: {

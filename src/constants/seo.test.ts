@@ -47,6 +47,12 @@ test("createPageMetadata includes canonical, OG image, and twitter card", () => 
   });
 
   assert.equal(meta.alternates?.canonical, absoluteUrl("/results"));
+  assert.deepEqual(meta.alternates?.languages, {
+    uk: absoluteUrl("/results"),
+    en: absoluteUrl("/results"),
+    de: absoluteUrl("/results"),
+    "x-default": absoluteUrl("/results"),
+  });
 
   const welcome = createPageMetadata({
     title: "Вітальна",
