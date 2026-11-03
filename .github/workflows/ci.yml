@@ -1,5 +1,7 @@
 # Lint і тести на pull request у dev. Секретів і бази немає.
 # Тести, яким потрібна жива MySQL, самі пропускаються без DB_HOST.
+# `next build` теж без бази: сторінки динамічні, перевірка діагностики
+# лише пише попередження, якщо DB_HOST немає.
 name: CI
 
 on:
@@ -24,4 +26,6 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      - run: npx tsc --noEmit
+      - run: npx next build
       - run: node scripts/check-sql-numbers.mjs

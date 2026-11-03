@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
 import { Inter, Manrope } from "next/font/google";
 import {
@@ -73,7 +74,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();
 
   return (
