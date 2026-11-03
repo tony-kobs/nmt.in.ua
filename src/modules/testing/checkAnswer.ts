@@ -1,7 +1,8 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
-import { nowUnixSec } from "./sessionElapsed";
+import { NMT_DURATION_SEC, nowUnixSec, remainingExamSeconds } from "./sessionElapsed";
 import { isSessionExpired } from "./sessionExpiry";
+import { pointsForNmtTask } from "./nmtScore";
 import { TASK_TYPE_NMT } from "./startNmtSimulator";
 import { nextPracticeStreak } from "./practiceAdaptive";
 import {
@@ -55,6 +56,7 @@ const SQL_SELECT_MAPPING = `
     ts.session_type,
     ts.session_status,
     ts.expire_time,
+    ts.start_time,
     ts.practice_streak
   FROM tasks2session t2s
   INNER JOIN task_sessions ts ON ts.id = t2s.session_id
@@ -67,7 +69,7 @@ const SQL_SELECT_MAPPING = `
 `;
 
 const SQL_UPDATE_FIRST_ATTEMPT =
-  "UPDATE tasks2session SET status = ?, first_attempt_status = ? WHERE id = ?";
+  "UPDATE tasks2session SET status = ?, first_attempt_status = ?, awarded_points = ? WHERE id = ?";
 const SQL_UPDATE_RETRY =
   "UPDATE tasks2session SET status = ?, retry_used = 1 WHERE id = ?";
 const SQL_UPDATE_SESSION_STREAK =
@@ -120,6 +122,7 @@ export type CheckAnswerErrorCode =
   | "not_found"
   | "session_completed"
   | "session_expired"
+  | "time_up"
   | "db_error";
 
 export class CheckAnswerError extends Error {
@@ -156,6 +159,7 @@ type MappingRow = {
   session_type: number;
   session_status: number;
   expire_time: number;
+  start_time?: number;
   practice_streak: number;
 };
 
@@ -229,6 +233,41 @@ export function validateCheckAnswerInput(input: unknown): CheckAnswerInput {
     ...(hasNumber ? { answerNumber } : {}),
     ...(hasText ? { answerText: String(answerText) } : {}),
   };
+}
+
+/** NMT rows store 0–3. Topic tasks leave the column NULL. */
+export function awardedPointsFor(
+  row: Pick<MappingRow, "task_type" | "task_kind" | "right_answer_text">,
+  input: Pick<CheckAnswerInput, "answerText">,
+  correct: boolean,
+): number | null {
+  if (row.task_type !== TASK_TYPE_NMT) return null;
+  return pointsForNmtTask({
+    kind: row.task_kind,
+    correct,
+    answerText: input.answerText ?? null,
+    keyText: row.right_answer_text,
+  });
+}
+
+const SQL_MARK_NMT_START =
+  "UPDATE task_sessions SET start_time = ? WHERE id = ? AND start_time = 0";
+
+async function assertNmtTimeOpen(
+  connection: SqlConnection,
+  row: MappingRow,
+  nowSec: number,
+): Promise<void> {
+  if (row.session_type !== 4) return;
+  let start = row.start_time ?? 0;
+  if (start <= 0) {
+    start = nowSec;
+    await connection.execute(SQL_MARK_NMT_START, [start, row.session_id]);
+  }
+  if (remainingExamSeconds(start, nowSec, NMT_DURATION_SEC) <= 0) {
+    await connection.rollback();
+    throw new CheckAnswerError("The simulator time limit has passed.", "time_up");
+  }
 }
 
 function isCorrect(row: MappingRow, input: CheckAnswerInput): boolean {
@@ -413,6 +452,7 @@ export async function checkAnswer(
           "session_expired",
         );
       }
+      await assertNmtTimeOpen(connection, row, nowSec());
 
       // Mapping row exists but neither bank table joined (orphan task_id).
       if (row.right_answer_n == null && row.right_answer_text == null) {
@@ -423,13 +463,13 @@ export async function checkAnswer(
         );
       }
 
-      const status = isCorrect(row, input)
-        ? TASK_STATUS_CORRECT
-        : TASK_STATUS_INCORRECT;
+      const correct = isCorrect(row, input);
+      const status = correct ? TASK_STATUS_CORRECT : TASK_STATUS_INCORRECT;
 
       const updated = await connection.execute(SQL_UPDATE_FIRST_ATTEMPT, [
         status,
         status,
+        awardedPointsFor(row, input, correct),
         row.id,
       ]);
       if (updated.affectedRows !== 1) {

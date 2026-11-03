@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import {
   formatDurationSeconds,
+  formatTestPointPrefix,
   formatTimePerTask,
   type LearningSessionRow,
 } from "@/modules/sessions/types";
@@ -18,6 +19,12 @@ import css from "./LearningSessionsTable.module.css";
 function formatPercent(percent: number | null): string {
   if (percent === null) return "—";
   return formatResultPercent(percent);
+}
+
+function formatScore(row: LearningSessionRow): string {
+  const points = formatTestPointPrefix(row.testPoints, row.maxTestPoints);
+  const percent = formatPercent(row.percent);
+  return points ? `${points} · ${percent}` : percent;
 }
 
 function percentScoreClass(percent: number | null): string {
@@ -55,7 +62,7 @@ export function LearningSessionCard({
           <p className={css.cardTheme}>{row.themeName}</p>
         </div>
         <span className={clsx(css.score, percentScoreClass(row.percent))}>
-          {formatPercent(row.percent)}
+          {formatScore(row)}
         </span>
       </div>
 

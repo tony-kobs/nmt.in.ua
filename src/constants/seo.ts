@@ -78,16 +78,19 @@ export function createPageMetadata({
   title,
   description,
   path = "/",
+  canonicalPath,
   noIndex = false,
   ogImageAlt,
 }: {
   title: string;
   description: string;
   path?: string;
+  /** When the page duplicates another URL. `/welcome` points at `/`. */
+  canonicalPath?: string;
   noIndex?: boolean;
   ogImageAlt?: string;
 }): Metadata {
-  const url = absoluteUrl(path);
+  const url = absoluteUrl(canonicalPath ?? path);
   const fullTitle = title.includes(SITE_NAME)
     ? title
     : `${title} | ${SITE_NAME}`;
@@ -101,7 +104,14 @@ export function createPageMetadata({
     keywords: SITE_KEYWORDS,
     alternates: {
       canonical: url,
-      languages: { "uk-UA": url },
+      // uk/en/de share one URL. The language comes from the NEXT_LOCALE
+      // cookie or Accept-Language, not from a path prefix.
+      languages: {
+        uk: url,
+        en: url,
+        de: url,
+        "x-default": url,
+      },
     },
     category: "education",
     openGraph: {

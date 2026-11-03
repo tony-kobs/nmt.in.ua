@@ -21,10 +21,11 @@ import { MathText } from "@/components/ui/MathText";
 import { NmtMatchTask } from "@/components/testing/NmtMatchTask/NmtMatchTask";
 import { TestTaskCard, optionLetter, taskKicker } from "@/components/testing/TestTaskCard";
 import cardCss from "@/components/testing/TestTaskCard/TestTaskCard.module.css";
+import { useCountdownTimer } from "@/components/testing/TopicTrainer/useCountdownTimer";
+import { NMT_DURATION_SEC } from "@/modules/testing/sessionElapsed";
 
 import styles from "./NmtTrainer.module.css";
-
-const NMT_DURATION_SEC = 60 * 60;
+import { buildMatchAnswer, clampTaskIndex, formatNmtClock, matchLetterAt } from "./nmtSession";
 
 type NmtTrainerProps = {
   sessionId: number;
@@ -33,27 +34,6 @@ type NmtTrainerProps = {
   initialRecommendations?: RecommendedAction[];
   initialMistakes?: SessionMistakeItem[];
 };
-
-function formatTime(seconds: number) {
-  const safeSeconds = Math.max(0, seconds);
-  const minutes = Math.floor(safeSeconds / 60);
-  const secs = safeSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-}
-
-const MATCH_CYRILLIC_TO_LATIN: Record<string, string> = {
-  а: "a",
-  б: "b",
-  в: "c",
-  г: "d",
-  д: "e",
-};
-
-/** Stored keys are `1b;2d;3a`. A Cyrillic letter from an older client still fills the select. */
-function matchLetterAt(answerText: string, row: number): string {
-  const raw = answerText.match(new RegExp(`${row}([a-eабвгд])`, "i"))?.[1]?.toLowerCase() ?? "";
-  return MATCH_CYRILLIC_TO_LATIN[raw] ?? raw;
-}
 
 function TaskBody({
   text,
@@ -101,7 +81,6 @@ export function NmtTrainer({
   const locale = useLocale() as "uk" | "en" | "de";
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answered, setAnswered] = useState<Record<number, string>>({});
-  const [remainingSeconds, setRemainingSeconds] = useState(NMT_DURATION_SEC);
   const [isFinishing, setIsFinishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [openDraftByMapping, setOpenDraftByMapping] = useState<
@@ -151,7 +130,6 @@ export function NmtTrainer({
         sessionId,
         locale,
         markUnansweredAsIncorrect: true,
-        capTimeSec: NMT_DURATION_SEC,
       });
 
       if (result.status === "error") {
@@ -175,21 +153,17 @@ export function NmtTrainer({
     finishRef.current = finish;
   }, [finish]);
 
-  useEffect(() => {
-    if (summary) return;
-    let remaining = NMT_DURATION_SEC;
-    const timer = window.setInterval(() => {
-      remaining -= 1;
-      setRemainingSeconds(remaining);
-      if (remaining <= 0) {
-        window.clearInterval(timer);
-        void finishRef.current({ timedOut: true });
-      }
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [summary]);
+  const { remainingSec: remainingSeconds, sessionExpired } = useCountdownTimer({
+    sessionId,
+    enabled: summary == null,
+    durationSec: NMT_DURATION_SEC,
+    onExpire: () => {
+      void finishRef.current({ timedOut: true });
+    },
+  });
 
   const isTimeOver = remainingSeconds <= 0;
+  const shownError = sessionExpired ? "sessionExpired" : error;
 
   async function submitAnswer(payload: {
     answerNumber?: 1 | 2 | 3 | 4 | 5;
@@ -219,6 +193,10 @@ export function NmtTrainer({
     }
 
     if (result.status === "error") {
+      if (result.code === "timeUp") {
+        void finish({ timedOut: true });
+        return;
+      }
       setError(result.code);
       return;
     }
@@ -230,9 +208,10 @@ export function NmtTrainer({
   }
 
   function goTo(index: number) {
-    if (index < 0 || index >= tasks.length) return;
+    const next = clampTaskIndex(index, tasks.length);
+    if (next == null) return;
     setError(null);
-    setCurrentIndex(index);
+    setCurrentIndex(next);
   }
 
   if (summary) {
@@ -268,7 +247,7 @@ export function NmtTrainer({
         </div>
         <div className={styles.headerActions}>
           <div className={styles.timer} role="timer">
-            {formatTime(remainingSeconds)}
+            {formatNmtClock(remainingSeconds)}
           </div>
           <button
             type="button"
@@ -438,8 +417,8 @@ export function NmtTrainer({
               }));
             }}
             onSubmit={() => {
-              if (matchDraft.some((value) => !value)) return;
-              const answerText = `1${matchDraft[0]};2${matchDraft[1]};3${matchDraft[2]}`;
+              const answerText = buildMatchAnswer(matchDraft);
+              if (!answerText) return;
               void submitAnswer({ answerText, storeAs: answerText });
             }}
           />
@@ -463,7 +442,7 @@ export function NmtTrainer({
         </button>
       </footer>
 
-      {error ? <p className={styles.error}>{t(`errors.${error}`)}</p> : null}
+      {shownError ? <p className={styles.error}>{t(`errors.${shownError}`)}</p> : null}
     </section>
   );
 }

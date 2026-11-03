@@ -250,7 +250,9 @@ function makeSharedStore() {
           }
 
           if (sql.includes("first_attempt_status")) {
-            const [status, firstAttemptStatus, mappingId] = params as number[];
+            const status = params[0] as number;
+            const firstAttemptStatus = params[1] as number;
+            const mappingId = params[params.length - 1] as number;
             const row = mappings.find((m) => m.id === mappingId);
             if (row) {
               row.status = status;

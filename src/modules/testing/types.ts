@@ -28,6 +28,12 @@ export type SessionTask = {
   retryAvailable?: boolean;
   revealed?: RevealedAnswerAction;
   hints?: { level: 1 | 2 | 3; text: string; isFinal: boolean }[];
+  /**
+   * Short nudge for the card lightbulb. Null when the task has none.
+   * Never the worked solution (`hint_example`) and never a comment that
+   * states the correct answer.
+   */
+  cardHint?: string | null;
   /** Present on simulator tasks from `nmt_quiz_tasks`. Topic tests omit it. */
   taskKind?: NmtTaskKind;
   /**
@@ -48,6 +54,11 @@ export type TrainerSessionSummary = {
   /** `null` for a diagnostic attempt or NMT variant (no single textbook section). */
   themeCode: string | null;
   themeName: string;
+  /** Official test points for an NMT attempt. Omitted for other modes. */
+  testPoints?: number;
+  maxTestPoints?: number;
+  /** 100–200 from the 2026 maths table, or null when that table does not apply. */
+  scaleScore?: number | null;
 };
 
 export type SessionTasksResult = {
@@ -82,6 +93,7 @@ export type CheckAnswerErrorCode =
   | "notFound"
   | "sessionCompleted"
   | "sessionExpired"
+  | "timeUp"
   | "generic";
 
 export type RevealedAnswerAction = {

@@ -47,6 +47,20 @@ test("createPageMetadata includes canonical, OG image, and twitter card", () => 
   });
 
   assert.equal(meta.alternates?.canonical, absoluteUrl("/results"));
+  assert.deepEqual(meta.alternates?.languages, {
+    uk: absoluteUrl("/results"),
+    en: absoluteUrl("/results"),
+    de: absoluteUrl("/results"),
+    "x-default": absoluteUrl("/results"),
+  });
+
+  const welcome = createPageMetadata({
+    title: "Вітальна",
+    description: "Та сама сторінка, що й головна.",
+    path: "/welcome",
+    canonicalPath: "/",
+  });
+  assert.equal(welcome.alternates?.canonical, absoluteUrl("/"));
 
   const og = meta.openGraph;
   assert.ok(og && typeof og === "object" && !Array.isArray(og));

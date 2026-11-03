@@ -1,3 +1,24 @@
+/** Simulator length. The real exam pairs maths with Ukrainian in one 120-minute block. */
+export const NMT_DURATION_SEC = 60 * 60;
+
+/**
+ * Seconds left from a server start time. A missing start has not begun,
+ * so the full duration remains.
+ */
+export function remainingExamSeconds(
+  startUnix: number,
+  nowUnix: number,
+  durationSec: number,
+): number {
+  if (!Number.isFinite(durationSec) || durationSec <= 0) return 0;
+  const duration = Math.floor(durationSec);
+  if (!Number.isFinite(startUnix) || startUnix <= 0 || !Number.isFinite(nowUnix)) {
+    return duration;
+  }
+  const elapsed = Math.floor(nowUnix) - Math.floor(startUnix);
+  return Math.max(0, duration - Math.max(0, elapsed));
+}
+
 /** Unix seconds for session `start_time` / `time` columns. */
 export function nowUnixSec(): number {
   return Math.floor(Date.now() / 1000);

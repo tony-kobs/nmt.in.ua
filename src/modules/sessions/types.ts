@@ -41,6 +41,9 @@ export type LearningSessionRow = {
   createdBy: SessionCreatedBy;
   status: SessionDisplayStatus;
   statusLabel: string;
+  /** NMT test points when the attempt stored them. */
+  testPoints?: number | null;
+  maxTestPoints?: number | null;
 };
 
 export type TaskSessionRecord = {
@@ -55,9 +58,20 @@ export type TaskSessionRecord = {
   session_type: number;
   start_time: number;
   expire_time: number;
+  test_points?: number | null;
+  test_points_max?: number | null;
   available_at?: number | null;
   due_at?: number | null;
 };
+
+/** `18/32` when an NMT attempt stored test points. */
+export function formatTestPointPrefix(
+  points: number | null | undefined,
+  max: number | null | undefined,
+): string | null {
+  if (points == null || max == null || max <= 0) return null;
+  return `${points}/${max}`;
+}
 
 export function sessionPercent(
   tasksNumber: number,
@@ -161,11 +175,17 @@ export function formatTimePerTask(seconds: number | null, locale = "uk"): string
   return formatDurationSeconds(seconds, locale);
 }
 
-function asUnixSec(value: unknown): number | null {
+function asCount(value: unknown): number | null {
   if (value == null) return null;
   const n = typeof value === "bigint" ? Number(value) : Number(value);
-  if (!Number.isFinite(n) || n <= 0) return null;
+  if (!Number.isFinite(n) || n < 0) return null;
   return Math.trunc(n);
+}
+
+function asUnixSec(value: unknown): number | null {
+  const n = asCount(value);
+  if (n == null || n <= 0) return null;
+  return n;
 }
 
 export function buildLearningSessionRows(
@@ -182,6 +202,10 @@ export function buildLearningSessionRows(
         : null);
     const waiting =
       status === "planned" && availableAt != null && nowSec < availableAt;
+    const testPoints = asCount(session.test_points);
+    const maxTestPoints = asCount(session.test_points_max);
+    const hasTestPoints =
+      testPoints != null && maxTestPoints != null && maxTestPoints > 0;
     return {
       id: session.id,
       rowNumber: index + 1,
@@ -190,7 +214,11 @@ export function buildLearningSessionRows(
       themeName: session.theme_name.trim(),
       tasksNumber: session.tasks_number,
       rightNumber: session.right_number,
-      percent: sessionPercent(session.tasks_number, session.right_number),
+      percent: hasTestPoints
+        ? sessionPercent(maxTestPoints, testPoints)
+        : sessionPercent(session.tasks_number, session.right_number),
+      testPoints: hasTestPoints ? testPoints : null,
+      maxTestPoints: hasTestPoints ? maxTestPoints : null,
       timeSec: session.time,
       timePerTaskSec: sessionTimePerTask(session.tasks_number, session.time),
       startTimeLabel: formatSessionStartTime(session.start_time),

@@ -108,16 +108,40 @@ export function TopicTrainerSummary({
           </dd>
         </div>
 
+        {isNmt && summary.testPoints != null && summary.maxTestPoints != null ? (
+          <div className={css.stat}>
+            <dt>{t("testPoints")}</dt>
+            <dd>
+              {summary.testPoints} / {summary.maxTestPoints}
+            </dd>
+          </div>
+        ) : null}
+
         <div className={css.stat}>
           <dt>{t("result")}</dt>
           <dd>{formatPercent(summary.percent)}</dd>
         </div>
+
+        {isNmt && summary.maxTestPoints === 32 ? (
+          <div className={css.stat}>
+            <dt>{t("scale")}</dt>
+            <dd>
+              {summary.scaleScore != null ? summary.scaleScore : t("scaleBelow")}
+            </dd>
+          </div>
+        ) : null}
 
         <div className={css.stat}>
           <dt>{t("time")}</dt>
           <dd>{formatDurationSeconds(summary.timeSec, locale)}</dd>
         </div>
       </dl>
+      {isNmt && summary.maxTestPoints != null && summary.maxTestPoints !== 32 ? (
+        <p className={css.lead}>{t("scaleOtherMax")}</p>
+      ) : null}
+      {isNmt && summary.maxTestPoints === 32 && summary.scaleScore == null ? (
+        <p className={css.lead}>{t("scaleThreshold")}</p>
+      ) : null}
 
       {showMistakes ? (
         <TopicTrainerMistakeReview
