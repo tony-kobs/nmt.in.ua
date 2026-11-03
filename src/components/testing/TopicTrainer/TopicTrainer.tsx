@@ -23,8 +23,6 @@ import {
 import { insertFollowUpTask } from "@/modules/testing/insertFollowUpTask";
 import { isPracticeMode } from "@/modules/testing/sessionMode";
 import {
-  TASK_STATUS_CORRECT,
-  TASK_STATUS_INCORRECT,
   type CheckAnswerActionInput,
   type CheckAnswerActionState,
   type HintLevel,
@@ -35,6 +33,7 @@ import {
   type TrainerSessionSummary,
 } from "@/modules/testing/types";
 import { resolveTaskPresentation } from "@/modules/testing/taskPresentation";
+import { clampTaskIndex, initialAnswerResults } from "./topicSession";
 import {
   resolveAnswerCardState,
   resolveAnswerFeedbackKind,
@@ -121,17 +120,6 @@ type CheckResult = {
   revealed?: RevealedAnswerAction;
 };
 
-function initialResults(tasks: SessionTask[]): Record<number, CheckResult> {
-  const results: Record<number, CheckResult> = {};
-  for (const task of tasks) {
-    if (task.status === TASK_STATUS_CORRECT)
-      results[task.mappingId] = { correct: true };
-    if (task.status === TASK_STATUS_INCORRECT)
-      results[task.mappingId] = { correct: false, retryAvailable: task.retryAvailable, revealed: task.revealed };
-  }
-  return results;
-}
-
 /** One task's hint-ladder progress: rungs already fetched, in order. */
 type HintProgress = { level: HintLevel; text: string; isFinal: boolean }[];
 
@@ -165,14 +153,14 @@ export function TopicTrainer({
     [actions?.checkAnswer, actions?.finishTrainerSession, actions?.markSessionStarted],
   );
   const [currentIndex, setCurrentIndex] = useState(() =>
-    Math.min(Math.max(initialIndex, 0), Math.max(tasks.length - 1, 0)),
+    clampTaskIndex(initialIndex, tasks.length),
   );
   const [taskList, setTaskList] = useState<SessionTask[]>(tasks);
   const [selectedByMappingId, setSelectedByMappingId] = useState<
     Record<number, SessionTaskAnswer["number"]>
   >({});
   const [resultsByMappingId, setResultsByMappingId] = useState(() =>
-    initialResults(tasks),
+    initialAnswerResults(tasks),
   );
   const [hintsByMappingId, setHintsByMappingId] = useState<Record<number, HintProgress>>(
     () => Object.fromEntries(tasks.filter((task) => task.hints?.length).map((task) => [task.mappingId, task.hints!])),

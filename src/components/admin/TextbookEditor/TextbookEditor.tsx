@@ -26,7 +26,7 @@ import {
   type DraftBackup,
 } from "@/modules/textbook/draftBackup";
 import { TEXTBOOK_BODY_MAX, type TextbookVersionSummary, type TextbookWriteResult } from "@/modules/textbook/draftTypes";
-import { TEXTBOOK_IMAGE_MAX_BYTES } from "@/modules/textbook/imageLimits";
+import { clientImageError, type UploadError } from "./imageFile";
 import { lintTextbookMarkup, type TextbookLintCode } from "@/modules/textbook/lint";
 import { parseTextbookMarkup } from "@/modules/textbook/markup";
 import {
@@ -64,7 +64,6 @@ type TextbookEditorProps = {
   publicHref: string;
 };
 
-type UploadError = "type" | "size" | "failed";
 type Pane = "editor" | "preview";
 type SaveStatus = "idle" | "saving" | "saved" | "error" | "conflict" | "size";
 
@@ -103,13 +102,6 @@ function imageFiles(data: DataTransfer): File[] {
     }
   }
   return files.filter((file) => file.type === "" || file.type.startsWith("image/"));
-}
-
-function clientImageError(file: File): UploadError | null {
-  if (file.size > TEXTBOOK_IMAGE_MAX_BYTES) return "size";
-  if (file.size === 0 || file.type === "image/svg+xml" || /\.svg$/i.test(file.name)) return "type";
-  if (file.type && !file.type.startsWith("image/")) return "type";
-  return null;
 }
 
 async function postTextbookImage(
