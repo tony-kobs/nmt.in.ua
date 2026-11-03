@@ -263,6 +263,9 @@ export async function checkAnswerAction(
         case "session_expired":
           return { status: "error", code: "sessionExpired" };
 
+        case "time_up":
+          return { status: "error", code: "timeUp" };
+
         default:
           return { status: "error", code: "generic" };
       }

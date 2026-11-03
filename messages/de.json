@@ -679,6 +679,11 @@
     "completed": "Test abgeschlossen.",
     "mistakesBelow": "Die Fehleranalyse findest du unten.",
     "correct": "Richtig",
+    "testPoints": "Testpunkte",
+    "scale": "Skala 100–200",
+    "scaleBelow": "Unter der Bestehensgrenze",
+    "scaleOtherMax": "Die NMT-Tabelle 2026 gilt für eine Arbeit mit 32 Punkten. Diese Variante hat ein anderes Maximum, daher stehen hier nur die Testpunkte.",
+    "scaleThreshold": "Die Bestehensgrenze liegt bei 5 Testpunkten. Darunter gibt es keine Bewertung auf der Skala.",
     "result": "Ergebnis",
     "time": "Zeit",
     "recommendationsTitle": "Empfohlene nächste Schritte",
@@ -2040,10 +2045,10 @@
     "sheetMeta": "{theme}: {count, plural, one {# Aufgabe} other {# Aufgaben}}",
     "caption": "{count, plural, one {# Aufgabe} other {# Aufgaben}}",
     "colPrompt": "Aufgabe",
-    "colA": "1",
-    "colB": "2",
-    "colC": "3",
-    "colD": "4",
+    "colA": "А",
+    "colB": "Б",
+    "colC": "В",
+    "colD": "Г",
     "colKey": "Schlüssel"
   },
   "Feedback": {
@@ -2302,6 +2307,8 @@
     "eyebrow": "NMT",
     "title": "NMT-Simulator",
     "description": "Offizielle Varianten der letzten Jahre: wähle eine konkrete oder eine zufällige. 60 Minuten, Auswertung am Ende.",
+    "timeHint": "In der Prüfung teilen sich Mathematik und Ukrainisch einen Block von 120 Minuten. 60 Minuten hier sind eine empfohlene Aufteilung. Neuladen setzt die Uhr nicht zurück: sie läuft ab dem Sitzungsstart auf dem Server.",
+    "rules": "Punkte: eine Antwortwahl gibt 1, jedes richtige Paar 1, eine kurze Antwort 2. Eine Arbeit von 2026 hat maximal 32. Hat eine Variante anders viele Aufgaben, etwa 2022, wird das Maximum daraus gezählt. Neuladen oder Verlassen setzt die Uhr nicht zurück.",
     "tasks": "Aufgaben",
     "tasksCount": "{count, plural, one {# Aufgabe} other {# Aufgaben}}",
     "timer": "60 Min.",
@@ -2312,6 +2319,7 @@
     "randomStart": "Zufällige Variante",
     "randomLead": "Unsicher, womit starten — nimm eine zufällige veröffentlichte Variante.",
     "done": "Absolviert · {percent}%",
+    "doneScore": "Absolviert · {points}/{max} · {percent}%",
     "notDone": "Noch nicht absolviert",
     "empty": "NMT-Varianten sind noch nicht in die Datenbank geladen.",
     "errors": {
@@ -2345,6 +2353,7 @@
       "notFound": "Die Sitzung oder Aufgabe wurde nicht gefunden.",
       "sessionCompleted": "Diese Sitzung wurde bereits abgeschlossen.",
       "sessionExpired": "Die 24-Stunden-Gültigkeit dieser Sitzung ist abgelaufen.",
+      "timeUp": "Die Simulatorzeit ist abgelaufen.",
       "generic": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut."
     }
   },

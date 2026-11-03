@@ -9,7 +9,7 @@ import {
 
 const ZADACHNYK_FIRST_PROMPTS: Record<number, { name: string; first: string }> =
   {
-    1: { name: "Елементарна математика", first: "16+2=?" },
+    1: { name: "Елементарна математика", first: "16 + 2 = ?" },
     2: { name: "Арифметика", first: "15 + 27 = ?" },
     3: { name: "Описова геометрія", first: "Скільки градусів має прямий кут?" },
     4: { name: "Дроби", first: "Знайдіть суму 1/2 + 1/4." },

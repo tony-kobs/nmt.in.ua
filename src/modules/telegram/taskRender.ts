@@ -2,6 +2,7 @@ import { parseMathText } from "@/components/ui/MathText/parseMathText";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
 import { normalizeNmtRichText } from "@/modules/testing/normalizeNmtRichText";
 import { formulaToPlain, latexToTelegramPlain } from "./latexPlain";
+import { ANSWER_LETTERS } from "@/constants/answerLetters";
 
 export { formulaToPlain, latexToTelegramPlain };
 
@@ -12,7 +13,7 @@ export { formulaToPlain, latexToTelegramPlain };
  * The site link is attached only when that picture cannot be shown.
  */
 
-const LETTERS = ["А", "Б", "В", "Г", "Д", "Е", "Є", "Ж"] as const;
+const LETTERS = ANSWER_LETTERS;
 
 const IMAGE = /!\[[^\]]*\]\(([^)\s]+)\)|https?:\/\/\S+\.(?:png|jpe?g|gif|webp)(?:\?\S*)?/gi;
 

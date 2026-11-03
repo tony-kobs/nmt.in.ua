@@ -679,6 +679,11 @@
     "completed": "Test completed.",
     "mistakesBelow": "Review your mistakes below.",
     "correct": "Correct",
+    "testPoints": "Test points",
+    "scale": "100–200 scale",
+    "scaleBelow": "Below the pass mark",
+    "scaleOtherMax": "The 2026 NMT table converts a 32-point paper. This variant has a different maximum, so only the test points are shown.",
+    "scaleThreshold": "The pass mark is 5 test points. Below that there is no rating score.",
     "result": "Result",
     "time": "Time",
     "recommendationsTitle": "Recommended next steps",
@@ -2040,10 +2045,10 @@
     "sheetMeta": "{theme}: {count, plural, one {# task} other {# tasks}}",
     "caption": "{count, plural, one {# task} other {# tasks}}",
     "colPrompt": "Task",
-    "colA": "1",
-    "colB": "2",
-    "colC": "3",
-    "colD": "4",
+    "colA": "А",
+    "colB": "Б",
+    "colC": "В",
+    "colD": "Г",
     "colKey": "Key"
   },
   "Feedback": {
@@ -2302,6 +2307,8 @@
     "eyebrow": "NMT",
     "title": "NMT Simulator",
     "description": "Official papers from recent years: pick one or a random variant. 60 minutes, review at the end.",
+    "timeHint": "On the real exam, maths and Ukrainian share one 120-minute block. 60 minutes here is a recommended split. Reloading does not reset the clock: it runs from the session start on the server.",
+    "rules": "Scoring: one point for a single choice, one point for each correct pair, two points for a short answer. A 2026 paper is out of 32. A paper with a different number of tasks, such as 2022, uses its own maximum. Reloading or leaving does not reset the clock.",
     "tasks": "Tasks",
     "tasksCount": "{count, plural, one {# task} other {# tasks}}",
     "timer": "60 min",
@@ -2312,6 +2319,7 @@
     "randomStart": "Random variant",
     "randomLead": "Not sure where to start — take a random published paper.",
     "done": "Done · {percent}%",
+    "doneScore": "Done · {points}/{max} · {percent}%",
     "notDone": "Not taken yet",
     "empty": "NMT variants have not been loaded into the database yet.",
     "errors": {
@@ -2345,6 +2353,7 @@
       "notFound": "The session or task was not found.",
       "sessionCompleted": "This session has already been completed.",
       "sessionExpired": "This session's 24-hour lifetime has expired.",
+      "timeUp": "The simulator time is up.",
       "generic": "An error occurred. Please try again."
     }
   },

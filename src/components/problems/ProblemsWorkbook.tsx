@@ -6,12 +6,15 @@ import clsx from "clsx";
 import { PageFrame, PagePanel } from "@/components/dashboard/PageFrame";
 import { MathText } from "@/components/ui/MathText";
 import { Select } from "@/components/ui/Select";
+import { ANSWER_LETTERS } from "@/constants/answerLetters";
 import { queryHref } from "@/lib/queryHref";
 import type {
   WorkbookProblem,
   WorkbookTheme,
 } from "@/modules/testing/getProblems";
 import css from "./ProblemsWorkbook.module.css";
+
+const PROBLEM_LETTERS = ANSWER_LETTERS.slice(0, 4);
 
 type ProblemsWorkbookProps = {
   themes: WorkbookTheme[];
@@ -138,10 +141,11 @@ export function ProblemsWorkbook({
             <thead>
               <tr>
                 <th scope="col">{t("colPrompt")}</th>
-                <th scope="col">{t("colA")}</th>
-                <th scope="col">{t("colB")}</th>
-                <th scope="col">{t("colC")}</th>
-                <th scope="col">{t("colD")}</th>
+                {PROBLEM_LETTERS.map((letter) => (
+                  <th key={letter} scope="col">
+                    {letter}
+                  </th>
+                ))}
                 <th scope="col">{t("colKey")}</th>
               </tr>
             </thead>
@@ -163,7 +167,9 @@ export function ProblemsWorkbook({
                       </td>
                     );
                   })}
-                  <td className={css.keyCell}>{problem.rightAnswerN}</td>
+                  <td className={css.keyCell}>
+                    {PROBLEM_LETTERS[problem.rightAnswerN - 1]}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -22,10 +22,11 @@ import { latexToTelegramPlain } from "@/modules/telegram/latexPlain";
 import { composeTelegramTask } from "@/modules/telegram/taskRender";
 import { MAIN_MENU_LABEL, mainMenuDataButton } from "@/modules/telegram/ui";
 import type { BotCallback, Outgoing } from "./botPlay";
+import { ANSWER_LETTERS } from "@/constants/answerLetters";
 
 const PAGE_SIZE = 6;
 const COUNT_CHOICES = [5, 10, 20];
-const LETTERS = ["А", "Б", "В", "Г"] as const;
+const LETTERS = ANSWER_LETTERS.slice(0, 4);
 
 type QuizCallback = Extract<
   BotCallback,

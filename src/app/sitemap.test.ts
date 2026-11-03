@@ -11,6 +11,8 @@ test("sitemap lists public pages and only live marathon or teacher cards beyond 
     PUBLIC_PAGE_PATHS.filter(
       (path) =>
         path !== "/t" &&
+        path !== "/login" &&
+        path !== "/register" &&
         path !== "/verify-email" &&
         path !== "/keep-account" &&
         path !== "/forgot-password" &&
@@ -31,4 +33,6 @@ test("sitemap lists public pages and only live marathon or teacher cards beyond 
   for (const href of cabinetHrefs) {
     assert.equal(publicPaths.has(href), false, `cabinet route ${href} in sitemap`);
   }
+  assert.equal(publicPaths.has("/login"), false);
+  assert.equal(publicPaths.has("/register"), false);
 });

@@ -85,9 +85,16 @@ export function SimulatorStart({ variants }: SimulatorStartProps) {
                         {" · "}
                         {variant.bestAttempt ? (
                           <span className={css.done}>
-                            {t("done", {
-                              percent: variant.bestAttempt.percent,
-                            })}
+                            {variant.bestAttempt.testPoints != null &&
+                            variant.bestAttempt.maxTestPoints != null
+                              ? t("doneScore", {
+                                  points: variant.bestAttempt.testPoints,
+                                  max: variant.bestAttempt.maxTestPoints,
+                                  percent: variant.bestAttempt.percent,
+                                })
+                              : t("done", {
+                                  percent: variant.bestAttempt.percent,
+                                })}
                           </span>
                         ) : (
                           <span className={css.todo}>{t("notDone")}</span>

@@ -1,4 +1,6 @@
-const OPTION_LETTERS = ["А", "Б", "В", "Г", "Д", "Е"] as const;
+import { ANSWER_LETTERS } from "@/constants/answerLetters";
+
+const OPTION_LETTERS = ANSWER_LETTERS.slice(0, 6);
 
 export type GradedOptionState = "idle" | "selected" | "correct" | "wrong" | "key";
 

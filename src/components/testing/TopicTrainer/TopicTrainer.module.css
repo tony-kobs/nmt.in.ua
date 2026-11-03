@@ -187,6 +187,41 @@
   font-size: 0.95rem;
 }
 
+.hintRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.hintBulb {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--green);
+  cursor: pointer;
+}
+
+.hintBulb:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.hintNudge {
+  margin: 0;
+  padding-top: 10px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: var(--fs-small);
+  line-height: 1.45;
+}
+
 .hintButton {
   align-self: flex-start;
   min-height: 44px;

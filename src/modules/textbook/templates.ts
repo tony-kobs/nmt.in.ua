@@ -1,3 +1,4 @@
+import { ANSWER_LETTERS } from "@/constants/answerLetters";
 import { isUploadPlaceholderSrc } from "./imageLimits";
 
 export const SNIPPET_IDS = [
@@ -22,7 +23,7 @@ export type TextEdit = {
 };
 
 const IMAGE_TEMPLATE_SRC = "/materials/textbook/image.webp";
-const TASK_LETTERS = ["А", "Б", "В", "Г", "Д"] as const;
+const TASK_LETTERS = ANSWER_LETTERS.slice(0, 5);
 
 export function textbookImageMarkup(alt: string, src: string): string {
   const safeAlt = alt.replace(/[\[\]]/g, "").replace(/\s+/g, " ").trim() || "Зображення";

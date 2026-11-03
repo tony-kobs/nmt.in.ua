@@ -1,6 +1,7 @@
 import "server-only";
 
 import catalog from "@/content/workbookProblems.json";
+import { normalizeWorkbookPrompt } from "./workbookPrompt";
 
 export type WorkbookTheme = {
   id: number;
@@ -42,7 +43,7 @@ export function listWorkbookProblemsFromCatalog(
     .filter((row) => row.theme_id === themeId)
     .map((row) => ({
       id: row.id,
-      problemText: row.problem_text,
+      problemText: normalizeWorkbookPrompt(row.problem_text),
       answers: [row.answer_1, row.answer_2, row.answer_3, row.answer_4],
       rightAnswerN: asAnswerN(row.right_answer_n),
     }));

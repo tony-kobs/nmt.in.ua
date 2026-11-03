@@ -58,6 +58,8 @@ export async function getLearningSessions(
     ts.session_type,
     ts.start_time,
     ts.expire_time,
+    ts.test_points,
+    ts.test_points_max,
     ma.id AS assignment_id,
     mam.session_id AS member_session_id,
     ma.available_at,
@@ -104,6 +106,8 @@ export async function getLearningSessions(
       session_type: number;
       start_time: number;
       expire_time: number;
+      test_points: number | null;
+      test_points_max: number | null;
       assignment_id: number | null;
       member_session_id: number | null;
       available_at: number | null;

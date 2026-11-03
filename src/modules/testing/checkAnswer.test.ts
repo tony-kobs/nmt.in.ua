@@ -45,6 +45,7 @@ type MappingRow = {
   session_type: number;
   session_status: number;
   expire_time: number;
+  start_time?: number;
   practice_streak: number;
 };
 
@@ -181,7 +182,7 @@ test("marks a matching option as correct on the first attempt", async () => {
     c.sql.startsWith("UPDATE tasks2session"),
   );
   assert.ok(update);
-  assert.deepEqual(update!.params, [TASK_STATUS_CORRECT, TASK_STATUS_CORRECT, 10]);
+  assert.deepEqual(update!.params, [TASK_STATUS_CORRECT, TASK_STATUS_CORRECT, null, 10]);
   assert.ok(mock.isCommitted());
   assert.ok(!mock.isRolledBack());
   assert.ok(mock.isReleased());
@@ -208,6 +209,7 @@ test("a wrong FIRST attempt in an eligible Practice session offers a retry, no a
   assert.deepEqual(update!.params, [
     TASK_STATUS_INCORRECT,
     TASK_STATUS_INCORRECT,
+    null,
     10,
   ]);
   assert.ok(mock.isCommitted());
@@ -587,6 +589,8 @@ test("a Cyrillic matching answer scores against the latin key", async () => {
     { getConnection: async () => mock.connection },
   );
   assert.deepEqual(correct, { correct: true, firstAttempt: true });
+  const stored = mock.calls.find((call) => call.sql.includes("awarded_points"));
+  assert.deepEqual(stored?.params, [1, 1, 3, 10]);
 
   const again = makeConnection({
     rows: [
@@ -609,4 +613,32 @@ test("a Cyrillic matching answer scores against the latin key", async () => {
     { getConnection: async () => again.connection },
   );
   assert.deepEqual(wrong, { correct: false, firstAttempt: true });
+  const partial = again.calls.find((call) => call.sql.includes("awarded_points"));
+  assert.deepEqual(partial?.params, [-1, -1, 1, 10]);
+});
+
+test("an NMT answer is rejected once the server clock has passed 60 minutes", async () => {
+  const start = 1_700_000_000;
+  const mock = makeConnection({
+    rows: [
+      makeRow({
+        task_type: 4,
+        session_type: 4,
+        start_time: start,
+      }),
+    ],
+  });
+
+  await assert.rejects(
+    () =>
+      checkAnswer(
+        { ...validInput, answerNumber: 2 },
+        {
+          getConnection: async () => mock.connection,
+          nowSec: () => start + 60 * 60,
+        },
+      ),
+    (error: unknown) => error instanceof CheckAnswerError && error.code === "time_up",
+  );
+  assert.ok(mock.isRolledBack());
 });

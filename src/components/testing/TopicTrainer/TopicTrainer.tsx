@@ -23,18 +23,16 @@ import {
 import { insertFollowUpTask } from "@/modules/testing/insertFollowUpTask";
 import { isPracticeMode } from "@/modules/testing/sessionMode";
 import {
-  TASK_STATUS_CORRECT,
-  TASK_STATUS_INCORRECT,
   type CheckAnswerActionInput,
   type CheckAnswerActionState,
   type HintLevel,
-  type RevealedAnswerAction,
   type SessionTask,
   type SessionTaskAnswer,
   type TrainerMode,
   type TrainerSessionSummary,
 } from "@/modules/testing/types";
 import { resolveTaskPresentation } from "@/modules/testing/taskPresentation";
+import { clampTaskIndex, initialAnswerResults } from "./topicSession";
 import {
   resolveAnswerCardState,
   resolveAnswerFeedbackKind,
@@ -110,26 +108,19 @@ type TopicTrainerProps = {
   embed?: boolean;
 };
 
-/** Practice mode's second-attempt state travels alongside the plain
- * correct/incorrect flag: `retryAvailable` means the task is still "live"
- * (one more click permitted); `revealed` means it's fully locked and the
- * answer/explanation may be shown. Both are only ever set by the server
- * (`checkAnswer.ts`) — never inferred client-side. */
-type CheckResult = {
-  correct: boolean;
-  retryAvailable?: boolean;
-  revealed?: RevealedAnswerAction;
-};
-
-function initialResults(tasks: SessionTask[]): Record<number, CheckResult> {
-  const results: Record<number, CheckResult> = {};
-  for (const task of tasks) {
-    if (task.status === TASK_STATUS_CORRECT)
-      results[task.mappingId] = { correct: true };
-    if (task.status === TASK_STATUS_INCORRECT)
-      results[task.mappingId] = { correct: false, retryAvailable: task.retryAvailable, revealed: task.revealed };
-  }
-  return results;
+function HintBulb() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3 11c.4.4.8 1 1 1.6V17h4v-1.4c.2-.6.6-1.2 1-1.6A6 6 0 0 0 12 3Z"
+      />
+    </svg>
+  );
 }
 
 /** One task's hint-ladder progress: rungs already fetched, in order. */
@@ -165,20 +156,21 @@ export function TopicTrainer({
     [actions?.checkAnswer, actions?.finishTrainerSession, actions?.markSessionStarted],
   );
   const [currentIndex, setCurrentIndex] = useState(() =>
-    Math.min(Math.max(initialIndex, 0), Math.max(tasks.length - 1, 0)),
+    clampTaskIndex(initialIndex, tasks.length),
   );
   const [taskList, setTaskList] = useState<SessionTask[]>(tasks);
   const [selectedByMappingId, setSelectedByMappingId] = useState<
     Record<number, SessionTaskAnswer["number"]>
   >({});
   const [resultsByMappingId, setResultsByMappingId] = useState(() =>
-    initialResults(tasks),
+    initialAnswerResults(tasks),
   );
   const [hintsByMappingId, setHintsByMappingId] = useState<Record<number, HintProgress>>(
     () => Object.fromEntries(tasks.filter((task) => task.hints?.length).map((task) => [task.mappingId, task.hints!])),
   );
   const [hintNoticeByMappingId, setHintNoticeByMappingId] = useState<Record<number, string>>({});
   const [hintLoading, setHintLoading] = useState(false);
+  const [hintState, setHintState] = useState<{ id: number; open: boolean } | null>(null);
   const [similarTaskLoading, setSimilarTaskLoading] = useState(false);
   const [pendingMappingId, setPendingMappingId] = useState<number | null>(null);
   const [isFinishing, setIsFinishing] = useState(false);
@@ -299,6 +291,8 @@ export function TopicTrainer({
   const checkResult = currentTask
     ? resultsByMappingId[currentTask.mappingId]
     : undefined;
+  const hintOpen = hintState?.id === currentTask?.mappingId && hintState.open;
+
   const hintProgress = currentTask ? hintsByMappingId[currentTask.mappingId] : undefined;
   const hintNotice = currentTask ? hintNoticeByMappingId[currentTask.mappingId] : undefined;
   const isPending =
@@ -804,6 +798,30 @@ export function TopicTrainer({
             );
           })}
         </div>
+        {isPractice && currentTask.cardHint ? (
+          <div className={css.hintRow}>
+            <button
+              type="button"
+              className={css.hintBulb}
+              aria-expanded={hintOpen}
+              aria-controls="task-hint"
+              onClick={() =>
+                setHintState({
+                  id: currentTask.mappingId,
+                  open: !hintOpen,
+                })
+              }
+            >
+              <HintBulb />
+              <span className="visually-hidden">{t("showHint")}</span>
+            </button>
+            {hintOpen ? (
+              <p id="task-hint" className={css.hintNudge}>
+                <MathText text={currentTask.cardHint} />
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </TestTaskCard>
 
       {isPending ? (

@@ -12,6 +12,9 @@ export type NmtVariantListItem = {
     sessionId: number;
     percent: number;
     timeSec: number;
+    /** Null on attempts finished before test points were stored. */
+    testPoints: number | null;
+    maxTestPoints: number | null;
   } | null;
 };
 
@@ -29,6 +32,8 @@ type BestAttemptRow = {
   right_number: number;
   tasks_number: number;
   time_sec: number;
+  test_points: number | null;
+  test_points_max: number | null;
 };
 
 const SQL_PUBLISHED_VARIANTS = `
@@ -48,7 +53,9 @@ const SQL_BEST_ATTEMPTS = `
     session_id,
     right_number,
     tasks_number,
-    time_sec
+    time_sec,
+    test_points,
+    test_points_max
   FROM (
     SELECT
       ts.nmt_variant_id AS nmt_variant_id,
@@ -56,10 +63,15 @@ const SQL_BEST_ATTEMPTS = `
       ts.right_number AS right_number,
       ts.tasks_number AS tasks_number,
       ts.time AS time_sec,
+      ts.test_points AS test_points,
+      ts.test_points_max AS test_points_max,
       ROW_NUMBER() OVER (
         PARTITION BY ts.nmt_variant_id
         ORDER BY
-          (ts.right_number / NULLIF(ts.tasks_number, 0)) DESC,
+          COALESCE(
+            ts.test_points / NULLIF(ts.test_points_max, 0),
+            ts.right_number / NULLIF(ts.tasks_number, 0)
+          ) DESC,
           ts.id DESC
       ) AS rn
     FROM task_sessions ts
@@ -85,6 +97,12 @@ function percentOf(right: number | null, total: number | null): number {
   return Math.round((100 * right) / total);
 }
 
+function storedPoints(value: number | null | undefined): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isInteger(n) ? n : null;
+}
+
 function mergeVariants(
   variants: PublishedVariantRow[],
   bestRows: BestAttemptRow[],
@@ -105,8 +123,13 @@ function mergeVariants(
       bestAttempt: best
         ? {
             sessionId: best.session_id,
-            percent: percentOf(best.right_number, best.tasks_number),
+            percent:
+              storedPoints(best.test_points) != null && storedPoints(best.test_points_max)
+                ? percentOf(storedPoints(best.test_points), storedPoints(best.test_points_max))
+                : percentOf(best.right_number, best.tasks_number),
             timeSec: best.time_sec ?? 0,
+            testPoints: storedPoints(best.test_points),
+            maxTestPoints: storedPoints(best.test_points_max),
           }
         : null,
     };

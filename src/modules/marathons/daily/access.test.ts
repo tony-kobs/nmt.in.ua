@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { UserRole } from "@/modules/auth/types";
 
 import { ADMIN_NAV_HREFS } from "@/modules/auth/types";
 import {
@@ -91,4 +92,16 @@ test("marathon scope no longer redirects cabinet URLs", () => {
   assert.equal(marathonOnlyMayOpen("/marathon/math-5/final"), true);
   assert.equal(marathonOnlyMayOpen("/account"), true);
   assert.equal(marathonOnlyMayOpen("/results"), false);
+});
+
+test("each role's sidebar icons are distinct", () => {
+  const roles: UserRole[] = ["student", "teacher", "admin"];
+  for (const role of roles) {
+    const icons = visibleSidebar({
+      role,
+      cabinetScope: "full",
+      marathonHref: null,
+    }).map((item) => item.icon);
+    assert.equal(new Set(icons).size, icons.length, role);
+  }
 });
