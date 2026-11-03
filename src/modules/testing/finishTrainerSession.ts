@@ -5,6 +5,8 @@ import {
 } from "@/modules/sessions/types";
 import { nowUnixSec, resolveSessionElapsedSec } from "./sessionElapsed";
 import { isSessionExpired } from "./sessionExpiry";
+import { nmtMathScaleScore, scoreNmtPaper, type NmtScoreKind } from "./nmtScore";
+import { TASK_TYPE_NMT } from "./startNmtSimulator";
 import { TASK_STATUS_CORRECT, TASK_STATUS_INCORRECT, TASK_STATUS_UNANSWERED } from "./types";
 import type { TrainerSessionSummary } from "./types";
 
@@ -18,7 +20,10 @@ const SQL_SELECT_SESSION = `
     ts.time,
     ts.start_time,
     ts.session_status,
+    ts.session_type,
     ts.expire_time,
+    ts.test_points,
+    ts.test_points_max,
     COALESCE(t.code, '') AS theme_code,
     COALESCE(t.name, nv.label, 'Симулятор НМТ') AS theme_name
   FROM task_sessions ts
@@ -52,6 +57,25 @@ const SQL_UPDATE_SESSION = `
   UPDATE task_sessions
   SET right_number = ?, tasks_number = ?, session_status = ?, time = ?, start_time = ?
   WHERE id = ?
+`;
+
+const SQL_UPDATE_TEST_POINTS = `
+  UPDATE task_sessions
+  SET test_points = ?, test_points_max = ?
+  WHERE id = ?
+`;
+
+const SQL_NMT_SCORE_ROWS = `
+  SELECT
+    COALESCE(t2s.first_attempt_status, t2s.status) AS status,
+    t2s.awarded_points AS awarded_points,
+    COALESCE(nqt.task_kind, 'mcq') AS task_kind,
+    nqt.right_answer_text AS right_answer_text
+  FROM tasks2session t2s
+  INNER JOIN nmt_quiz_tasks nqt
+    ON nqt.id = t2s.task_id AND t2s.task_type = ${TASK_TYPE_NMT}
+  LEFT JOIN practice_task_origin po ON po.tasks2session_id = t2s.id
+  WHERE t2s.session_id = ? AND t2s.user_id = ? AND po.tasks2session_id IS NULL
 `;
 
 export type FinishTrainerSessionInput = {
@@ -96,7 +120,10 @@ type SessionRow = {
   time: number;
   start_time: number;
   session_status: number;
+  session_type?: number;
   expire_time: number;
+  test_points?: number | null;
+  test_points_max?: number | null;
   theme_code: string;
   theme_name: string;
 };
@@ -105,6 +132,34 @@ type StatusRow = {
   follow_up_id?: number | null;
   status: number;
 };
+
+type NmtScoreRow = {
+  status: number;
+  awarded_points: number | null;
+  task_kind: NmtScoreKind;
+  right_answer_text: string | null;
+};
+
+function asScoreNumber(value: number | null | undefined): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isInteger(n) ? n : null;
+}
+
+function summaryWithScore(
+  row: Parameters<typeof toTrainerSessionSummary>[0],
+  score: { testPoints: number; maxTestPoints: number } | null,
+) {
+  const summary = toTrainerSessionSummary(row);
+  if (!score || score.maxTestPoints <= 0) return summary;
+  return {
+    ...summary,
+    percent: sessionPercent(score.maxTestPoints, score.testPoints) ?? summary.percent,
+    testPoints: score.testPoints,
+    maxTestPoints: score.maxTestPoints,
+    scaleScore: nmtMathScaleScore(score.testPoints, score.maxTestPoints),
+  };
+}
 
 function isPositiveInt(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value > 0;
@@ -186,7 +241,14 @@ export async function finishTrainerSession(
 
       if (session.session_status === SESSION_STATUS_COMPLETED) {
         await connection.commit();
-        return toTrainerSessionSummary(session);
+        const storedPoints = asScoreNumber(session.test_points);
+        const storedMax = asScoreNumber(session.test_points_max);
+        return summaryWithScore(
+          session,
+          storedPoints != null && storedMax != null
+            ? { testPoints: storedPoints, maxTestPoints: storedMax }
+            : null,
+        );
       }
 
       if (isSessionExpired(session.expire_time, nowSec())) {
@@ -261,13 +323,50 @@ export async function finishTrainerSession(
         );
       }
 
+      let nmtScore: { testPoints: number; maxTestPoints: number } | null = null;
+      if (session.session_type === 4) {
+        const scoreRows = await connection.query<NmtScoreRow>(SQL_NMT_SCORE_ROWS, [
+          input.sessionId,
+          input.userId,
+        ]);
+        if (scoreRows.length > 0) {
+          const paper = scoreNmtPaper(
+            scoreRows.map((row) => ({
+              kind: row.task_kind,
+              correct: row.status === TASK_STATUS_CORRECT,
+              awardedPoints: asScoreNumber(row.awarded_points),
+              keyText: row.right_answer_text,
+            })),
+          );
+          nmtScore = {
+            testPoints: paper.testPoints,
+            maxTestPoints: paper.maxTestPoints,
+          };
+          const pointsUpdate = await connection.execute(SQL_UPDATE_TEST_POINTS, [
+            nmtScore.testPoints,
+            nmtScore.maxTestPoints,
+            session.id,
+          ]);
+          if (pointsUpdate.affectedRows !== 1) {
+            await connection.rollback();
+            throw new FinishTrainerSessionError(
+              "Failed to store the session summary.",
+              "db_error",
+            );
+          }
+        }
+      }
+
       await connection.commit();
-      return toTrainerSessionSummary({
-        ...session,
-        right_number: rightNumber,
-        tasks_number: tasksNumber,
-        time: timeSec,
-      });
+      return summaryWithScore(
+        {
+          ...session,
+          right_number: rightNumber,
+          tasks_number: tasksNumber,
+          time: timeSec,
+        },
+        nmtScore,
+      );
     } catch (error) {
       if (!(error instanceof FinishTrainerSessionError)) {
         await connection.rollback().catch(() => undefined);

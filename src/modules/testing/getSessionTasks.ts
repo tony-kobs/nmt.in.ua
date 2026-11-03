@@ -2,8 +2,10 @@ import type { SqlConnection } from "@/lib/db/mysql";
 import {
   SESSION_STATUS_COMPLETED,
   SESSION_STATUS_PLANNED,
+  sessionPercent,
 } from "@/modules/sessions/types";
 import { toTrainerSessionSummary } from "./finishTrainerSession";
+import { nmtMathScaleScore } from "./nmtScore";
 import { SESSION_TYPE_NMT_SIMULATOR } from "./startNmtSimulator";
 import { resolveNmtMatch } from "./nmtMatch";
 import { normalizeNmtRichText } from "./normalizeNmtRichText";
@@ -13,6 +15,7 @@ import type {
   NmtTaskKind,
   SessionTask,
   SessionTasksResult,
+  TrainerSessionSummary,
 } from "./types";
 
 const SQL_SESSION_HEADER = `
@@ -25,6 +28,8 @@ const SQL_SESSION_HEADER = `
     ts.time,
     ts.session_status,
     ts.expire_time,
+    ts.test_points,
+    ts.test_points_max,
     t.code AS theme_code,
     t.name AS theme_name,
     nv.label AS variant_label
@@ -95,6 +100,8 @@ type SessionHeaderRow = {
   time: number;
   session_status: number;
   expire_time: number;
+  test_points?: number | null;
+  test_points_max?: number | null;
   theme_code: string | null;
   theme_name: string | null;
   variant_label: string | null;
@@ -230,6 +237,25 @@ function mapRow(row: SessionTaskRow, isNmt: boolean): SessionTask {
   };
 }
 
+function withNmtScore(
+  summary: TrainerSessionSummary,
+  testPoints: number | null | undefined,
+  maxTestPoints: number | null | undefined,
+): TrainerSessionSummary {
+  const points = testPoints == null ? null : Number(testPoints);
+  const max = maxTestPoints == null ? null : Number(maxTestPoints);
+  if (points == null || max == null || !Number.isInteger(points) || !Number.isInteger(max) || max <= 0) {
+    return summary;
+  }
+  return {
+    ...summary,
+    percent: sessionPercent(max, points) ?? summary.percent,
+    testPoints: points,
+    maxTestPoints: max,
+    scaleScore: nmtMathScaleScore(points, max),
+  };
+}
+
 function themeFields(header: SessionHeaderRow): {
   themeId: number;
   themeCode: string | null;
@@ -338,15 +364,19 @@ export async function getSessionTasks(
         tasks: rows.map((row) => mapRow(row, isNmt)),
         summary:
           header.session_status === SESSION_STATUS_COMPLETED
-            ? toTrainerSessionSummary({
-                id: header.id,
-                theme_id: theme.themeId,
-                theme_code: theme.themeCode ?? "",
-                theme_name: theme.themeName,
-                tasks_number: header.tasks_number,
-                right_number: header.right_number,
-                time: header.time,
-              })
+            ? withNmtScore(
+                toTrainerSessionSummary({
+                  id: header.id,
+                  theme_id: theme.themeId,
+                  theme_code: theme.themeCode ?? "",
+                  theme_name: theme.themeName,
+                  tasks_number: header.tasks_number,
+                  right_number: header.right_number,
+                  time: header.time,
+                }),
+                header.test_points,
+                header.test_points_max,
+              )
             : null,
       };
     } finally {

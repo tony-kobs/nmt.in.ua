@@ -66,6 +66,12 @@ function makeConnection(options: {
   statuses?: number[];
   followUpIds?: (number | null)[];
   failUpdate?: boolean;
+  nmtRows?: Array<{
+    status: number;
+    awarded_points: number | null;
+    task_kind: "mcq" | "match" | "open";
+    right_answer_text: string | null;
+  }>;
 }) {
   const calls: Array<{ sql: string; params?: unknown[] }> = [];
   let rolledBack = false;
@@ -76,6 +82,9 @@ function makeConnection(options: {
     beginTransaction: async () => {},
     query: async <T,>(sql: string, params: unknown[] = []) => {
       calls.push({ sql, params });
+      if (sql.includes("nmt_quiz_tasks")) {
+        return (options.nmtRows ?? []) as unknown as T[];
+      }
       if (sql.includes("FROM task_sessions")) {
         return (
           options.session ? [options.session] : []
@@ -329,4 +338,34 @@ test("persists at least 1 second when start_time was never marked", async () => 
     now,
     5,
   ]);
+});
+
+test("an NMT finish stores partial matching points and the 2026 scale", async () => {
+  const mock = makeConnection({
+    session: makeSession({
+      session_type: 4,
+      theme_id: null as unknown as number,
+      theme_code: "",
+      theme_name: "НМТ 2026",
+      tasks_number: 3,
+    } as Partial<SessionRow>),
+    statuses: [1, -1, 1],
+    nmtRows: [
+      { status: 1, awarded_points: 1, task_kind: "mcq", right_answer_text: null },
+      { status: -1, awarded_points: 2, task_kind: "match", right_answer_text: "1a;2b;3c" },
+      { status: 1, awarded_points: 2, task_kind: "open", right_answer_text: "4" },
+    ],
+  });
+
+  const result = await finishTrainerSession(validInput, {
+    getConnection: async () => mock.connection,
+    nowSec: () => 1_700_000_080,
+  });
+
+  assert.equal(result.testPoints, 5);
+  assert.equal(result.maxTestPoints, 1 + 3 + 2);
+  assert.equal(result.scaleScore, null);
+  assert.equal(result.percent, (5 / 6) * 100);
+  const points = mock.calls.find((call) => call.sql.includes("SET test_points"));
+  assert.deepEqual(points?.params, [5, 6, 5]);
 });

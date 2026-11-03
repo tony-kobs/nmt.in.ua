@@ -2,6 +2,7 @@ import type { SqlConnection } from "@/lib/db/mysql";
 import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
 import { nowUnixSec } from "./sessionElapsed";
 import { isSessionExpired } from "./sessionExpiry";
+import { pointsForNmtTask } from "./nmtScore";
 import { TASK_TYPE_NMT } from "./startNmtSimulator";
 import { nextPracticeStreak } from "./practiceAdaptive";
 import {
@@ -67,7 +68,7 @@ const SQL_SELECT_MAPPING = `
 `;
 
 const SQL_UPDATE_FIRST_ATTEMPT =
-  "UPDATE tasks2session SET status = ?, first_attempt_status = ? WHERE id = ?";
+  "UPDATE tasks2session SET status = ?, first_attempt_status = ?, awarded_points = ? WHERE id = ?";
 const SQL_UPDATE_RETRY =
   "UPDATE tasks2session SET status = ?, retry_used = 1 WHERE id = ?";
 const SQL_UPDATE_SESSION_STREAK =
@@ -229,6 +230,21 @@ export function validateCheckAnswerInput(input: unknown): CheckAnswerInput {
     ...(hasNumber ? { answerNumber } : {}),
     ...(hasText ? { answerText: String(answerText) } : {}),
   };
+}
+
+/** NMT rows store 0–3. Topic tasks leave the column NULL. */
+export function awardedPointsFor(
+  row: Pick<MappingRow, "task_type" | "task_kind" | "right_answer_text">,
+  input: Pick<CheckAnswerInput, "answerText">,
+  correct: boolean,
+): number | null {
+  if (row.task_type !== TASK_TYPE_NMT) return null;
+  return pointsForNmtTask({
+    kind: row.task_kind,
+    correct,
+    answerText: input.answerText ?? null,
+    keyText: row.right_answer_text,
+  });
 }
 
 function isCorrect(row: MappingRow, input: CheckAnswerInput): boolean {
@@ -423,13 +439,13 @@ export async function checkAnswer(
         );
       }
 
-      const status = isCorrect(row, input)
-        ? TASK_STATUS_CORRECT
-        : TASK_STATUS_INCORRECT;
+      const correct = isCorrect(row, input);
+      const status = correct ? TASK_STATUS_CORRECT : TASK_STATUS_INCORRECT;
 
       const updated = await connection.execute(SQL_UPDATE_FIRST_ATTEMPT, [
         status,
         status,
+        awardedPointsFor(row, input, correct),
         row.id,
       ]);
       if (updated.affectedRows !== 1) {

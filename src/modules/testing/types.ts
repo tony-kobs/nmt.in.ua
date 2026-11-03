@@ -48,6 +48,11 @@ export type TrainerSessionSummary = {
   /** `null` for a diagnostic attempt or NMT variant (no single textbook section). */
   themeCode: string | null;
   themeName: string;
+  /** Official test points for an NMT attempt. Omitted for other modes. */
+  testPoints?: number;
+  maxTestPoints?: number;
+  /** 100–200 from the 2026 maths table, or null when that table does not apply. */
+  scaleScore?: number | null;
 };
 
 export type SessionTasksResult = {
