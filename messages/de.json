@@ -2308,6 +2308,7 @@
     "title": "NMT-Simulator",
     "description": "Offizielle Varianten der letzten Jahre: wähle eine konkrete oder eine zufällige. 60 Minuten, Auswertung am Ende.",
     "timeHint": "In der Prüfung teilen sich Mathematik und Ukrainisch einen Block von 120 Minuten. 60 Minuten hier sind eine empfohlene Aufteilung. Neuladen setzt die Uhr nicht zurück: sie läuft ab dem Sitzungsstart auf dem Server.",
+    "rules": "Punkte: eine Antwortwahl gibt 1, jedes richtige Paar 1, eine kurze Antwort 2. Eine Arbeit von 2026 hat maximal 32. Hat eine Variante anders viele Aufgaben, etwa 2022, wird das Maximum daraus gezählt. Neuladen oder Verlassen setzt die Uhr nicht zurück.",
     "tasks": "Aufgaben",
     "tasksCount": "{count, plural, one {# Aufgabe} other {# Aufgaben}}",
     "timer": "60 Min.",

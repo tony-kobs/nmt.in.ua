@@ -2308,6 +2308,7 @@
     "title": "NMT Simulator",
     "description": "Official papers from recent years: pick one or a random variant. 60 minutes, review at the end.",
     "timeHint": "On the real exam, maths and Ukrainian share one 120-minute block. 60 minutes here is a recommended split. Reloading does not reset the clock: it runs from the session start on the server.",
+    "rules": "Scoring: one point for a single choice, one point for each correct pair, two points for a short answer. A 2026 paper is out of 32. A paper with a different number of tasks, such as 2022, uses its own maximum. Reloading or leaving does not reset the clock.",
     "tasks": "Tasks",
     "tasksCount": "{count, plural, one {# task} other {# tasks}}",
     "timer": "60 min",
