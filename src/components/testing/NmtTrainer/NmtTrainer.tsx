@@ -162,11 +162,8 @@ export function NmtTrainer({
     },
   });
 
-  useEffect(() => {
-    if (sessionExpired) setError("sessionExpired");
-  }, [sessionExpired]);
-
   const isTimeOver = remainingSeconds <= 0;
+  const shownError = sessionExpired ? "sessionExpired" : error;
 
   async function submitAnswer(payload: {
     answerNumber?: 1 | 2 | 3 | 4 | 5;
@@ -445,7 +442,7 @@ export function NmtTrainer({
         </button>
       </footer>
 
-      {error ? <p className={styles.error}>{t(`errors.${error}`)}</p> : null}
+      {shownError ? <p className={styles.error}>{t(`errors.${shownError}`)}</p> : null}
     </section>
   );
 }

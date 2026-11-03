@@ -26,7 +26,6 @@ import {
   type CheckAnswerActionInput,
   type CheckAnswerActionState,
   type HintLevel,
-  type RevealedAnswerAction,
   type SessionTask,
   type SessionTaskAnswer,
   type TrainerMode,
@@ -109,17 +108,6 @@ type TopicTrainerProps = {
   embed?: boolean;
 };
 
-/** Practice mode's second-attempt state travels alongside the plain
- * correct/incorrect flag: `retryAvailable` means the task is still "live"
- * (one more click permitted); `revealed` means it's fully locked and the
- * answer/explanation may be shown. Both are only ever set by the server
- * (`checkAnswer.ts`) — never inferred client-side. */
-type CheckResult = {
-  correct: boolean;
-  retryAvailable?: boolean;
-  revealed?: RevealedAnswerAction;
-};
-
 function HintBulb() {
   return (
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -182,7 +170,7 @@ export function TopicTrainer({
   );
   const [hintNoticeByMappingId, setHintNoticeByMappingId] = useState<Record<number, string>>({});
   const [hintLoading, setHintLoading] = useState(false);
-  const [hintOpen, setHintOpen] = useState(false);
+  const [hintState, setHintState] = useState<{ id: number; open: boolean } | null>(null);
   const [similarTaskLoading, setSimilarTaskLoading] = useState(false);
   const [pendingMappingId, setPendingMappingId] = useState<number | null>(null);
   const [isFinishing, setIsFinishing] = useState(false);
@@ -303,9 +291,7 @@ export function TopicTrainer({
   const checkResult = currentTask
     ? resultsByMappingId[currentTask.mappingId]
     : undefined;
-  useEffect(() => {
-    setHintOpen(false);
-  }, [currentTask?.mappingId]);
+  const hintOpen = hintState?.id === currentTask?.mappingId && hintState.open;
 
   const hintProgress = currentTask ? hintsByMappingId[currentTask.mappingId] : undefined;
   const hintNotice = currentTask ? hintNoticeByMappingId[currentTask.mappingId] : undefined;
@@ -819,7 +805,12 @@ export function TopicTrainer({
               className={css.hintBulb}
               aria-expanded={hintOpen}
               aria-controls="task-hint"
-              onClick={() => setHintOpen((open) => !open)}
+              onClick={() =>
+                setHintState({
+                  id: currentTask.mappingId,
+                  open: !hintOpen,
+                })
+              }
             >
               <HintBulb />
               <span className="visually-hidden">{t("showHint")}</span>
