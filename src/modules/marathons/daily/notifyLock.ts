@@ -51,9 +51,10 @@ type LockState = {
 };
 
 /**
- * `GET_LOCK` is tied to this connection. A shared host drops idle sockets,
- * so the connection is pinged until the tick finishes. The lock dies with
- * the process, which lets the other copy take the next tick.
+ * `GET_LOCK` is tied to this connection. The timeout is 0, so a busy lock
+ * returns immediately and does not land in the slow query log. A shared host
+ * drops idle sockets, so the connection is pinged until the tick finishes.
+ * The lock dies with the process, which lets the other copy take the next tick.
  */
 export function createMysqlNotifyLock(
   getConnection: () => Promise<SqlConnection>,

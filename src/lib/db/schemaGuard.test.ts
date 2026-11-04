@@ -6,6 +6,7 @@ import {
   ensureSchemaOnce,
   resetSchemaGuardForTests,
   schemaMigrationsApplied,
+  setSchemaLockClockForTests,
 } from "./schemaGuard";
 
 function connection(query: SqlConnection["query"]): SqlConnection {
@@ -61,7 +62,22 @@ test("ensureSchemaOnce skips DDL when the versions are already recorded", async 
   assert.equal(queries.some((sql) => sql.includes("GET_LOCK")), false);
 });
 
-test("ensureSchemaOnce throws when the advisory lock is busy", async () => {
+function fastLockClock() {
+  let now = 0;
+  setSchemaLockClockForTests({
+    budgetMs: 15_000,
+    pauseMs: 1_000,
+    attemptSec: 2,
+    now: () => now,
+    sleep: async (ms) => {
+      now += ms;
+    },
+  });
+}
+
+test("ensureSchemaOnce retries a busy schema lock with short GET_LOCK attempts", async () => {
+  fastLockClock();
+  const timeouts: number[] = [];
   let migrated = 0;
   await assert.rejects(
     () =>
@@ -69,8 +85,9 @@ test("ensureSchemaOnce throws when the advisory lock is busy", async () => {
         "busy",
         ["001_app_users.sql"],
         async () =>
-          connection(async <T,>(sql: string) => {
+          connection(async <T,>(sql: string, params?: unknown[]) => {
             if (sql.includes("schema_migrations")) return [] as T[];
+            if (sql.includes("GET_LOCK")) timeouts.push(Number(params?.[1]));
             return [{ got: 0 }] as T[];
           }),
         async () => {
@@ -80,6 +97,33 @@ test("ensureSchemaOnce throws when the advisory lock is busy", async () => {
     /Schema migration lock is busy/,
   );
   assert.equal(migrated, 0);
+  assert.ok(timeouts.length > 1);
+  assert.ok(timeouts.every((seconds) => Number.isInteger(seconds) && seconds >= 0 && seconds < 5));
+});
+
+test("ensureSchemaOnce migrates once a later short attempt gets the schema lock", async () => {
+  fastLockClock();
+  let locks = 0;
+  let migrated = 0;
+  await ensureSchemaOnce(
+    "retry-grant",
+    ["001_app_users.sql"],
+    async () =>
+      connection(async <T,>(sql: string) => {
+        if (sql.includes("schema_migrations")) return [] as T[];
+        if (sql.includes("GET_LOCK")) {
+          locks += 1;
+          return [{ got: locks >= 2 ? 1 : 0 }] as T[];
+        }
+        if (sql.includes("RELEASE_LOCK")) return [{ released: 1 }] as T[];
+        return [] as T[];
+      }),
+    async () => {
+      migrated += 1;
+    },
+  );
+  assert.equal(locks, 2);
+  assert.equal(migrated, 1);
 });
 
 test("ensureSchemaOnce drops the socket when the schema lock stays held", async () => {
