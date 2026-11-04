@@ -3,6 +3,7 @@ import {
   SESSION_STATUS_COMPLETED,
   sessionPercent,
 } from "@/modules/sessions/types";
+import { sessionThemeLabel } from "@/modules/themes/sessionThemeLabel";
 import { NMT_DURATION_SEC, nowUnixSec, resolveSessionElapsedSec } from "./sessionElapsed";
 import { isSessionExpired } from "./sessionExpiry";
 import { nmtMathScaleScore, scoreNmtPaper, type NmtScoreKind } from "./nmtScore";
@@ -25,7 +26,13 @@ const SQL_SELECT_SESSION = `
     ts.test_points,
     ts.test_points_max,
     COALESCE(t.code, '') AS theme_code,
-    COALESCE(t.name, nv.label, 'Симулятор НМТ') AS theme_name
+    CASE
+      WHEN NULLIF(TRIM(t.name), '') IS NOT NULL THEN TRIM(t.name)
+      WHEN ts.session_type = 4 THEN COALESCE(NULLIF(TRIM(nv.label), ''), 'Симулятор НМТ')
+      WHEN ts.theme_id IS NULL THEN 'Загальна діагностика'
+      WHEN ts.theme_id = 1 THEN 'Елементарні дії'
+      ELSE 'Тема недоступна'
+    END AS theme_name
   FROM task_sessions ts
   LEFT JOIN themes t ON t.id = ts.theme_id
   LEFT JOIN nmt_variants nv ON nv.id = ts.nmt_variant_id
@@ -213,7 +220,10 @@ export function toTrainerSessionSummary(
     timeSec: row.time,
     themeId: row.theme_id ?? 0,
     themeCode: code || null,
-    themeName: row.theme_name.trim(),
+    themeName: sessionThemeLabel({
+      themeName: row.theme_name,
+      themeId: row.theme_id,
+    }),
   };
 }
 

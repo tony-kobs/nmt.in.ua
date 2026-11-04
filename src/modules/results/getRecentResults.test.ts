@@ -49,13 +49,25 @@ test("getRecentResults uses a LEFT JOIN and a fallback label for a claimed diagn
     beginTransaction: async () => {},
     query: async (sql, params) => {
       assert.match(sql, /LEFT JOIN themes/);
+      assert.match(sql, /t\.name AS theme_name/);
+      assert.doesNotMatch(sql, /COALESCE\(t\.name/);
       assert.deepEqual(params, [1, SESSION_STATUS_COMPLETED]);
       return [
         {
           id: 42,
-          theme_name: "Загальна діагностика",
+          theme_id: null,
+          session_type: 5,
+          theme_name: null,
           tasks_number: 20,
           right_number: 15,
+        },
+        {
+          id: 41,
+          theme_id: 1,
+          session_type: 1,
+          theme_name: null,
+          tasks_number: 10,
+          right_number: 8,
         },
       ] as never[];
     },
@@ -71,6 +83,7 @@ test("getRecentResults uses a LEFT JOIN and a fallback label for a claimed diagn
 
   assert.deepEqual(items, [
     { sessionId: 42, topic: "Загальна діагностика", score: 75 },
+    { sessionId: 41, topic: "Елементарні дії", score: 80 },
   ]);
 });
 

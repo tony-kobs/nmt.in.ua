@@ -70,7 +70,12 @@ export async function getTeacherLearningSessions(
     u.login,
     u.display_name,
     ts.theme_id,
-    t.name AS theme_name,
+    CASE
+      WHEN NULLIF(TRIM(t.name), '') IS NOT NULL THEN TRIM(t.name)
+      WHEN ts.theme_id = 1 THEN 'Елементарні дії'
+      WHEN ts.theme_id IS NULL THEN 'Загальна діагностика'
+      ELSE 'Тема недоступна'
+    END AS theme_name,
     ts.tasks_number,
     ts.right_number,
     ts.time,
@@ -81,7 +86,7 @@ export async function getTeacherLearningSessions(
     ma.available_at,
     ma.due_at
   FROM task_sessions ts
-  INNER JOIN themes t ON t.id = ts.theme_id
+  LEFT JOIN themes t ON t.id = ts.theme_id
   INNER JOIN app_users u ON u.id = ts.user_id
   LEFT JOIN mentor_assignment_members mam ON mam.session_id = ts.id
   LEFT JOIN mentor_assignments ma

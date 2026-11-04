@@ -46,11 +46,16 @@ export async function getLearningSessions(
   SELECT
     ts.id,
     ts.theme_id,
-    COALESCE(
-      NULLIF(TRIM(t.name), ''),
-      NULLIF(TRIM(CONCAT(nv.year, ' · ', nv.label)), ''),
-      'Симулятор НМТ'
-    ) AS theme_name,
+    CASE
+      WHEN NULLIF(TRIM(t.name), '') IS NOT NULL THEN TRIM(t.name)
+      WHEN ts.session_type = 4 THEN COALESCE(
+        NULLIF(TRIM(CONCAT(nv.year, ' · ', nv.label)), ''),
+        'Симулятор НМТ'
+      )
+      WHEN ts.theme_id IS NULL THEN 'Загальна діагностика'
+      WHEN ts.theme_id = 1 THEN 'Елементарні дії'
+      ELSE 'Тема недоступна'
+    END AS theme_name,
     ts.tasks_number,
     ts.right_number,
     ts.time,
@@ -121,7 +126,7 @@ export async function getLearningSessions(
       visible.map((row) => ({
         ...row,
         theme_id: row.theme_id == null ? 0 : Number(row.theme_id),
-        theme_name: row.theme_name?.trim() || "Симулятор НМТ",
+        theme_name: row.theme_name ?? "",
       })),
       nowSec(),
     );

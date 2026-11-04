@@ -1,4 +1,5 @@
 import { durationLocale, formatMarathonDuration } from "@/modules/marathons/daily/durationText";
+import { sessionThemeLabel } from "@/modules/themes/sessionThemeLabel";
 import { nowUnixSec } from "@/modules/testing/sessionElapsed";
 import { isSessionExpired } from "@/modules/testing/sessionExpiry";
 
@@ -211,7 +212,11 @@ export function buildLearningSessionRows(
       rowNumber: index + 1,
       themeId: session.theme_id,
       difficulty: session.difficulty,
-      themeName: session.theme_name.trim(),
+      themeName: sessionThemeLabel({
+        themeName: session.theme_name,
+        themeId: session.theme_id,
+        sessionType: session.session_type,
+      }),
       tasksNumber: session.tasks_number,
       rightNumber: session.right_number,
       percent: hasTestPoints

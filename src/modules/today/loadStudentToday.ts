@@ -84,7 +84,7 @@ export async function loadStudentToday(
          ON ma.id = mam.assignment_id AND ma.status = 'active'
        INNER JOIN task_sessions ts
          ON ts.id = mam.session_id AND ts.user_id = mam.student_user_id
-       INNER JOIN themes t ON t.id = ts.theme_id
+       LEFT JOIN themes t ON t.id = ts.theme_id
        WHERE mam.student_user_id = ?
          AND ts.session_status <> ?
          AND ts.expire_time > ?

@@ -38,9 +38,9 @@ async function loadThemes(deps: GetThemesDeps): Promise<Theme[]> {
 
     return rows.map((row) => ({
       id: row.id,
-      code: row.code.trim(),
-      name: row.name.trim(),
-      description: row.description.trim(),
+      code: row.code?.trim() ?? "",
+      name: row.name?.trim() ?? "",
+      description: row.description?.trim() ?? "",
       ord: row.ord,
     }));
   } finally {

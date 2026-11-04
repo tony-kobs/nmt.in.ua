@@ -54,7 +54,7 @@ test("reading a textbook section does not publish static markup", async () => {
     executed: [] as string[],
   };
   const getConnection = async () => connection(state);
-  const code = "MATH-05-ELEM-OPS";
+  const code = "ALG-08-FRACTIONS";
   const staticBlocks = getTextbookBlocks(code);
 
   const missing = await getPublishedTextbookBlocks(code, getConnection);
