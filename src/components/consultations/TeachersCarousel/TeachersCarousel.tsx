@@ -179,6 +179,10 @@ export function TeachersCarousel({
           </h2>
           <p className={css.lead}>{t("carouselLead")}</p>
         </div>
+        <div className={css.sort}>
+          <span className={css.sortLabel} id="teachers-sort-label">
+            {t("sortBy")}
+          </span>
         <ModeTabs
           value={sort}
           onChange={setSort}
@@ -189,6 +193,7 @@ export function TeachersCarousel({
             { id: "city", label: t("sortCity") },
           ]}
         />
+        </div>
       </header>
 
       {error ? (

@@ -58,6 +58,7 @@ export function LearningSessionsTable({
   const t = useTranslations("LearningSessionsTable");
   const locale = useLocale();
   const router = useRouter();
+  const showDifficulty = rows.some((row) => row.difficulty != null);
   const showExtendedInfo = extended;
   const paginated = useMemo(() => paginateSlice(rows, page), [rows, page]);
   const displayRows = useMemo(
@@ -145,9 +146,11 @@ export function LearningSessionsTable({
                 <tr>
                   <th scope="col" className={css.colIndex}>#</th>
                   <th scope="col" className={css.colTheme}>{t("theme")}</th>
-                  <th scope="col" className={css.colDifficulty}>
-                    {t("difficulty")}
-                  </th>
+                  {showDifficulty ? (
+                    <th scope="col" className={css.colDifficulty}>
+                      {t("difficulty")}
+                    </th>
+                  ) : null}
                   {showExtendedInfo ? (
                     <>
                       <th scope="col" className={css.colNarrow}>
@@ -190,9 +193,11 @@ export function LearningSessionsTable({
                   <tr key={row.id}>
                     <td className={css.colIndex}>{row.rowNumber}</td>
                     <td className={css.colTheme}>{row.themeName}</td>
-                    <td className={css.colDifficulty}>
-                      {row.difficulty ?? "—"}
-                    </td>
+                    {showDifficulty ? (
+                      <td className={css.colDifficulty}>
+                        {row.difficulty ?? "—"}
+                      </td>
+                    ) : null}
                     {showExtendedInfo ? (
                       <>
                         <td className={css.colNarrow}>{row.tasksNumber}</td>

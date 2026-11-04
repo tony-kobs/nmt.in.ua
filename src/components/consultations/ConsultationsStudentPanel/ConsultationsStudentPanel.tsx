@@ -11,6 +11,7 @@ import {
   NOTE_MAX_LEN,
   type ConsultationRequestView,
 } from "@/modules/consultations/types";
+import { splitPersonalConsultationNote } from "@/modules/consultations/personalNote";
 import type { TeacherCarouselItem } from "@/modules/teachers/types";
 import { TeachersCarousel } from "../TeachersCarousel";
 import css from "./ConsultationsStudentPanel.module.css";
@@ -29,6 +30,24 @@ function formatWhen(iso: string, locale: string): string {
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);
+}
+
+function RequestNote({ note }: { note: string }) {
+  const t = useTranslations("Consultations");
+  const personal = splitPersonalConsultationNote(note);
+  if (!personal) return <p className={css.note}>{note}</p>;
+  return (
+    <div className={css.noteBlock}>
+      <p className={css.noteLabel}>
+        {t("personalSelected", { name: personal.teacherName })}
+      </p>
+      {personal.message ? (
+        <p className={css.note}>{personal.message}</p>
+      ) : (
+        <p className={css.noteMuted}>{t("noNote")}</p>
+      )}
+    </div>
+  );
 }
 
 function OpenRequestCard({
@@ -52,7 +71,7 @@ function OpenRequestCard({
         {t("sentAt", { when: formatWhen(request.createdAt, locale) })}
       </p>
       {request.note ? (
-        <p className={css.note}>{request.note}</p>
+        <RequestNote note={request.note} />
       ) : (
         <p className={css.noteMuted}>{t("noNote")}</p>
       )}

@@ -22,9 +22,11 @@
 
 .courses {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-md);
-  align-content: start;
+  height: 100%;
   min-width: 0;
+  align-items: stretch;
 }
 
 .course {
@@ -34,6 +36,8 @@
 .course .kicker {
   align-self: flex-start;
   width: fit-content;
+  background: rgb(246 241 226 / 18%);
+  color: #f6f1e2;
 }
 
 .courses .courseCurrent {

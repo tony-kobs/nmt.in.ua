@@ -61,17 +61,12 @@
 
 .panel {
   position: fixed;
-  top: calc(var(--header-h) + env(safe-area-inset-top, 0px) + 8px);
-  right: max(
-    var(--container-pad),
-    calc((100vw - var(--container-max)) / 2 + var(--container-pad))
-  );
-  z-index: 30;
+  z-index: 45;
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: var(--space-xs);
-  width: min(22rem, calc(100vw - 2 * var(--container-pad)));
-  max-height: min(24rem, 70vh);
-  overflow: auto;
+  width: min(22rem, calc(100vw - 24px));
+  overflow: hidden;
   padding: var(--space-sm);
   background-color: var(--surface);
   background-image: var(--grad-glass);
@@ -126,8 +121,10 @@
 .list {
   display: grid;
   gap: var(--space-xs);
+  min-height: 0;
   margin: 0;
   padding: 0;
+  overflow: auto;
   list-style: none;
 }
 

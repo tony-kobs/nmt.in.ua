@@ -1,23 +1,20 @@
 /**
- * The card lightbulb shows a nudge, not the worked solution.
+ * The card lightbulb shows a short nudge from `quiz_tasks.hint_short`.
  *
- * `quiz_tasks.hint_direction` and `hint_rule` are the ladder nudges.
- * `hint_example` is a worked solution and is never returned.
- * `comments` is the admin field «Підказка / коментар». It is used only when
- * the ladder is empty and the text does not announce the correct answer
- * (seed rows start with «Правильна відповідь»).
+ * `comments` is the worked solution (often the answer). `hint_direction` and
+ * `hint_rule` belong to the post-answer ladder. Neither is a substitute when
+ * the short field is empty: the bulb stays hidden.
  */
-export function selectCardHint(input: {
-  direction?: string | null;
-  rule?: string | null;
-  comments?: string | null;
-}): string | null {
-  const direction = input.direction?.trim() ?? "";
-  if (direction) return direction;
-  const rule = input.rule?.trim() ?? "";
-  if (rule) return rule;
-  const comments = input.comments?.trim() ?? "";
-  if (!comments) return null;
-  if (/^правильна\s+відповідь/iu.test(comments)) return null;
-  return comments;
+const MAX_HINT_CHARS = 280;
+
+export function selectCardHint(input: { short?: string | null }): string | null {
+  const text = input.short?.replace(/\s+/g, " ").trim() ?? "";
+  if (!text || text.length > MAX_HINT_CHARS) return null;
+  if (/^правильна\s+відповідь/iu.test(text)) return null;
+  if (/відповідь\s*:/iu.test(text)) return null;
+  if (/(?:^|\P{L})тому(?:\P{L}|$)/iu.test(text)) return null;
+  if (/найбільш\p{L}*\s+ціл/iu.test(text)) return null;
+  const sentences = text.split(/(?<=[.!?])\s+/u).filter(Boolean);
+  if (sentences.length > 2) return null;
+  return text;
 }

@@ -27,9 +27,11 @@ export default async function SimulatorPage() {
         <h1 id="simulator-title" className={css.title}>
           {t("title")}
         </h1>
-        <p className={css.description}>{t("description")}</p>
-        <p className={css.description}>{t("timeHint")}</p>
-        <p className={css.description}>{t("rules")}</p>
+        <div className={css.copy}>
+          <p className={css.description}>{t("description")}</p>
+          <p className={css.description}>{t("timeHint")}</p>
+          <p className={css.description}>{t("rules")}</p>
+        </div>
       </header>
 
       <SimulatorStart variants={variants} />

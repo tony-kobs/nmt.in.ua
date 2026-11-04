@@ -40,13 +40,18 @@ export async function MarathonShelf({
                   : option.title,
         }))
       : [];
+  const onlyFinished =
+    cards.length > 0 && cards.every((card) => card.status === "finished");
   const showBoardTitle =
     leaderboard != null &&
     !allTime &&
     (cards.length !== 1 || cards[0]?.slug !== leaderboard.marathon.slug);
 
   return (
-    <PageFrame title={t("kicker")} lead={t("shelfLead")}>
+    <PageFrame
+      title={t("kicker")}
+      lead={onlyFinished ? t("shelfLeadFinished") : t("shelfLead")}
+    >
       {options.length > 0 && leaderboard ? (
         <div className={css.boardPicker}>
           <MarathonPicker

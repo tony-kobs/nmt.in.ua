@@ -17,7 +17,7 @@ test("restores pending retry and reveals only consumed incorrect retry", async (
   assert.equal(result.tasks[1].revealed?.correctAnswerNumber, 2);
 });
 
-test("restores a comments-only hint that was already opened", async () => {
+test("a worked solution in comments is not restored as a hint rung", async () => {
   const rows = [
     {
       ...makeRow(1),
@@ -28,14 +28,14 @@ test("restores a comments-only hint that was already opened", async () => {
       hint_direction: null,
       hint_rule: null,
       hint_example: null,
-      hint_comment: " Порівняй показники степенів. ",
+      hint_comment: " Тому P = 35. ",
+      card_short: " Середня лінія дорівнює половині сторони. ",
     },
   ];
   const { connection } = makeConnection(rows);
   const result = await getSessionTasks(42, 1, { getConnection: async () => connection });
-  assert.deepEqual(result.tasks[0].hints, [
-    { level: 1, text: "Порівняй показники степенів.", isFinal: true },
-  ]);
+  assert.equal(result.tasks[0].hints, undefined);
+  assert.equal(result.tasks[0].cardHint, "Середня лінія дорівнює половині сторони.");
 });
 
 import type { SqlConnection } from "@/lib/db/mysql";

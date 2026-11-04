@@ -29,6 +29,7 @@ export function AccountPhotoPanel({ user }: AccountPhotoPanelProps) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [uploadState, uploadAction, uploadPending] = useActionState(
     uploadAvatarAction,
     INITIAL,
@@ -59,6 +60,7 @@ export function AccountPhotoPanel({ user }: AccountPhotoPanelProps) {
   if (uploadState !== handledUploadState) {
     setHandledUploadState(uploadState);
     if (uploadState.status === "ok") {
+      setFileName(null);
       setPreviewUrl((current) => {
         if (current) URL.revokeObjectURL(current);
         return null;
@@ -75,6 +77,7 @@ export function AccountPhotoPanel({ user }: AccountPhotoPanelProps) {
   async function onPick(event: ChangeEvent<HTMLInputElement>) {
     const input = event.target;
     const file = input.files?.[0];
+    setFileName(file?.name ?? null);
     if (!file) {
       setPreviewUrl((current) => {
         if (current) URL.revokeObjectURL(current);
@@ -147,20 +150,34 @@ export function AccountPhotoPanel({ user }: AccountPhotoPanelProps) {
 
         <div className={css.photoControls}>
           <form className={css.photoForm} action={uploadAction}>
-            <label className={css.field}>
-              <span className={css.label}>{t("photoChoose")}</span>
-              <input
-                ref={inputRef}
-                className={css.file}
-                type="file"
-                name="avatar"
-                accept={AVATAR_ACCEPT}
-                required
-                disabled={pending}
-                onChange={onPick}
-              />
+            <div className={css.field}>
+              <span className={css.label} id="account-photo-label">{t("photoChoose")}</span>
+              <div className={css.fileRow}>
+                <input
+                  ref={inputRef}
+                  className={css.fileInput}
+                  type="file"
+                  name="avatar"
+                  accept={AVATAR_ACCEPT}
+                  required
+                  disabled={pending}
+                  aria-labelledby="account-photo-label"
+                  onChange={onPick}
+                />
+                <button
+                  type="button"
+                  className={css.fileButton}
+                  disabled={pending}
+                  onClick={() => inputRef.current?.click()}
+                >
+                  {t("photoChoose")}
+                </button>
+                <span className={css.fileName}>
+                  {fileName ?? t("photoNone")}
+                </span>
+              </div>
               <span className={css.hint}>{t("photoHint", { maxKb })}</span>
-            </label>
+            </div>
             <button
               type="submit"
               className={css.submit}
