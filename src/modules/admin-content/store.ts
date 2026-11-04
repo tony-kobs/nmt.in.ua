@@ -262,8 +262,8 @@ export async function getAdminThemes(
     const rows = await connection.query<ThemeRow>(SQL_ADMIN_THEMES, []);
     return rows.map((row) => ({
       id: row.id,
-      code: row.code.trim(),
-      name: row.name.trim(),
+      code: row.code?.trim() ?? "",
+      name: row.name?.trim() ?? "",
       ord: row.ord,
       taskCount: Number(row.task_count),
       difficultyGuide: (row.difficulty_guide ?? "").trim(),

@@ -4,6 +4,7 @@ import {
   SESSION_STATUS_PLANNED,
   sessionPercent,
 } from "@/modules/sessions/types";
+import { sessionThemeLabel } from "@/modules/themes/sessionThemeLabel";
 import { toTrainerSessionSummary } from "./finishTrainerSession";
 import { nmtMathScaleScore } from "./nmtScore";
 import { selectCardHint } from "./cardHint";
@@ -274,7 +275,11 @@ function themeFields(header: SessionHeaderRow): {
   return {
     themeId: header.theme_id ?? 0,
     themeCode: header.theme_code?.trim() || null,
-    themeName: (header.theme_name ?? "").trim(),
+    themeName: sessionThemeLabel({
+      themeName: header.theme_name,
+      themeId: header.theme_id,
+      sessionType: header.session_type,
+    }),
   };
 }
 

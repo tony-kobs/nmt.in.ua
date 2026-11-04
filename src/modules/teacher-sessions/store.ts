@@ -135,7 +135,7 @@ function summarize(row: SessionRow): TeacherSessionSummary {
     id: Number(row.id),
     title: row.title.trim(),
     themeId: Number(row.theme_id),
-    themeName: row.theme_name.trim(),
+    themeName: (row.theme_name ?? "").trim() || "Тема недоступна",
     difficulty: asCount(row.difficulty),
     taskCount: asCount(row.task_count),
     assignmentCount: asCount(row.assignment_count),

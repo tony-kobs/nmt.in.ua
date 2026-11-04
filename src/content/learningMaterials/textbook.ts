@@ -9,13 +9,6 @@ type TextbookSource = {
 };
 
 const textbookSources: Partial<Record<string, TextbookSource[]>> = {
-  "MATH-05-ELEM-OPS": [
-    {
-      materialSlug: "algebra-10",
-      start: "1. Елементарні дії",
-      end: "14. Функції",
-    },
-  ],
   "MATH-06-ARITH-OPS": [
     {
       materialSlug: "algebra-8-complex",
