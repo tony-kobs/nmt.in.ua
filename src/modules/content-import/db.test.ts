@@ -256,3 +256,36 @@ test("importToDatabase never passes the original error object to console.error, 
     );
   }
 });
+
+test("importToDatabase does not write the retired elementary-ops theme or its tasks", async () => {
+  const mock = makeConnection({ themes: [1] });
+  const datasets = baseDatasets();
+  datasets.themes.push({
+    id: 2,
+    code: "MATH-05-ELEM-OPS",
+    name: "Елементарні дії",
+    description: "",
+    ord: 0,
+  });
+  datasets.quizTasks.push({
+    ...datasets.quizTasks[0]!,
+    id: 9,
+    themeId: 2,
+    name: "retired-task",
+  });
+  datasets.themeConnections.push({ id: 2, vertexStart: 2, vertexFinish: 1 });
+
+  await importToDatabase(datasets, {
+    getConnection: async () => mock.connection,
+  });
+
+  const themeInsert = mock.calls.find((call) => call.sql.startsWith("INSERT INTO themes"));
+  const quizInsert = mock.calls.find((call) => call.sql.startsWith("INSERT INTO quiz_tasks"));
+  const edgeInsert = mock.calls.find((call) =>
+    call.sql.startsWith("INSERT INTO theme_connections"),
+  );
+  assert.equal(JSON.stringify(themeInsert?.params).includes("MATH-05-ELEM-OPS"), false);
+  assert.equal(JSON.stringify(themeInsert?.params).includes("T-1"), true);
+  assert.equal(JSON.stringify(quizInsert?.params).includes("retired-task"), false);
+  assert.equal(JSON.stringify(edgeInsert?.params).includes("2"), false);
+});

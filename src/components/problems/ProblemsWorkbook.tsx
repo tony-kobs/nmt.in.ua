@@ -22,6 +22,7 @@ type ProblemsWorkbookProps = {
   problems: WorkbookProblem[];
   showOptions: boolean;
   showKey: boolean;
+  lead: string;
 };
 
 function problemsHref(
@@ -42,6 +43,7 @@ export function ProblemsWorkbook({
   problems,
   showOptions,
   showKey,
+  lead,
 }: ProblemsWorkbookProps) {
   const t = useTranslations("ProblemsWorkbook");
   const router = useRouter();
@@ -49,7 +51,7 @@ export function ProblemsWorkbook({
   const selected = themes.find((theme) => theme.key === themeKey);
 
   return (
-    <PageFrame kicker={t("kicker")} title={t("title")} lead={t("lead")}>
+    <PageFrame kicker={t("kicker")} title={t("title")} lead={lead}>
       <PagePanel className={css.panel}>
         <form
           className={css.toolbar}

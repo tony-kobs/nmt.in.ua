@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { withoutRetiredElemOps } from "@/modules/themes/retiredElemOps";
 import { ContentImportError } from "./errors";
 import { logSanitizedError } from "./logging";
 import { SQL_CREATE_PROBLEMS } from "./schema";
@@ -250,19 +251,20 @@ export async function importToDatabase(
   datasets: ImportDatasets,
   deps: ImportToDatabaseDeps = { getConnection: loadDefaultConnection },
 ): Promise<ImportSummary> {
+  const safe = withoutRetiredElemOps(datasets);
   const connection = await deps.getConnection();
   try {
     await connection.execute(SQL_CREATE_PROBLEMS, []);
     await connection.beginTransaction();
     try {
-      const themes = await upsertThemes(connection, datasets.themes);
-      await checkThemeReferences(connection, datasets);
+      const themes = await upsertThemes(connection, safe.themes);
+      await checkThemeReferences(connection, safe);
       const themeConnections = await upsertThemeConnections(
         connection,
-        datasets.themeConnections,
+        safe.themeConnections,
       );
-      const quizTasks = await upsertQuizTasks(connection, datasets.quizTasks);
-      const problems = await upsertProblems(connection, datasets.problems);
+      const quizTasks = await upsertQuizTasks(connection, safe.quizTasks);
+      const problems = await upsertProblems(connection, safe.problems);
 
       await connection.commit();
 

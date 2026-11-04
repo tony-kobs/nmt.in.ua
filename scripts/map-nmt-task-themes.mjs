@@ -55,7 +55,6 @@ const RULES = [
     re: /текстов|сюжетн|прикладн|планує|варт[іi]сть|хвилин|сплав|байдарк/i,
   },
   { code: "MATH-06-ARITH-OPS", re: /арифметич|в[іi]дношення|пропорц/i },
-  { code: "MATH-05-ELEM-OPS", re: /елементарн/i },
 ];
 
 function loadEnvLocal() {

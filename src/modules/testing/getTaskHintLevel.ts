@@ -25,6 +25,7 @@ const SQL_SELECT_HINT = `
     qt.hint_direction,
     qt.hint_rule,
     qt.hint_example,
+    qt.hint_short,
     qt.comments
   FROM tasks2session t2s
   INNER JOIN task_sessions ts ON ts.id = t2s.session_id
@@ -85,6 +86,7 @@ type HintRow = {
   hint_direction: string | null;
   hint_rule: string | null;
   hint_example?: string | null;
+  hint_short?: string | null;
   comments: string | null;
 };
 
@@ -105,9 +107,8 @@ function isHintLevel(value: unknown): value is HintLevel {
  * Authored analogous examples never reveal the current answer.
  * A missing later rung falls back to `comments` only after the retry, so the
  * ladder does not skip straight to the worked solution.
- * A task with no ladder at all stores its hint in `comments` (the admin
- * field «Підказка / коментар»). The button is only on screen while the
- * retry is still open, so that text has to come back on the first click.
+ * A task with no ladder uses `hint_short` while the retry is still open.
+ * `comments` is the worked solution and appears only after the retry.
  */
 function resolveRung(
   row: HintRow,
@@ -117,11 +118,17 @@ function resolveRung(
   const direction = row.hint_direction?.trim() || null;
   const rule = row.hint_rule?.trim() || null;
   const example = row.hint_example?.trim() || null;
+  const nudge = row.hint_short?.trim() || null;
   const explanation = row.comments?.trim() || null;
   const explanationGate = (): { text: string | null; isFinal: boolean } =>
     retryConsumed ? { text: explanation, isFinal: true } : { text: null, isFinal: false };
 
   if (direction == null) {
+    if (!retryConsumed) {
+      return nudge
+        ? { text: nudge, isFinal: true }
+        : { text: null, isFinal: false };
+    }
     return { text: explanation, isFinal: true };
   }
   if (level === 1) {

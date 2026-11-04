@@ -4,7 +4,6 @@ import test from "node:test";
 import { getTextbookBlocks } from "./textbook";
 
 const mappedThemeCodes = [
-  "MATH-05-ELEM-OPS",
   "MATH-06-ARITH-OPS",
   "GEO-07-ELEM-PLAN",
   "ALG-09-EQ-INEQ",
@@ -99,4 +98,5 @@ test("getTextbookBlocks combines both function sources", () => {
 
 test("getTextbookBlocks returns no content for an unmapped theme", () => {
   assert.deepEqual(getTextbookBlocks("ALG-11-LOGARITHMS"), []);
+  assert.deepEqual(getTextbookBlocks("MATH-05-ELEM-OPS"), []);
 });

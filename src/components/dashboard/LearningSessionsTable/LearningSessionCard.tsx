@@ -67,10 +67,12 @@ export function LearningSessionCard({
       </div>
 
       <dl className={css.meta}>
-        <div>
-          <dt>{t("difficulty")}</dt>
-          <dd>{row.difficulty ?? "—"}</dd>
-        </div>
+        {row.difficulty != null ? (
+          <div>
+            <dt>{t("difficulty")}</dt>
+            <dd>{row.difficulty}</dd>
+          </div>
+        ) : null}
         <div>
           <dt>{t("timePerTest")}</dt>
           <dd>{formatTimePerTask(row.timePerTaskSec, locale)}</dd>

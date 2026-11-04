@@ -37,8 +37,8 @@ async function loadAvailableTopicThemes(
 
     return rows.map((row) => ({
       id: row.id,
-      code: row.code.trim(),
-      name: row.name.trim(),
+      code: row.code?.trim() ?? "",
+      name: row.name?.trim() ?? "",
       ord: row.ord,
       taskCount: Number(row.task_count),
     }));

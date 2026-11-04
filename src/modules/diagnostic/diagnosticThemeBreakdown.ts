@@ -67,8 +67,8 @@ function isPositiveInt(value: unknown): value is number {
 function mapRow(row: ThemeBreakdownRow): DiagnosticThemeStat {
   return {
     themeId: row.theme_id,
-    themeCode: row.theme_code.trim(),
-    themeName: row.theme_name.trim(),
+    themeCode: row.theme_code?.trim() ?? "",
+    themeName: row.theme_name?.trim() || "Тема",
     ord: row.theme_ord,
     correct: row.correct,
     total: row.total,
