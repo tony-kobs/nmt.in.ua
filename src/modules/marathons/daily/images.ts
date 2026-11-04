@@ -13,6 +13,28 @@ export function marathonImagePath(token: string): string | null {
   return `/api/marathon-media/${token}`;
 }
 
+/**
+ * Intro photo (`day_id = 0`) on `/api/marathon-media`.
+ * A draft and an active course that has not reached day 1 yet are still
+ * `draft` / `active`: the parking page is public and uses this URL.
+ * Finished keeps the public page. Archived has no public page, but the
+ * editor still loads the same file.
+ */
+export function introMediaIsPublic(status: string): boolean {
+  return (
+    status === "draft" ||
+    status === "active" ||
+    status === "finished" ||
+    status === "archived"
+  );
+}
+
+/** Day photos stay on their own token for the editor and the cabinet. */
+export function marathonImageIsReadable(dayId: number, status: string): boolean {
+  if (dayId !== INTRO_IMAGE_DAY_ID) return true;
+  return introMediaIsPublic(status);
+}
+
 export type ImageCheck =
   | { ok: true; mime: AvatarMime }
   | { ok: false; code: "type" | "size" };
