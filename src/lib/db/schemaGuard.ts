@@ -1,9 +1,41 @@
+import {
+  SCHEMA_LOCK_ATTEMPT_SEC,
+  SCHEMA_LOCK_PAUSE_MS,
+  waitForNamedLock,
+} from "../../../scripts/schema-lock.mjs";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { mysqlErrno } from "@/modules/teacher-students/mysqlErrno";
 
 /** One lock for every ensure* path so two requests cannot ALTER the same table. */
 export const SCHEMA_LOCK_NAME = "nmt_schema";
-const LOCK_WAIT_SEC = 15;
+/** Same overall wait as the old single `GET_LOCK(..., 15)`. Attempts themselves stay under 5s. */
+const LOCK_BUDGET_MS = 15_000;
+
+type SchemaLockClock = {
+  budgetMs: number;
+  pauseMs: number;
+  attemptSec: number;
+  now: () => number;
+  sleep: (ms: number) => Promise<void>;
+};
+
+let clockOverride: SchemaLockClock | null = null;
+
+export function setSchemaLockClockForTests(clock: SchemaLockClock | null): void {
+  clockOverride = clock;
+}
+
+function lockClock(): SchemaLockClock {
+  return (
+    clockOverride ?? {
+      budgetMs: LOCK_BUDGET_MS,
+      pauseMs: SCHEMA_LOCK_PAUSE_MS,
+      attemptSec: SCHEMA_LOCK_ATTEMPT_SEC,
+      now: Date.now,
+      sleep: (ms: number) => new Promise((resolve) => setTimeout(resolve, ms)),
+    }
+  );
+}
 
 /**
  * Versions recorded by `npm run migrate`. When every one is present,
@@ -33,15 +65,6 @@ export async function schemaMigrationsApplied(
 
 type LockResult = "acquired" | "busy" | "unknown";
 
-function lockFlag(rows: Array<Record<string, unknown>>): LockResult {
-  const row = rows[0];
-  if (!row) return "unknown";
-  const value = row.got ?? row.GOT ?? Object.values(row)[0];
-  if (value === 1 || value === "1" || value === true || value === BigInt(1)) return "acquired";
-  if (value === 0 || value === "0" || value === false || value === BigInt(0)) return "busy";
-  return "unknown";
-}
-
 function lockReleased(rows: Array<Record<string, unknown>>): boolean {
   const row = rows[0];
   if (!row) return false;
@@ -53,6 +76,8 @@ function lockReleased(rows: Array<Record<string, unknown>>): boolean {
  * Runs DDL at most once per process for `key`, and only while holding
  * `GET_LOCK('nmt_schema')` when the driver actually returns the lock.
  * A test double that does not implement GET_LOCK is treated as already safe.
+ * A busy lock is retried with short attempts (under the slow-query threshold)
+ * until `LOCK_BUDGET_MS`, sleeping in this process between tries.
  */
 const inflight = new Map<string, Promise<void>>();
 let lockDepth = 0;
@@ -61,6 +86,7 @@ export function resetSchemaGuardForTests(key?: string): void {
   if (key) inflight.delete(key);
   else inflight.clear();
   lockDepth = 0;
+  clockOverride = null;
 }
 
 export async function ensureSchemaOnce(
@@ -94,11 +120,17 @@ async function runOnce(
   try {
     if (await schemaMigrationsApplied(connection, versions)) return;
     if (!nested) {
-      const rows = await connection.query<Record<string, unknown>>(
-        `SELECT GET_LOCK(?, ?) AS got`,
-        [SCHEMA_LOCK_NAME, LOCK_WAIT_SEC],
-      );
-      acquired = lockFlag(rows);
+      const clock = lockClock();
+      const outcome = await waitForNamedLock({
+        query: (sql, params) => connection.query<Record<string, unknown>>(sql, params),
+        name: SCHEMA_LOCK_NAME,
+        budgetMs: clock.budgetMs,
+        pauseMs: clock.pauseMs,
+        attemptSec: clock.attemptSec,
+        now: clock.now,
+        sleep: clock.sleep,
+      });
+      acquired = outcome.status;
       if (acquired === "busy") {
         throw new Error("Schema migration lock is busy.");
       }
