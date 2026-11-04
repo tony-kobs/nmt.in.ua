@@ -1,17 +1,15 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { cachedCatalogQuery } from "@/lib/cache/catalogCache";
+import { quizTaskMatchesThemeSql } from "./topicBank";
 import type { AvailableTopicTheme } from "./types";
 
 export type { AvailableTopicTheme } from "./types";
 
-const SQL_AVAILABLE_THEMES = `
-  SELECT t.id, t.code, t.name, t.ord, COUNT(q.id) AS task_count
-  FROM themes t
-  INNER JOIN quiz_tasks q ON q.theme_id = t.id
-  GROUP BY t.id, t.code, t.name, t.ord
-  HAVING task_count >= 1
-  ORDER BY t.ord ASC, t.id ASC
-`;
+const SQL_AVAILABLE_THEMES =
+  "SELECT t.id, t.code, t.name, t.ord, COUNT(DISTINCT q.id) AS task_count "
+  + "FROM themes t INNER JOIN quiz_tasks q ON "
+  + quizTaskMatchesThemeSql("q", "t")
+  + " GROUP BY t.id, t.code, t.name, t.ord HAVING task_count >= 1 ORDER BY t.ord ASC, t.id ASC";
 
 type GetAvailableTopicThemesDeps = {
   getConnection: () => Promise<SqlConnection>;

@@ -16,6 +16,7 @@ type HintRow = {
   hint_direction: string | null;
   hint_rule: string | null;
   hint_example?: string | null;
+  hint_short?: string | null;
   comments: string | null;
 };
 
@@ -160,9 +161,25 @@ test("rung 3 unlocks once the retry has been consumed", async () => {
   });
 });
 
-test("a legacy task with only comments shows that hint on the first click, while the retry is still open", async () => {
+test("a legacy task with only a worked solution stays quiet while the retry is still open", async () => {
   const mock = makeConnection([
     makeRow({ hint_direction: null, hint_rule: null, retry_used: 0 }),
+  ]);
+  const result = await getTaskHintLevel(validInput, {
+    getConnection: async () => mock.connection,
+  });
+  assert.deepEqual(result, { available: false, level: null, text: null, isFinal: false });
+  assert.equal(mock.row.hint_level_unlocked, 0);
+});
+
+test("a short hint shows on the first click and does not reveal the worked solution", async () => {
+  const mock = makeConnection([
+    makeRow({
+      hint_direction: null,
+      hint_rule: null,
+      hint_short: "Подивіться на знак коефіцієнта.",
+      retry_used: 0,
+    }),
   ]);
   const result = await getTaskHintLevel(validInput, {
     getConnection: async () => mock.connection,
@@ -170,10 +187,9 @@ test("a legacy task with only comments shows that hint on the first click, while
   assert.deepEqual(result, {
     available: true,
     level: 1,
-    text: "Full worked example: ...",
+    text: "Подивіться на знак коефіцієнта.",
     isFinal: true,
   });
-  assert.equal(mock.row.hint_level_unlocked, 1);
 });
 
 test("a task missing the rule rung does not leak the explanation at level 2 while the retry is pending", async () => {

@@ -112,8 +112,13 @@ export function TopicTestStart({
   const controlsDisabled = pending || isRedirecting;
 
   const [taskCountInput, setTaskCountInput] = useState(() =>
-    String(suggestedCount(themes[0]?.taskCount ?? 0)),
+    String(suggestedCount(bankSize)),
   );
+  const [countThemeId, setCountThemeId] = useState(selectedThemeId);
+  if (countThemeId !== selectedThemeId) {
+    setCountThemeId(selectedThemeId);
+    setTaskCountInput(String(suggestedCount(bankSize)));
+  }
   const parsedCount = Number(taskCountInput);
   if (bankSize > 0 && Number.isInteger(parsedCount) && parsedCount > bankSize) {
     setTaskCountInput(String(bankSize));
@@ -279,6 +284,7 @@ export function TopicTestStart({
   return (
     <PageFrame
       className={css.frame}
+      plainLead
       title={
         <>
           {t("helloStart")} {displayName}

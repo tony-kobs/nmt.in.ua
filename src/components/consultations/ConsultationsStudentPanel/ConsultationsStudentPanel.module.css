@@ -148,6 +148,18 @@
   font-weight: 600;
 }
 
+.noteBlock {
+  display: grid;
+  gap: var(--space-2xs);
+}
+
+.noteLabel {
+  margin: 0;
+  color: var(--green-dark);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
 .note,
 .noteMuted {
   margin: 0;

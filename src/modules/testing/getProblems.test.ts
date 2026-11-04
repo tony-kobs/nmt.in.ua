@@ -9,7 +9,7 @@ import {
 
 const ZADACHNYK_FIRST_PROMPTS: Record<number, { name: string; first: string }> =
   {
-    1: { name: "Елементарна математика", first: "16 + 2 = ?" },
+    1: { name: "Елементарні дії", first: "16 + 2 = ?" },
     2: { name: "Арифметика", first: "15 + 27 = ?" },
     3: { name: "Описова геометрія", first: "Скільки градусів має прямий кут?" },
     4: { name: "Дроби", first: "Знайдіть суму 1/2 + 1/4." },
@@ -79,10 +79,10 @@ test("catalog maps all 22 zadachnyk themes to the screenshot first tasks", () =>
   }
 });
 
-test("getWorkbookThemes uses zadachnyk names, not trainer themes", async () => {
+test("workbook theme 1 uses the same display name as the trainer", async () => {
   const themes = await getWorkbookThemes();
 
-  assert.equal(themes[0]?.name, "Елементарна математика");
+  assert.equal(themes[0]?.name, "Елементарні дії");
   assert.equal(themes[6]?.name, "Обрахункова геометрія");
   assert.equal(themes[7]?.name, "Рівняння");
   assert.equal(themes[9]?.name, "Координатна площина");

@@ -640,7 +640,7 @@ export function TopicTrainer({
     : formatElapsedClock(elapsedSec);
   const timerWarning = isUltimate && remainingSec <= ULTIMATE_TIMER_WARNING_SEC;
   const promptText = presentation?.displayText ?? currentTask.taskText;
-  const kicker = taskKicker(currentTask.name, promptText);
+  const kicker = taskKicker(currentTask.name, promptText, themeName);
   const showVerdict = !isUltimate && mode !== "diagnostic" && checkResult !== undefined;
   const resultLabel = !showVerdict || !checkResult
     ? null

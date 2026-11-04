@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser, readLiveAccount, requireUser } from "@/modules/auth/getCurrentUser";
 import { defaultChannelPreferences, type UserChannelPreferences } from "./channels";
 import { saveUserChannelPreferences } from "./channelStore";
+import { loadBellNotifications } from "./bellFeed";
 import {
-  listUserNotifications,
   markAllNotificationsRead,
   markNotificationRead,
   type UserNotification,
@@ -20,10 +20,12 @@ async function viewerId(): Promise<number | null> {
 }
 
 export async function listMyNotificationsAction(): Promise<UserNotification[]> {
-  const userId = await viewerId();
-  if (!userId) return [];
+  const user = await getCurrentUser();
+  if (!user) return [];
+  const account = await readLiveAccount(user.id);
+  if (!account || account.isBanned) return [];
   try {
-    return await listUserNotifications(userId);
+    return await loadBellNotifications(account.id, account.role);
   } catch (error) {
     console.error("list notifications", error);
     return [];

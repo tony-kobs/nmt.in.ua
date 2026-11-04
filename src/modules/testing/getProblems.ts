@@ -17,6 +17,16 @@ export type WorkbookProblem = {
   rightAnswerN: 1 | 2 | 3 | 4;
 };
 
+/** Workbook catalog names that differ from the trainer theme the student sees elsewhere. */
+const WORKBOOK_DISPLAY_NAMES: Record<string, string> = {
+  "Елементарна математика": "Елементарні дії",
+};
+
+export function workbookThemeDisplayName(name: string): string {
+  const trimmed = name.trim();
+  return WORKBOOK_DISPLAY_NAMES[trimmed] ?? trimmed;
+}
+
 function asAnswerN(value: number): 1 | 2 | 3 | 4 {
   if (value === 1 || value === 2 || value === 3 || value === 4) return value;
   return 1;
@@ -29,7 +39,7 @@ function asAnswerN(value: number): 1 | 2 | 3 | 4 {
 export function listWorkbookThemesFromCatalog(): WorkbookTheme[] {
   return catalog.themes.map((theme) => ({
     id: theme.id,
-    name: theme.name,
+    name: workbookThemeDisplayName(theme.name),
     ord: theme.id,
     taskCount: catalog.problems.filter((row) => row.theme_id === theme.id)
       .length,

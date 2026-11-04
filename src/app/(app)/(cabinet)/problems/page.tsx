@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { ProblemsWorkbook } from "@/components/problems/ProblemsWorkbook";
+import { requireUser } from "@/modules/auth/getCurrentUser";
 import { getNavItem } from "@/constants/navigation";
 import { createPageMetadata } from "@/constants/seo";
 import {
@@ -27,6 +28,7 @@ type ProblemsPageProps = {
 };
 
 export default async function ProblemsPage({ searchParams }: ProblemsPageProps) {
+  const user = await requireUser();
   const t = await getTranslations("ProblemsWorkbook");
   const params = await searchParams;
   const themes = await getWorkbookThemes();
@@ -54,6 +56,7 @@ export default async function ProblemsPage({ searchParams }: ProblemsPageProps) 
       problems={problems}
       showOptions={showOptions}
       showKey={showKey}
+      lead={user.role === "student" ? t("leadStudent") : t("lead")}
     />
   );
 }
