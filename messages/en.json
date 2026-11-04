@@ -1102,7 +1102,7 @@
     "copied": "Copied",
     "copyFailed": "Could not copy. Select the link and copy it manually.",
     "publicLinkLabel": "Public link",
-    "draftHidden": "This link already opens a waiting page: the name, the description when there is one, and a join button. Tasks open once the course is active and the start time has passed.",
+    "draftHidden": "This link already opens a waiting page: the name, the description when there is one, the intro rules, the intro image and video when they are set, and a join button. Tasks open once the course is active and the start time has passed.",
     "archiveHidden": "The page stays hidden while the course is archived.",
     "defaults": {
       "finalCta": "Continue learning"

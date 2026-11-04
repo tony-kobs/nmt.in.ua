@@ -4,7 +4,12 @@ import { randomBytes } from "node:crypto";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
 import { mysqlErrno } from "@/modules/teacher-students/mysqlErrno";
-import { checkMarathonImage, INTRO_IMAGE_DAY_ID, marathonImagePath } from "./images";
+import {
+  checkMarathonImage,
+  INTRO_IMAGE_DAY_ID,
+  marathonImageIsReadable,
+  marathonImagePath,
+} from "./images";
 import type { AvatarMime } from "@/modules/auth/avatarConstants";
 
 type Conn = () => Promise<SqlConnection>;
@@ -111,12 +116,22 @@ export async function getMarathonImageByToken(
   if (!/^[a-f0-9]{32}$/.test(token)) return null;
   try {
     return await withConn(async (connection) => {
-      const rows = await connection.query<{ mime: string; bytes: Buffer | Uint8Array }>(
-        `SELECT mime, bytes FROM marathon_images WHERE token = ? LIMIT 1`,
+      const rows = await connection.query<{
+        mime: string;
+        bytes: Buffer | Uint8Array;
+        day_id: number | string;
+        status: string;
+      }>(
+        `SELECT i.mime, i.bytes, i.day_id, m.status
+         FROM marathon_images i
+         INNER JOIN marathons m ON m.id = i.marathon_id
+         WHERE i.token = ?
+         LIMIT 1`,
         [Buffer.from(token, "hex")],
       );
       const row = rows[0];
       if (!row) return null;
+      if (!marathonImageIsReadable(Number(row.day_id), String(row.status ?? ""))) return null;
       const bytes = row.bytes instanceof Uint8Array ? row.bytes : new Uint8Array(row.bytes);
       const checked = checkMarathonImage(bytes);
       if (!checked.ok) return null;

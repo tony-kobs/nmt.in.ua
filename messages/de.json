@@ -1102,7 +1102,7 @@
     "copied": "Kopiert",
     "copyFailed": "Kopieren fehlgeschlagen. Markiere den Link und kopiere ihn von Hand.",
     "publicLinkLabel": "Öffentlicher Link",
-    "draftHidden": "Unter diesem Link liegt schon eine Warteseite: Name, Beschreibung, falls vorhanden, und «Mitmachen». Aufgaben öffnen sich, wenn der Kurs aktiv ist und die Startzeit da ist.",
+    "draftHidden": "Unter diesem Link liegt schon eine Warteseite: Name, Beschreibung, falls vorhanden, Einführungsregeln, Bild und Video, falls gesetzt, und «Mitmachen». Aufgaben öffnen sich, wenn der Kurs aktiv ist und die Startzeit da ist.",
     "archiveHidden": "Die Seite bleibt verborgen, solange der Kurs im Archiv ist.",
     "defaults": {
       "finalCta": "Weiter lernen"

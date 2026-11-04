@@ -652,6 +652,15 @@
   background: var(--paper-deep);
 }
 
+.hero {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  background: var(--paper-deep);
+}
+
 .check {
   display: flex;
   align-items: center;
