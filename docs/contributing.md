@@ -109,7 +109,7 @@ Cursor і інші моделі дозволені. Перед здачею ти
 | `user_sessions` | Вхід у кабінет. Вихід ставить `revoked_at` |
 | `quiz_tasks` | Банк тесту за темою і діагностики. `right_answer_n` на клієнт до перевірки не віддаємо |
 | `nmt_variants`, `nmt_quiz_tasks`, `nmt_variant_tasks` | Офіційні варіанти симулятора. Не змішувати з `quiz_tasks` |
-| `problems` | Задачник для друку |
+| `problems` | Задачник для друку. `/problems` читає `src/content/workbookProblems.json`, не цю таблицю. Число `theme_id` у JSON — не `themes.id`. Який `themes.code` показувати — `src/content/workbookTopicMap.json`. Вставка `:::task problem:` у підручнику бере назву через ту саму карту, не через `themes.id` |
 | `task_sessions`, `tasks2session` | Спроба учня. `session_type`: 1 учень, 2 авто, 3 викладач, 4 НМТ, 5 діагностика |
 | `themes` | Тема. `code` — якір підручника |
 | `sessions`, `session_tasks` | Навчальна сесія викладача. Не плутати з `task_sessions` і `user_sessions` |
