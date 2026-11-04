@@ -7,9 +7,9 @@ import {
   topicTestReminder,
   type SiteNote,
 } from "./studentNotes";
-import { notifyUser } from "./store";
+import { markUnreadTopicRemindersExcept, notifyUser } from "./store";
 
-const OPEN_TOPIC_LIMIT = 5;
+const OPEN_TOPIC_LIMIT = 1;
 
 type Conn = () => Promise<SqlConnection>;
 
@@ -85,15 +85,16 @@ export async function ensureTopicTestReminders(
     connection.release();
   }
 
-  for (const row of rows) {
-    const message = topicTestReminder({
-      themeName: row.theme_name,
-      sessionId: Number(row.id),
-    });
-    try {
-      await tell({ userId, ...message, once: true });
-    } catch (error) {
-      console.error("topic test reminder", error);
-    }
+  const row = rows[0];
+  if (!row) return;
+  const message = topicTestReminder({
+    themeName: row.theme_name,
+    sessionId: Number(row.id),
+  });
+  try {
+    await tell({ userId, ...message, once: true });
+    await markUnreadTopicRemindersExcept(userId, message.link);
+  } catch (error) {
+    console.error("topic test reminder", error);
   }
 }

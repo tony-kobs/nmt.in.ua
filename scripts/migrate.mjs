@@ -20,8 +20,7 @@ import { isIgnorableMigrationErrno, splitSqlStatements } from "./migrate-sql.mjs
 import {
   classifySchemaLockHolder,
   formatSchemaLockHolder,
-  lockDenied,
-  lockGranted,
+  waitForNamedLock,
 } from "./schema-lock.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -102,12 +101,7 @@ function errnoOf(error) {
 }
 
 const SCHEMA_LOCK = "nmt_schema";
-const SCHEMA_LOCK_WAIT_SEC = 10;
 const SCHEMA_LOCK_BUDGET_MS = 12 * 60 * 1000;
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 async function schemaLockHolder(conn) {
   const [lockRows] = await conn.query("SELECT IS_USED_LOCK(?) AS owner", [SCHEMA_LOCK]);
@@ -154,33 +148,35 @@ async function acquireSchemaLock(conn) {
   const started = Date.now();
   let watched = null;
   let lastHolder = null;
-  while (Date.now() - started < SCHEMA_LOCK_BUDGET_MS) {
-    const attemptStarted = Date.now();
-    const [lockRows] = await conn.query(
-      `SELECT GET_LOCK(?, ${SCHEMA_LOCK_WAIT_SEC}) AS got`,
-      [SCHEMA_LOCK],
-    );
-    const got = Array.isArray(lockRows) ? lockRows[0]?.got : undefined;
-    if (lockGranted(got)) return;
-    if (!lockDenied(got)) {
-      throw new Error(`GET_LOCK(${SCHEMA_LOCK}) returned ${String(got)}`);
-    }
-    const holder = await schemaLockHolder(conn);
-    lastHolder = holder;
-    const watchedAgeSec =
-      holder && watched && watched.id === holder.id ? (Date.now() - watched.since) / 1000 : 0;
-    const action = classifySchemaLockHolder(holder, watchedAgeSec);
-    console.error(
-      `schema lock busy (${Math.round((Date.now() - started) / 1000)}s): ${formatSchemaLockHolder(holder)} -> ${action}`,
-    );
-    if (action === "drop") {
-      await dropSchemaLockHolder(conn, holder);
-      watched = null;
-      continue;
-    }
-    if (action === "busy" || action === "retry" || !holder) watched = null;
-    else if (!watched || watched.id !== holder.id) watched = { id: holder.id, since: Date.now() };
-    if (Date.now() - attemptStarted < 1000) await sleep(2000);
+  const outcome = await waitForNamedLock({
+    query: async (sql, params) => {
+      const [rows] = await conn.query(sql, params);
+      return rows;
+    },
+    name: SCHEMA_LOCK,
+    budgetMs: SCHEMA_LOCK_BUDGET_MS,
+    onBusy: async () => {
+      const holder = await schemaLockHolder(conn);
+      lastHolder = holder;
+      const watchedAgeSec =
+        holder && watched && watched.id === holder.id ? (Date.now() - watched.since) / 1000 : 0;
+      const action = classifySchemaLockHolder(holder, watchedAgeSec);
+      console.error(
+        `schema lock busy (${Math.round((Date.now() - started) / 1000)}s): ${formatSchemaLockHolder(holder)} -> ${action}`,
+      );
+      if (action === "drop") {
+        await dropSchemaLockHolder(conn, holder);
+        watched = null;
+        return "retry-now";
+      }
+      if (action === "busy" || action === "retry" || !holder) watched = null;
+      else if (!watched || watched.id !== holder.id) watched = { id: holder.id, since: Date.now() };
+      return "pause";
+    },
+  });
+  if (outcome.status === "acquired") return;
+  if (outcome.status === "unknown") {
+    throw new Error(`GET_LOCK(${SCHEMA_LOCK}) returned ${String(outcome.got)}`);
   }
   throw new Error(
     `schema lock is busy; another migration is running. Last holder: ${formatSchemaLockHolder(lastHolder)}`,

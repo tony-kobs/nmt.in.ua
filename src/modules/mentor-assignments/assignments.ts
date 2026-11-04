@@ -332,7 +332,7 @@ function summarize(
     id: row.id,
     themeId: row.theme_id,
     difficulty: row.difficulty,
-    themeName: row.theme_name.trim(),
+    themeName: (row.theme_name ?? "").trim() || "Тема недоступна",
     tasksNumber: row.tasks_number,
     availableAt: row.available_at,
     dueAt: row.due_at,

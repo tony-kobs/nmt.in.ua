@@ -1,13 +1,14 @@
 import { getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { ProblemsWorkbook } from "@/components/problems/ProblemsWorkbook";
+import { requireUser } from "@/modules/auth/getCurrentUser";
 import { getNavItem } from "@/constants/navigation";
 import { createPageMetadata } from "@/constants/seo";
 import {
   getWorkbookProblems,
   getWorkbookThemes,
+  resolveWorkbookThemeKey,
 } from "@/modules/testing/getProblems";
-import { parseThemeQueryParam } from "@/modules/testing/parseThemeQueryParam";
 import { isQueryFlagOn, readSearchParam } from "@/lib/queryHref";
 
 const item = getNavItem("/problems");
@@ -27,19 +28,16 @@ type ProblemsPageProps = {
 };
 
 export default async function ProblemsPage({ searchParams }: ProblemsPageProps) {
+  const user = await requireUser();
   const t = await getTranslations("ProblemsWorkbook");
   const params = await searchParams;
   const themes = await getWorkbookThemes();
-  const requested = parseThemeQueryParam(readSearchParam(params.theme));
-  const themeId =
-    requested && themes.some((theme) => theme.id === requested)
-      ? requested
-      : (themes[0]?.id ?? 0);
-  const problems = themeId ? await getWorkbookProblems(themeId) : [];
+  const themeKey = resolveWorkbookThemeKey(themes, readSearchParam(params.theme));
+  const problems = themeKey ? await getWorkbookProblems(themeKey) : [];
   const showOptions = readSearchParam(params.options) !== "0";
   const showKey = isQueryFlagOn(readSearchParam(params.key));
 
-  if (themes.length === 0) {
+  if (!themeKey) {
     return (
       <PageFrame kicker={t("kicker")} title={t("title")} lead={t("empty")}>
         <></>
@@ -50,10 +48,11 @@ export default async function ProblemsPage({ searchParams }: ProblemsPageProps) 
   return (
     <ProblemsWorkbook
       themes={themes}
-      themeId={themeId}
+      themeKey={themeKey}
       problems={problems}
       showOptions={showOptions}
       showKey={showKey}
+      lead={user.role === "student" ? t("leadStudent") : t("lead")}
     />
   );
 }

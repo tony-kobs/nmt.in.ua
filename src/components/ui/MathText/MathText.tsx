@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import dynamic from "next/dynamic";
 import { parseMathText } from "./parseMathText";
+import { presentTaskText } from "./presentTaskText";
 import css from "./MathText.module.css";
 
 type MathTextProps = {
@@ -26,7 +27,7 @@ const KatexFormula = dynamic(
 
 export function MathText({ text, className, as = "span" }: MathTextProps) {
   const Tag = as === "div" ? "div" : "span";
-  const parts = parseMathText(text);
+  const parts = parseMathText(presentTaskText(text));
   const hasFormula = parts.some((part) => part.type === "formula");
 
   return (

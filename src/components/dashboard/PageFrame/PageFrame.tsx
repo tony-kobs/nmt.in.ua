@@ -5,6 +5,8 @@ import css from "./PageFrame.module.css";
 type PageFrameProps = {
   title: React.ReactNode;
   lead?: React.ReactNode;
+  /** Sentence under the title, without the light chip. */
+  plainLead?: boolean;
   kicker?: string;
   children: React.ReactNode;
   className?: string;
@@ -13,6 +15,7 @@ type PageFrameProps = {
 export function PageFrame({
   title,
   lead,
+  plainLead = false,
   kicker,
   children,
   className,
@@ -22,7 +25,9 @@ export function PageFrame({
       <header className={css.intro}>
         {kicker ? <p className={css.kicker}>{kicker}</p> : null}
         <h1 className={css.title}>{title}</h1>
-        {lead ? <p className={css.lead}>{lead}</p> : null}
+        {lead ? (
+          <p className={clsx(css.lead, plainLead && css.leadPlain)}>{lead}</p>
+        ) : null}
       </header>
       {children}
     </div>

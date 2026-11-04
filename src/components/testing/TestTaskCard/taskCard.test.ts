@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { gradedOptionState, optionLetter, topicOptionsStackUntilTablet } from "./taskCard";
+import { gradedOptionState, optionLetter, taskKicker, topicOptionsStackUntilTablet } from "./taskCard";
 
 test("short topic options stay in two columns from 375", () => {
   assert.equal(
@@ -22,6 +22,17 @@ test("a formula or a long option stays one column until 768", () => {
     true,
   );
   assert.equal(topicOptionsStackUntilTablet(["![](/nmt/osvita/graph.png)"]), true);
+});
+
+test("a catalog index after the theme name is not a kicker", () => {
+  assert.equal(
+    taskKicker("Елементарна планіметрія — 35", "Знайдіть периметр.", "Елементарна планіметрія"),
+    undefined,
+  );
+  assert.equal(
+    taskKicker("Особливий випадок — 4", "Інша умова.", "Елементарна планіметрія"),
+    "Особливий випадок",
+  );
 });
 
 test("graded option states win over the picked outline", () => {

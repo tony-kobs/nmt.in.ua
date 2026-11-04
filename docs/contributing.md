@@ -109,7 +109,7 @@ Cursor і інші моделі дозволені. Перед здачею ти
 | `user_sessions` | Вхід у кабінет. Вихід ставить `revoked_at` |
 | `quiz_tasks` | Банк тесту за темою і діагностики. `right_answer_n` на клієнт до перевірки не віддаємо |
 | `nmt_variants`, `nmt_quiz_tasks`, `nmt_variant_tasks` | Офіційні варіанти симулятора. Не змішувати з `quiz_tasks` |
-| `problems` | Задачник для друку |
+| `problems` | Задачник для друку. `/problems` читає `src/content/workbookProblems.json`, не цю таблицю. Число `theme_id` у JSON — не `themes.id`. Який `themes.code` показувати — `src/content/workbookTopicMap.json`. Вставка `:::task problem:` у підручнику бере назву через ту саму карту, не через `themes.id` |
 | `task_sessions`, `tasks2session` | Спроба учня. `session_type`: 1 учень, 2 авто, 3 викладач, 4 НМТ, 5 діагностика |
 | `themes` | Тема. `code` — якір підручника |
 | `sessions`, `session_tasks` | Навчальна сесія викладача. Не плутати з `task_sessions` і `user_sessions` |
@@ -203,7 +203,7 @@ uk / en / de через next-intl. Мова в cookie, префікса `/en` в
 
 ## 8. Міграції
 
-Новий файл у `scripts/sql/` бери наступним вільним номером на свіжому `dev`. Зараз останній — `062`, отже новий — `063_коротка_назва.sql`. Процедура, журнал `schema_migrations` і чому файл не перейменовують після продакшену — [`schema-migrations.md`](./schema-migrations.md).
+Новий файл у `scripts/sql/` бери наступним вільним номером на свіжому `dev`. Зараз останній — `064`, отже новий — `065_коротка_назва.sql`. Процедура, журнал `schema_migrations` і чому файл не перейменовують після продакшену — [`schema-migrations.md`](./schema-migrations.md).
 
 Перед відкриттям pull request ще раз підтягни `dev`. Якщо той самий номер уже зайняли, перебазуйся і перейменуй **лише свій** файл, якого ще немає в базі. Два студенти з однаковим номером не мерджаться в тиші: перевірка в CI падає на новому дублі.
 

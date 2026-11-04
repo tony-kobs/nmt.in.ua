@@ -47,7 +47,13 @@ export function TeacherPublicCardView({
     card.lessonDurationMinutes !== null &&
     card.lessonDurationMinutes !== undefined;
 
-  const hasDetails = Boolean(card.bio || card.publications || card.contactUrl);
+  const bio = card.bio.trim();
+  const headline = card.headline?.trim() ?? "";
+  const headlineIsBio =
+    Boolean(headline) &&
+    Boolean(bio) &&
+    (bio.startsWith(headline) || (headline.length >= 140 && bio.startsWith(headline.slice(0, 140))));
+  const hasDetails = Boolean(card.publications || card.contactUrl);
 
   return (
     <article
@@ -110,7 +116,8 @@ export function TeacherPublicCardView({
           ) : null}
         </div>
 
-        {card.headline ? <p className={css.headline}>{card.headline}</p> : null}
+        {headline && !headlineIsBio ? <p className={css.headline}>{headline}</p> : null}
+        {bio ? <p className={css.bio}>{bio}</p> : null}
 
         <div className={css.summary}>
           {card.teachingLanguages.length > 0 ? (
@@ -156,13 +163,6 @@ export function TeacherPublicCardView({
               </summary>
 
               <div className={css.detailsContent}>
-                {card.bio ? (
-                  <section className={css.detailSection}>
-                    <h2 className={css.detailTitle}>{t("about")}</h2>
-                    <p className={css.detailText}>{card.bio}</p>
-                  </section>
-                ) : null}
-
                 {card.publications ? (
                   <section className={css.detailSection}>
                     <h2 className={css.detailTitle}>{t("publications")}</h2>

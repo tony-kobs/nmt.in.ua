@@ -18,19 +18,20 @@ const PROBLEM_LETTERS = ANSWER_LETTERS.slice(0, 4);
 
 type ProblemsWorkbookProps = {
   themes: WorkbookTheme[];
-  themeId: number;
+  themeKey: string;
   problems: WorkbookProblem[];
   showOptions: boolean;
   showKey: boolean;
+  lead: string;
 };
 
 function problemsHref(
-  themeId: number,
+  themeKey: string,
   showOptions: boolean,
   showKey: boolean,
 ): string {
   return queryHref("/problems", {
-    theme: String(themeId),
+    theme: themeKey,
     options: showOptions ? null : "0",
     key: showKey ? "1" : null,
   });
@@ -38,18 +39,19 @@ function problemsHref(
 
 export function ProblemsWorkbook({
   themes,
-  themeId,
+  themeKey,
   problems,
   showOptions,
   showKey,
+  lead,
 }: ProblemsWorkbookProps) {
   const t = useTranslations("ProblemsWorkbook");
   const router = useRouter();
 
-  const selected = themes.find((theme) => theme.id === themeId);
+  const selected = themes.find((theme) => theme.key === themeKey);
 
   return (
-    <PageFrame kicker={t("kicker")} title={t("title")} lead={t("lead")}>
+    <PageFrame kicker={t("kicker")} title={t("title")} lead={lead}>
       <PagePanel className={css.panel}>
         <form
           className={css.toolbar}
@@ -60,17 +62,16 @@ export function ProblemsWorkbook({
             <span className={css.label}>{t("selectTopic")}</span>
             <Select
               name="theme"
-              value={String(themeId)}
+              value={themeKey}
               aria-label={t("selectTopic")}
               options={themes.map((theme, index) => ({
-                value: String(theme.id),
+                value: theme.key,
                 label: `${index + 1}. ${theme.name}`,
               }))}
               onChange={(next) => {
-                router.replace(
-                  problemsHref(Number(next), showOptions, showKey),
-                  { scroll: false },
-                );
+                router.replace(problemsHref(next, showOptions, showKey), {
+                  scroll: false,
+                });
               }}
             />
           </label>
@@ -80,7 +81,7 @@ export function ProblemsWorkbook({
               type="button"
               className={clsx(css.ghost, !showOptions && css.ghostActive)}
               onClick={() =>
-                router.replace(problemsHref(themeId, false, showKey), {
+                router.replace(problemsHref(themeKey, false, showKey), {
                   scroll: false,
                 })
               }
@@ -91,7 +92,7 @@ export function ProblemsWorkbook({
               type="button"
               className={clsx(css.ghost, showOptions && css.ghostActive)}
               onClick={() =>
-                router.replace(problemsHref(themeId, true, showKey), {
+                router.replace(problemsHref(themeKey, true, showKey), {
                   scroll: false,
                 })
               }
@@ -102,7 +103,7 @@ export function ProblemsWorkbook({
               type="button"
               className={clsx(css.ghost, showKey && css.ghostActive)}
               onClick={() =>
-                router.replace(problemsHref(themeId, showOptions, !showKey), {
+                router.replace(problemsHref(themeKey, showOptions, !showKey), {
                   scroll: false,
                 })
               }

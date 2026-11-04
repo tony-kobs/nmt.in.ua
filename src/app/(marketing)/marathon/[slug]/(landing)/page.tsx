@@ -8,11 +8,14 @@ import { MarathonParking } from "@/components/marathon/MarathonParking";
 import { createPageMetadata } from "@/constants/seo";
 import { getCurrentUser } from "@/modules/auth/getCurrentUser";
 import { readRiddleSession } from "@/modules/marathons/daily/riddleSession";
+import { loadIntroImagePath } from "@/modules/marathons/daily/imageStore";
+import { resolveCopy } from "@/modules/marathons/daily/copy";
 import { marathonOpensAt, publicMarathonPhase } from "@/modules/marathons/daily/publicPage";
 import {
   getParticipant,
   loadLandingRiddles,
   loadMarathonBoard,
+  loadMarathonCopy,
 } from "@/modules/marathons/daily/store";
 import { readUtm } from "@/modules/marathons/daily/utm";
 import { loadPublicMarathon } from "../publicMarathon";
@@ -82,8 +85,17 @@ export default async function MarathonLandingPage({ params, searchParams }: Page
   if (phase === "parking") {
     let user;
     let joined = false;
+    let introImageUrl: string | null = null;
+    let rules = "";
     try {
-      user = await getCurrentUser();
+      const [current, imageUrl, copy] = await Promise.all([
+        getCurrentUser(),
+        loadIntroImagePath(marathon.id),
+        loadMarathonCopy(marathon.id),
+      ]);
+      user = current;
+      introImageUrl = imageUrl;
+      rules = resolveCopy("intro_rules", copy);
       if (user) {
         joined = Boolean(await getParticipant(marathon.id, user.id)) || one(query.joined) === "1";
       }
@@ -99,6 +111,9 @@ export default async function MarathonLandingPage({ params, searchParams }: Page
           opensAt={marathonOpensAt(marathon)}
           loggedIn={Boolean(user)}
           joined={joined}
+          introImageUrl={introImageUrl}
+          rules={rules}
+          viewerName={user?.displayName ?? ""}
           error={one(query.error)}
           utm={utm}
         />

@@ -4,6 +4,7 @@ import type { SqlConnection } from "@/lib/db/mysql";
 import { normalizeNmtComment, normalizeNmtRichText } from "@/modules/testing/normalizeNmtRichText";
 import { resolveNmtMatch } from "@/modules/testing/nmtMatch";
 import { resolveTaskPresentation } from "@/modules/testing/taskPresentation";
+import { problemThemeJoinSql } from "@/modules/testing/workbookTopicMap";
 import {
   bankExcerpt,
   bankOptionLetter,
@@ -236,10 +237,12 @@ const QUIZ_SQL = `SELECT q.id, q.name, q.task_text, q.answer_1, q.answer_2, q.an
      LEFT JOIN themes t ON t.id = q.theme_id
      WHERE q.id IN `;
 
+// problems.theme_id is the zadachnyk topic id, not themes.id. Joining on id
+// labels fractions (JSON 4) as ALG-09-EQ-INEQ. The CASE follows workbookTopicMap.json.
 const PROBLEM_SQL = `SELECT p.id, p.name, p.problem_text AS task_text, p.answer_1, p.answer_2, p.answer_3, p.answer_4,
             p.right_answer_n, p.comments, t.code AS theme_code, t.name AS theme_name
      FROM problems p
-     LEFT JOIN themes t ON t.id = p.theme_id
+     ${problemThemeJoinSql()}
      WHERE p.id IN `;
 
 const NMT_SQL = `SELECT q.id, q.name, q.task_text, q.answer_1, q.answer_2, q.answer_3, q.answer_4, q.answer_5,
@@ -308,7 +311,7 @@ function searchSql(bank: BankKind): string {
     bank === "quiz"
       ? `FROM quiz_tasks q LEFT JOIN themes t ON t.id = q.theme_id`
       : bank === "problem"
-        ? `FROM problems p LEFT JOIN themes t ON t.id = p.theme_id`
+        ? `FROM problems p ${problemThemeJoinSql()}`
         : `FROM nmt_quiz_tasks q LEFT JOIN themes t ON t.id = q.theme_id`;
   const select =
     bank === "nmt"

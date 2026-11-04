@@ -85,11 +85,13 @@ async function main() {
     );
     let nextId = Number(maxRow[0].maxId) + 1;
 
+    // MATH-05-ELEM-OPS is retired. Do not fill it if a row is imported again.
     const [emptyThemes] = await conn.query(`
       SELECT t.id, t.name
       FROM themes t
       LEFT JOIN quiz_tasks q ON q.theme_id = t.id
       WHERE t.id <> ?
+        AND t.code <> 'MATH-05-ELEM-OPS'
       GROUP BY t.id, t.name, t.ord
       HAVING COUNT(q.id) = 0
       ORDER BY t.ord ASC, t.id ASC

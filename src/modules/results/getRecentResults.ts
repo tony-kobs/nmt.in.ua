@@ -3,6 +3,7 @@ import {
   SESSION_STATUS_COMPLETED,
   sessionPercent,
 } from "@/modules/sessions/types";
+import { sessionThemeLabel } from "@/modules/themes/sessionThemeLabel";
 
 export type RecentResultItem = {
   sessionId: number;
@@ -10,16 +11,14 @@ export type RecentResultItem = {
   score: number;
 };
 
-/** Shown for a diagnostic attempt (task_sessions.theme_id IS NULL — it spans
- * many themes, not one) so a claimed guest attempt stays visible here. */
-const DIAGNOSTIC_RECENT_RESULT_LABEL = "Загальна діагностика";
-
 /** MySQL prepared statements do not accept `LIMIT ?` — inline a validated int. */
 function buildRecentResultsSql(limit: number): string {
   return `
   SELECT
     ts.id,
-    COALESCE(t.name, '${DIAGNOSTIC_RECENT_RESULT_LABEL}') AS theme_name,
+    ts.theme_id,
+    ts.session_type,
+    t.name AS theme_name,
     ts.tasks_number,
     ts.right_number
   FROM task_sessions ts
@@ -33,7 +32,9 @@ function buildRecentResultsSql(limit: number): string {
 
 type RecentResultRow = {
   id: number;
-  theme_name: string;
+  theme_id: number | null;
+  session_type: number | null;
+  theme_name: string | null;
   tasks_number: number;
   right_number: number;
 };
@@ -64,7 +65,11 @@ export async function getRecentResults(
 
     return rows.map((row) => ({
       sessionId: row.id,
-      topic: row.theme_name.trim(),
+      topic: sessionThemeLabel({
+        themeName: row.theme_name,
+        themeId: row.theme_id,
+        sessionType: row.session_type,
+      }),
       score: Math.round(
         sessionPercent(row.tasks_number, row.right_number) ?? 0,
       ),
