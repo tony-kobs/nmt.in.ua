@@ -68,9 +68,7 @@ const SQL_SESSION_TASKS = `
     qt.answer_4,
     NULL AS answer_5,
     'mcq' AS task_kind,
-    qt.hint_direction AS card_direction,
-    qt.hint_rule AS card_rule,
-    qt.comments AS card_comments
+    qt.hint_short AS card_short
   FROM tasks2session t2s
   INNER JOIN quiz_tasks qt ON qt.id = t2s.task_id
   WHERE t2s.session_id = ?
@@ -125,9 +123,7 @@ type SessionTaskRow = {
   hint_comment?: string | null;
   revealed_answer?: number | null;
   revealed_explanation?: string | null;
-  card_direction?: string | null;
-  card_rule?: string | null;
-  card_comments?: string | null;
+  card_short?: string | null;
   name: string;
   task_text: string;
   answer_1: string | null;
@@ -185,10 +181,7 @@ function unlockedHints(row: SessionTaskRow): NonNullable<SessionTask["hints"]> {
         }]
       : [],
   );
-  if (rungs.length > 0) return rungs;
-  const comment = row.hint_comment?.trim();
-  if (!comment) return [];
-  return [{ level: 1, text: comment, isFinal: true }];
+  return rungs;
 }
 
 function mapRow(row: SessionTaskRow, isNmt: boolean): SessionTask {
@@ -229,7 +222,7 @@ function mapRow(row: SessionTaskRow, isNmt: boolean): SessionTask {
     taskText: match?.stem ?? normalize(row.task_text),
     answers,
     status: row.status,
-    ...(!isNmt && row.hint_level_unlocked
+    ...(!isNmt && unlockedHints(row).length
       ? { hints: unlockedHints(row) }
       : {}),
     ...(!isNmt && row.first_attempt_status === -1 && row.status === -1 && row.retry_used === 0
@@ -240,18 +233,8 @@ function mapRow(row: SessionTaskRow, isNmt: boolean): SessionTask {
           correctAnswerText: answers.find((answer) => answer.number === row.revealed_answer)?.text ?? null,
           explanation: row.revealed_explanation?.trim() || null,
         } } : {}),
-    ...(!isNmt && selectCardHint({
-      direction: row.card_direction,
-      rule: row.card_rule,
-      comments: row.card_comments,
-    })
-      ? {
-          cardHint: selectCardHint({
-            direction: row.card_direction,
-            rule: row.card_rule,
-            comments: row.card_comments,
-          }),
-        }
+    ...(!isNmt && selectCardHint({ short: row.card_short })
+      ? { cardHint: selectCardHint({ short: row.card_short }) }
       : {}),
     ...(isNmt ? { taskKind: row.task_kind as NmtTaskKind } : {}),
     ...(match ? { match: match.match } : {}),

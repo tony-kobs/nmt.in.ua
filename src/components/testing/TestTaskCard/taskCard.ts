@@ -30,15 +30,25 @@ export function optionLetter(index: number): string {
  * Short task title for the uppercase line under the heading.
  * A long name is the question itself, so it stays in the prompt.
  */
+function sameLabel(left: string, right: string): boolean {
+  return left.trim().toLocaleLowerCase("uk").replace(/\s+/g, " ")
+    === right.trim().toLocaleLowerCase("uk").replace(/\s+/g, " ");
+}
+
 export function taskKicker(
   name: string | null | undefined,
   prompt?: string,
+  themeName?: string | null,
 ): string | undefined {
   const trimmed = name?.trim() ?? "";
   if (!trimmed) return undefined;
   if (prompt && trimmed === prompt.trim()) return undefined;
-  if (trimmed.length > 72) return undefined;
-  return trimmed;
+  const withoutIndex = trimmed.replace(/\s*[—–-]\s*\d+\s*$/u, "").trim();
+  const shown = withoutIndex || trimmed;
+  if (themeName && sameLabel(shown, themeName)) return undefined;
+  if (prompt && shown === prompt.trim()) return undefined;
+  if (shown.length > 72) return undefined;
+  return shown;
 }
 
 /**

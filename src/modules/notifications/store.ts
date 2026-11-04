@@ -202,6 +202,49 @@ export async function markAllNotificationsRead(
   }
 }
 
+export async function markNotificationsReadByIds(
+  userId: number,
+  ids: number[],
+  getConnection: Conn = loadDefaultConnection,
+): Promise<void> {
+  const unique = [...new Set(ids)].filter((id) => Number.isInteger(id) && id > 0);
+  if (!Number.isInteger(userId) || userId <= 0 || unique.length === 0) return;
+  await ensureUserNotificationsSchema(getConnection);
+  const connection = await getConnection();
+  try {
+    const marks = unique.map(() => "?").join(", ");
+    await connection.execute(
+      `UPDATE user_notifications
+       SET read_at = CURRENT_TIMESTAMP
+       WHERE user_id = ? AND read_at IS NULL AND id IN (${marks})`,
+      [userId, ...unique],
+    );
+  } finally {
+    connection.release();
+  }
+}
+
+export async function markUnreadTopicRemindersExcept(
+  userId: number,
+  link: string,
+  getConnection: Conn = loadDefaultConnection,
+): Promise<void> {
+  const href = link.trim();
+  if (!Number.isInteger(userId) || userId <= 0 || !href) return;
+  await ensureUserNotificationsSchema(getConnection);
+  const connection = await getConnection();
+  try {
+    await connection.execute(
+      `UPDATE user_notifications
+       SET read_at = CURRENT_TIMESTAMP
+       WHERE user_id = ? AND kind = ? AND read_at IS NULL AND NOT (link <=> ?)`,
+      [userId, "topic.reminder", href],
+    );
+  } finally {
+    connection.release();
+  }
+}
+
 export async function markNotificationsReadByLink(
   userId: number,
   link: string,

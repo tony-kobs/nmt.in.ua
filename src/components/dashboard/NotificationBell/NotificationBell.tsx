@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   declineMarathonAction,
@@ -20,8 +21,23 @@ export function NotificationBell() {
   const router = useRouter();
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<UserNotification[]>([]);
+  const [panelBox, setPanelBox] = useState<{ top: number; right: number; maxHeight: number } | null>(
+    null,
+  );
+
+  function placePanel() {
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const top = rect.bottom + 8;
+    setPanelBox({
+      top,
+      right: Math.max(12, window.innerWidth - rect.right),
+      maxHeight: Math.max(160, window.innerHeight - top - 16),
+    });
+  }
 
   async function refresh() {
     const next = await listMyNotificationsAction();
@@ -40,14 +56,21 @@ export function NotificationBell() {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
+    const onLayout = () => placePanel();
     const onPointer = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || panelRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener("keydown", onKey);
     document.addEventListener("pointerdown", onPointer);
+    window.addEventListener("resize", onLayout);
+    window.addEventListener("scroll", onLayout, true);
     return () => {
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("resize", onLayout);
+      window.removeEventListener("scroll", onLayout, true);
     };
   }, [open]);
 
@@ -82,7 +105,14 @@ export function NotificationBell() {
         aria-expanded={open}
         aria-controls={panelId}
         aria-label={unread > 0 ? t("bellUnread", { count: unread }) : t("bell")}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          if (open) {
+            setOpen(false);
+            return;
+          }
+          placePanel();
+          setOpen(true);
+        }}
       >
         <svg viewBox="0 0 24 24" aria-hidden className={css.icon}>
           <path
@@ -94,8 +124,16 @@ export function NotificationBell() {
           <span className={css.count}>{unread > 9 ? "9+" : unread}</span>
         ) : null}
       </button>
-      {open ? (
-        <div className={css.panel} id={panelId} role="region" aria-label={t("bell")}>
+      {open && panelBox
+        ? createPortal(
+        <div
+          ref={panelRef}
+          className={css.panel}
+          id={panelId}
+          role="region"
+          aria-label={t("bell")}
+          style={{ top: panelBox.top, right: panelBox.right, maxHeight: panelBox.maxHeight }}
+        >
           <div className={css.panelHead}>
             <p className={css.panelTitle}>{t("bell")}</p>
             {unread > 0 ? (
@@ -130,8 +168,10 @@ export function NotificationBell() {
               ))}
             </ul>
           )}
-        </div>
-      ) : null}
+        </div>,
+        document.body,
+        )
+        : null}
     </div>
   );
 }

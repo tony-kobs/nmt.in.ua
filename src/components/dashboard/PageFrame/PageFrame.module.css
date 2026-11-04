@@ -59,6 +59,12 @@
   text-wrap: pretty;
 }
 
+.leadPlain {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
 .section {
   display: grid;
   gap: var(--space-sm);

@@ -16,6 +16,19 @@
   gap: 6px;
 }
 
+.sort {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.sortLabel {
+  color: var(--subtle);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
 .title {
   margin: 0;
   font-family: var(--font-display);
