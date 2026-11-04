@@ -1,0 +1,202 @@
+{
+  "topics": [
+    {
+      "jsonId": 1,
+      "jsonName": "Елементарна математика",
+      "code": "MATH-06-ARITH-OPS",
+      "siteName": "Арифметичні дії",
+      "nameSource": "conspect",
+      "confidence": "high",
+      "note": "Усі 20 завдань — додавання, віднімання, множення і ділення цілих. Це та сама тема, що JSON 2. Не MATH-05-ELEM-OPS: той код (множини, «Елементарні дії») зникає окремим PR."
+    },
+    {
+      "jsonId": 2,
+      "jsonName": "Арифметика",
+      "code": "MATH-06-ARITH-OPS",
+      "siteName": "Арифметичні дії",
+      "nameSource": "conspect",
+      "confidence": "high",
+      "note": "Ті самі чотири дії з більшими цілими. На /problems зливається з JSON 1 в одну тему сайту."
+    },
+    {
+      "jsonId": 3,
+      "jsonName": "Описова геометрія",
+      "code": "GEO-07-ELEM-PLAN",
+      "siteName": "Елементарна планіметрія",
+      "nameSource": "conspect",
+      "confidence": "review",
+      "note": "Більшість — кути, трикутник, коло, многокутник. Шість завдань про куб, паралелепіпед, тетраедр і точку в просторі ближчі до стереометрії; одне питає координати на площині."
+    },
+    {
+      "jsonId": 4,
+      "jsonName": "Дроби",
+      "code": "ALG-08-FRACTIONS",
+      "siteName": "Дроби",
+      "nameSource": "conspect",
+      "confidence": "high",
+      "note": "Усі 20 — звичайні дроби. themes.id 4 — це інша тема, ALG-09-EQ-INEQ."
+    },
+    {
+      "jsonId": 5,
+      "jsonName": "Рівності та нерівності",
+      "code": "ALG-09-EQ-INEQ",
+      "siteName": "Рівності та нерівності",
+      "nameSource": "conspect",
+      "confidence": "high",
+      "note": "Усі 20 — лінійні нерівності."
+    },
+    {
+      "jsonId": 6,
+      "jsonName": "Алгебраїчні вирази",
+      "code": "ALG-07-EXPRESSIONS",
+      "siteName": "Математичні вирази",
+      "nameSource": "conspect",
+      "confidence": "high",
+      "note": "Зведення подібних і підстановка. На сайті тема зветься «Математичні вирази»."
+    },
+    {
+      "jsonId": 7,
+      "jsonName": "Обрахункова геометрія",
+      "code": "GEO-07-CALC",
+      "siteName": "Обрахункова геометрія",
+      "nameSource": "conspect",
+      "confidence": "high",
+      "note": "Площа, периметр, радіус і діаметр."
+    },
+    {
+      "jsonId": 8,
+      "jsonName": "Рівняння",
+      "code": "ALG-07-EQ",
+      "siteName": "Рівняння",
+      "nameSource": "conspect",
+      "confidence": "high",
+      "note": "Усі 20 — лінійні рівняння. Квадратних тут немає, тож це не ALG-08-QUAD-EQ."
+    },
+    {
+      "jsonId": 9,
+      "jsonName": "Доказова геометрія",
+      "code": "GEO-07-PROOFS",
+      "siteName": "Доказова геометрія",
+      "nameSource": "migration",
+      "confidence": "high",
+      "note": "Ознаки рівності, кути, паралельність. Назву підтверджує міграція 043."
+    },
+    {
+      "jsonId": 10,
+      "jsonName": "Координатна площина",
+      "code": "ALG-07-COORD-PLANE",
+      "siteName": "Координатна площина",
+      "nameSource": "curriculum",
+      "confidence": "high",
+      "note": "Чверті, абсциса, ордината, симетрія. У базі це id 13, не 10. Точного рядка themes.name у git немає."
+    },
+    {
+      "jsonId": 11,
+      "jsonName": "Функція",
+      "code": "ALG-09-FUNCTIONS",
+      "siteName": "Функції",
+      "nameSource": "conspect",
+      "confidence": "high",
+      "note": "Означення, лінійна функція, нулі. Одне y=x² лишається в цій темі."
+    },
+    {
+      "jsonId": 12,
+      "jsonName": "Границя функції",
+      "code": "ALG-11-LIMITS",
+      "siteName": "Границі",
+      "nameSource": "curriculum",
+      "confidence": "high",
+      "note": "Усі 20 — границя многочлена в точці. Точного рядка themes.name у git немає."
+    },
+    {
+      "jsonId": 13,
+      "jsonName": "Похідна функції",
+      "code": "ALG-11-DERIVATIVE",
+      "siteName": "Похідна",
+      "nameSource": "curriculum",
+      "confidence": "high",
+      "note": "Усі 20 — похідна многочлена. Точного рядка themes.name у git немає."
+    },
+    {
+      "jsonId": 14,
+      "jsonName": "Первісна функції та інтеграли",
+      "code": "ALG-11-INTEGRALS",
+      "siteName": "Інтеграл",
+      "nameSource": "curriculum",
+      "confidence": "high",
+      "note": "Усі 20 — первісна і невизначений інтеграл. Точного рядка themes.name у git немає."
+    },
+    {
+      "jsonId": 15,
+      "jsonName": "Теорія ймовірностей та математична статистика",
+      "code": "MATH-09-PROBABILITY",
+      "siteName": "Теорія ймовірностей",
+      "nameSource": "conspect",
+      "confidence": "review",
+      "note": "11 завдань — класична ймовірність. 9 (три середніх, дві моди, дві медіани, два розмахи) ближчі до MATH-09-STATISTICS. Окремої статистичної теми в JSON немає."
+    },
+    {
+      "jsonId": 16,
+      "jsonName": "Тригонометрія",
+      "code": "ALG-10-TRIG",
+      "siteName": "Тригонометрія",
+      "nameSource": "curriculum",
+      "confidence": "high",
+      "note": "Значення синуса, косинуса, тангенса і тотожності. Точного рядка themes.name у git немає."
+    },
+    {
+      "jsonId": 17,
+      "jsonName": "Комбінаторика",
+      "code": "ALG-09-COMB-PROG",
+      "siteName": "Комбінаторика. Прогресії",
+      "nameSource": "conspect",
+      "confidence": "high",
+      "note": "Розміщення, комбінації, факторіал. На сайті одна тема разом із прогресіями, JSON 18."
+    },
+    {
+      "jsonId": 18,
+      "jsonName": "Прогресії",
+      "code": "ALG-09-COMB-PROG",
+      "siteName": "Комбінаторика. Прогресії",
+      "nameSource": "conspect",
+      "confidence": "high",
+      "note": "Арифметична і геометрична прогресії. Той самий код, що JSON 17."
+    },
+    {
+      "jsonId": 19,
+      "jsonName": "Експоненти та логарифми",
+      "code": "ALG-11-LOGARITHMS",
+      "siteName": "Логарифми",
+      "nameSource": "curriculum",
+      "confidence": "review",
+      "note": "11 голих степенів без коренів і 9 логарифмів. Коренів немає, тож ALG-08-POWERS-ROOTS гірше за назвою, але степені туди теж сідають. Точного рядка themes.name у git немає."
+    },
+    {
+      "jsonId": 20,
+      "jsonName": "Словарні задачі",
+      "code": "MATH-07-WORD-PROBLEMS",
+      "siteName": "Текстові задачі",
+      "nameSource": "conspect",
+      "confidence": "high",
+      "note": "Сюжетні задачі. Одне про периметр квадрата теж текстове."
+    },
+    {
+      "jsonId": 21,
+      "jsonName": "Стереометрія",
+      "code": "GEO-10-STEREOMETRY",
+      "siteName": "Стереометрія",
+      "nameSource": "curriculum",
+      "confidence": "high",
+      "note": "Куб, тетраедр, паралелепіпед, циліндр, конус, куля. Точного рядка themes.name у git немає."
+    },
+    {
+      "jsonId": 22,
+      "jsonName": "Вища математика",
+      "code": null,
+      "siteName": "Вища математика",
+      "nameSource": "json",
+      "confidence": "review",
+      "note": "Немає одного коду: система, границі, інтеграл, похідні, визначник, квадратне рівняння, логарифм, вектори. Лишається окремим пунктом зі своєю назвою, доки викладач не розкладе завдання."
+    }
+  ]
+}

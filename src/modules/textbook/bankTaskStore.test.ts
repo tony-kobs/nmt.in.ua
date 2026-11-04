@@ -94,6 +94,7 @@ test("a deleted bank id is missing, and a dead database does not pretend the tas
     assert.deepEqual(missing.tasks, {});
   }
   assert.equal(state.sql.some((sql) => sql.includes("9")), false);
+  assert.equal(state.sql.some((sql) => sql.includes("t.id = q.theme_id")), true);
   assert.deepEqual(state.params[0], [9]);
 
   state.fail = true;
@@ -112,4 +113,20 @@ test("bank search keeps the query in parameters", async () => {
   assert.equal(state.sql.some((sql) => sql.includes("дроби")), false);
   assert.equal(state.params.some((params) => params.includes("дроби")), true);
   assert.equal(state.sql.some((sql) => sql.includes("right_answer")), false);
+  const problemSql = state.sql.find((sql) => sql.includes("FROM problems"));
+  assert.match(problemSql ?? "", /WHEN 4 THEN 'ALG-08-FRACTIONS'/);
+  assert.equal(problemSql?.includes("t.id = p.theme_id"), false);
+  assert.equal(state.sql.some((sql) => sql.includes("t.id = q.theme_id")), true);
+});
+
+test("a workbook task joins its theme by code, not by the zadachnyk id", async () => {
+  const state = { rows: [], fail: false, sql: [] as string[], params: [] as unknown[][] };
+  const loaded = await loadBankTaskViews([{ bank: "problem", id: 12 }], async () => connection(state));
+  assert.equal(loaded.ok, true);
+  const problemSql = state.sql.find((sql) => sql.includes("FROM problems")) ?? "";
+  assert.match(problemSql, /WHEN 4 THEN 'ALG-08-FRACTIONS'/);
+  assert.match(problemSql, /WHEN 1 THEN 'MATH-06-ARITH-OPS'/);
+  assert.equal(problemSql.includes("t.id = p.theme_id"), false);
+  assert.equal(problemSql.includes("MATH-05-ELEM-OPS"), false);
+  assert.deepEqual(state.params[0], [12]);
 });
