@@ -9,6 +9,15 @@ import { formulaToPlain, latexToTelegramPlain } from "./latexPlain";
 const EXPLANATION = String.raw`$|\frac32-4|=\frac52$, а $2-\frac35=\frac75$. Добуток $\frac52\cdot\frac75=\frac72$.`;
 const EXPLANATION_PLAIN = "|3/2-4|=5/2, а 2-3/5=7/5. Добуток 5/2·7/5=7/2.";
 
+test("a comparison is plain text and a real tag stays a tag", () => {
+  assert.equal(latexToTelegramPlain("бо 2 < 3 і 5 > 1 & 0"), "бо 2 < 3 і 5 > 1 & 0");
+  assert.equal(latexToTelegramPlain("3 < 4 і <b>жирний</b>"), "3 < 4 і <b>жирний</b>");
+  assert.equal(
+    latexToTelegramPlain("А. ≠\nБ. <\nВ. =\nГ. >"),
+    "А. ≠\nБ. <\nВ. =\nГ. >",
+  );
+});
+
 test("the prod explanation is plain text, and the same rules cover school TeX", () => {
   assert.equal(latexToTelegramPlain(EXPLANATION), EXPLANATION_PLAIN);
   assert.equal(latexToTelegramPlain(EXPLANATION), latexToTelegramPlain(EXPLANATION_PLAIN));

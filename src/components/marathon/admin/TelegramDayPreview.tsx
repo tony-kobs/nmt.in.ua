@@ -1,16 +1,12 @@
 import { getTranslations } from "next-intl/server";
 import { MathText } from "@/components/ui/MathText";
 import { previewChat } from "@/modules/marathons/daily/telegramContent";
+import { telegramHtmlToPlain } from "@/modules/telegram/telegramHtml";
 import type { MarathonDay, Material } from "@/modules/marathons/daily/store";
 import css from "../marathon.module.css";
 
 function visibleText(value: string): string {
-  return value
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replaceAll("&amp;", "&")
-    .replaceAll("&lt;", "<")
-    .replaceAll("&gt;", ">");
+  return telegramHtmlToPlain(value);
 }
 
 export async function TelegramDayPreview({

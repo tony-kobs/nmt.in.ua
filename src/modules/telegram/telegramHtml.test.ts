@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   markdownToTelegramHtml,
   splitTelegramHtml,
+  telegramHtmlToPlain,
   TELEGRAM_HTML_LIMIT,
 } from "./telegramHtml";
 
@@ -16,6 +17,17 @@ test("telegram html escapes raw markup and keeps a safe markdown subset", () => 
   assert.match(html, /<a href="https:\/\/nmt\.in\.ua\/a\?x=1&amp;y=2">сайт<\/a>/);
   assert.match(html, /• перший/);
   assert.doesNotMatch(html, /javascript:/);
+});
+
+test("comparison signs are not treated as html tags", () => {
+  const sign = "А. ≠\nБ. <\nВ. =\nГ. >";
+  assert.equal(telegramHtmlToPlain(sign), sign);
+  assert.equal(telegramHtmlToPlain("А. <\nБ. >\nВ. ≤\nГ. ="), "А. <\nБ. >\nВ. ≤\nГ. =");
+  assert.equal(telegramHtmlToPlain("<b>жирний</b> і 3 &lt; 4 &amp; 5"), "жирний і 3 < 4 & 5");
+  assert.equal(telegramHtmlToPlain("<div>3 < 4</div>"), "3 < 4");
+  assert.equal(telegramHtmlToPlain("a &amp;lt; b"), "a &lt; b");
+  assert.equal(telegramHtmlToPlain("рядок<br>наступний"), "рядок\nнаступний");
+  assert.equal(telegramHtmlToPlain(sign), sign);
 });
 
 test("telegram html splits on paragraphs under 4096 and does not cut a tag", () => {

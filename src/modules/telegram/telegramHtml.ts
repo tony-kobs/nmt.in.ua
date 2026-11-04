@@ -18,6 +18,35 @@ function inline(value: string): string {
     );
 }
 
+/**
+ * Visible text for a bubble that may already be Telegram HTML.
+ * A tag starts with a letter (`<b>`, `</a>`, `<br/>`). `3 < 4` and a break
+ * between `<` and `>` stay. `&lt;` `&gt;` `&amp;` come back as characters.
+ */
+export function telegramHtmlToPlain(value: string): string {
+  return value
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/?[a-zA-Z][^<>]*>/g, "")
+    .replaceAll("&nbsp;", " ")
+    .replaceAll("&quot;", "\"")
+    .replaceAll("&#39;", "'")
+    .replaceAll("&apos;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&amp;", "&");
+}
+
+/** Hide urls and real tags from the LaTeX pass, then put them back unchanged. */
+export function maskTelegramMarkup(value: string): { text: string; slots: string[] } {
+  const slots: string[] = [];
+  const text = value.replace(/https?:\/\/\S+|<\/?[a-zA-Z][^<>]*>/g, (match) => {
+    const token = `\u0000${slots.length}\u0000`;
+    slots.push(match);
+    return token;
+  });
+  return { text, slots };
+}
+
 /** Markdown subset to Telegram HTML. Raw HTML is escaped, so it cannot run. */
 export function markdownToTelegramHtml(source: string): string {
   const escaped = escapeTelegramHtml(source.replaceAll("\r\n", "\n"));

@@ -34,6 +34,7 @@ import {
   type ReviewedPlayTask,
   type TaskSourceRow,
 } from "./playTasks";
+import { promptWithoutCopiedOptions } from "./promptOptions";
 import {
   applyRankSnapshot,
   publicLeaderName,
@@ -702,6 +703,9 @@ export async function insertTask(
   },
   getConnection?: Conn,
 ): Promise<void> {
+  const prompt = input.prompt == null
+    ? null
+    : promptWithoutCopiedOptions(input.prompt, input.options ?? []) || null;
   await withConn(async (connection) => {
     await connection.execute(
       `INSERT INTO marathon_day_tasks
@@ -711,7 +715,7 @@ export async function insertTask(
         dayId,
         input.order,
         input.questionId,
-        input.prompt,
+        prompt,
         input.options ? JSON.stringify(input.options) : null,
         input.correct,
         input.explanation?.trim() || null,

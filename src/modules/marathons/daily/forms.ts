@@ -1,6 +1,7 @@
 import { parseUnlockHour } from "./calendar";
 import { isCopyKey, unknownPlaceholders, type CopyKey } from "./copy";
 import { isInviteAudience, type InviteAudience } from "./invite";
+import { stripCopiedOptionLines } from "./promptOptions";
 import { loomEmbedSrc, youtubeEmbedSrc } from "./richText";
 import { normalizeCtaUrl, readUtm, serializeUtm, type UtmParams } from "./utm";
 
@@ -335,10 +336,10 @@ export function parseTask(formData: FormData): ParseResult<TaskInput> {
     if (issues.length > 0 || order == null) return { ok: false, issues };
     return { ok: true, value: { order, mode: "bank", questionId } };
   }
-  const prompt = readText(formData.get("prompt"), 4000);
   const options = [1, 2, 3, 4]
     .map((index) => readText(formData.get(`option${index}`), 500))
     .filter(Boolean);
+  const prompt = stripCopiedOptionLines(readText(formData.get("prompt"), 4000), options);
   const correct = readInt(formData.get("correct"));
   if (!prompt) issue(issues, "prompt", "required");
   if (options.length < 2) issue(issues, "options", "required");
