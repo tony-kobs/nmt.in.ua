@@ -4,7 +4,7 @@ import { PageFrame, PagePanel } from "@/components/dashboard/PageFrame";
 import { getNavItem } from "@/constants/navigation";
 import { createPageMetadata } from "@/constants/seo";
 import { requireUser } from "@/modules/auth/getCurrentUser";
-import { canManageStudents } from "@/modules/auth/types";
+import { canManageStudents, isPlatformStaff } from "@/modules/auth/types";
 import { getMarathonLeaderboard } from "@/modules/marathons";
 import { getTeacherStudents } from "@/modules/teacher-students";
 import { readSearchParam } from "@/lib/queryHref";
@@ -56,7 +56,7 @@ export default async function LeaderboardPage({ searchParams }: PageProps) {
   }
 
   const mode =
-    user.role === "admin"
+    isPlatformStaff(user.role)
       ? "admin"
       : user.role === "teacher"
         ? "teacher"

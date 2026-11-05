@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser, readLiveAccount } from "@/modules/auth/getCurrentUser";
+import { getCurrentUser, getSessionPayload, readLiveAccount } from "@/modules/auth/getCurrentUser";
 import { hasPermission } from "@/modules/auth/permissions";
+import { effectiveRole } from "@/modules/auth/viewRole";
 import { getDailyById, listParticipantReports } from "@/modules/marathons/daily/store";
 import { parseUtmSource, toCsv } from "@/modules/marathons/daily/utm";
 
@@ -12,7 +13,9 @@ export async function GET(
 ) {
   const cookieUser = await getCurrentUser();
   const account = cookieUser ? await readLiveAccount(cookieUser.id) : null;
-  if (!account || account.isBanned || !hasPermission(account.role, "marathon:manage")) {
+  const payload = cookieUser ? await getSessionPayload() : null;
+  const role = account ? effectiveRole(account.role, payload?.viewAs) : null;
+  if (!account || account.isBanned || !role || !hasPermission(role, "marathon:manage")) {
     return new NextResponse(null, { status: 401 });
   }
   const { id } = await context.params;

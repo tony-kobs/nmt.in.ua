@@ -17,8 +17,15 @@
     "roles": {
       "student": "Schüler",
       "teacher": "Lehrer",
-      "admin": "Admin"
+      "admin": "Admin",
+      "dev": "Entwickler"
     },
+    "viewingAs": "Ansicht: {role}",
+    "roleSwitchIdle": "Du kannst vorübergehend das Schüler- oder Lehrerkabinett öffnen. Die gespeicherte Rolle ändert sich nicht.",
+    "roleSwitchStatus": "Die Seite ist als {role} geöffnet. Deine gespeicherte Rolle bleibt {real}.",
+    "roleSwitchStudent": "Als Schüler",
+    "roleSwitchTeacher": "Als Lehrer",
+    "roleSwitchSelf": "Eigene Rolle: {role}",
     "siteName": "LevelUP"
   },
   "Notifications": {

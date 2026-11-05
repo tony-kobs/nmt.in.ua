@@ -5,7 +5,7 @@ import { PageFrame } from "@/components/dashboard/PageFrame";
 import { getNavItem } from "@/constants/navigation";
 import { createPageMetadata } from "@/constants/seo";
 import { requireRole } from "@/modules/auth/getCurrentUser";
-import { USER_ROLES, type UserRole } from "@/modules/auth/types";
+import { PLATFORM_STAFF_ROLES, USER_ROLES, type UserRole } from "@/modules/auth/types";
 import {
   ADMIN_PROFILES_PAGE_SIZE,
   getAdminProfiles,
@@ -57,13 +57,13 @@ const EMPTY_PAGE: AdminProfilesPage = {
   page: 1,
   pageSize: ADMIN_PROFILES_PAGE_SIZE,
   totalPages: 1,
-  roleCounts: { all: 0, student: 0, teacher: 0, admin: 0 },
+  roleCounts: { all: 0, student: 0, teacher: 0, admin: 0, dev: 0 },
 };
 
 export default async function ProfilesPage({
   searchParams,
 }: ProfilesPageProps) {
-  const user = await requireRole(["admin"]);
+  const user = await requireRole(PLATFORM_STAFF_ROLES);
   const t = await getTranslations("AdminProfiles");
   const params = await searchParams;
   const roleFilter = parseRoleFilter(readSearchParam(params.role));

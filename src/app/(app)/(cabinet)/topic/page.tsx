@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { TopicTestStart } from "@/components/dashboard/TopicTestStart";
 import { createPageMetadata } from "@/constants/seo";
 import { requireUser } from "@/modules/auth/getCurrentUser";
+import { isPlatformStaff } from "@/modules/auth/types";
 import { countStage2CatalogTasks } from "@/modules/stage2/rounds";
 import { getAvailableTopicThemes } from "@/modules/testing/getAvailableTopicThemes";
 import { parseThemeQueryParam } from "@/modules/testing/parseThemeQueryParam";
@@ -31,7 +32,7 @@ function readParam(raw: string | string[] | undefined): string | undefined {
 export default async function TopicPage({ searchParams }: TopicPageProps) {
   const user = await requireUser();
   if (user.role === "teacher") redirect("/assign");
-  if (user.role === "admin") redirect("/");
+  if (isPlatformStaff(user.role)) redirect("/");
 
   const params = await searchParams;
   const [themes, stage2Count] = await Promise.all([

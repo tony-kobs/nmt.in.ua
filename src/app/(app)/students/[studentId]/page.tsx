@@ -4,6 +4,7 @@ import { TeacherStudentDetail } from "@/components/dashboard/TeacherStudentDetai
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { createPageMetadata } from "@/constants/seo";
 import { requireRole } from "@/modules/auth/getCurrentUser";
+import { TEACHING_STAFF_ROLES } from "@/modules/auth/types";
 import { getTopicResults } from "@/modules/results/getTopicResults";
 import { getTeacherLearningSessions } from "@/modules/sessions/teacherLearningSessions";
 import { getTeacherStudents } from "@/modules/teacher-students/getTeacherStudents";
@@ -32,7 +33,7 @@ export async function generateMetadata() {
 export default async function StudentStatsPage({
   params,
 }: StudentStatsPageProps) {
-  const user = await requireRole(["teacher", "admin"]);
+  const user = await requireRole(TEACHING_STAFF_ROLES);
   const { studentId: rawId } = await params;
   const studentId = readStudentId(rawId);
   if (studentId == null) notFound();

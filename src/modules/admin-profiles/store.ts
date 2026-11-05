@@ -4,7 +4,7 @@ import {
   ensureUserSessionsSchema,
   SQL_REVOKE_USER_SESSIONS,
 } from "@/modules/auth/userSessions";
-import type { UserRole } from "@/modules/auth/types";
+import { USER_ROLES, type UserRole } from "@/modules/auth/types";
 import { ensureAuthSchema } from "@/modules/auth/users";
 import { unlinkTelegramAccount } from "@/modules/telegram/unlink";
 import { mysqlErrno } from "@/modules/teacher-students/mysqlErrno";
@@ -81,13 +81,18 @@ const EMPTY_ROLE_COUNTS: AdminProfilesRoleCounts = {
   student: 0,
   teacher: 0,
   admin: 0,
+  dev: 0,
 };
+
+function isCountedRole(role: string): role is UserRole {
+  return (USER_ROLES as readonly string[]).includes(role);
+}
 
 function mapRoleCounts(rows: RoleCountRow[]): AdminProfilesRoleCounts {
   const counts = { ...EMPTY_ROLE_COUNTS };
   for (const row of rows) {
     const n = Number(row.count);
-    if (row.role === "student" || row.role === "teacher" || row.role === "admin") {
+    if (isCountedRole(row.role)) {
       counts[row.role] = n;
     }
     counts.all += n;

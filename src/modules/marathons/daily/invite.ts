@@ -14,7 +14,7 @@ export function normalizeInviteAudience(value: unknown): InviteAudience {
 export function inviteAudienceIncludes(audience: InviteAudience, role: string): boolean {
   if (audience === "none") return false;
   if (audience === "students") return role === "student";
-  return role === "student" || role === "teacher" || role === "admin";
+  return role === "student" || role === "teacher" || role === "admin" || role === "dev";
 }
 
 export type InviteCandidate = {

@@ -6,6 +6,7 @@ import { getNavItem } from "@/constants/navigation";
 import { createPageMetadata } from "@/constants/seo";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
 import { requireRole } from "@/modules/auth/getCurrentUser";
+import { TEACHING_STAFF_ROLES } from "@/modules/auth/types";
 import { inviteJoinPath } from "@/modules/teacher-students/codes";
 import { getStudentGroups } from "@/modules/teacher-students/groups";
 import { getActiveStudentInvites } from "@/modules/teacher-students/invites";
@@ -24,7 +25,7 @@ export async function generateMetadata() {
 }
 
 export default async function StudentsPage() {
-  const user = await requireRole(["teacher", "admin"]);
+  const user = await requireRole(TEACHING_STAFF_ROLES);
   const t = await getTranslations("TeacherStudents");
 
   let students: Awaited<ReturnType<typeof getTeacherStudents>> = [];

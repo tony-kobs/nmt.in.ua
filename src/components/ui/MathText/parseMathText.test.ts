@@ -81,6 +81,15 @@ test("KaTeX renders formulas as HTML without duplicate MathML text", () => {
   }
 });
 
+test("a comparison in a marathon prompt stays text for the site", () => {
+  const parts = parseMathText("Визначте знак: 3 < 4 & 5 > 1");
+  assert.equal(parts.length, 1);
+  assert.equal(parts[0]?.type, "text");
+  if (parts[0]?.type === "text") {
+    assert.equal(parts[0].content, "Визначте знак: 3 < 4 & 5 > 1");
+  }
+});
+
 test("KaTeX HTML output does not duplicate a simple numeric answer", () => {
   const html = katexHtml("20", false);
   const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();

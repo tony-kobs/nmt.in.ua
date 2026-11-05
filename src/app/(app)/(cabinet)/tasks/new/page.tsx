@@ -5,6 +5,7 @@ import { PageFrame } from "@/components/dashboard/PageFrame";
 import { createPageMetadata } from "@/constants/seo";
 import { getAdminThemes } from "@/modules/admin-content";
 import { requireRole } from "@/modules/auth/getCurrentUser";
+import { PLATFORM_STAFF_ROLES } from "@/modules/auth/types";
 import { parseThemeQueryParam } from "@/modules/testing/parseThemeQueryParam";
 
 type NewTaskPageProps = {
@@ -26,7 +27,7 @@ function readThemeParam(raw: string | string[] | undefined): string | undefined 
 }
 
 export default async function NewAdminTaskPage({ searchParams }: NewTaskPageProps) {
-  await requireRole(["admin"]);
+  await requireRole(PLATFORM_STAFF_ROLES);
   const t = await getTranslations("AdminContent");
   const themes = await getAdminThemes();
   if (themes.length === 0) {

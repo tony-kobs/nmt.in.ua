@@ -13,7 +13,7 @@ import {
 } from "@/lib/requestBudget";
 import { clientIp, isBlockedPath } from "@/lib/security";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
-import type { SessionPayload } from "@/modules/auth/types";
+import { isPlatformStaff, type SessionPayload } from "@/modules/auth/types";
 import {
   SESSION_COOKIE_NAME,
   verifySessionToken,
@@ -67,8 +67,9 @@ async function readSession(request: NextRequest): Promise<SessionPayload | null>
 }
 
 /**
- * Cheap cookie gate only. Admin, teacher, and marathon:manage pages call
- * `requireUser` / `requireRole`, which re-read role and ban from `app_users`.
+ * Cheap cookie gate only. Admin, developer, teacher, and marathon:manage pages call
+ * `requireUser` / `requireRole`, which re-read the stored role and ban from `app_users`.
+ * A staff `viewAs` cookie can only downgrade the effective role to student or teacher.
  */
 function authGuard(
   request: NextRequest,
@@ -86,7 +87,7 @@ function authGuard(
     return NextResponse.redirect(loginUrl);
   }
 
-  if (requiresAdmin(pathname) && session.role !== "admin") {
+  if (requiresAdmin(pathname) && !isPlatformStaff(session.role)) {
     return redirectOnSite("/");
   }
 
@@ -100,7 +101,7 @@ function authGuard(
   if (
     requiresTeacherOrAdmin(pathname) &&
     session.role !== "teacher" &&
-    session.role !== "admin"
+    !isPlatformStaff(session.role)
   ) {
     return redirectOnSite("/");
   }

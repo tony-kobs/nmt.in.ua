@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { optionalLiveUser } from "@/modules/auth/getCurrentUser";
+import { isPlatformStaff } from "@/modules/auth/types";
 import { DOCX_MAX_BYTES, importDocx } from "@/modules/textbook/importDocx";
 import { htmlToTextbookMarkup, materializeImportImages } from "@/modules/textbook/importHtml";
 import { saveTextbookImage } from "@/modules/textbook/imageStore";
@@ -23,7 +24,7 @@ type RouteDeps = {
 async function requireAdmin(): Promise<AdminGate> {
   const user = await optionalLiveUser();
   if (!user) return { ok: false, status: 401 };
-  if (user.role !== "admin") return { ok: false, status: 403 };
+  if (!isPlatformStaff(user.role)) return { ok: false, status: 403 };
   return { ok: true };
 }
 

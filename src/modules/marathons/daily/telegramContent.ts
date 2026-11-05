@@ -4,6 +4,7 @@ import { composeTelegramTask } from "@/modules/telegram/taskRender";
 import {
   markdownToTelegramHtml,
   splitTelegramHtml,
+  telegramHtmlToPlain,
 } from "@/modules/telegram/telegramHtml";
 import { loomEmbedSrc, youtubeEmbedSrc } from "./richText";
 
@@ -162,7 +163,7 @@ function isNoise(piece: DeliveryPiece): boolean {
   ) {
     return false;
   }
-  const text = piece.text.replace(/<[^>]+>/g, "").trim();
+  const text = telegramHtmlToPlain(piece.text).trim();
   if (!text) return true;
   if (/^[.·…,;:!?]+$/.test(text)) return true;
   return /^[АБВГДЕЄ]\.$/.test(text);

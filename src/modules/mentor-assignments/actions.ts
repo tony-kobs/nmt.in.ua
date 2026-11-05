@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/modules/auth/getCurrentUser";
+import { TEACHING_STAFF_ROLES } from "@/modules/auth/types";
 import {
   cancelMentorAssignment,
   createMentorAssignment,
@@ -68,7 +69,7 @@ export async function createMentorAssignmentAction(
   formData: FormData
 ): Promise<MentorAssignmentActionState> {
   try {
-    const user = await requireRole(["teacher", "admin"]);
+    const user = await requireRole(TEACHING_STAFF_ROLES);
     const rawSession = String(formData.get("learningSessionId") ?? "").trim();
     const learningSessionId = rawSession ? Number(rawSession) : null;
     const themeId = Number(formData.get("themeId"));
@@ -95,7 +96,7 @@ export async function cancelMentorAssignmentAction(
   formData: FormData
 ): Promise<MentorAssignmentActionState> {
   try {
-    const user = await requireRole(["teacher", "admin"]);
+    const user = await requireRole(TEACHING_STAFF_ROLES);
     const assignmentId = Number(formData.get("assignmentId"));
     await cancelMentorAssignment(assignmentId, user.id);
     revalidatePath("/assign");
@@ -111,7 +112,7 @@ export async function updateMentorAssignmentMembersAction(
   formData: FormData
 ): Promise<MentorAssignmentActionState> {
   try {
-    const user = await requireRole(["teacher", "admin"]);
+    const user = await requireRole(TEACHING_STAFF_ROLES);
     const assignmentId = Number(formData.get("assignmentId"));
     const detail = await updateMentorAssignmentMembers({
       assignmentId,

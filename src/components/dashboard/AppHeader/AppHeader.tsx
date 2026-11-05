@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import type { AuthUser } from "@/modules/auth/client";
+import { isPlatformStaff, type AuthUser } from "@/modules/auth/client";
 import { UserAvatar } from "@/components/account/UserAvatar";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { BrandWord } from "@/components/brand/BrandWord";
@@ -26,6 +26,10 @@ export function AppHeader({
 }: AppHeaderProps) {
   const t = useTranslations("Header");
   const pathname = usePathname();
+  const viewing =
+    user.realRole != null &&
+    isPlatformStaff(user.realRole) &&
+    user.realRole !== user.role;
   const onAccount = pathname === "/account";
   const toggleLabel = sidebarOpen
     ? t(sidebarMode === "rail" ? "unpinSidebar" : "hideSidebar")
@@ -84,7 +88,9 @@ export function AppHeader({
             <span className={css.profileMeta}>
               <span className={css.profileName}>{user.displayName}</span>
               <span className={css.profileRole}>
-                {t(`roles.${user.role}`)}
+                {viewing
+                  ? t("viewingAs", { role: t(`roles.${user.role}`) })
+                  : t(`roles.${user.role}`)}
               </span>
             </span>
           </Link>

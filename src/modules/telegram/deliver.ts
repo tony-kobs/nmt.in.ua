@@ -4,6 +4,7 @@ import type { DeliveryPiece } from "@/modules/marathons/daily/telegramContent";
 import type { InlineKeyboard, TelegramReply } from "./taskInteraction";
 import { renderFormulaPng, type FormulaRenderer } from "./formulaImage";
 import { latexToTelegramPlain } from "./latexPlain";
+import { telegramHtmlToPlain } from "./telegramHtml";
 import { sendThrottled, sharedTelegramPace, type SendOutcome } from "./throttle";
 import { sendTelegramMessage, sendTelegramPayload, type TelegramSendResult } from "./transport";
 
@@ -90,7 +91,7 @@ function formulaFallback(reply: TelegramReply): TelegramReply | null {
 }
 
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&").slice(0, 4096);
+  return telegramHtmlToPlain(html).slice(0, 4096);
 }
 
 /** Text stand-in for media Telegram refused (unreachable URL, SVG, too large, bad caption). */

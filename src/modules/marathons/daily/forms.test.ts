@@ -319,6 +319,46 @@ test("task parser accepts a bank id or explains a broken inline question", () =>
     assert.deepEqual(ready.value.options, ["3", "4"]);
     assert.equal(ready.value.correct, 2);
   }
+
+  const copied = parseTask(
+    data({
+      order: "4",
+      prompt: "Як записати?\n\nА. d · 11\nБ. d − 11",
+      option1: "d · 11",
+      option2: "d − 11",
+      option3: "d + 11",
+      correct: "1",
+    }),
+  );
+  assert.equal(copied.ok, true);
+  if (copied.ok && copied.value.mode === "inline") {
+    assert.equal(copied.value.prompt, "Як записати?");
+  }
+
+  const mentioned = parseTask(
+    data({
+      order: "4",
+      prompt: "Порівняйте приклад А. 2 < 0 у самій умові.",
+      option1: "<",
+      option2: ">",
+      correct: "1",
+    }),
+  );
+  assert.equal(mentioned.ok, true);
+  if (mentioned.ok && mentioned.value.mode === "inline") {
+    assert.match(mentioned.value.prompt, /2 < 0/);
+  }
+
+  const onlyOptions = parseTask(
+    data({
+      order: "4",
+      prompt: "А. 3\nБ. 4",
+      option1: "3",
+      option2: "4",
+      correct: "1",
+    }),
+  );
+  assert.equal(onlyOptions.ok, false);
 });
 
 test("duplicate and server issues name a field and have copy in uk, en and de", () => {

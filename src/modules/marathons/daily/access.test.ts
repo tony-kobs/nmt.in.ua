@@ -77,6 +77,13 @@ test("teachers and admins keep their menus when a marathon href is present", () 
     marathonHref: MAP,
   }).map((item) => item.href);
   assert.deepEqual([...admin].sort(), [...ADMIN_NAV_HREFS].sort());
+  const dev = visibleSidebar({
+    role: "dev",
+    cabinetScope: "full",
+    marathonHref: null,
+  }).map((item) => item.href);
+  assert.deepEqual([...dev].sort(), [...ADMIN_NAV_HREFS].sort());
+
   assert.equal(isMarathonOnlyStudent("teacher", "marathon"), false);
   assert.equal(isMarathonOnlyStudent("admin", "marathon"), false);
   assert.equal(isMarathonOnlyStudent("student", "full"), false);
@@ -95,7 +102,7 @@ test("marathon scope no longer redirects cabinet URLs", () => {
 });
 
 test("each role's sidebar icons are distinct", () => {
-  const roles: UserRole[] = ["student", "teacher", "admin"];
+  const roles: UserRole[] = ["student", "teacher", "admin", "dev"];
   for (const role of roles) {
     const icons = visibleSidebar({
       role,

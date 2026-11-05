@@ -28,6 +28,7 @@ export type AdminProfilesRoleCounts = {
   student: number;
   teacher: number;
   admin: number;
+  dev: number;
 };
 
 export type AdminProfilesPage = {

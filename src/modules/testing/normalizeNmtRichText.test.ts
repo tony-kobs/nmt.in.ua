@@ -21,6 +21,12 @@ test("normalizeNmtRichText keeps cases environments as display math", () => {
   assert.doesNotMatch(out, /\\\(/);
 });
 
+test("normalizeNmtRichText keeps comparison signs and still drops real tags", () => {
+  assert.equal(normalizeNmtRichText("А. ≠\nБ. <\nВ. =\nГ. >"), "А. ≠\nБ. <\nВ. =\nГ. >");
+  assert.equal(normalizeNmtRichText("3 < 4 &amp; 5 > 1"), "3 < 4 & 5 > 1");
+  assert.equal(normalizeNmtRichText("<strong>3 < 4</strong>"), "3 < 4");
+});
+
 test("normalizeNmtRichText strips html and keeps images as markdown", () => {
   const out = normalizeNmtRichText(
     `<strong>Текст</strong> <img src="/nmt/osvita/a.png" alt="" />`,

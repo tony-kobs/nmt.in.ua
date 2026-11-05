@@ -48,7 +48,10 @@ export async function getTelegramAccountProfile(
         profile: {
           accountId: Number(row.account_id),
           userId: Number(row.user_id),
-          role: row.role === "teacher" || row.role === "admin" ? "teacher" : "student",
+          role:
+            row.role === "teacher" || row.role === "admin" || row.role === "dev"
+              ? "teacher"
+              : "student",
           displayName: (row.display_name ?? "").replace(/\s+/g, " ").trim().slice(0, 100),
           linkedAt: Number.isFinite(linked) ? linked : null,
         },

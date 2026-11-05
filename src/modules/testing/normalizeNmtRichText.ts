@@ -60,7 +60,9 @@ function stripTags(html: string): string {
     .replace(/<\/div>/gi, "\n")
     .replace(/<div\b[^>]*>/gi, "")
     .replace(/<img\b[^>]*\bsrc="([^"]+)"[^>]*>/gi, "![]($1)")
-    .replace(/<\/?[^>]+>/g, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    // A tag name starts with a letter. `3 < 4` and a linebreak between `<` and `>` stay.
+    .replace(/<\/?[a-zA-Z][^<>]*>/g, "")
     .replace(/\n{3,}/g, "\n\n");
 }
 
