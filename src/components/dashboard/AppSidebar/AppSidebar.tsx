@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { FeedbackEntry } from "@/components/feedback/FeedbackDialog";
-import type { CabinetScope, UserRole } from "@/modules/auth/client";
+import { isPlatformStaff, type CabinetScope, type UserRole } from "@/modules/auth/client";
 import {
   isMarathonOnlyStudent,
   sidebarLinkActive,
@@ -75,7 +75,7 @@ export function AppSidebar({
                     <NavIcon name={item.icon} />
                     <span className={css.labelRow}>
                       <span className={css.label}>
-                        {item.href === "/" && role === "admin"
+                        {item.href === "/" && isPlatformStaff(role)
                           ? t("nav.homeAdmin")
                           : t(`nav.${item.labelKey}`)}
                       </span>

@@ -36,7 +36,7 @@ test("a student does not see another person's feedback", () => {
   assert.deepEqual(presented.dismissIds, [3]);
 });
 
-test("an admin still sees feedback", () => {
+test("an admin and a developer still see feedback", () => {
   const presented = presentBellNotifications({
     role: "admin",
     joinedSlugs: new Set(),
@@ -45,6 +45,13 @@ test("an admin still sees feedback", () => {
   });
   assert.equal(presented.visible.length, 1);
   assert.deepEqual(presented.dismissIds, []);
+  const asDev = presentBellNotifications({
+    role: "dev",
+    joinedSlugs: new Set(),
+    declinedSlugs: new Set(),
+    items: [note({ id: 3, kind: "admin.feedback" })],
+  });
+  assert.equal(asDev.visible.length, 1);
 });
 
 test("an invitation already joined or declined leaves the bell", () => {

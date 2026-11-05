@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { requireRole } from "@/modules/auth/getCurrentUser";
+import { PLATFORM_STAFF_ROLES } from "@/modules/auth/types";
 import type { TextbookDraftRow, TextbookWriteResult } from "./draftTypes";
 import { TEXTBOOK_BODY_MAX } from "./draftTypes";
 import {
@@ -33,7 +34,7 @@ function normalizeBody(raw: unknown): string {
 }
 
 export async function saveTextbookSectionAction(formData: FormData): Promise<void> {
-  const user = await requireRole(["admin"]);
+  const user = await requireRole(PLATFORM_STAFF_ROLES);
   const code = themeCode(formData.get("code"));
   if (!code) redirect("/admin/textbook?error=code");
 
@@ -74,7 +75,7 @@ export async function autosaveTextbookDraftAction(input: {
   body: string;
   expectedRevision: number;
 }): Promise<TextbookWriteResult> {
-  const user = await requireRole(["admin"]);
+  const user = await requireRole(PLATFORM_STAFF_ROLES);
   const code = themeCode(input.code);
   if (!code) return { ok: false, reason: "theme" };
   const expectedRevision = revisionField(input.expectedRevision);
@@ -96,7 +97,7 @@ export async function autosaveTextbookDraftAction(input: {
 }
 
 export async function loadTextbookDraftAction(code: string): Promise<TextbookDraftRow | null> {
-  await requireRole(["admin"]);
+  await requireRole(PLATFORM_STAFF_ROLES);
   const theme = themeCode(code);
   if (!theme) return null;
   try {
@@ -111,7 +112,7 @@ export async function loadTextbookVersionAction(
   code: string,
   versionId: number,
 ): Promise<{ body: string } | null> {
-  await requireRole(["admin"]);
+  await requireRole(PLATFORM_STAFF_ROLES);
   const theme = themeCode(code);
   const id = revisionField(versionId);
   if (!theme || id === null || id < 1) return null;
@@ -129,7 +130,7 @@ export async function restoreTextbookVersionAction(input: {
   versionId: number;
   expectedRevision: number;
 }): Promise<TextbookWriteResult> {
-  const user = await requireRole(["admin"]);
+  const user = await requireRole(PLATFORM_STAFF_ROLES);
   const code = themeCode(input.code);
   const versionId = revisionField(input.versionId);
   const expectedRevision = revisionField(input.expectedRevision);

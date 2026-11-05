@@ -137,3 +137,33 @@ test("createRenewedSessionToken never grants a fresh 24h window", async () => {
   // ...but rejected once the *original* exp passes, unlike a fresh token.
   assert.equal(await verifySessionToken(token, originalExp), null);
 });
+
+test("dev role and a student or teacher view round-trip; other views are dropped", async () => {
+  const token = await createSessionToken(
+    {
+      userId: 9,
+      role: "dev",
+      displayName: "Дев",
+      login: "dev",
+      viewAs: "teacher",
+    },
+    NOW,
+  );
+  const payload = await verifySessionToken(token, NOW);
+  assert.equal(payload?.role, "dev");
+  assert.equal(payload?.viewAs, "teacher");
+
+  const stripped = await createSessionToken(
+    {
+      userId: 9,
+      role: "admin",
+      displayName: "Адмін",
+      login: "admin",
+      viewAs: "admin" as unknown as "student",
+    },
+    NOW,
+  );
+  const adminPayload = await verifySessionToken(stripped, NOW);
+  assert.equal(adminPayload?.role, "admin");
+  assert.equal(adminPayload?.viewAs, undefined);
+});

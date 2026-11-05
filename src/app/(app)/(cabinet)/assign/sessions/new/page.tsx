@@ -3,6 +3,7 @@ import { TeacherSessionEditor } from "@/components/dashboard/TeacherSessionEdito
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { createPageMetadata } from "@/constants/seo";
 import { requireRole } from "@/modules/auth/getCurrentUser";
+import { TEACHING_STAFF_ROLES } from "@/modules/auth/types";
 import { getAvailableTopicThemes } from "@/modules/testing/getAvailableTopicThemes";
 
 export async function generateMetadata() {
@@ -16,7 +17,7 @@ export async function generateMetadata() {
 }
 
 export default async function NewTeacherSessionPage() {
-  await requireRole(["teacher", "admin"]);
+  await requireRole(TEACHING_STAFF_ROLES);
   const t = await getTranslations("TeacherSessions");
   const themes = await getAvailableTopicThemes();
 

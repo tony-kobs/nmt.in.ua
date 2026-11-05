@@ -1,11 +1,11 @@
-import type { UserRole } from "@/modules/auth/types";
+import { isPlatformStaff, type UserRole } from "@/modules/auth/types";
 import type { NotificationSnapshot } from "./logic";
 
 /** In-site notes that name another person. Students and teachers must not see them. */
 const ADMIN_ONLY_KINDS = new Set(["admin.feedback"]);
 
 export function notificationVisibleToRole(kind: string, role: UserRole): boolean {
-  if (ADMIN_ONLY_KINDS.has(kind)) return role === "admin";
+  if (ADMIN_ONLY_KINDS.has(kind)) return isPlatformStaff(role);
   return true;
 }
 

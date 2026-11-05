@@ -5,6 +5,7 @@ import { requireRole, requireUser } from "@/modules/auth/getCurrentUser";
 import {
   canManageStudents,
   canReviewConsultationRequests,
+  TEACHING_STAFF_ROLES,
 } from "@/modules/auth/types";
 import {
   attachConsultationStudent,
@@ -126,7 +127,7 @@ export async function updateConsultationRequestStatusAction(
     revalidatePath,
   },
 ): Promise<UpdateConsultationActionState> {
-  const user = await deps.requireRole(["teacher", "admin"]);
+  const user = await deps.requireRole(TEACHING_STAFF_ROLES);
   const requestId = Number(formData.get("requestId"));
   const status = formData.get("status");
 

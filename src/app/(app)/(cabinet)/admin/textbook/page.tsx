@@ -3,6 +3,7 @@ import { PageFrame } from "@/components/dashboard/PageFrame";
 import { createPageMetadata } from "@/constants/seo";
 import { getTextbookBlocks } from "@/content/learningMaterials/textbook";
 import { requireRole } from "@/modules/auth/getCurrentUser";
+import { PLATFORM_STAFF_ROLES } from "@/modules/auth/types";
 import { getThemes } from "@/modules/themes/getThemes";
 import { listTextbookSectionStates } from "@/modules/textbook/store";
 import { getTranslations } from "next-intl/server";
@@ -24,7 +25,7 @@ export default async function AdminTextbookPage({
 }: {
   searchParams: Promise<{ error?: string | string[] }>;
 }) {
-  await requireRole(["admin"]);
+  await requireRole(PLATFORM_STAFF_ROLES);
   const t = await getTranslations("TextbookEditor");
   const query = await searchParams;
   const error = Array.isArray(query.error) ? query.error[0] : query.error;

@@ -5,6 +5,7 @@ import { getNavItem } from "@/constants/navigation";
 import { createPageMetadata } from "@/constants/seo";
 import { isContentImportConfigured } from "@/modules/content-import/auth";
 import { requireRole } from "@/modules/auth/getCurrentUser";
+import { PLATFORM_STAFF_ROLES } from "@/modules/auth/types";
 
 const item = getNavItem("/settings");
 
@@ -19,7 +20,7 @@ export async function generateMetadata() {
 }
 
 export default async function SettingsPage() {
-  await requireRole(["admin"]);
+  await requireRole(PLATFORM_STAFF_ROLES);
 
   const t = await getTranslations("SettingsPage");
   const importEnabled = isContentImportConfigured();

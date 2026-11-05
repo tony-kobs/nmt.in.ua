@@ -6,6 +6,7 @@ import { createPageMetadata } from "@/constants/seo";
 import { getTextbookBlocks } from "@/content/learningMaterials/textbook";
 import { textbookTopicHref } from "@/content/learningMaterials/textbookHref";
 import { requireRole } from "@/modules/auth/getCurrentUser";
+import { PLATFORM_STAFF_ROLES } from "@/modules/auth/types";
 import { getThemes } from "@/modules/themes/getThemes";
 import { bankTaskRefsInBlocks } from "@/modules/textbook/bankTask";
 import { loadBankTaskViews } from "@/modules/textbook/bankTaskStore";
@@ -39,7 +40,7 @@ export default async function AdminTextbookEditorPage({
   params,
   searchParams,
 }: EditorPageProps) {
-  await requireRole(["admin"]);
+  await requireRole(PLATFORM_STAFF_ROLES);
   const t = await getTranslations("TextbookEditor");
   const { code } = await params;
   const query = await searchParams;

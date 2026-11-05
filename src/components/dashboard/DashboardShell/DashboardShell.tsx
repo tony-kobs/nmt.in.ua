@@ -3,8 +3,9 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import type { AuthUser, CabinetScope } from "@/modules/auth/client";
+import { isPlatformStaff, type AuthUser, type CabinetScope } from "@/modules/auth/client";
 import { AppHeader } from "@/components/dashboard/AppHeader";
+import { RoleSwitch } from "@/components/dashboard/RoleSwitch";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
 import { PresenceHeartbeat } from "@/components/dashboard/PresenceHeartbeat";
 import { SkipLink } from "@/components/ui/SkipLink";
@@ -200,6 +201,9 @@ export function DashboardShell({
 
         <div className={css.content}>
           <main id="main-content" className={css.main} tabIndex={-1}>
+            {user.realRole && isPlatformStaff(user.realRole) ? (
+              <RoleSwitch realRole={user.realRole} effectiveRole={user.role} />
+            ) : null}
             {children}
           </main>
         </div>

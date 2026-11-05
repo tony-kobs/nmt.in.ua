@@ -4,7 +4,8 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import type { AuthUser, UserRole } from "./types";
+import type { AuthUser, UserRole, ViewAsRole } from "./types";
+import { effectiveRole } from "./viewRole";
 import {
   createRenewedSessionToken,
   createSessionToken,
@@ -84,24 +85,31 @@ export async function getCurrentUserId(): Promise<number | null> {
 }
 
 /**
- * Role and ban from `app_users`, once per request.
- * The signed cookie still identifies the session; it is not the authority.
+ * Stored role and ban from `app_users`, once per request.
+ * The signed cookie identifies the session; this read is the stored role.
  */
 export const readLiveAccount = cache(async (userId: number): Promise<AuthUser | null> => {
   return findUserById(userId);
 });
 
+/**
+ * Merges the cookie with the stored account.
+ * `viewAs` counts only as a downgrade from admin or dev into student or teacher.
+ */
 export function liveUserFromAccount(
   cookieUser: AuthUser,
   account: AuthUser | null,
+  viewAs?: unknown,
 ): { ok: true; user: AuthUser } | { ok: false; reason: "banned" | "missing" } {
   if (!account) return { ok: false, reason: "missing" };
   if (account.isBanned) return { ok: false, reason: "banned" };
+  const realRole = account.role;
   return {
     ok: true,
     user: {
       ...cookieUser,
-      role: account.role,
+      role: effectiveRole(realRole, viewAs),
+      realRole,
       displayName: account.displayName,
       login: account.login,
       cabinetScope: account.cabinetScope,
@@ -122,8 +130,11 @@ export function liveUserFromAccount(
 export async function optionalLiveUser(): Promise<AuthUser | null> {
   const cookieUser = await getCurrentUser();
   if (!cookieUser) return null;
-  const account = await readLiveAccount(cookieUser.id);
-  const decision = liveUserFromAccount(cookieUser, account);
+  const [account, payload] = await Promise.all([
+    readLiveAccount(cookieUser.id),
+    getSessionPayload(),
+  ]);
+  const decision = liveUserFromAccount(cookieUser, account, payload?.viewAs);
   if (!decision.ok) {
     redirect("/api/auth/clear-session");
   }
@@ -163,7 +174,7 @@ export async function requireSessionUserId(): Promise<number> {
   return payload.userId;
 }
 
-export async function requireRole(roles: UserRole[]): Promise<AuthUser> {
+export async function requireRole(roles: readonly UserRole[]): Promise<AuthUser> {
   const user = await requireUser();
   if (!roles.includes(user.role)) {
     redirect("/");
@@ -217,13 +228,19 @@ export async function setSessionCookie(user: AuthUser): Promise<void> {
  * cookie when there is nothing valid to renew; callers must treat that as a
  * rejected update, not fall back to issuing a fresh cookie.
  */
-export async function renewSessionCookie(user: AuthUser): Promise<boolean> {
+export async function renewSessionCookie(
+  user: AuthUser,
+  options?: { viewAs?: ViewAsRole | null },
+): Promise<boolean> {
   const payload = await getSessionPayload();
   if (!payload) return false;
 
   const nowSec = Math.floor(Date.now() / 1000);
   const remainingSec = payload.exp - nowSec;
   if (remainingSec <= 0) return false;
+
+  const viewAs =
+    options && "viewAs" in options ? options.viewAs ?? undefined : payload.viewAs;
 
   const token = await createRenewedSessionToken(
     {
@@ -233,6 +250,7 @@ export async function renewSessionCookie(user: AuthUser): Promise<boolean> {
       login: user.login,
       avatarRev: user.avatarRev,
       sid: payload.sid,
+      viewAs,
     },
     payload.exp,
   );
@@ -287,6 +305,7 @@ export async function ensureCookieLoginSession(): Promise<void> {
       login,
       avatarRev,
       sid: opened.id,
+      viewAs: payload.viewAs,
     },
     payload.exp,
   );

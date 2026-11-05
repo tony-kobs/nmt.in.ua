@@ -13,6 +13,7 @@ import {
   revokeCurrentLoginSession,
   setSessionCookie,
 } from "./getCurrentUser";
+import { effectiveRole } from "./viewRole";
 import { changePassword, ChangePasswordError } from "./changePassword";
 import type { ChangePasswordErrorCode } from "./changePassword";
 import {
@@ -287,7 +288,12 @@ export async function upgradeSessionCookieAction(): Promise<{ ok: boolean }> {
 
   const user = await findUserById(payload.userId);
   if (!user || user.isBanned) return { ok: false };
-  const ok = await renewSessionCookie(user);
+  const viewing = effectiveRole(user.role, payload.viewAs) !== user.role;
+  const viewAs = viewing ? payload.viewAs ?? null : null;
+  const ok = await renewSessionCookie(
+    { ...user, role: effectiveRole(user.role, viewAs) },
+    { viewAs },
+  );
   return { ok };
 }
 

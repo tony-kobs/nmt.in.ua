@@ -4,6 +4,7 @@ import { PageFrame } from "@/components/dashboard/PageFrame";
 import { getNavItem } from "@/constants/navigation";
 import { createPageMetadata } from "@/constants/seo";
 import { requireRole } from "@/modules/auth/getCurrentUser";
+import { PLATFORM_STAFF_ROLES } from "@/modules/auth/types";
 import {
   FEEDBACK_PAGE_SIZE,
   type SiteFeedbackPage,
@@ -41,7 +42,7 @@ const EMPTY_PAGE: SiteFeedbackPage = {
 };
 
 export default async function FeedbackPage({ searchParams }: FeedbackPageProps) {
-  await requireRole(["admin"]);
+  await requireRole(PLATFORM_STAFF_ROLES);
 
   const t = await getTranslations("FeedbackAdmin");
   const params = await searchParams;

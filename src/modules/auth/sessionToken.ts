@@ -1,4 +1,4 @@
-import type { SessionPayload, UserRole } from "./types";
+import { isViewAsRole, type SessionPayload, type UserRole, type ViewAsRole } from "./types";
 
 export const SESSION_COOKIE_NAME = "nmt_session";
 export const SESSION_MAX_AGE_SEC = 60 * 60 * 24;
@@ -10,6 +10,7 @@ export type SessionTokenInput = {
   login: string;
   avatarRev?: number;
   sid?: number;
+  viewAs?: ViewAsRole;
 };
 
 function readSecret(): string {
@@ -83,7 +84,12 @@ async function hmacVerify(payload: string, signatureB64: string): Promise<boolea
 }
 
 function isUserRole(value: unknown): value is UserRole {
-  return value === "student" || value === "teacher" || value === "admin";
+  return (
+    value === "student" ||
+    value === "teacher" ||
+    value === "admin" ||
+    value === "dev"
+  );
 }
 
 function isNonEmptyString(value: unknown): value is string {
@@ -110,6 +116,9 @@ function buildSessionPayload(
   }
   if (isPositiveInt(input.sid)) {
     payload.sid = input.sid;
+  }
+  if (isViewAsRole(input.viewAs)) {
+    payload.viewAs = input.viewAs;
   }
   return payload;
 }
@@ -196,6 +205,10 @@ export async function verifySessionToken(
 
   if (isPositiveInt(record.sid)) {
     payload.sid = record.sid;
+  }
+
+  if (isViewAsRole(record.viewAs)) {
+    payload.viewAs = record.viewAs;
   }
 
   return payload;
