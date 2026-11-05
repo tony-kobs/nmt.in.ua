@@ -1,5 +1,6 @@
 import { parseMathText } from "@/components/ui/MathText/parseMathText";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
+import { promptWithoutCopiedOptions } from "@/modules/marathons/daily/promptOptions";
 import { normalizeNmtRichText } from "@/modules/testing/normalizeNmtRichText";
 import { formulaToPlain, latexToTelegramPlain } from "./latexPlain";
 import { ANSWER_LETTERS } from "@/constants/answerLetters";
@@ -127,7 +128,7 @@ export function composeTelegramTask(input: {
   siteUrl?: string;
   siteLabel?: string;
 }): TelegramTaskMessage {
-  const prompt = fieldOf(input.prompt);
+  const prompt = fieldOf(promptWithoutCopiedOptions(input.prompt, input.options ?? []));
   const options = (input.options ?? []).map((option, index) => ({
     letter: LETTERS[index] ?? String(index + 1),
     data: input.optionData?.[index],

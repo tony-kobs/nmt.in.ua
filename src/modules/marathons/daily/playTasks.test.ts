@@ -93,6 +93,47 @@ test("unsubmitted day client payload drops a review even if one was built", () =
   assert.equal(JSON.stringify(shown).includes(SECRET), true);
 });
 
+test("inline prompt keeps signs and drops option lines that copy the buttons", () => {
+  const row: TaskSourceRow = {
+    id: 8,
+    sort_order: 1,
+    question_id: null,
+    inline_prompt: "Визначте знак: 3 < 4 & 5\n\nА. <\nБ. >\nВ. =",
+    inline_options: JSON.stringify(["<", ">", "="]),
+    inline_correct: 1,
+    inline_explanation: "бо 3 < 4 & 5 > 1",
+  };
+  const pending = projectPendingTask(row);
+  assert.ok(pending);
+  assert.equal(pending.prompt, "Визначте знак: 3 < 4 & 5");
+  assert.deepEqual(pending.options, ["<", ">", "="]);
+  const review = projectReviewedTask(row, {});
+  assert.equal(review?.prompt, pending.prompt);
+  assert.equal(review?.explanation, "бо 3 < 4 & 5 > 1");
+
+  const mentioned: TaskSourceRow = {
+    id: 9,
+    sort_order: 2,
+    inline_prompt: "У тексті є згадка А. не як список варіантів.",
+    inline_options: JSON.stringify(["<", ">"]),
+    inline_correct: 1,
+  };
+  assert.equal(projectPendingTask(mentioned)?.prompt, mentioned.inline_prompt);
+
+  const bank: TaskSourceRow = {
+    id: 10,
+    sort_order: 3,
+    question_id: 4,
+    task_text: "Скільки буде 2+2?\n\nА. 3\nБ. 4",
+    answer_1: "3",
+    answer_2: "4",
+    answer_3: null,
+    answer_4: null,
+    right_answer_n: 2,
+  };
+  assert.equal(projectPendingTask(bank)?.prompt, "Скільки буде 2+2?");
+});
+
 test("inline review uses inline_explanation and not the bank comment", () => {
   const row: TaskSourceRow = {
     id: 4,

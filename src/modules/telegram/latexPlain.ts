@@ -1,3 +1,5 @@
+import { maskTelegramMarkup } from "./telegramHtml";
+
 /**
  * One LaTeX → Telegram plain-text pass for every bot bubble and button.
  * The site still renders the same strings with KaTeX.
@@ -368,13 +370,7 @@ function replaceRegions(input: string): string {
 }
 
 function maskProtected(value: string): { text: string; slots: string[] } {
-  const slots: string[] = [];
-  const text = value.replace(/https?:\/\/\S+|<[^>]+>/g, (match) => {
-    const token = `\u0000${slots.length}\u0000`;
-    slots.push(match);
-    return token;
-  });
-  return { text, slots };
+  return maskTelegramMarkup(value);
 }
 
 function unmask(value: string, slots: string[]): string {

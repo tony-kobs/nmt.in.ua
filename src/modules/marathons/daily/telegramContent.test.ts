@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { piecesToReplies } from "@/modules/telegram/deliver";
+import { composeRichText, composeTelegramTask } from "@/modules/telegram/taskRender";
+import { telegramHtmlToPlain } from "@/modules/telegram/telegramHtml";
 import {
   expandSources,
   introSources,
@@ -74,6 +77,66 @@ test("intro sends the photo with the rules, and a long text follows the photo", 
   assert.equal(long[0]?.photoUrl, "https://nmt.in.ua/pic.png");
   assert.equal(long[0]?.text, "");
   assert.ok(long.some((item) => item.previewUrl?.includes("youtube.com")));
+});
+
+test("marathon task text keeps comparison signs in the bot and in the preview", () => {
+  const sign = composeTelegramTask({
+    prompt: "Визначте знак: (8 + 4): 3 □ 2 + 2",
+    options: ["≠", "<", "=", ">"],
+    optionData: ["mh:a:1:1:1", "mh:a:1:1:2", "mh:a:1:1:3", "mh:a:1:1:4"],
+  });
+  const replies = piecesToReplies("9", expandSources([sign]));
+  assert.equal(replies.length, 1);
+  assert.equal(replies[0]?.parseMode, undefined);
+  assert.match(replies[0]?.text ?? "", /А\. ≠/);
+  assert.match(replies[0]?.text ?? "", /Б\. </);
+  assert.match(replies[0]?.text ?? "", /В\. =/);
+  assert.match(replies[0]?.text ?? "", /Г\. >/);
+  assert.deepEqual(
+    replies[0]?.replyMarkup?.inline_keyboard.slice(0, 4).map((row) => row[0]?.text),
+    ["А. ≠", "Б. <", "В. =", "Г. >"],
+  );
+
+  const rich = piecesToReplies("9", expandSources([{
+    text: "Знак 3 < 4 & 5 > 1 і **жирний**",
+    rich: true,
+  }]));
+  assert.equal(rich[0]?.parseMode, "HTML");
+  assert.match(rich[0]?.text ?? "", /3 &lt; 4 &amp; 5 &gt; 1/);
+  assert.match(rich[0]?.text ?? "", /<b>жирний<\/b>/);
+  assert.doesNotMatch(rich[0]?.text ?? "", /3 < 4/);
+
+  const review = piecesToReplies("9", expandSources([composeRichText({
+    text: "Правильна відповідь: <\nі ще > та &",
+  })]));
+  assert.equal(review[0]?.parseMode, undefined);
+  assert.match(review[0]?.text ?? "", /Правильна відповідь: </);
+  assert.match(review[0]?.text ?? "", /> та &/);
+
+  const bubbles = previewChat({
+    introText: "Знак 3 < 4 & 5",
+    materials: [],
+    tasks: [
+      { prompt: "Визначте знак: 7 · 4 □ 35 − 9", options: ["<", ">", "≤", "="] },
+      {
+        prompt: "Як записати 6 · 4 + 11, якщо d = 6 · 4?\n\nА. d · 11\nБ. d − 11\nВ. d + 11\nГ. d : 11",
+        options: ["d · 11", "d − 11", "d + 11", "d : 11"],
+      },
+    ],
+    siteLabel: "Сайт",
+  });
+  assert.match(telegramHtmlToPlain(bubbles.map((item) => item.body).join("\n")), /3 < 4 & 5/);
+  const second = bubbles.find((item) => item.body.includes("7 · 4"));
+  assert.ok(second);
+  const shown = telegramHtmlToPlain(second.body);
+  assert.match(shown, /А\. </);
+  assert.match(shown, /Б\. >/);
+  assert.match(shown, /В\. ≤/);
+  assert.match(shown, /Г\. =/);
+  const copied = bubbles.find((item) => item.body.includes("Як записати"));
+  assert.ok(copied);
+  assert.equal(copied.body.split("А. d · 11").length - 1, 1);
+  assert.equal(copied.body.includes("Б. d − 11\nБ. d − 11"), false);
 });
 
 test("admin preview shows the day as chat bubbles with a secondary site button", () => {

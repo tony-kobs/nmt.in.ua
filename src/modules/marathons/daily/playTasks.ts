@@ -7,6 +7,8 @@
  * may include the participant's choice, the key, and the explanation.
  */
 
+import { promptWithoutCopiedOptions } from "./promptOptions";
+
 export type PendingPlayTask = {
   id: number;
   order: number;
@@ -105,7 +107,7 @@ function readBase(row: TaskSourceRow): PlayBase | null {
     return {
       id: row.id,
       order: row.sort_order,
-      prompt: row.task_text,
+      prompt: promptWithoutCopiedOptions(row.task_text, options),
       options,
       questionId: row.question_id ?? null,
     };
@@ -116,7 +118,7 @@ function readBase(row: TaskSourceRow): PlayBase | null {
   return {
     id: row.id,
     order: row.sort_order,
-    prompt,
+    prompt: promptWithoutCopiedOptions(prompt, options),
     options,
     questionId: null,
   };
