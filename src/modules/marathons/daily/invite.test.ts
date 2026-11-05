@@ -69,6 +69,7 @@ test("invite audience skips declines, teachers when limited to students, and a c
     person({ userId: 1, role: "student" }),
     person({ userId: 2, role: "teacher" }),
     person({ userId: 3, role: "admin" }),
+    person({ userId: 7, role: "dev" }),
     person({ userId: 4, role: "student", declined: true }),
     person({ userId: 5, role: "student", marathonEmail: false, marathonTelegram: false }),
     person({ userId: 6, role: "student", marathonEmail: false, marathonTelegram: true, email: null }),
@@ -80,7 +81,7 @@ test("invite audience skips declines, teachers when limited to students, and a c
   );
   assert.deepEqual(
     selectInviteRecipients("all", people).map((item) => item.userId),
-    [1, 2, 3, 6],
+    [1, 2, 3, 7, 6],
   );
 });
 

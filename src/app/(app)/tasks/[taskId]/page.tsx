@@ -9,6 +9,7 @@ import {
   getQuizTaskById,
 } from "@/modules/admin-content";
 import { requireRole } from "@/modules/auth/getCurrentUser";
+import { PLATFORM_STAFF_ROLES } from "@/modules/auth/types";
 
 type EditTaskPageProps = {
   params: Promise<{ taskId: string }>;
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: EditTaskPageProps) {
 }
 
 export default async function EditAdminTaskPage({ params }: EditTaskPageProps) {
-  await requireRole(["admin"]);
+  await requireRole(PLATFORM_STAFF_ROLES);
   const t = await getTranslations("AdminContent");
   const { taskId: raw } = await params;
   const taskId = Number(raw);

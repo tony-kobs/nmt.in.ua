@@ -3,6 +3,7 @@ import { AccountCabinet } from "@/components/account/AccountCabinet";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { createPageMetadata } from "@/constants/seo";
 import { requireUser } from "@/modules/auth/getCurrentUser";
+import { isPlatformStaff } from "@/modules/auth/types";
 import { defaultChannelPreferences } from "@/modules/notifications/channels";
 import { getUserChannelPreferences } from "@/modules/notifications/channelStore";
 import { getTelegramLink } from "@/modules/telegram/link";
@@ -28,7 +29,7 @@ export default async function AccountPage() {
   const t = await getTranslations("AccountCabinet");
 
   let recentResults: Awaited<ReturnType<typeof getRecentResults>> = [];
-  if (user.role !== "admin") {
+  if (!isPlatformStaff(user.role)) {
     try {
       recentResults = await getRecentResults(user.id);
     } catch (error) {
@@ -66,7 +67,7 @@ export default async function AccountPage() {
     <PageFrame
       kicker={t("kicker")}
       title={t("title")}
-      lead={user.role === "admin" ? t("leadAdmin") : t("lead")}
+      lead={isPlatformStaff(user.role) ? t("leadAdmin") : t("lead")}
     >
       <AccountCabinet
         user={user}

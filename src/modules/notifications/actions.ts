@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentUser, readLiveAccount, requireUser } from "@/modules/auth/getCurrentUser";
+import { getCurrentUser, getSessionPayload, readLiveAccount, requireUser } from "@/modules/auth/getCurrentUser";
+import { effectiveRole } from "@/modules/auth/viewRole";
 import { defaultChannelPreferences, type UserChannelPreferences } from "./channels";
 import { saveUserChannelPreferences } from "./channelStore";
 import { loadBellNotifications } from "./bellFeed";
@@ -24,8 +25,12 @@ export async function listMyNotificationsAction(): Promise<UserNotification[]> {
   if (!user) return [];
   const account = await readLiveAccount(user.id);
   if (!account || account.isBanned) return [];
+  const payload = await getSessionPayload();
   try {
-    return await loadBellNotifications(account.id, account.role);
+    return await loadBellNotifications(
+      account.id,
+      effectiveRole(account.role, payload?.viewAs),
+    );
   } catch (error) {
     console.error("list notifications", error);
     return [];

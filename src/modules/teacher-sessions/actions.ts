@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/modules/auth/getCurrentUser";
+import { TEACHING_STAFF_ROLES } from "@/modules/auth/types";
 import {
   deleteTeacherSession,
   fillSessionFromBank,
@@ -43,7 +44,7 @@ export async function saveTeacherSessionAction(
   const rawId = String(formData.get("sessionId") ?? "").trim();
   const sessionId = rawId ? Number(rawId) : null;
   try {
-    const user = await requireRole(["teacher", "admin"]);
+    const user = await requireRole(TEACHING_STAFF_ROLES);
     const detail = await saveTeacherSession({
       teacherUserId: user.id,
       sessionId,
@@ -69,7 +70,7 @@ export async function deleteTeacherSessionAction(
   formData: FormData,
 ): Promise<TeacherSessionActionState> {
   try {
-    const user = await requireRole(["teacher", "admin"]);
+    const user = await requireRole(TEACHING_STAFF_ROLES);
     await deleteTeacherSession(Number(formData.get("sessionId")), user.id);
     revalidatePath("/assign");
     redirect("/assign");
@@ -85,7 +86,7 @@ export async function searchSessionBankAction(input: {
   difficulty: number | null;
 }): Promise<{ status: "ok"; tasks: SessionTaskView[] } | { status: "error" }> {
   try {
-    const user = await requireRole(["teacher", "admin"]);
+    const user = await requireRole(TEACHING_STAFF_ROLES);
     const tasks = await searchSessionBank(
       user.id,
       input.themeId,
@@ -106,7 +107,7 @@ export async function fillSessionBankAction(input: {
   excludeIds: number[];
 }): Promise<{ status: "ok"; tasks: SessionTaskView[] } | { status: "error" }> {
   try {
-    const user = await requireRole(["teacher", "admin"]);
+    const user = await requireRole(TEACHING_STAFF_ROLES);
     const tasks = await fillSessionFromBank(
       user.id,
       input.themeId,

@@ -17,7 +17,7 @@ const SQL_CREATE_USERS = `
     email VARCHAR(255) NULL,
     email_verified_at TIMESTAMP NULL DEFAULT NULL,
     email_verify_required TINYINT(1) NOT NULL DEFAULT 0,
-    role ENUM('student', 'teacher', 'admin') NOT NULL,
+    role ENUM('student', 'teacher', 'admin', 'dev') NOT NULL,
     cabinet_scope ENUM('full', 'marathon') NOT NULL DEFAULT 'full',
     is_banned TINYINT(1) NOT NULL DEFAULT 0,
     last_login_at TIMESTAMP NULL DEFAULT NULL,
@@ -199,10 +199,16 @@ const AUTH_MIGRATIONS = [
   "041_marathon_student_access.sql",
   "045_cabinet_scope_full.sql",
   "048_account_deletion_grace.sql",
+  "066_app_users_dev_role.sql",
 ];
 
 async function runAuthSchemaMigration(connection: SqlConnection): Promise<void> {
-  await connection.execute(SQL_CREATE_USERS, []);
+    await connection.execute(SQL_CREATE_USERS, []);
+    await connection.execute(
+      `ALTER TABLE ${AUTH_USERS_TABLE}
+       MODIFY COLUMN role ENUM('student', 'teacher', 'admin', 'dev') NOT NULL`,
+      [],
+    );
     await ensureUserColumn(
       connection,
       "is_banned",

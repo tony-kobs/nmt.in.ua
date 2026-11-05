@@ -7,6 +7,7 @@ import {
   canImportContent,
   canManageProfiles,
   canManageStudents,
+  isPlatformStaff,
   type CabinetScope,
   type UserRole,
 } from "@/modules/auth/types";
@@ -97,7 +98,7 @@ export function sidebarLinkActive(
     return pathname === "/marathon" || pathname.startsWith("/marathon/");
   }
   if (href === "/") {
-    return pathname === "/" || (role === "admin" && pathname.startsWith("/tasks"));
+    return pathname === "/" || (isPlatformStaff(role) && pathname.startsWith("/tasks"));
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -127,7 +128,7 @@ export function visibleSidebar(input: {
   void input.cabinetScope;
 
   const items: SidebarLink[] = DASHBOARD_NAV.filter((item) => {
-    if (input.role === "admin") return ADMIN_NAV_SET.has(item.href);
+    if (isPlatformStaff(input.role)) return ADMIN_NAV_SET.has(item.href);
     if (input.role === "teacher" && item.href === "/") return false;
     if (item.href === "/topic") return input.role === "student";
     if (item.href === "/assign") return canAssignMentorSessions(input.role);

@@ -17,8 +17,15 @@
     "roles": {
       "student": "Учень",
       "teacher": "Викладач",
-      "admin": "Адмін"
+      "admin": "Адмін",
+      "dev": "Розробник"
     },
+    "viewingAs": "Перегляд: {role}",
+    "roleSwitchIdle": "Можна тимчасово відкрити кабінет учня або викладача. Роль у базі не змінюється.",
+    "roleSwitchStatus": "Зараз сайт відкрито як {role}. Ваша роль у базі лишається {real}.",
+    "roleSwitchStudent": "Як учень",
+    "roleSwitchTeacher": "Як викладач",
+    "roleSwitchSelf": "Своя роль: {role}",
     "siteName": "LevelUP"
   },
   "Notifications": {

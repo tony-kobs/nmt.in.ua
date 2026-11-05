@@ -1,6 +1,8 @@
 "use server";
 
-import { getCurrentUser, readLiveAccount } from "@/modules/auth/getCurrentUser";
+import { getCurrentUser, getSessionPayload, readLiveAccount } from "@/modules/auth/getCurrentUser";
+import { isPlatformStaff } from "@/modules/auth/types";
+import { effectiveRole } from "@/modules/auth/viewRole";
 import { buildImportInputFromFormData } from "./buildImportInputFromFormData";
 import { isContentImportConfigured } from "./auth";
 import { ContentImportError, runContentImport, type ImportSummary } from "./index";
@@ -26,6 +28,7 @@ type ContentImportActionDeps = {
   runContentImport: typeof runContentImport;
   getCurrentUser: typeof getCurrentUser;
   readAccount: typeof readLiveAccount;
+  readViewAs?: () => Promise<unknown>;
   isContentImportConfigured: typeof isContentImportConfigured;
 };
 
@@ -40,6 +43,7 @@ export async function contentImportAction(
     runContentImport,
     getCurrentUser,
     readAccount: readLiveAccount,
+    readViewAs: async () => (await getSessionPayload())?.viewAs,
     isContentImportConfigured,
   },
 ): Promise<ContentImportActionState> {
@@ -49,7 +53,9 @@ export async function contentImportAction(
 
   const cookieUser = await deps.getCurrentUser();
   const account = cookieUser ? await deps.readAccount(cookieUser.id) : null;
-  if (!account || account.isBanned || account.role !== "admin") {
+  const viewAs = deps.readViewAs ? await deps.readViewAs() : undefined;
+  const role = account ? effectiveRole(account.role, viewAs) : null;
+  if (!account || account.isBanned || !role || !isPlatformStaff(role)) {
     return { status: "unauthorized", errors: [UNAUTHORIZED_MESSAGE] };
   }
 

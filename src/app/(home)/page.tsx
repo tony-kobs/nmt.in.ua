@@ -12,6 +12,7 @@ import {
   optionalLiveUser,
   sessionCookieNeedsUpgrade,
 } from "@/modules/auth/getCurrentUser";
+import { isPlatformStaff } from "@/modules/auth/types";
 import { parseThemeQueryParam } from "@/modules/testing/parseThemeQueryParam";
 
 /**
@@ -44,7 +45,7 @@ export async function generateMetadata() {
     });
   }
 
-  if (user.role === "admin") {
+  if (isPlatformStaff(user.role)) {
     const t = await getTranslations("AdminContent");
     return createPageMetadata({
       title: t("title"),

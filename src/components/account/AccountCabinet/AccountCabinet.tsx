@@ -4,7 +4,7 @@ import clsx from "clsx";
 import { useActionState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import type { AuthUser } from "@/modules/auth/client";
+import { isPlatformStaff, type AuthUser } from "@/modules/auth/client";
 import {
   changePasswordAction,
   logoutAction,
@@ -103,7 +103,7 @@ export function AccountCabinet({
         />
       ) : null}
 
-      {user.role !== "admin" ? <RecentResults items={recentResults} /> : null}
+      {!isPlatformStaff(user.role) ? <RecentResults items={recentResults} /> : null}
 
       <section className={css.panel} aria-labelledby="account-password-title">
         <div>
