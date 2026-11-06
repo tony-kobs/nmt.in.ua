@@ -12,25 +12,7 @@
   overflow-x: clip;
   color: var(--ink-deep);
   font-size: var(--fs-body);
-  background: var(--page);
-}
-
-.page::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(
-      100deg,
-      color-mix(in srgb, var(--page) 90%, transparent) 0%,
-      color-mix(in srgb, var(--page) 74%, transparent) 40%,
-      color-mix(in srgb, var(--page) 35%, transparent) 100%
-    ),
-    url("/landing/hero-classroom.webp");
-  background-size: cover;
-  background-position: center 42%;
+  background: transparent;
 }
 
 .decor {
@@ -214,49 +196,36 @@
 }
 
 .points {
-  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   width: 100%;
   max-width: 36rem;
   margin: 0;
-  padding: var(--space-md);
+  padding: var(--space-xs) 0;
   list-style: none;
-  isolation: isolate;
-}
-
-.points::before {
-  content: "";
-  position: absolute;
-  inset: -6px;
-  z-index: -1;
-  pointer-events: none;
-  background: color-mix(in srgb, var(--paper) 38%, transparent);
-  backdrop-filter: blur(8px);
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 12%,
-    black 88%,
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 12%,
-    black 88%,
-    transparent 100%
-  );
 }
 
 .points li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
   margin: 0;
-  color: var(--ink);
+  color: var(--ink-deep);
   font-size: var(--fs-small);
-  font-weight: 500;
-  line-height: 1.45;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.points li::before {
+  content: "✓";
+  flex: 0 0 20px;
+  color: var(--green-dark);
+  font-size: var(--fs-body);
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
 }
 
 .rolePicker {
@@ -334,15 +303,8 @@
   padding: var(--space-lg);
   border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
   border-radius: var(--radius-xl);
-  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  background: var(--surface);
   box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(14px);
-}
-
-@supports not (backdrop-filter: blur(4px)) {
-  .card {
-    background: var(--surface);
-  }
 }
 
 .modeNav {
@@ -669,20 +631,6 @@
     display: block;
   }
 
-  .points {
-    flex-direction: row;
-    flex-wrap: wrap;
-    width: fit-content;
-    gap: var(--space-lg);
-    padding: var(--space-md) var(--space-lg);
-  }
-
-  .points::before {
-    inset: -8px;
-    mask-image: radial-gradient(ellipse 85% 100% at center, black 35%, transparent 100%);
-    -webkit-mask-image: radial-gradient(ellipse 85% 100% at center, black 35%, transparent 100%);
-  }
-
   .card {
     padding: var(--space-xl);
   }
@@ -841,4 +789,3 @@
   opacity: 0.7;
   cursor: not-allowed;
 }
-
