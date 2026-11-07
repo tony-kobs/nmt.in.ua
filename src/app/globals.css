@@ -335,6 +335,7 @@ input[type="range"] {
   --pad-x: 16px;
   --pad-y: 16px;
   --header-h: 64px;
+  --header-offset: calc(var(--header-h) + env(safe-area-inset-top, 0px));
   --sidebar-w: 0px;
   --sidebar-rail: 0px;
   --aside-w: 0px;

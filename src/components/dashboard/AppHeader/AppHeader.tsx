@@ -40,6 +40,7 @@ export function AppHeader({
       <div className={css.inner}>
         <button
           type="button"
+          id="dashboard-menu-toggle"
           className={css.toggle}
           onClick={onToggleSidebar}
           aria-expanded={sidebarOpen}

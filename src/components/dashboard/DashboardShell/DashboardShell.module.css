@@ -9,7 +9,7 @@
 
 .backdrop {
   position: fixed;
-  inset: var(--header-h) 0 0;
+  inset: var(--header-offset) 0 0;
   z-index: 25;
   border: 0;
   background: var(--overlay);
@@ -29,7 +29,7 @@
   margin-inline: auto;
   padding-block: var(--section-y);
   padding-inline: var(--container-pad);
-  margin-top: var(--header-h);
+  margin-top: var(--header-offset);
 }
 
 .sidebarSlot {
@@ -74,10 +74,10 @@
   /* Рейка в потоці. Наведення ширшає саму колонку, контент зсувається. */
   .sidebarSlot {
     position: sticky;
-    top: var(--header-h);
+    top: var(--header-offset);
     flex: 0 0 auto;
     width: var(--sidebar-rail);
-    height: calc(100dvh - var(--header-h));
+    height: calc(100dvh - var(--header-offset));
     margin-top: calc(var(--section-y) * -1);
     margin-bottom: calc(var(--section-y) * -1);
     margin-inline-end: var(--space-md);
