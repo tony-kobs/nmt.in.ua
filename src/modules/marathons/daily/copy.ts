@@ -205,7 +205,7 @@ export const COPY_DEFAULTS: Record<CopyKey, string> = {
   channel_prompt:
     "{name}, лист і Telegram вмикаються окремо. Повідомлення в Telegram ідуть, коли бот підключено.",
   bot_start:
-    "Бот марафону nmt.in.ua. Щоб отримувати дні сюди, відкрийте марафон на сайті і натисніть «Прив’язати Telegram».",
+    "Бот марафону nmt.in.ua. Щоб отримувати дні сюди, відкрийте марафон на сайті і натисніть «Привʼязати Telegram».",
   bot_menu: "Меню марафону. Оберіть дію.",
   bot_btn_today: "Сьогодні",
   bot_btn_top: "🏆 Таблиця марафону",
@@ -263,7 +263,7 @@ export const COPY_PREVIEW_SAMPLE: Record<CopyPlaceholder, string> = {
   prev_place: "4",
   delta: "2",
   total: "7",
-  title: "П'ять днів",
+  title: "Пʼять днів",
   start_date: "8 жовтня 2026",
   id: "12",
 };

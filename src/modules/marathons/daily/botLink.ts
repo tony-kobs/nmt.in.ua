@@ -59,7 +59,7 @@ export type MarathonStartConsume =
   | { ok: false; code: "invalid" | "telegram_taken" };
 
 export const TELEGRAM_TAKEN_MESSAGE =
-  "Цей Telegram уже приєднаний до іншого акаунта nmt.in.ua. Від’єднайте його в тому кабінеті або напишіть у підтримку.";
+  "Цей Telegram уже приєднаний до іншого акаунта nmt.in.ua. Відʼєднайте його в тому кабінеті або напишіть у підтримку.";
 
 export async function consumeMarathonStart(
   rawToken: string,

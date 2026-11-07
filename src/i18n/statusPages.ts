@@ -5,7 +5,6 @@ const COPY = {
   uk: {
     skip: "Перейти до змісту",
     home: "На головну",
-    welcome: "Вітальна",
     retry: "Спробувати знову",
     notFound: {
       kicker: "Сторінку не знайдено",
@@ -31,7 +30,6 @@ const COPY = {
   en: {
     skip: "Skip to content",
     home: "Go home",
-    welcome: "About the site",
     retry: "Try again",
     notFound: {
       kicker: "Page not found",
@@ -57,7 +55,6 @@ const COPY = {
   de: {
     skip: "Zum Inhalt springen",
     home: "Zur Startseite",
-    welcome: "Über die Seite",
     retry: "Erneut versuchen",
     notFound: {
       kicker: "Seite nicht gefunden",

@@ -44,7 +44,7 @@ export const DASHBOARD_NAV: NavItem[] = [
   {
     href: "/students",
     label: "Мої учні",
-    description: "Список учнів викладача: додати за логіном або відв’язати.",
+    description: "Список учнів викладача: додати за логіном або відвʼязати.",
     status: "ready",
   },
   {
@@ -108,7 +108,7 @@ export const DASHBOARD_NAV: NavItem[] = [
   {
     href: "/admin/marathons",
     label: "Марафон",
-    description: "П'ятиденний марафон: загадки, дні, учасники й вирва.",
+    description: "Пʼятиденний марафон: загадки, дні, учасники й вирва.",
     status: "ready",
   },
   {

@@ -6,7 +6,7 @@ export async function generateMetadata() {
   return createPageMetadata({
     title: "Додавання дробів",
     description:
-      "Практика: додавання дробів з однаковим знаменником — п'ять рівнів складності.",
+      "Практика: додавання дробів з однаковим знаменником — пʼять рівнів складності.",
     path: "/practice/fractions",
     noIndex: true,
   });

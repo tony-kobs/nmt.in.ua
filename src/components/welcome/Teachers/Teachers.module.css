@@ -39,6 +39,50 @@
   grid-area: story;
 }
 
+.more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-xs);
+  justify-self: start;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--green-dark);
+  font-family: var(--font-display);
+  font-size: var(--fs-body);
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  text-align: start;
+}
+
+.more:hover,
+.more:focus-visible {
+  color: var(--green);
+}
+
+.chevron,
+.chevronOpen {
+  flex: none;
+  transition: transform var(--t) var(--ease);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.full {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.full[hidden] {
+  display: none;
+}
+
 .kicker {
   display: inline-flex;
   align-items: center;
@@ -198,5 +242,12 @@
   .stage {
     column-gap: var(--space-2xl);
     padding: var(--space-2xl);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron,
+  .chevronOpen {
+    transition: none;
   }
 }
