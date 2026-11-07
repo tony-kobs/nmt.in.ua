@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { isPlatformStaff, type AuthUser, type CabinetScope } from "@/modules/auth/client";
@@ -76,6 +76,7 @@ export function DashboardShell({
   const tCommon = useTranslations("Common");
 
   const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
 
   const sidebarOpen = useSyncExternalStore(
     subscribeSidebar,
@@ -85,17 +86,58 @@ export function DashboardShell({
   const isMobile = useSyncExternalStore(subscribeMobile, readMobile, () => false);
 
   useEffect(() => {
+    if (pathnameRef.current === pathname) return;
+    pathnameRef.current = pathname;
+    if (window.matchMedia("(max-width: 767px)").matches && readSidebarOpen()) {
+      setSidebarOpen(false);
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const aside = document.getElementById("dashboard-sidebar");
+    const toggle = document.getElementById("dashboard-menu-toggle");
+    if (isMobile) {
+      aside?.focus();
+      const current = aside?.querySelector<HTMLElement>("[aria-current='page']");
+      current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+
+    const focusable =
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      const aside = document.getElementById("dashboard-sidebar");
-      if (aside?.contains(document.activeElement)) {
-        (document.activeElement as HTMLElement).blur();
+      if (event.key === "Escape") {
+        setSidebarOpen(false);
+        if (isMobile) toggle?.focus();
+        return;
       }
-      if (sidebarOpen) setSidebarOpen(false);
+      if (!isMobile || event.key !== "Tab" || !aside) return;
+      if (document.querySelector("[role='dialog']:not(#dashboard-sidebar)")) return;
+      const nodes = [...aside.querySelectorAll<HTMLElement>(focusable)].filter(
+        (node) => node.getClientRects().length > 0,
+      );
+      if (nodes.length === 0) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || active === aside || !aside.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [sidebarOpen]);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      if (!isMobile) return;
+      if (aside?.contains(document.activeElement) || document.activeElement === aside) {
+        toggle?.focus();
+      }
+    };
+  }, [sidebarOpen, isMobile]);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -188,9 +230,19 @@ export function DashboardShell({
           <AppSidebar
             open={sidebarOpen}
             conceal={isMobile && !sidebarOpen}
-            role={user.role}
+            modal={isMobile && sidebarOpen}
+            user={user}
             cabinetScope={cabinetScope}
             marathonHref={marathonHref}
+            staffTools={
+              user.realRole && isPlatformStaff(user.realRole) ? (
+                <RoleSwitch
+                  realRole={user.realRole}
+                  effectiveRole={user.role}
+                  variant="drawer"
+                />
+              ) : null
+            }
             onNavigate={() => {
               if (window.matchMedia("(max-width: 767px)").matches) {
                 setSidebarOpen(false);
@@ -202,7 +254,11 @@ export function DashboardShell({
         <div className={css.content}>
           <main id="main-content" className={css.main} tabIndex={-1}>
             {user.realRole && isPlatformStaff(user.realRole) ? (
-              <RoleSwitch realRole={user.realRole} effectiveRole={user.role} />
+              <RoleSwitch
+                realRole={user.realRole}
+                effectiveRole={user.role}
+                variant="content"
+              />
             ) : null}
             {children}
           </main>

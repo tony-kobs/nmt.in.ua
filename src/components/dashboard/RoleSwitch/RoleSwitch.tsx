@@ -11,9 +11,15 @@ import css from "./RoleSwitch.module.css";
 type RoleSwitchProps = {
   realRole: UserRole;
   effectiveRole: UserRole;
+  /** `content` sits above the page from 768. `drawer` is the mobile menu copy. */
+  variant?: "content" | "drawer";
 };
 
-export function RoleSwitch({ realRole, effectiveRole }: RoleSwitchProps) {
+export function RoleSwitch({
+  realRole,
+  effectiveRole,
+  variant = "content",
+}: RoleSwitchProps) {
   const t = useTranslations("Header");
   const statusId = useId();
   const viewing = effectiveRole !== realRole;
@@ -23,7 +29,7 @@ export function RoleSwitch({ realRole, effectiveRole }: RoleSwitchProps) {
   return (
     <form
       action={switchRoleAction}
-      className={css.bar}
+      className={clsx(css.bar, variant === "drawer" ? css.barDrawer : css.barContent)}
       data-viewing={viewing ? "true" : undefined}
     >
       <p id={statusId} className={css.status} role="status">
