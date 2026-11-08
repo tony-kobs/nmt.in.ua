@@ -11,6 +11,8 @@
     "showMenu": "Show menu",
     "goHome": "About the site",
     "goHomeShort": "About",
+    "profileMenu": "Profile menu, {name}",
+    "account": "Personal account",
     "tagline": "Level up your knowledge",
     "logout": "log out",
     "openAccount": "Personal account: {name}",

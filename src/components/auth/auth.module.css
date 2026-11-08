@@ -76,6 +76,7 @@
   max-width: var(--container-max);
   margin-inline: auto;
   padding: var(--space-lg) var(--container-pad) var(--space-3xl);
+  padding-top: calc(var(--space-lg) + env(safe-area-inset-top, 0px));
 }
 
 .topbar {
@@ -625,6 +626,7 @@
 @media (min-width: 768px) {
   .shell {
     padding-block: var(--space-xl) var(--section-y);
+    padding-top: calc(var(--space-xl) + env(safe-area-inset-top, 0px));
   }
 
   .brandName {

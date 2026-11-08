@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import katex from "katex";
 import "katex/dist/katex.min.css";
+import { prepareFormulaForKatex } from "./prepareFormula";
 import css from "./MathText.module.css";
 
 const RENDER_CACHE_LIMIT = 500;
@@ -10,12 +11,14 @@ const renderCache = new Map<string, string>();
 
 function renderFormula(content: string, displayMode: boolean): string {
   let formula = content.trim();
-  formula = formula
-    .replace(/^\\\(\s*/, "")
-    .replace(/\s*\\\)$/, "")
-    .replace(/^\\\[\s*/, "")
-    .replace(/\s*\\\]$/, "")
-    .trim();
+  formula = prepareFormulaForKatex(
+    formula
+      .replace(/^\\\(\s*/, "")
+      .replace(/\s*\\\)$/, "")
+      .replace(/^\\\[\s*/, "")
+      .replace(/\s*\\\]$/, "")
+      .trim(),
+  );
   const useDisplay =
     displayMode ||
     /\\begin\{(?:cases|aligned|array|matrix|pmatrix|bmatrix)\}/.test(formula);

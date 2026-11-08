@@ -1,3 +1,4 @@
+import { prepareFormulaForKatex } from "@/components/ui/MathText/prepareFormula";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { initWasm, Resvg } from "@resvg/resvg-wasm";
@@ -71,7 +72,9 @@ export async function texToSvg(tex: string, display: boolean): Promise<string | 
   if (!trimmed) return null;
   try {
     const { adaptor, document } = await mathEngine();
-    const outer = adaptor.outerHTML(document.convert(trimmed, { display }));
+    const outer = adaptor.outerHTML(
+      document.convert(prepareFormulaForKatex(trimmed), { display }),
+    );
     return svgMarkup(outer);
   } catch {
     return null;

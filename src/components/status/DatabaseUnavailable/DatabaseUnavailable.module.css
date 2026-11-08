@@ -3,6 +3,7 @@
   align-content: center;
   min-height: 100dvh;
   padding: var(--section-y) var(--container-pad);
+  padding-top: calc(var(--section-y) + env(safe-area-inset-top, 0px));
   color: var(--ink);
 }
 
