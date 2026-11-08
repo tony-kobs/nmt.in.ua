@@ -1731,7 +1731,7 @@
       "items": {
         "signup": {
           "title": "Create an account",
-          "text": "Login, name and password. Takes under a minute."
+          "text": "Name, email and password. Takes under a minute."
         },
         "diagnose": {
           "title": "Take the diagnostic",
@@ -1763,7 +1763,7 @@
         },
         "mobile": {
           "q": "Can I study on a phone?",
-          "a": "Yes. The interface is mobile-first: tests, the simulator and statistics work equally well on a phone, tablet and desktop."
+          "a": "Yes. You can study on a phone, a tablet and a computer."
         },
         "recommendations": {
           "q": "How are recommendations produced?",
@@ -1777,7 +1777,7 @@
     },
     "teachers": {
       "kicker": "Course teacher",
-      "lead": "Graduated from the Kharkiv Physics and Mathematics Lyceum and Karazin University. He has taught for twelve years.",
+      "lead": "Graduated from the Kharkiv Physics and Mathematics Lyceum and Karazin University. He has taught for twelve years. He worked with talented young people at the Junior Academy of Sciences.",
       "imageAlt": "Mykhailo Maksymov",
       "demo": {
         "initials": "MM",
@@ -1788,7 +1788,9 @@
         "headline": "Graduated from the Kharkiv Physics and Mathematics Lyceum and earned a specialist degree in economic cybernetics at Karazin University.",
         "bio": "Taught “Fundamentals of Entrepreneurship”, “Entrepreneurship and Startups” and “E-governance” at the university’s School of Economics. In 2018 became head of the Scientific Society of students, postgraduates, doctoral students and young researchers at Karazin University. Since 2008 has run a business in IT education and information technology.",
         "publications": "Sole author of six research papers and a participant in many international conferences. Contributed to the Kharkiv regional entrepreneurship support program for 2016–2020 and to the Kharkiv city development strategy. Coached young researchers in the Junior Academy of Sciences and prepared more than 15 winners of regional and national research competitions."
-      }
+      },
+      "more": "Read more",
+      "less": "Show less"
     },
     "cta": {
       "title": "Start with your first topic today",
@@ -1877,8 +1879,8 @@
   },
   "LoginForm": {
     "kicker": "Sign in",
-    "title": "NMT Learning Dashboard",
-    "lead": "Sign in as a student, teacher, or admin.",
+    "title": "Sign in to LevelUP",
+    "lead": "Sign in to keep preparing",
     "email": "Email",
     "password": "Password",
     "signingIn": "Signing in…",
@@ -2132,11 +2134,11 @@
     },
     "login": {
       "title": "Sign In",
-      "description": "Sign in to your NMT learning dashboard."
+      "description": "Sign in to LevelUP to keep preparing."
     },
     "register": {
       "title": "Sign up",
-      "description": "Create a student account for the NMT learning dashboard."
+      "description": "Create a student account on LevelUP with your name, email and password."
     },
     "teacherRegister": {
       "title": "Teacher registration",

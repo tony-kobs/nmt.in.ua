@@ -22,9 +22,9 @@ export type SkipCode = "opt_out" | "no_telegram" | "archived" | "unlinked";
 /** Stored as-is on a failed or skipped row. The timeline prints this text. */
 export const SKIP_REASON_TEXT: Record<SkipCode, string> = {
   opt_out: "відмова від сповіщень",
-  no_telegram: "немає прив’язаного Telegram",
+  no_telegram: "немає привʼязаного Telegram",
   archived: "марафон в архіві",
-  unlinked: "Telegram відв’язано",
+  unlinked: "Telegram відвʼязано",
 };
 
 export type SlotOverride = {

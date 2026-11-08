@@ -32,8 +32,10 @@ export type SurveyPrompt = {
 };
 
 const UNLINK_LABELS = new Set([
+  "Відвʼязати",
   "Відв'язати",
   "Відв’язати",
+  "Відвʼязати Telegram",
   "Відв'язати Telegram",
   "Відв’язати Telegram",
 ]);
@@ -163,8 +165,8 @@ export function surveyAuthorLabel(input: {
   if (name && nick) return `${name} (${nick})`;
   if (name) return name;
   if (nick) return nick;
-  if (login) return `${login} · Telegram не прив’язано`;
-  return "Немає імені · Telegram не прив’язано";
+  if (login) return `${login} · Telegram не привʼязано`;
+  return "Немає імені · Telegram не привʼязано";
 }
 
 export type SurveyAnswer = {

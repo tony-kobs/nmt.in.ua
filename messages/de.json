@@ -1637,8 +1637,8 @@
     "showPassword": "Passwort anzeigen",
     "hidePassword": "Passwort verbergen",
     "asideBadge": "NMT 2027 · Mathematik",
-    "asideTitle": "Ihr Bereich für die NMT-Vorbereitung in Mathematik",
-    "asideLead": "Eine Anmeldung — und Sie sehen Ihre Schwachstellen, den Verlauf der Versuche und die nächsten Schritte.",
+    "asideTitle": "Dein Bereich für die NMT-Vorbereitung in Mathematik",
+    "asideLead": "Eine Anmeldung — und du siehst deine Schwachstellen, den Verlauf der Versuche und die nächsten Schritte.",
     "asidePoints": {
       "a": "Thementests und ein Theorie-Lehrbuch",
       "b": "Ergebnisanalyse und persönliche Empfehlungen",
@@ -1727,11 +1727,11 @@
     "steps": {
       "kicker": "So funktioniert es",
       "title": "Vier Schritte zu einem sicheren Ergebnis",
-      "lead": "Nichts einzurichten — Sie können direkt nach der Registrierung loslegen.",
+      "lead": "Nichts einzurichten — du kannst direkt nach der Registrierung loslegen.",
       "items": {
         "signup": {
           "title": "Konto erstellen",
-          "text": "Login, Name und Passwort. Dauert unter einer Minute."
+          "text": "Name, E-Mail und Passwort. Dauert unter einer Minute."
         },
         "diagnose": {
           "title": "Diagnose absolvieren",
@@ -1759,25 +1759,25 @@
         },
         "who": {
           "q": "Für wen ist die Plattform geeignet?",
-          "a": "Für Schülerinnen und Schüler der Klassen 10–11, frühere Absolventen und Erwachsene, die zur Mathematik zurückkehren. Tempo und Umfang bestimmen Sie."
+          "a": "Für Schülerinnen und Schüler der Klassen 10–11, frühere Absolventen und Erwachsene, die zur Mathematik zurückkehren. Tempo und Umfang bestimmst du selbst."
         },
         "mobile": {
           "q": "Kann ich am Handy lernen?",
-          "a": "Ja. Die Oberfläche ist mobile-first: Tests, Simulator und Statistik funktionieren auf Handy, Tablet und Desktop gleich gut."
+          "a": "Ja. Lernen geht am Handy, am Tablet und am Computer."
         },
         "recommendations": {
           "q": "Wie entstehen die Empfehlungen?",
-          "a": "Das System wertet Ihre Antworten je Thema aus und schlägt vor, zuerst die Themen mit dem niedrigsten Anteil richtiger Antworten zu wiederholen."
+          "a": "Das System wertet deine Antworten je Thema aus und schlägt vor, zuerst die Themen mit dem niedrigsten Anteil richtiger Antworten zu wiederholen."
         },
         "teacher": {
           "q": "Kann ich mit einer Lehrkraft arbeiten?",
-          "a": "Ja. Die Lehrkraft sieht Ihre Ergebnisse und kann Mentor-Sitzungen vergeben — gezielte Übungen für konkrete Lücken."
+          "a": "Ja. Die Lehrkraft sieht deine Ergebnisse und kann Mentor-Sitzungen vergeben — gezielte Übungen für konkrete Lücken."
         }
       }
     },
     "teachers": {
       "kicker": "Lehrkraft des Kurses",
-      "lead": "Absolvent des Physikalisch-Mathematischen Lyzeums Charkiw und der Karasin-Universität. Er unterrichtet seit zwölf Jahren.",
+      "lead": "Absolvent des Physikalisch-Mathematischen Lyzeums Charkiw und der Karasin-Universität. Er unterrichtet seit zwölf Jahren. Mit begabten Jugendlichen arbeitete er in der Kleinen Akademie der Wissenschaften.",
       "imageAlt": "Mychajlo Maksymow",
       "demo": {
         "initials": "MM",
@@ -1788,11 +1788,13 @@
         "headline": "Absolvent des Physikalisch-Mathematischen Lyzeums Charkiw, Spezialist für Wirtschaftskybernetik an der Karasin-Universität.",
         "bio": "Lehrte an der Wirtschaftsfakultät die Kurse „Grundlagen des Unternehmertums“, „Unternehmertum und Start-ups“ und „E-Government“. Wurde 2018 Vorsitzender der Wissenschaftlichen Gesellschaft der Studierenden, Promovierenden und jungen Forschenden der Karasin-Universität. Seit 2008 unternehmerisch in IT-Bildung und Informationstechnologie tätig.",
         "publications": "Alleinautor von sechs wissenschaftlichen Arbeiten und Teilnehmer vieler internationaler Konferenzen. Beteiligt am regionalen Programm zur Förderung des Unternehmertums in Charkiw 2016–2020 und an der Entwicklungsstrategie der Stadt Charkiw. Betreute begabte Jugendliche in der Kleinen Akademie der Wissenschaften und bereitete mehr als 15 Sieger regionaler und landesweiter Forschungsarbeiten vor."
-      }
+      },
+      "more": "Mehr dazu",
+      "less": "Weniger"
     },
     "cta": {
-      "title": "Beginnen Sie heute mit dem ersten Thema",
-      "lead": "Erstellen Sie in einer Minute ein Konto und machen Sie den ersten Test, um Ihr echtes Niveau zu sehen.",
+      "title": "Beginne heute mit dem ersten Thema",
+      "lead": "Erstelle in einer Minute ein Konto und mach den ersten Test, um dein echtes Niveau zu sehen.",
       "primary": "Konto erstellen",
       "secondary": "Anmelden",
       "note": "Ohne Zahlung und ohne Kartendaten"
@@ -1877,8 +1879,8 @@
   },
   "LoginForm": {
     "kicker": "Anmelden",
-    "title": "NMT-Lernbereich",
-    "lead": "Melde dich als Schüler, Lehrkraft oder Administrator an.",
+    "title": "Anmeldung bei LevelUP",
+    "lead": "Melde dich an, um mit der Vorbereitung weiterzumachen",
     "email": "E-Mail",
     "password": "Passwort",
     "signingIn": "Anmeldung…",
@@ -2132,11 +2134,11 @@
     },
     "login": {
       "title": "Anmelden",
-      "description": "Melde dich in deinem NMT-Lernbereich an."
+      "description": "Melde dich bei LevelUP an, um mit der Vorbereitung weiterzumachen."
     },
     "register": {
       "title": "Registrierung",
-      "description": "Erstelle ein Schülerkonto für den NMT-Lernbereich."
+      "description": "Erstelle ein Schülerkonto bei LevelUP: Name, E-Mail und Passwort."
     },
     "teacherRegister": {
       "title": "Registrierung für Lehrkräfte",

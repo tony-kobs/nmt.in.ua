@@ -7,10 +7,10 @@ import { ensureTelegramSchema, loadTelegramConnection } from "./schema";
 import { sendTelegramMessage } from "./transport";
 
 /** Stored on a cancelled outbox or job row. The timeline shows this as «Пропущено». */
-export const UNLINK_REASON = "Telegram відв’язано";
+export const UNLINK_REASON = "Telegram відвʼязано";
 
 /** Best-effort note to the chat that was just disconnected. */
-export const UNLINK_NOTICE = "Бота відв'язано від акаунта nmt.in.ua";
+export const UNLINK_NOTICE = "Бота відвʼязано від акаунта nmt.in.ua";
 
 export type UnlinkResult = {
   /** True when an account row or a participant chat was cleared. */

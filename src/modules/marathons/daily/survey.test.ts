@@ -42,12 +42,12 @@ test("a survey card shows the name and telegram nick, and says when neither exis
     displayName: "",
     login: "ira",
     telegramUsername: null,
-  }), "ira · Telegram не прив’язано");
+  }), "ira · Telegram не привʼязано");
   assert.equal(surveyAuthorLabel({
     displayName: null,
     login: "  ",
     telegramUsername: "",
-  }), "Немає імені · Telegram не прив’язано");
+  }), "Немає імені · Telegram не привʼязано");
 });
 
 test("the card averages ratings and lists answers", () => {

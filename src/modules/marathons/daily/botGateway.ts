@@ -427,7 +427,7 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
   if (callback.kind === "pick") {
     const selected = await selectChatMarathon(parsed.chatId, callback.marathonId);
     if (!selected) {
-      return sectionReplies(parsed.chatId, [{ text: "Цей марафон не прив’язаний до чату.", buttons: [mainMenuDataButton()] }], marathonReplyKeyboard(undefined));
+      return sectionReplies(parsed.chatId, [{ text: "Цей марафон не привʼязаний до чату.", buttons: [mainMenuDataButton()] }], marathonReplyKeyboard(undefined));
     }
     linked = await findParticipantByChat(parsed.chatId);
     if (!linked) return sectionReplies(parsed.chatId, [{ text: "Не вдалося відкрити марафон.", buttons: [mainMenuDataButton()] }], marathonReplyKeyboard(undefined));

@@ -15,7 +15,7 @@ export function sqlNumberProblems(fileNames) {
   for (const name of fileNames) {
     const match = /^(\d+)_/.exec(name);
     if (!match) {
-      problems.push(`${name}: ім’я міграції має починатись із номера`);
+      problems.push(`${name}: імʼя міграції має починатись із номера`);
       continue;
     }
     const number = match[1];
