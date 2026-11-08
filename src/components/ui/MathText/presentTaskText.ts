@@ -5,14 +5,15 @@
  * A straight apostrophe between letters is the Ukrainian ʼ.
  */
 
+import { revealTextCommands } from "./prepareFormula";
+
 const APOSTROPHE = "ʼ";
 
 const UNIT =
   "см|мм|дм|км|м|кг|г|хв|год|л|мл|грн";
 
 function unwrapTextCommand(formula: string): string {
-  return formula
-    .replace(/\\(?:text|mathrm)\{([^{}]*)\}/g, "$1")
+  return revealTextCommands(formula)
     .replace(/[{}~]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -102,7 +103,9 @@ export function presentTaskText(text: string): string {
   if (!text) return "";
   return splitMath(text)
     .map((chunk) => {
-      if (chunk.type === "text") return fixApostrophes(chunk.content);
+      if (chunk.type === "text") {
+        return revealTextCommands(fixApostrophes(chunk.content));
+      }
       if (chunk.display) {
         return `$$${chunk.content}$$`;
       }

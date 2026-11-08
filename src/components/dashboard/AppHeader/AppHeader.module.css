@@ -143,37 +143,9 @@
   justify-self: end;
 }
 
-.homeLink {
-  display: none;
-  align-items: center;
-  justify-content: center;
+.profileWrap {
+  position: relative;
   flex: none;
-  min-height: 44px;
-  padding: 8px 12px;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--sheet) 78%, transparent);
-  color: var(--green-dark);
-  font-size: var(--fs-small);
-  font-weight: 700;
-  white-space: nowrap;
-  transition:
-    border-color var(--t) var(--ease),
-    background-color var(--t) var(--ease),
-    color var(--t) var(--ease);
-}
-
-.homeLink:hover,
-.homeLink:focus-visible {
-  border-color: var(--green);
-  background: var(--green-bg);
-  color: var(--green-dark);
-}
-
-.homeLink:active {
-  border-color: var(--ultimate);
-  background: var(--ultimate);
-  color: var(--on-accent);
 }
 
 .profile {
@@ -226,34 +198,64 @@
   font-weight: 800;
 }
 
-.profileMeta {
-  display: none;
-  min-width: 0;
-  padding-right: 2px;
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 5;
+  display: grid;
+  gap: var(--space-2xs);
+  width: min(16rem, calc(100vw - 24px));
+  padding: var(--space-xs);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
 }
 
-.profileName {
-  display: block;
+.menuIdentity,
+.menuLink {
+  display: grid;
+  align-content: center;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  color: inherit;
+  text-decoration: none;
+}
+
+.menuIdentityActive,
+.menuLink:hover,
+.menuLink:focus-visible {
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.menuName {
   overflow: hidden;
   font-size: var(--fs-small);
   font-weight: 700;
-  line-height: 1.15;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.profileRole {
-  display: block;
-  overflow: hidden;
-  color: var(--subtle);
-  font-size: var(--fs-kicker);
-  font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.homeLinkFull {
+.menuRole {
+  overflow: hidden;
+  color: var(--subtle);
+  font-size: var(--fs-kicker);
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.menuLink {
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
+.aboutLink {
   display: none;
 }
 
@@ -296,36 +298,8 @@
     height: 40px;
   }
 
-  .homeLink {
-    display: inline-flex;
-  }
-
-  .profile {
-    flex: none;
-    justify-content: flex-start;
-    width: auto;
-    height: auto;
-    min-width: 0;
-    max-width: 14rem;
-    min-height: 44px;
-    padding: 4px 12px 4px 4px;
-    gap: 10px;
-  }
-
-  .profileMeta {
+  .aboutLink {
     display: grid;
-  }
-
-  .homeLinkShort {
-    display: none;
-  }
-
-  .homeLinkFull {
-    display: inline;
-  }
-
-  .homeLink {
-    padding: 8px 14px;
   }
 
   .brandCopy {
@@ -348,7 +322,8 @@
     transform: none;
   }
 
-  .homeLink:hover {
+  .menuLink:hover,
+  .menuIdentity:hover {
     transform: none;
   }
 }

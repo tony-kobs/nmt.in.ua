@@ -11,6 +11,8 @@
     "showMenu": "Menü anzeigen",
     "goHome": "Über die Website",
     "goHomeShort": "Info",
+    "profileMenu": "Profilmenü, {name}",
+    "account": "Persönliches Konto",
     "tagline": "Bring dein Wissen aufs nächste Level",
     "logout": "abmelden",
     "openAccount": "Persönliches Konto: {name}",

@@ -1,4 +1,5 @@
 import katex from "katex";
+import { prepareFormulaForKatex } from "@/components/ui/MathText/prepareFormula";
 import { isUploadPlaceholderSrc } from "./imageLimits";
 import { safeImageSrc } from "./markup";
 
@@ -31,7 +32,7 @@ export function textbookFormulaError(formula: string): string | null {
   const body = formula.trim();
   if (formulaOk.has(body)) return null;
   try {
-    katex.renderToString(body, {
+    katex.renderToString(prepareFormulaForKatex(body), {
       throwOnError: true,
       output: "html",
       strict: "ignore",

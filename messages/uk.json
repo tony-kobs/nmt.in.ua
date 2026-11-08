@@ -11,6 +11,8 @@
     "showMenu": "Показати меню",
     "goHome": "Про сайт",
     "goHomeShort": "Вітальна",
+    "profileMenu": "Меню профілю, {name}",
+    "account": "Особистий кабінет",
     "tagline": "Прокачай свої знання",
     "logout": "вийти",
     "openAccount": "Особистий кабінет: {name}",

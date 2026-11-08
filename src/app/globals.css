@@ -19,6 +19,7 @@ body {
   scrollbar-width: none;
   -ms-overflow-style: none;
   touch-action: manipulation;
+  scroll-padding-top: env(safe-area-inset-top, 0px);
 }
 
 body {

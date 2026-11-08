@@ -5,6 +5,7 @@
   align-content: center;
   min-height: 100dvh;
   overflow-x: clip;
+  padding-top: env(safe-area-inset-top, 0px);
   color: var(--ink-deep);
   background: transparent;
 }

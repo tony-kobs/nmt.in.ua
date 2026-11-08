@@ -1,7 +1,7 @@
 .skip {
   position: fixed;
-  left: var(--space-sm);
-  top: var(--space-sm);
+  left: calc(var(--space-sm) + env(safe-area-inset-left, 0px));
+  top: calc(var(--space-sm) + env(safe-area-inset-top, 0px));
   z-index: 120;
   display: inline-flex;
   align-items: center;
