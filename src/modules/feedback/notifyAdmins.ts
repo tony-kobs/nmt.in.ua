@@ -3,6 +3,8 @@ import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { absoluteUrl, sendMail, type SendMailInput, type SendMailResult } from "@/modules/mail/sendMail";
 import { notifyUser } from "@/modules/notifications/store";
+import type { SupportChatEnv } from "@/modules/support/postChat";
+import { deliverFeedbackToSupportChat } from "./supportChat";
 import { FEEDBACK_COMMENT_BELOW_SCORE } from "./types";
 
 export const FEEDBACK_ADMIN_KIND = "admin.feedback";
@@ -30,7 +32,11 @@ export type FeedbackAdminLetter = {
 };
 
 type AdminRow = { id: number; email: string | null };
-type AuthorRow = { display_name: string | null; login: string | null };
+type AuthorRow = {
+  display_name: string | null;
+  login: string | null;
+  email: string | null;
+};
 
 export function feedbackNoticeTitle(score: number): string {
   return score < FEEDBACK_COMMENT_BELOW_SCORE
@@ -119,6 +125,13 @@ type NotifyDeps = {
     input: SendMailInput,
   ) => Promise<SendMailResult>;
   absoluteLink?: (path: string) => string;
+  /** Test seam for the team-chat copy. Production reads process.env and fetch. */
+  supportChat?: {
+    env?: SupportChatEnv;
+    request?: typeof fetch;
+    timeoutMs?: number;
+    log?: (...args: unknown[]) => void;
+  };
 };
 
 const SQL_ADMINS = `
@@ -128,7 +141,7 @@ const SQL_ADMINS = `
 `;
 
 const SQL_AUTHOR = `
-  SELECT display_name, login
+  SELECT display_name, login, email
   FROM app_users
   WHERE id = ?
   LIMIT 1
@@ -148,8 +161,9 @@ function dedupedEmails(rows: AdminRow[]): string[] {
 }
 
 /**
- * In-site note for every admin, plus one letter per distinct admin email.
- * Errors are logged. Callers must still treat the feedback row as saved.
+ * In-site note for every admin, plus one letter per distinct admin email,
+ * plus a copy in the team Telegram chat. Chat errors are logged.
+ * Callers must still treat the feedback row as saved.
  *
  * Admin alerts ignore `user_channel_preferences`. Category toggles
  * (marathon / news / system, including system email off) do not apply:
@@ -163,15 +177,16 @@ export async function notifyAdminsOfFeedback(
   let admins: AdminRow[] = [];
   let authorName: string | null = null;
   let authorLogin: string | null = null;
+  let authorEmail: string | null = null;
   try {
     admins = await connection.query<AdminRow>(SQL_ADMINS, []);
-    if (admins.length === 0) return;
     if (input.userId) {
       const authors = await connection.query<AuthorRow>(SQL_AUTHOR, [
         input.userId,
       ]);
       authorName = authors[0]?.display_name ?? null;
       authorLogin = authors[0]?.login ?? null;
+      authorEmail = authors[0]?.email ?? null;
     }
   } finally {
     connection.release();
@@ -179,6 +194,37 @@ export async function notifyAdminsOfFeedback(
 
   const linkPath = `/feedback#fb-${input.id}`;
   const toAbsolute = deps.absoluteLink ?? ((path: string) => absoluteUrl(path));
+  const absoluteLink = toAbsolute(linkPath);
+  const log = deps.supportChat?.log ?? console.error;
+  const support = deliverFeedbackToSupportChat(
+    {
+      title: feedbackNoticeTitle(input.score),
+      type: feedbackNoticeType(input.score),
+      authorName,
+      authorLogin,
+      email: input.userId ? authorEmail : input.email,
+      message: input.message,
+      absoluteLink,
+    },
+    {
+      getConnection: deps.getConnection,
+      request: deps.supportChat?.request,
+      env: deps.supportChat?.env,
+      log,
+      timeoutMs: deps.supportChat?.timeoutMs,
+    },
+  ).catch((error) => {
+    log(
+      "notifyAdminsOfFeedback: support chat failed",
+      error instanceof Error ? error.name : "UnknownError",
+    );
+  });
+
+  if (admins.length === 0) {
+    await support;
+    return;
+  }
+
   const letter = buildFeedbackAdminLetter({
     id: input.id,
     score: input.score,
@@ -186,7 +232,7 @@ export async function notifyAdminsOfFeedback(
     authorName,
     authorLogin,
     guestEmail: input.userId ? null : input.email,
-    absoluteLink: toAbsolute(linkPath),
+    absoluteLink,
   });
 
   const tell = deps.notifyUser ?? notifyUser;
@@ -228,4 +274,6 @@ export async function notifyAdminsOfFeedback(
       console.error("notifyAdminsOfFeedback: mail failed", { email, error });
     }
   }
+
+  await support;
 }
