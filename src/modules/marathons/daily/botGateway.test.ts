@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { callbackFrom, callbackMessageId, handleMarathonGateway, marathonUpdateKind } from "./botGateway";
+import { callbackFrom, callbackMessageId, handleMarathonGateway, marathonUpdateKind, supersedeTaskCard, withDayEdit } from "./botGateway";
 
 test("leaderboard commands share the existing daily marathon top callback", () => {
   for (const text of ["/top", "/top@nmt_bot", "/leaderboard", "/leaderboard@nmt_bot", "/leaderboard  "]) {
@@ -18,6 +18,29 @@ test("leaderboard aliases reject group messages and a different chat owner befor
       assert.equal(await handleMarathonGateway({ message: { text, chat, from: { id: 123 } } }), null);
     }
   }
+});
+
+test("a task card replaces the previous one instead of leaving its menu open", () => {
+  const task = [{
+    chatId: "7",
+    text: "Завдання",
+    hideReplyKeyboard: true,
+    replyMarkup: { inline_keyboard: [[{ text: "А. 1", callback_data: "mh:qa:4:8:1" }]] },
+  }];
+  const fromInline = supersedeTaskCard(task, 42);
+  assert.equal(fromInline[0]?.editMessageId, undefined);
+  assert.equal(fromInline[0]?.supersedeMessageId, 42);
+  assert.equal(fromInline[0]?.hideReplyKeyboard, true);
+  assert.equal(supersedeTaskCard(task, null)[0]?.supersedeMessageId, undefined);
+
+  const replaced = withDayEdit(task, 42, "answer", false);
+  assert.equal(replaced[0]?.supersedeMessageId, 42);
+  assert.equal(replaced[0]?.editMessageId, undefined);
+
+  const review = withDayEdit([{ chatId: "7", text: "Розбір дня" }], 42, "answer", false);
+  assert.equal(review[0]?.editMessageId, 42);
+  assert.equal(review[0]?.hideReplyKeyboard, undefined);
+  assert.equal(withDayEdit(task, 42, "answer", true)[0]?.supersedeMessageId, undefined);
 });
 
 test("a reply-keyboard press is not edited onto the fake message", () => {

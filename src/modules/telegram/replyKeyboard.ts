@@ -96,17 +96,77 @@ function reflowLabels(labels: string[]): { text: string }[][] {
   return rows;
 }
 
+const PRESERVE_BOTTOM_MENU = new Set(["mh:today", "mh:top", "mh:all"]);
+
+function canHoldReplyKeyboard(reply: TelegramReply): boolean {
+  return reply.editMessageId === undefined
+    && !reply.replyMarkup
+    && !reply.photoUrl
+    && !reply.albumUrls?.length
+    && !reply.videoUrl
+    && !reply.videoFileId
+    && !reply.formulaTex
+    && reply.text.trim().length > 0;
+}
+
+/** Task answers stay inline. The open bottom menu is dismissed on that bubble. */
+function hideBottomMenuForTask(replies: TelegramReply[]): TelegramReply[] {
+  const index = replies.findIndex((reply) =>
+    reply.replyMarkup?.inline_keyboard.some((row) => row.some((button) => ANSWER_DATA.test(button.callback_data ?? ""))));
+  const at = index >= 0 ? index : 0;
+  return replies.map((reply, position) => position === at ? { ...reply, hideReplyKeyboard: true } : reply);
+}
+
+/**
+ * Drop labels the stable keyboard already shows, keep every other inline button,
+ * and put the section keyboard back on a text bubble that has no buttons.
+ */
+function restoreStableBesideInline(replies: TelegramReply[], stable: ReplyKeyboardMarkup): TelegramReply[] {
+  const onKeyboard = replyKeyboardLabels(stable);
+  const adjusted = replies.map((reply) => {
+    if (!reply.replyMarkup) return reply;
+    const kept: NonNullable<TelegramReply["replyMarkup"]>["inline_keyboard"] = [];
+    const links: Array<{ text: string; url: string }> = [];
+    for (const row of reply.replyMarkup.inline_keyboard) {
+      const next = [];
+      for (const button of row) {
+        if (button.url) {
+          links.push({ text: button.text, url: button.url });
+          continue;
+        }
+        if (onKeyboard.has(button.text)) continue;
+        next.push(button);
+      }
+      if (next.length > 0) kept.push(next);
+    }
+    let text = reply.text;
+    for (const link of links) {
+      if (!text.includes(link.url)) text = `${text}\n${link.text}\n${link.url}`.trim();
+    }
+    if (kept.length === 0) {
+      const { replyMarkup: _markup, ...rest } = reply;
+      return { ...rest, text };
+    }
+    return { ...reply, text, replyMarkup: { inline_keyboard: kept } };
+  });
+  if (!adjusted.some(canHoldReplyKeyboard)) return replies;
+  return attachReplyKeyboardList(adjusted, stable);
+}
+
 /**
  * A send carries one reply_markup. Inline buttons leave the keyboard already
  * on screen in place, so a nav button is removed only when its label is on the
- * keyboard this message will actually set. A link, an answer, or any label
- * missing from that keyboard keeps the whole inline menu.
+ * keyboard this message will actually set. A link or any label missing from
+ * that keyboard keeps the whole inline menu.
  * A screen that only chooses the next step becomes the keyboard.
+ * A task with answer buttons keeps those buttons and hides the bottom menu,
+ * so a count list or a section keyboard does not stay over the question.
  */
 export function relocateSectionNavigation(replies: TelegramReply[], stable: ReplyKeyboardMarkup): TelegramReply[] {
   if (replies.length === 0) return replies;
   const flat = replies.flatMap((reply) => reply.replyMarkup?.inline_keyboard.flat() ?? []);
   const isAnswer = (data?: string) => !!data && ANSWER_DATA.test(data);
+  if (flat.some((button) => isAnswer(button.callback_data))) return hideBottomMenuForTask(replies);
   const hasChoice = flat.some((button) => LIFTED_CHOICE.test(button.callback_data ?? ""));
   if (hasChoice) {
     const labels = flat.filter((button) => !isAnswer(button.callback_data)).map((button) => button.text);
@@ -121,7 +181,12 @@ export function relocateSectionNavigation(replies: TelegramReply[], stable: Repl
     if (button.url || isAnswer(button.callback_data)) return true;
     return !onKeyboard.has(button.text);
   });
-  if (keepsInline) return replies;
+  if (keepsInline) {
+    // The marathon menu stays inline on purpose and does not replace whatever
+    // keyboard is already under the field (often the cabinet one).
+    if (flat.some((button) => PRESERVE_BOTTOM_MENU.has(button.callback_data ?? ""))) return replies;
+    return restoreStableBesideInline(replies, stable);
+  }
   const stripped = replies.map((reply) => {
     const { replyMarkup: _markup, ...rest } = reply;
     return rest;

@@ -185,6 +185,72 @@ test("a message with both keyboards is sent once, with the inline buttons", asyn
   assert.equal(markup.inline_keyboard?.[0]?.[0]?.callback_data, "mh:qa:1:2:1");
 });
 
+test("a task message removes the bottom menu and then keeps the answer buttons", async () => {
+  const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+  const sent = await deliverTelegramReplies([{
+    chatId: "7",
+    text: "Обчисліть: (|-8+3|+|-4|)/(3²-6).",
+    hideReplyKeyboard: true,
+    supersedeMessageId: 11,
+    replyMarkup: { inline_keyboard: [
+      [{ text: "А. 1", callback_data: "mh:qa:4:8:1" }],
+      [{ text: "Б. 2", callback_data: "mh:qa:4:8:2" }],
+      [{ text: "🏠 Головне меню", callback_data: "m:home" }],
+    ] },
+  }], "token", {
+    sleep: async () => {},
+    request: async (url, init) => {
+      calls.push({ url: String(url), body: JSON.parse(String(init?.body)) as Record<string, unknown> });
+      return new Response(JSON.stringify({ ok: true, result: { message_id: 20 + calls.length } }));
+    },
+  });
+  assert.equal(sent.sent, 1);
+  assert.deepEqual(calls.map((call) => call.url.split("/").at(-1)), [
+    "sendMessage",
+    "editMessageReplyMarkup",
+    "deleteMessage",
+  ]);
+  const sentMarkup = calls[0]?.body.reply_markup as { remove_keyboard?: boolean; inline_keyboard?: unknown };
+  assert.equal(sentMarkup.remove_keyboard, true);
+  assert.equal(sentMarkup.inline_keyboard, undefined);
+  assert.match(String(calls[0]?.body.text), /Обчисліть/);
+  const edited = calls[1]?.body.reply_markup as { inline_keyboard?: Array<Array<{ text?: string; callback_data?: string }>> };
+  assert.deepEqual(edited.inline_keyboard?.map((row) => row[0]?.text), ["А. 1", "Б. 2", "🏠 Головне меню"]);
+  assert.equal(edited.inline_keyboard?.[0]?.[0]?.callback_data, "mh:qa:4:8:1");
+  assert.equal(calls[2]?.body.message_id, 11);
+});
+
+test("if the answer buttons cannot be attached, they go out as their own message", async () => {
+  const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
+  await deliverTelegramReplies([{
+    chatId: "7",
+    text: "Спростіть вираз",
+    hideReplyKeyboard: true,
+    replyMarkup: { inline_keyboard: [[{ text: "А", callback_data: "mh:a:1:2:1" }]] },
+  }], "token", {
+    sleep: async () => {},
+    request: async (url, init) => {
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      calls.push({ url: String(url), body });
+      const method = String(url).split("/").at(-1);
+      if (method === "editMessageReplyMarkup") {
+        return new Response(JSON.stringify({ ok: false, error_code: 400, description: "message can't be edited" }));
+      }
+      return new Response(JSON.stringify({ ok: true, result: { message_id: calls.length } }));
+    },
+  });
+  assert.deepEqual(calls.map((call) => call.url.split("/").at(-1)), [
+    "sendMessage",
+    "editMessageReplyMarkup",
+    "sendMessage",
+  ]);
+  assert.equal(calls[2]?.body.text, "Оберіть відповідь");
+  const markup = calls[2]?.body.reply_markup as { inline_keyboard?: Array<Array<{ callback_data?: string }>>; remove_keyboard?: boolean };
+  assert.equal(markup.remove_keyboard, undefined);
+  assert.equal(markup.inline_keyboard?.[0]?.[0]?.callback_data, "mh:a:1:2:1");
+  assert.equal(calls.filter((call) => String(call.body.text).includes("Спростіть")).length, 1);
+});
+
 test("an inline-only task message does not replace or remove the bottom menu", async () => {
   const calls: Array<{ url: string; body: Record<string, unknown> }> = [];
   await deliverTelegramReplies([{
