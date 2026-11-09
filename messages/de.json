@@ -2172,7 +2172,8 @@
     },
     "materials": {
       "title": "Lehrbuch",
-      "description": "Theorie und Formeln nach Zertifizierungsthemen — ein Lehrbuch mit Inhaltsverzeichnis."
+      "description": "Theorie und Formeln nach Zertifizierungsthemen — ein Lehrbuch mit Inhaltsverzeichnis.",
+      "topicDescription": "Theorie und Formeln zum Thema «{topic}» für die Zertifizierungsarbeit in Mathematik."
     },
     "notFound": {
       "title": "Seite nicht gefunden",

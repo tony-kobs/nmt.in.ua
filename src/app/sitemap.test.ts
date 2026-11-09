@@ -24,12 +24,17 @@ test("sitemap lists public pages and only live marathon or teacher cards beyond 
     assert.equal(paths.includes(path), true, `missing ${path}`);
   }
   for (const path of paths) {
-    const dynamic = path.startsWith("/marathon/") || path.startsWith("/t/");
+    const dynamic =
+      path.startsWith("/marathon/") ||
+      path.startsWith("/t/") ||
+      path === "/materials/textbook";
     assert.equal(expected.has(path) || dynamic, true, `unexpected sitemap path ${path}`);
   }
 
   const publicPaths = new Set<string>(paths);
-  const cabinetHrefs = DASHBOARD_NAV.map((item) => item.href).filter((href) => href !== "/");
+  const cabinetHrefs = DASHBOARD_NAV.map((item) => item.href).filter(
+    (href) => href !== "/" && href !== "/materials/textbook",
+  );
   for (const href of cabinetHrefs) {
     assert.equal(publicPaths.has(href), false, `cabinet route ${href} in sitemap`);
   }
