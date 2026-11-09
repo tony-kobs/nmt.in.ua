@@ -3,6 +3,17 @@
 Опис pull request — єдине місце, де це пишуть. Після мерджу в `dev` запис з’являється тут. Рядки для учня і викладача збираються в новини, коли реліз потрапляє в `main`. Посилання на скрінкаст з’являється лише після галочки «схвалено показувати». Гід для новачка — [онбординг](./onboarding.md) і [як робити задачу](./contributing.md); цей журнал туди не копіюється.
 
 <!-- changelog:entries -->
+### 2026-11-09 — feat: локальний MySQL, seed і повний .env.example (#317)
+
+- Для команди: Локальне середовище без прод-секретів, прод-бази, прод-бота і ключа Brevo. - `.env.example` переписаний: кожна змінна, яку читає код (`process.env` і об’єкт оточення, що ним є), з коротким коментарем українською. Локальні `DB_*` збігаються з Docker. Реальних ключів нема. - `docker-compose.yml` — MySQL 8.0 (точний патч хостингу в репозиторії не записаний; SQL розрахований на MySQL 8). - `002_legacy_content_tables.sql` створює порожні `themes`, `theme_connections`, `quiz_tasks`, `task_sessions`, `tasks2session`, щоб свіжа база проходила наступні `ALTER`. На проді це ім’я вже в `schema_migrations`, тому деплой файл удруге не виконує. - `npm run db:setup` / `db:seed` / `db:up` / `db:down`. Seed кладе чотири акаунти, три теми з завданнями і марафон `local-daily`. На хост, який не loopback, seed відмовляється. - Brevo, Telegram і cron-секрети вже вимикаються, коли змінна порожня: лист у консоль у development, webhook 503, HTTP-крон і тригер розсилки 401. Окремого коду для цього не змінював. - Інструкція: `docs/LOCAL_DEV.md`. Короткі посилання в онбордингу, README і contributing.
+- Для людей: На живому сайті нічого не змінюється. Це лише локальний запуск для розробки.
+- Скрінкаст: не потрібен
+- Запис: не учнівський інтерфейс, запис не потрібен
+- Схвалено: ні
+- Автор: groteskzp
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/317
+<!-- released: no -->
+
 ### 2026-11-09 — ci: ручний імпорт задачника на прод (#314)
 
 - Для команди: Новий workflow **Prod workbook import** (`.github/workflows/prod-workbook-import.yml`). Лише `workflow_dispatch`, input `mode`: `dry-run` (за замовчуванням) або `apply`. На хост по SSH (ті самі `HOSTING_SSH_KEY`, `levelhst@levelhst.ftp.tools`, `/home/levelhst/nmt.in.ua`) копіюється лише: - `scripts/import-workbook.mjs` - `scripts/lib/workbook-catalog.mjs` (скрипт його імпортує) - `src/content/workbookProblems.json` Файли лягають у `/home/levelhst/nmt.in.ua/tmp/workbook-import-<run>`. Поруч — посилання на живі `www/.env.production` і `www/node_modules`, тож скрипт сам читає `DB_*` і знаходить `mysql2`. Пароль у лог не пишеться. `--apply` лише коли `mode=apply`. У лог іде підсумок скрипта: нових, збігаються (без змін), відрізняються. Тимчасова тека і архів прибираються в кінці, навіть якщо запуск упав. Перед `apply` окремий крок лише нагадує, що бекап уже зроблено окремо. Група `concurrency` та сама, що в Deploy hosting (`deploy-hosting`), тож імпорт не йде паралельно з деплоєм. Якщо на хості є `.deploy.lock`, запуск теж зупиняється. `deploy-hosting.yml` і код застосунку не змінювались. Після мерджу в `dev`: Actions → Prod workbook import → Run workflow з гілки `dev`. Спершу `dry-run`, після окремого бекапу — `apply`. Перевірка: actionlint без зауважень. Локальний сухий прогін зі скопійованих файлів і symlink на `.env` / `node_modules`: каталог 439, нових 439, збігаються 0, відрізняються 0; рядки в `problems` і `workbook_catalog` лишились 0. Пароль у виводі не з’явився.
