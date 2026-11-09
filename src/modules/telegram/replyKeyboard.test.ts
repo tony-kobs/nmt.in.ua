@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { marathonButtonSnapshots, marathonCallbackFromText, marathonReplyKeyboard, menuMessages } from "@/modules/marathons/daily/botPlay";
+import { buildQuizQuestion, quizSectionKeyboard } from "@/modules/marathons/daily/botQuiz";
 import { expandSources } from "@/modules/marathons/daily/telegramContent";
 import { piecesToReplies } from "./deliver";
 import { handleMenuRequest } from "./menu";
@@ -255,4 +256,158 @@ test("linking an account shows the bottom menu", async () => {
     ...labels(accountMenuRows("teacher")),
     MENU_CLOSE_LABEL,
   ]);
+});
+
+test("the count list stays a bottom keyboard until the question itself", () => {
+  const counts = relocateSectionNavigation([{
+    chatId: "7",
+    text: "Скільки завдань взяти?",
+    replyMarkup: { inline_keyboard: [
+      [{ text: "5 · Арифметичні дії", callback_data: "mh:qn:3:5" }],
+      [{ text: "10 · Арифметичні дії", callback_data: "mh:qn:3:10" }],
+      [{ text: "20 · Арифметичні дії", callback_data: "mh:qn:3:20" }],
+      [{ text: "До тем", callback_data: "mh:qp:0" }],
+      [{ text: "Розбір останнього тесту", callback_data: "mh:qr" }],
+      [{ text: "На сайт", url: "https://nmt.in.ua/topic" }],
+      [{ text: "🏠 Головне меню", callback_data: "m:home" }],
+    ] },
+  }], quizSectionKeyboard());
+  assert.equal(counts[0]?.hideReplyKeyboard, undefined);
+  assert.equal(counts[0]?.replyMarkup, undefined);
+  assert.deepEqual(counts[0]?.replyKeyboard?.keyboard.map((row) => row.map((button) => button.text)), [
+    ["5 · Арифметичні дії"],
+    ["10 · Арифметичні дії"],
+    ["20 · Арифметичні дії"],
+    ["До тем"],
+    ["Розбір останнього тесту"],
+    ["На сайт"],
+    ["🏠 Головне меню"],
+  ]);
+});
+
+test("materials before a marathon task keep their button and the current menu", () => {
+  const materials = relocateSectionNavigation([{
+    chatId: "7",
+    text: "Матеріали дня",
+    replyMarkup: { inline_keyboard: [
+      [{ text: "До завдань", callback_data: "mh:mat:2" }],
+      [{ text: "🏠 Головне меню", callback_data: "m:home" }],
+    ] },
+  }], marathonReplyKeyboard(undefined));
+  assert.equal(materials[0]?.hideReplyKeyboard, undefined);
+  assert.equal(materials[0]?.replyKeyboard, undefined);
+  assert.deepEqual(
+    materials[0]?.replyMarkup?.inline_keyboard.map((row) => row[0]?.callback_data),
+    ["mh:mat:2", "m:home"],
+  );
+});
+
+test("a topic question hides the count keyboard and keeps the answer buttons", () => {
+  const question = piecesToReplies("7", expandSources([buildQuizQuestion({
+    themeName: "Арифметичні дії",
+    index: 1,
+    total: 5,
+    prompt: "Обчисліть: (|-8+3|+|-4|)/(3²-6).",
+    options: ["1", "2", "3", "9/2"],
+    sessionId: 4,
+    mappingId: 8,
+    retry: false,
+  })]));
+  const shown = relocateSectionNavigation(question, quizSectionKeyboard());
+  assert.equal(shown.length, 1);
+  assert.equal(shown[0]?.hideReplyKeyboard, true);
+  assert.equal(shown[0]?.replyKeyboard, undefined);
+  const rows = shown[0]?.replyMarkup?.inline_keyboard ?? [];
+  assert.deepEqual(rows.slice(0, 4).map((row) => row[0]?.text), ["А. 1", "Б. 2", "В. 3", "Г. 9/2"]);
+  assert.equal(rows[0]?.[0]?.callback_data, "mh:qa:4:8:1");
+  assert.equal(rows.at(-1)?.[0]?.callback_data, "m:home");
+  assert.equal(rows.some((row) => row.some((button) => button.text.includes("Арифметичні дії"))), false);
+});
+
+test("resume, retry and marathon answers hide the same bottom menu", () => {
+  const retry = relocateSectionNavigation(piecesToReplies("7", expandSources([buildQuizQuestion({
+    themeName: "Арифметичні дії",
+    index: 1,
+    total: 5,
+    prompt: "Обчисліть ще раз.",
+    options: ["1", "2"],
+    sessionId: 4,
+    mappingId: 8,
+    retry: true,
+    preface: "Неправильно. Спробуйте ще раз.",
+  })])), quizSectionKeyboard());
+  assert.equal(retry[0]?.hideReplyKeyboard, true);
+  assert.equal(retry[0]?.replyMarkup?.inline_keyboard[0]?.[0]?.callback_data, "mh:qr:4:8:1");
+  assert.equal(retry[0]?.replyKeyboard, undefined);
+
+  const marathon = relocateSectionNavigation([{
+    chatId: "7",
+    text: "Спростіть вираз",
+    replyMarkup: { inline_keyboard: [
+      [{ text: "А. 1", callback_data: "mh:a:2:15:1" }],
+      [{ text: "Б. 4", callback_data: "mh:z:opaqueToken01" }],
+      [{ text: "🏠 Головне меню", callback_data: "m:home" }],
+    ] },
+  }], marathonReplyKeyboard(undefined));
+  assert.equal(marathon[0]?.hideReplyKeyboard, true);
+  assert.equal(marathon[0]?.replyKeyboard, undefined);
+  assert.deepEqual(
+    marathon[0]?.replyMarkup?.inline_keyboard.map((row) => row[0]?.callback_data),
+    ["mh:a:2:15:1", "mh:z:opaqueToken01", "m:home"],
+  );
+});
+
+test("leaving a topic test or a marathon day brings the section keyboard back", () => {
+  const finished = relocateSectionNavigation([{
+    chatId: "7",
+    text: "Арифметичні дії завершено.",
+    replyMarkup: { inline_keyboard: [
+      [{ text: "Розбір помилок", callback_data: "mh:qr" }],
+      [{ text: "Ще тест", callback_data: "mh:qp:0" }],
+      [{ text: "На сайт", url: "https://nmt.in.ua/topic" }],
+      [{ text: "🏠 Головне меню", callback_data: "m:home" }],
+    ] },
+  }], quizSectionKeyboard());
+  assert.equal(finished[0]?.hideReplyKeyboard, undefined);
+  assert.equal(finished[0]?.replyMarkup, undefined);
+  assert.deepEqual(
+    finished[0]?.replyKeyboard?.keyboard.flat().map((button) => button.text),
+    ["Розбір помилок", "Ще тест", "На сайт", "🏠 Головне меню"],
+  );
+
+  const review = relocateSectionNavigation([
+    {
+      chatId: "7",
+      text: "Розбір дня",
+      replyMarkup: { inline_keyboard: [[{ text: "🏠 Головне меню", callback_data: "m:home" }]] },
+    },
+    {
+      chatId: "7",
+      text: "Оцініть марафон",
+      replyMarkup: { inline_keyboard: [
+        [{ text: "1", callback_data: "mh:sv:1" }],
+        [{ text: "Пропустити", callback_data: "mh:sv:x" }],
+      ] },
+    },
+  ], marathonReplyKeyboard(undefined));
+  assert.equal(review[0]?.hideReplyKeyboard, undefined);
+  assert.equal(review[0]?.replyMarkup, undefined);
+  assert.equal(review[0]?.replyKeyboard?.keyboard.flat().some((button) => button.text === "Сьогодні"), true);
+  assert.equal(review[1]?.replyKeyboard, undefined);
+  assert.deepEqual(
+    review[1]?.replyMarkup?.inline_keyboard.map((row) => row[0]?.callback_data),
+    ["mh:sv:1", "mh:sv:x"],
+  );
+
+  const reopened = relocateSectionNavigation([{
+    chatId: "7",
+    text: "Цей день уже зданий.",
+    replyMarkup: { inline_keyboard: [
+      [{ text: "Відкрити на сайті", url: "https://nmt.in.ua/marathon/math/day/2" }],
+      [{ text: "🏠 Головне меню", callback_data: "m:home" }],
+    ] },
+  }], marathonReplyKeyboard(undefined));
+  assert.match(reopened[0]?.text ?? "", /https:\/\/nmt\.in\.ua\/marathon\/math\/day\/2/);
+  assert.equal(reopened[0]?.replyMarkup, undefined);
+  assert.equal(reopened[0]?.replyKeyboard?.keyboard.flat().some((button) => button.text === "Сьогодні"), true);
 });

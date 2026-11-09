@@ -367,7 +367,10 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
         buttons: [mainMenuDataButton()],
       }], homeReplyKeyboard());
     }
-    return sectionReplies(parsed.chatId, await presentBotQuiz(owner.user.userId, callback), quizSectionKeyboard());
+    return supersedeTaskCard(
+      sectionReplies(parsed.chatId, await presentBotQuiz(owner.user.userId, callback), quizSectionKeyboard()),
+      parsed.messageId,
+    );
   }
   let linked = await findParticipantByChat(parsed.chatId);
   if (!linked) {
@@ -709,12 +712,24 @@ export async function handleMarathonGateway(update: unknown): Promise<TelegramRe
   );
 }
 
-function withDayEdit(
+/** A task is a new bubble. The previous card is removed after that bubble is delivered. */
+export function supersedeTaskCard(replies: TelegramReply[], messageId: number | null): TelegramReply[] {
+  if (messageId == null) return replies;
+  const hideAt = replies.findIndex((item) => item.hideReplyKeyboard);
+  if (hideAt < 0) return replies;
+  return replies.map((item, at) => at === hideAt ? { ...item, supersedeMessageId: messageId } : item);
+}
+
+export function withDayEdit(
   replies: TelegramReply[],
   messageId: number | null,
   kind: BotCallback["kind"],
   introFresh: boolean,
 ): TelegramReply[] {
+  if (messageId != null && !introFresh) {
+    const replaced = supersedeTaskCard(replies, messageId);
+    if (replaced.some((item) => item.supersedeMessageId != null)) return replaced;
+  }
   if (messageId == null || introFresh) return replies;
   if (kind !== "today" && kind !== "open" && kind !== "materials" && kind !== "answer") return replies;
   const index = replies.findIndex((item) =>
