@@ -2172,7 +2172,8 @@
     },
     "materials": {
       "title": "Textbook",
-      "description": "Theory and formulas by certification topics — one textbook with a table of contents."
+      "description": "Theory and formulas by certification topics — one textbook with a table of contents.",
+      "topicDescription": "Theory and formulas for «{topic}» in the mathematics certification paper."
     },
     "notFound": {
       "title": "Page not found",

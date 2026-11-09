@@ -189,9 +189,9 @@
 
 .boardRow {
   display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr) auto;
-  gap: var(--space-sm);
-  align-items: center;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 0.1rem var(--space-sm);
+  align-items: baseline;
   padding-block: 0.55rem;
   border-bottom: 1px solid rgb(246 241 226 / 14%);
 }
@@ -206,15 +206,26 @@
 }
 
 .name {
+  min-width: 0;
   overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  line-height: 1.35;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: normal;
 }
 
 .points {
+  grid-column: 2;
+  min-width: 0;
   color: rgb(246 241 226 / 86%);
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .empty {
@@ -276,6 +287,17 @@
 }
 
 @media (min-width: 768px) {
+  .boardRow {
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+    gap: var(--space-sm);
+    align-items: center;
+  }
+
+  .points {
+    grid-column: auto;
+    white-space: nowrap;
+  }
+
   .slate {
     padding: var(--space-lg);
   }

@@ -161,7 +161,7 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
                 <div className={css.cardTop}>
                   <span className={css.rank}>#{row.rank}</span>
                   <span className={css.name}>
-                    {row.displayName}
+                    <span className={css.person}>{row.displayName}</span>
                     {login ? <span className={css.login}>@{login}</span> : null}
                   </span>
                 </div>
@@ -235,7 +235,7 @@ export async function MarathonLeaderboardView({ data, mode }: Props) {
                   >
                     <td className={css.colRank}>{row.rank}</td>
                     <td className={css.colName}>
-                      {row.displayName}
+                      <span className={css.person}>{row.displayName}</span>
                       {login ? <span className={css.login}>@{login}</span> : null}
                     </td>
                     {daily ? <td className={css.colMetric}>{row.daysDone}</td> : null}

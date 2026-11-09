@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { isKnownPage } from "@/constants/appRoutes";
 import { PUBLIC_PAGE_PATHS } from "@/constants/publicRoutes";
+import { contentSecurityPolicy, createRequestNonce } from "@/lib/contentSecurityPolicy";
 import { hasPermission } from "@/modules/auth/permissions";
 import { isMarathonManagePath, isPublicMarathonPath } from "@/modules/marathons/daily/routes";
 import {
@@ -111,15 +112,21 @@ function authGuard(
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const nonce = createRequestNonce();
+  const csp = contentSecurityPolicy(nonce, process.env.NODE_ENV !== "production");
+  const seal = (response: NextResponse) => {
+    response.headers.set("Content-Security-Policy", csp);
+    return response;
+  };
 
   if (isBlockedPath(pathname)) {
-    return new NextResponse("Not Found", {
+    return seal(new NextResponse("Not Found", {
       status: 404,
       headers: {
         "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff",
       },
-    });
+    }));
   }
 
   // Chunks and public files skip the session read. A cabinet prefetch still
@@ -141,24 +148,27 @@ export async function proxy(request: NextRequest) {
   );
 
   if (!verdict.ok) {
-    return new NextResponse("Too Many Requests", {
+    return seal(new NextResponse("Too Many Requests", {
       status: 429,
       headers: {
         "Retry-After": String(verdict.retryAfterSec),
         "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff",
       },
-    });
+    }));
   }
 
   const authResponse = authGuard(request, session);
-  if (authResponse) return authResponse;
+  if (authResponse) return seal(authResponse);
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
-  return NextResponse.next({
+  // Next reads this request header and stamps the nonce on its own scripts.
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+  return seal(NextResponse.next({
     request: { headers: requestHeaders },
-  });
+  }));
 }
 
 export const config = {
