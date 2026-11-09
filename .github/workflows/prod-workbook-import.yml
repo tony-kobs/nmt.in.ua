@@ -1,0 +1,201 @@
+# Manual import of the printable workbook on the live host.
+# The importer is not in the deploy archive. This job copies only the script,
+# the module it imports, and the catalog JSON, runs them beside the live app
+# so the script reads www/.env.production itself, then deletes the temp dir.
+# Same concurrency group as Deploy hosting: the two cannot run at once.
+name: Prod workbook import
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Сухий прогін нічого не пише. apply пише після окремого бекапу.
+        type: choice
+        options:
+          - dry-run
+          - apply
+        default: dry-run
+        required: true
+
+concurrency:
+  group: deploy-hosting
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Write SSH key
+        env:
+          HOSTING_SSH_KEY: ${{ secrets.HOSTING_SSH_KEY }}
+        run: |
+          if [ -z "$HOSTING_SSH_KEY" ]; then
+            echo "Add repo secret HOSTING_SSH_KEY (private key for levelhst@levelhst.ftp.tools)." >&2
+            exit 1
+          fi
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$HOSTING_SSH_KEY" > "$HOME/.ssh/hosting_key"
+          chmod 600 "$HOME/.ssh/hosting_key"
+          ssh-keyscan -H levelhst.ftp.tools >> "$HOME/.ssh/known_hosts"
+
+      - name: Remind that the database backup is already done
+        if: inputs.mode == 'apply'
+        run: |
+          echo "Нагадування: бекап бази вже зроблено окремо. Цей крок бекап не створює."
+          echo "Далі скрипт піде з --apply."
+
+      - name: Copy importer and run it on the host
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          set -euo pipefail
+
+          case "${MODE}" in
+            dry-run|apply) ;;
+            *)
+              echo "mode має бути dry-run або apply" >&2
+              exit 1
+              ;;
+          esac
+
+          RUN_ID="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          if ! printf '%s\n' "$RUN_ID" | grep -Eq '^[0-9]+-[0-9]+$'; then
+            echo "Некоректний ідентифікатор запуску" >&2
+            exit 1
+          fi
+
+          SSH=(
+            ssh
+            -i "$HOME/.ssh/hosting_key"
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o ConnectTimeout=30
+            -o ServerAliveInterval=15
+            -o ServerAliveCountMax=8
+          )
+          TARGET="levelhst@levelhst.ftp.tools"
+          APP_TMP="/home/levelhst/nmt.in.ua/tmp"
+          WORK="${APP_TMP}/workbook-import-${RUN_ID}"
+          REMOTE_ARCHIVE="${APP_TMP}/workbook-import-${RUN_ID}.tar.gz"
+
+          for rel in \
+            scripts/import-workbook.mjs \
+            scripts/lib/workbook-catalog.mjs \
+            src/content/workbookProblems.json
+          do
+            if [ ! -f "$rel" ]; then
+              echo "Немає ${rel}" >&2
+              exit 1
+            fi
+          done
+
+          LOCAL_ARCHIVE="$(mktemp)"
+          cleanup_local() {
+            status=$?
+            rm -f "$LOCAL_ARCHIVE"
+            "${SSH[@]}" "$TARGET" "rm -f $(printf '%q' "$WORK")/.env.production $(printf '%q' "$WORK")/node_modules && rm -rf $(printf '%q' "$WORK") && rm -f $(printf '%q' "$REMOTE_ARCHIVE")" || true
+            exit "$status"
+          }
+          trap cleanup_local EXIT
+
+          tar -czf "$LOCAL_ARCHIVE" \
+            scripts/import-workbook.mjs \
+            scripts/lib/workbook-catalog.mjs \
+            src/content/workbookProblems.json
+          tar -tzf "$LOCAL_ARCHIVE" | sort > "${LOCAL_ARCHIVE}.list"
+          if ! cmp -s "${LOCAL_ARCHIVE}.list" - <<'LIST'
+          scripts/import-workbook.mjs
+          scripts/lib/workbook-catalog.mjs
+          src/content/workbookProblems.json
+          LIST
+          then
+            echo "Архів має містити лише скрипт, його модуль і каталог." >&2
+            tar -tzf "$LOCAL_ARCHIVE" >&2
+            exit 1
+          fi
+          rm -f "${LOCAL_ARCHIVE}.list"
+
+          echo "Копіюю скрипт і каталог на хост (SSH pipe)."
+          "${SSH[@]}" "$TARGET" "mkdir -p $(printf '%q' "$APP_TMP") && cat > $(printf '%q' "$REMOTE_ARCHIVE")" < "$LOCAL_ARCHIVE"
+
+          echo "Запуск у середовищі /home/levelhst/nmt.in.ua/www (mode=${MODE})."
+          MODE_Q="$(printf '%q' "$MODE")"
+          RUN_Q="$(printf '%q' "$RUN_ID")"
+          "${SSH[@]}" "$TARGET" "export MODE=${MODE_Q} RUN_ID=${RUN_Q}; exec bash -s" <<'REMOTE'
+          set -euo pipefail
+          export PATH="/usr/local/node24/bin:/usr/local/bin:/usr/bin:${PATH}"
+
+          if ! printf '%s\n' "${RUN_ID:-}" | grep -Eq '^[0-9]+-[0-9]+$'; then
+            echo "Некоректний ідентифікатор запуску" >&2
+            exit 1
+          fi
+          case "${MODE:-}" in
+            dry-run|apply) ;;
+            *)
+              echo "Невідомий mode" >&2
+              exit 1
+              ;;
+          esac
+
+          APP_ROOT="/home/levelhst/nmt.in.ua"
+          SITE="${APP_ROOT}/www"
+          WORK="${APP_ROOT}/tmp/workbook-import-${RUN_ID}"
+          ARCHIVE="${APP_ROOT}/tmp/workbook-import-${RUN_ID}.tar.gz"
+
+          cleanup() {
+            rm -f "${WORK}/.env.production" "${WORK}/node_modules"
+            rm -rf "$WORK"
+            rm -f "$ARCHIVE"
+            echo "Прибрано тимчасову теку."
+          }
+          trap cleanup EXIT
+
+          if [ -d "${APP_ROOT}/.deploy.lock" ]; then
+            echo "На хості вже йде деплой (${APP_ROOT}/.deploy.lock). Імпорт не запускаю." >&2
+            exit 1
+          fi
+          if ! command -v node >/dev/null 2>&1; then
+            echo "На хості немає node у PATH" >&2
+            exit 1
+          fi
+          if [ ! -f "${SITE}/.env.production" ]; then
+            echo "Немає ${SITE}/.env.production" >&2
+            exit 1
+          fi
+          if [ ! -d "${SITE}/node_modules/mysql2" ]; then
+            echo "Немає mysql2 у ${SITE}/node_modules" >&2
+            exit 1
+          fi
+          if [ ! -f "$ARCHIVE" ]; then
+            echo "Немає архіву імпорту" >&2
+            exit 1
+          fi
+
+          mkdir -p "$WORK"
+          tar -xzf "$ARCHIVE" -C "$WORK"
+          for rel in scripts/import-workbook.mjs scripts/lib/workbook-catalog.mjs src/content/workbookProblems.json; do
+            if [ ! -f "${WORK}/${rel}" ]; then
+              echo "У архіві немає ${rel}" >&2
+              exit 1
+            fi
+          done
+
+          ln -s "${SITE}/.env.production" "${WORK}/.env.production"
+          ln -s "${SITE}/node_modules" "${WORK}/node_modules"
+
+          cd "$WORK"
+          if [ "$MODE" = "apply" ]; then
+            echo "mode=apply"
+            node scripts/import-workbook.mjs --apply
+          else
+            echo "mode=dry-run, без --apply"
+            node scripts/import-workbook.mjs
+          fi
+          REMOTE
