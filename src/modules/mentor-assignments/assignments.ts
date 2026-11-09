@@ -1,5 +1,8 @@
 import type { SqlConnection } from "@/lib/db/mysql";
-import { sampleRandomIds } from "@/lib/sampleRandomIds";
+import {
+  loadTopicTaskHistories,
+  pickFreshTaskIds,
+} from "@/modules/testing/pickFreshTasks";
 import {
   SESSION_STATUS_COMPLETED,
   SESSION_STATUS_PLANNED,
@@ -42,6 +45,8 @@ type Deps = {
   nowSec?: () => number;
   ensureSchema?: () => Promise<void>;
   notify?: (notes: AssignedSessionNotice[]) => Promise<void>;
+  /** Test seam. Values in [0, 1). Defaults to Math.random. */
+  random?: () => number;
 };
 
 type AssignmentRow = {
@@ -468,14 +473,23 @@ export async function createMentorAssignment(
       throw new MentorAssignmentsError("Theme not found.", "theme_not_found");
     }
 
+    await assertStudentsLinked(connection, input.teacherUserId, studentIds);
+
     if (readySessionId == null) {
       const pool = await connection.query<{ id: number }>(
         SQL_SELECT_TASK_IDS_AT_DIFFICULTY,
         [themeId, difficulty],
       );
-      const taskIds = sampleRandomIds(
+      const histories = await loadTopicTaskHistories(
+        connection,
+        studentIds,
+        themeId,
+      );
+      const taskIds = pickFreshTaskIds(
         pool.map((row) => Number(row.id)),
+        histories,
         requestedTasks,
+        deps.random,
       );
       if (taskIds.length < 1) {
         await connection.rollback();
@@ -494,8 +508,6 @@ export async function createMentorAssignment(
         nowSec: nowSec(),
       });
     }
-
-    await assertStudentsLinked(connection, input.teacherUserId, studentIds);
 
     const schedule = resolveAssignmentSchedule(
       input.scheduleMode,
