@@ -124,11 +124,7 @@ export function StatusScene({
                 <Link href="/" className={css.ghost}>
                   {copy.home}
                 </Link>
-              ) : (
-                <Link href="/welcome" className={css.ghost}>
-                  {copy.welcome}
-                </Link>
-              )}
+              ) : null}
             </div>
           ) : null}
           {digest ? <p className={css.digest}>{digest}</p> : null}

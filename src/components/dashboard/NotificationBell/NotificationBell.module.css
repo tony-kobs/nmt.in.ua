@@ -155,13 +155,19 @@
 }
 
 .itemTitle {
+  min-width: 0;
   font-weight: 700;
   font-size: var(--fs-small);
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .itemBody {
+  min-width: 0;
   color: var(--muted);
   font-size: var(--fs-small);
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .itemActions {

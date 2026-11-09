@@ -495,3 +495,48 @@ test("a DB failure on the self-score insert rolls back the whole transaction, in
   assert.ok(!mock.isCommitted());
   assert.ok(mock.isReleased());
 });
+
+test("a new topic test prefers tasks this student has not been given", async () => {
+  const themeId = 4;
+  const userId = 7;
+  const calls: string[] = [];
+  const connection: SqlConnection = {
+    beginTransaction: async () => {},
+    query: async <T,>(sql: string) => {
+      calls.push(sql);
+      if (sql.includes("topic-task-attempts")) {
+        return [{ user_id: userId, task_id: 1, solved: 1 }] as T[];
+      }
+      if (sql.includes("topic-task-assigned")) {
+        return [{ user_id: userId, task_id: 2 }] as T[];
+      }
+      if (sql.startsWith("SELECT id FROM quiz_tasks")) {
+        return [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }] as T[];
+      }
+      return [] as T[];
+    },
+    execute: async (sql: string, params: unknown[] = []) => {
+      if (sql.startsWith("INSERT INTO task_sessions")) {
+        return { insertId: 50, affectedRows: 1 };
+      }
+      if (sql.startsWith("INSERT INTO tasks2session")) {
+        return { insertId: 0, affectedRows: params.length / 5 };
+      }
+      return { insertId: 0, affectedRows: 0 };
+    },
+    commit: async () => {},
+    rollback: async () => {},
+    release: () => {},
+  };
+
+  const result = await startTopicTest(
+    { userId, themeId, taskCount: 2 },
+    { getConnection: async () => connection, random: () => 0 },
+  );
+
+  assert.deepEqual(result.taskIds.slice().sort((a, b) => a - b), [3, 4]);
+  assert.equal(
+    calls.some((sql) => sql.includes("topic-task-attempts")),
+    true,
+  );
+});

@@ -38,22 +38,20 @@
 }
 
 .rail {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(15.5rem, 17.5rem);
+  display: flex;
   align-items: stretch;
   gap: var(--space-md);
   margin: 0;
   padding: 2px 2px var(--space-sm);
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  scroll-padding-inline: 2px;
   list-style: none;
   scrollbar-width: thin;
 }
 
 .slip {
   display: flex;
+  flex: 0 0 100%;
   flex-direction: column;
   gap: var(--space-sm);
   min-width: 0;
@@ -115,6 +113,18 @@
   content: "→";
   margin-inline-start: 0.4em;
   text-decoration: none;
+}
+
+@media (min-width: 768px) {
+  .rail {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(15.5rem, 17.5rem);
+  }
+
+  .slip {
+    flex: none;
+  }
 }
 
 @media (min-width: 1240px) {

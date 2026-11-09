@@ -1,10 +1,16 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { MaterialDocument } from "@/components/learningMaterials/MaterialDocument";
 import { TextbookHashRedirect } from "@/components/learningMaterials/TextbookHashRedirect";
 import { bankTaskRefsInBlocks } from "@/modules/textbook/bankTask";
 import { loadBankTaskViews } from "@/modules/textbook/bankTaskStore";
 import { getPublishedTextbookBlocks } from "@/modules/textbook/store";
+import {
+  pickTextbookTopic,
+  readTextbookTopicParam,
+  textbookTopicMeta,
+} from "@/modules/textbook/topicPage";
 import { textbookTopicHref } from "@/content/learningMaterials/textbookHref";
 import { createPageMetadata } from "@/constants/seo";
 import { getThemes } from "@/modules/themes/getThemes";
@@ -14,36 +20,33 @@ type TextbookPageProps = {
   searchParams: Promise<{ topic?: string | string[] }>;
 };
 
-export async function generateMetadata() {
+export async function generateMetadata({ searchParams }: TextbookPageProps) {
+  const query = await searchParams;
+  const themes = await getThemes();
+  const pick = pickTextbookTopic(themes, readTextbookTopicParam(query.topic));
+  if (pick.status === "missing") notFound();
   const t = await getTranslations("Metadata.materials");
-  return createPageMetadata({
-    title: t("title"),
-    description: t("description"),
-    path: "/materials/textbook",
-  });
-}
-
-function readTopicParam(raw: string | string[] | undefined): string | null {
-  const value = Array.isArray(raw) ? raw[0] : raw;
-  if (!value) return null;
-  const trimmed = value.trim();
-  return trimmed || null;
+  const theme = pick.status === "ready" ? pick.active : null;
+  return createPageMetadata(
+    textbookTopicMeta(theme, {
+      title: t("title"),
+      description: t("description"),
+      namedDescription: theme
+        ? t("topicDescription", { topic: theme.name.trim() || theme.code })
+        : t("description"),
+    }),
+  );
 }
 
 export default async function TextbookPage({ searchParams }: TextbookPageProps) {
   const query = await searchParams;
   const themes = await getThemes();
-  const requested = readTopicParam(query.topic);
-  const activeIndex = Math.max(
-    0,
-    themes.findIndex((theme) => theme.code === requested),
-  );
-  const active = themes[activeIndex] ?? null;
-  const prev = activeIndex > 0 ? themes[activeIndex - 1] : null;
-  const next =
-    activeIndex >= 0 && activeIndex < themes.length - 1
-      ? themes[activeIndex + 1]
-      : null;
+  const pick = pickTextbookTopic(themes, readTextbookTopicParam(query.topic));
+  if (pick.status === "missing") notFound();
+  const active = pick.status === "ready" ? pick.active : null;
+  const activeIndex = pick.status === "ready" ? pick.index : -1;
+  const prev = pick.status === "ready" ? pick.prev : null;
+  const next = pick.status === "ready" ? pick.next : null;
 
   const blocks = active ? await getPublishedTextbookBlocks(active.code) : [];
   const bankLoad = await loadBankTaskViews(bankTaskRefsInBlocks(blocks));

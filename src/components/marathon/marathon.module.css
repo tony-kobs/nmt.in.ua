@@ -101,8 +101,15 @@
 .standingName {
   min-width: 0;
   overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  line-height: 1.35;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: normal;
 }
 
 .standingYouMark {
@@ -117,7 +124,8 @@
   color: rgb(246 241 226 / 78%);
   font-size: var(--fs-small);
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .card {
@@ -1329,7 +1337,14 @@
 
 .boardName {
   min-width: 0;
-  overflow-wrap: break-word;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
   word-break: normal;
 }
 

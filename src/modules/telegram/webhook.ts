@@ -31,9 +31,16 @@ export function verifyTelegramWebhookSecret(received: string | null, expected: s
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-const UNLINK_TEXT = new Set(["Відв'язати", "Відв’язати", "Відв'язати Telegram", "Відв’язати Telegram"]);
+const UNLINK_TEXT = new Set([
+  "Відвʼязати",
+  "Відв'язати",
+  "Відв’язати",
+  "Відвʼязати Telegram",
+  "Відв'язати Telegram",
+  "Відв’язати Telegram",
+]);
 
-/** `/stop` or the exact «Відв'язати» label in a private chat owned by the sender. */
+/** `/stop` or the exact «Відвʼязати» label in a private chat owned by the sender. */
 export function parseTelegramUnlink(update: unknown): { chatId: string; userId: string } | null {
   if (typeof update !== "object" || update === null) return null;
   const message = (update as { message?: TelegramMessage }).message;
@@ -129,14 +136,14 @@ export async function handleTelegramUpdate(
         logError: deps.logError,
       });
       if (profile.status !== "success") {
-        return { chatId: unlinkRequest.chatId, text: "Telegram уже не прив’язано до акаунта nmt.in.ua." };
+        return { chatId: unlinkRequest.chatId, text: "Telegram уже не привʼязано до акаунта nmt.in.ua." };
       }
       await (deps.unlink ?? unlinkTelegramAccount)(profile.profile.userId);
       await cancelSupportWait(unlinkRequest.chatId, deps);
       return { chatId: unlinkRequest.chatId, text: UNLINK_NOTICE };
     } catch (error) {
       log(error);
-      return { chatId: unlinkRequest.chatId, text: "Не вдалося відв’язати бота. Спробуйте в кабінеті на nmt.in.ua." };
+      return { chatId: unlinkRequest.chatId, text: "Не вдалося відвʼязати бота. Спробуйте в кабінеті на nmt.in.ua." };
     }
   }
   const supportCaptured = await captureSupport(update, deps, log);

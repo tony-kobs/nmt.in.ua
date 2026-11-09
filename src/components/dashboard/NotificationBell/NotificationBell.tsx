@@ -31,10 +31,15 @@ export function NotificationBell() {
   function placePanel() {
     const rect = rootRef.current?.getBoundingClientRect();
     if (!rect) return;
+    const margin = 12;
     const top = rect.bottom + 8;
+    const fontSize = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const width = Math.min(22 * fontSize, window.innerWidth - margin * 2);
+    let right = Math.max(margin, window.innerWidth - rect.right);
+    if (window.innerWidth - right - width < margin) right = margin;
     setPanelBox({
       top,
-      right: Math.max(12, window.innerWidth - rect.right),
+      right,
       maxHeight: Math.max(160, window.innerHeight - top - 16),
     });
   }

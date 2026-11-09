@@ -6,6 +6,7 @@ import { isCopyKey, renderResolved, resolveCopy, type CopyKey } from "@/modules/
 import { resolvePublicChatUrl } from "@/modules/marathons/daily/publicChat";
 import { optionalTelegramBot } from "@/modules/marathons/daily/botLink";
 import { sendTelegramMessage, type TelegramSendResult } from "@/modules/telegram/transport";
+import { postSupportChatMessage } from "./postChat";
 import {
   composeStudentReply,
   publicChatNotice,
@@ -232,16 +233,10 @@ async function forwardTicket(
     body: string;
   },
 ): Promise<void> {
-  const team = readSupportChatId(process.env.TELEGRAM_SUPPORT_CHAT_ID);
-  const bot = optionalTelegramBot();
-  if (!team || !bot) return;
   try {
-    const result = await sendTelegramMessage({
-      chatId: team,
-      text: teamTicketHtml(input),
-      parseMode: "HTML",
-      disablePreview: true,
-    }, bot.token);
+    const posted = await postSupportChatMessage({ text: teamTicketHtml(input) });
+    if (!posted.sent) return;
+    const result = posted.result;
     await reportSupportForward(result, connection);
     if (result.status === "sent" && result.messageId > 0) {
       try {
@@ -659,29 +654,21 @@ async function forwardFollowup(
   connection: SqlConnection,
   input: { id: number; displayName: string; body: string; replyToMessageId?: number },
 ): Promise<void> {
-  const team = readSupportChatId(process.env.TELEGRAM_SUPPORT_CHAT_ID);
-  const bot = optionalTelegramBot();
-  if (!team || !bot) return;
   const text = teamFollowupHtml(input);
   try {
-    let result = await sendTelegramMessage({
-      chatId: team,
+    let posted = await postSupportChatMessage({
       text,
-      parseMode: "HTML",
-      disablePreview: true,
       ...(input.replyToMessageId ? { replyToMessageId: input.replyToMessageId } : {}),
-    }, bot.token);
+    });
+    if (!posted.sent) return;
+    let result = posted.result;
     if (
       result.status === "rejected"
       && input.replyToMessageId
       && result.context.retryAfter == null
     ) {
-      result = await sendTelegramMessage({
-        chatId: team,
-        text,
-        parseMode: "HTML",
-        disablePreview: true,
-      }, bot.token);
+      posted = await postSupportChatMessage({ text });
+      if (posted.sent) result = posted.result;
     }
     await reportSupportForward(result, connection);
   } catch (error) {

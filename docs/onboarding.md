@@ -77,7 +77,7 @@ npm run dev
 | `TRUSTED_PROXY_HOPS` | Необов’язково | Типово `0` у development і `1` на проді (`src/lib/security.ts`) |
 | `MAX_BODY_BYTES` | Необов’язково | Ліміт тіла в `server.js`, типово 8388608. `npm run dev` цей файл не читає |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET` | Необов’язково | Без пари токен і username бот вимкнений, сайт працює |
-| `TELEGRAM_SUPPORT_CHAT_ID` | Необов’язково | Звернення лишаються в адмінці |
+| `TELEGRAM_SUPPORT_CHAT_ID` | Необов’язково | Звернення і відгуки з сайту лишаються в адмінці |
 | `MARATHON_CRON_SECRET`, `MARATHON_UNSUBSCRIBE_SECRET` | Необов’язково | Секрет статистики марафону і відписки. Для першого проходу сайту не потрібні. Відписка інакше бере `SESSION_SECRET` |
 | `TELEGRAM_NOTIFICATIONS_TRIGGER_SECRET` | Лише прод | Захищений виклик розсилки Telegram, не локальний сайт |
 | `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | Лише прод | Секрет збірки і хоста. У `.env.local` для навчання не ставимо |

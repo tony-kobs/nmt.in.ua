@@ -25,6 +25,14 @@ test("a real formula stays delimited", () => {
   assert.equal(presentTaskText("маємо $\\dfrac{2x-3}{5}$."), "маємо $\\dfrac{2x-3}{5}$.");
 });
 
+test("a percent written as \\text{%} reads as 25%", () => {
+  assert.equal(proseFromFormula(String.raw`25\text{%}`), "25%");
+  assert.equal(proseFromFormula(String.raw`25\text{\%}`), "25%");
+  assert.equal(presentTaskText(String.raw`Знайдіть $25\text{%}$ від числа.`), "Знайдіть 25% від числа.");
+  assert.equal(presentTaskText(String.raw`окремо 25\text{%} і 10\text{#}`), "окремо 25% і 10#");
+  assert.equal(presentTaskText(String.raw`маємо $x=25\text{%}$`), String.raw`маємо $x=25\text{%}$`);
+});
+
 test("a straight apostrophe between letters becomes ʼ", () => {
   assert.equal(presentTaskText("обов'язково"), "обовʼязково");
   assert.equal(presentTaskText("обов’язково"), "обовʼязково");

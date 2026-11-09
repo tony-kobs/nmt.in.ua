@@ -1,9 +1,12 @@
 import type { SqlConnection } from "@/lib/db/mysql";
-import { sampleRandomIds } from "@/lib/sampleRandomIds";
 import { ensureSelfScoreSchema } from "@/modules/self-score/schema";
 import { isValidSelfScore } from "@/modules/self-score/types";
 import { nowUnixSec } from "./sessionElapsed";
 import { computeSessionDeadline } from "./sessionExpiry";
+import {
+  loadTopicTaskHistories,
+  pickFreshTaskIds,
+} from "./pickFreshTasks";
 import {
   parseRequestedTaskCount,
   parseTopicTestMode,
@@ -76,6 +79,8 @@ export class StartTopicTestError extends Error {
 type StartTopicTestDeps = {
   getConnection: () => Promise<SqlConnection>;
   nowSec?: () => number;
+  /** Test seam. Values in [0, 1). Defaults to Math.random. */
+  random?: () => number;
 };
 
 function isPositiveInt(value: unknown): value is number {
@@ -137,9 +142,10 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
 
 /**
  * Starts a topic-test session: selects up to `taskCount` (or the mode default)
- * distinct tasks for the theme (or all available when fewer), inserts one
- * `task_sessions` row and one `tasks2session` row per task, all inside a
- * single transaction.
+ * distinct tasks for the theme (or all available when fewer). Tasks this
+ * student has not been given come first, then ones they have not solved,
+ * then repeats. Inserts one `task_sessions` row and one `tasks2session` row
+ * per task, all inside a single transaction. Answer order is the bank order.
  */
 export async function startTopicTest(
   rawInput: unknown,
@@ -170,9 +176,16 @@ export async function startTopicTest(
       const pool = await connection.query<{ id: number }>(SQL_SELECT_TASK_IDS, [
         input.themeId,
       ]);
-      const taskIds = sampleRandomIds(
+      const histories = await loadTopicTaskHistories(
+        connection,
+        [input.userId],
+        input.themeId,
+      );
+      const taskIds = pickFreshTaskIds(
         pool.map((row) => row.id),
+        histories,
         taskLimit,
+        deps.random,
       );
 
       const taskCount = taskIds.length;

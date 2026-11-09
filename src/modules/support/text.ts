@@ -10,8 +10,10 @@ import { escapeTelegramHtml, TELEGRAM_HTML_LIMIT } from "@/modules/telegram/tele
 export const SUPPORT_PHOTO_BODY = "Фото";
 
 const UNLINK_LABELS = new Set([
+  "Відвʼязати",
   "Відв'язати",
   "Відв’язати",
+  "Відвʼязати Telegram",
   "Відв'язати Telegram",
   "Відв’язати Telegram",
 ]);

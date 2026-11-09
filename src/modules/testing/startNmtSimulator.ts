@@ -217,7 +217,7 @@ export async function startNmtSimulator(
       if (mapping.affectedRows !== tasks.length) {
         await connection.rollback();
         throw new StartNmtSimulatorError(
-          "Не вдалося зв’язати всі завдання симулятора.",
+          "Не вдалося звʼязати всі завдання симулятора.",
           "db_error",
         );
       }

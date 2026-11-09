@@ -13,13 +13,14 @@
 
 .inner {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-xs);
   height: 100%;
   width: min(100%, var(--container-max));
   margin-inline: auto;
-  padding-inline: var(--container-pad);
+  padding-left: max(var(--container-pad), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--container-pad), env(safe-area-inset-right, 0px));
 }
 
 .toggle {
@@ -96,15 +97,16 @@
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .logo {
   display: block;
   flex: none;
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
 }
 
 .brandCopy {
@@ -136,53 +138,27 @@
   flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-2xs);
+  gap: var(--space-xs);
   min-width: 0;
   justify-self: end;
 }
 
-.homeLink {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.profileWrap {
+  position: relative;
   flex: none;
-  min-height: 44px;
-  padding: 8px 12px;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--sheet) 78%, transparent);
-  color: var(--green-dark);
-  font-size: var(--fs-small);
-  font-weight: 700;
-  white-space: nowrap;
-  transition:
-    border-color var(--t) var(--ease),
-    background-color var(--t) var(--ease),
-    color var(--t) var(--ease);
-}
-
-.homeLink:hover,
-.homeLink:focus-visible {
-  border-color: var(--green);
-  background: var(--green-bg);
-  color: var(--green-dark);
-}
-
-.homeLink:active {
-  border-color: var(--ultimate);
-  background: var(--ultimate);
-  color: var(--on-accent);
 }
 
 .profile {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  flex: 1 1 auto;
-  min-width: 0;
-  max-width: 11.5rem;
+  justify-content: center;
+  gap: 0;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
   min-height: 44px;
-  padding: 3px 10px 3px 3px;
+  padding: 0;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--sheet) 78%, transparent);
@@ -213,8 +189,8 @@
   flex: none;
   overflow: hidden;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-pill);
   background: var(--grad-mint);
   color: var(--green-dark);
@@ -222,34 +198,64 @@
   font-weight: 800;
 }
 
-.profileMeta {
+.menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 5;
   display: grid;
-  min-width: 0;
-  padding-right: 2px;
+  gap: var(--space-2xs);
+  width: min(16rem, calc(100vw - 24px));
+  padding: var(--space-xs);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
 }
 
-.profileName {
-  display: block;
+.menuIdentity,
+.menuLink {
+  display: grid;
+  align-content: center;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  color: inherit;
+  text-decoration: none;
+}
+
+.menuIdentityActive,
+.menuLink:hover,
+.menuLink:focus-visible {
+  background: var(--green-bg);
+  color: var(--green-dark);
+}
+
+.menuName {
   overflow: hidden;
   font-size: var(--fs-small);
   font-weight: 700;
-  line-height: 1.15;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.profileRole {
-  display: block;
-  overflow: hidden;
-  color: var(--subtle);
-  font-size: var(--fs-kicker);
-  font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.homeLinkFull {
+.menuRole {
+  overflow: hidden;
+  color: var(--subtle);
+  font-size: var(--fs-kicker);
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.menuLink {
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
+.aboutLink {
   display: none;
 }
 
@@ -258,9 +264,9 @@
     gap: var(--space-sm);
   }
 
-  .homeLink {
-    min-height: 44px;
-    padding: 8px 12px;
+  .logo {
+    width: 40px;
+    height: 40px;
   }
 
   .avatar {
@@ -280,6 +286,11 @@
 
   .actions {
     grid-column: 2;
+    gap: var(--space-xs);
+  }
+
+  .brand {
+    gap: 10px;
   }
 
   .logo {
@@ -287,16 +298,8 @@
     height: 40px;
   }
 
-  .homeLinkShort {
-    display: none;
-  }
-
-  .homeLinkFull {
-    display: inline;
-  }
-
-  .homeLink {
-    padding: 8px 14px;
+  .aboutLink {
+    display: grid;
   }
 
   .brandCopy {
@@ -311,17 +314,6 @@
     display: block;
   }
 
-  .profile {
-    flex: none;
-    max-width: 14rem;
-    min-height: 44px;
-    padding: 4px 12px 4px 4px;
-    gap: 10px;
-  }
-
-  .actions {
-    gap: var(--space-xs);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -330,7 +322,8 @@
     transform: none;
   }
 
-  .homeLink:hover {
+  .menuLink:hover,
+  .menuIdentity:hover {
     transform: none;
   }
 }

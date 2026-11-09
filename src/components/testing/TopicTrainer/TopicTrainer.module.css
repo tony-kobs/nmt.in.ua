@@ -37,6 +37,9 @@
 }
 
 .themeLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   color: currentColor;
   font-weight: 700;
   text-decoration-color: transparent;

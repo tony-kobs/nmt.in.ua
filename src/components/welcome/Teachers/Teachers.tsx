@@ -2,6 +2,7 @@ import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { Reveal } from "@/components/ui/Reveal";
 import landing from "../landing.module.css";
+import { TeacherStory } from "./TeacherStory";
 import css from "./Teachers.module.css";
 
 const PORTRAIT = "/landing/teachers/mykhailo-maksymov.webp";
@@ -49,13 +50,13 @@ export async function Teachers() {
             ) : null}
           </div>
 
-          <div className={css.story}>
-            <p className={css.bio}>{t("demo.bio")}</p>
-            <div className={css.publications}>
-              <p className={css.publicationsLabel}>{cardT("publications")}</p>
-              <p className={css.publicationsText}>{t("demo.publications")}</p>
-            </div>
-          </div>
+          <TeacherStory
+            bio={t("demo.bio")}
+            publicationsLabel={cardT("publications")}
+            publications={t("demo.publications")}
+            moreLabel={t("more")}
+            lessLabel={t("less")}
+          />
         </Reveal>
       </div>
     </section>

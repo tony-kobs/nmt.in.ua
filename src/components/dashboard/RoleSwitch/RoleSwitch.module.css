@@ -1,6 +1,6 @@
 .bar {
   position: sticky;
-  top: var(--header-h);
+  top: var(--header-offset);
   z-index: 30;
   display: grid;
   gap: var(--space-2xs);
@@ -57,8 +57,72 @@
   cursor: default;
 }
 
+.motion {
+  display: contents;
+}
+
+.motion[data-compact="true"] {
+  position: sticky;
+  top: var(--header-offset);
+  z-index: 1;
+  display: grid;
+  grid-template-rows: 1fr;
+  align-items: start;
+  margin-bottom: var(--space-md);
+  transition:
+    grid-template-rows var(--t-slow) var(--ease),
+    opacity var(--t-slow) var(--ease);
+}
+
+.motion[data-compact="true"][data-hidden="true"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.motion[data-compact="true"] .bar {
+  position: static;
+  top: auto;
+  z-index: auto;
+  min-height: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+
+.barDrawer {
+  position: static;
+  top: auto;
+  z-index: auto;
+  margin-bottom: 0;
+  box-shadow: none;
+}
+
+.barDrawer .choices {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-xs);
+}
+
+.barDrawer .choice {
+  white-space: normal;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .barDrawer {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion[data-compact="true"] {
+    transition: none;
+  }
+}
+
 @media print {
-  .bar {
+  .bar,
+  .motion {
     display: none;
   }
 }

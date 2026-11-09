@@ -24,9 +24,15 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-export function optionalTelegramBot(): { token: string; username: string } | null {
-  const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
-  const username = process.env.TELEGRAM_BOT_USERNAME?.replace(/^@/, "").trim();
+export function optionalTelegramBot(
+  env: {
+    TELEGRAM_BOT_TOKEN?: string;
+    TELEGRAM_BOT_USERNAME?: string;
+    [key: string]: string | undefined;
+  } = process.env,
+): { token: string; username: string } | null {
+  const token = env.TELEGRAM_BOT_TOKEN?.trim();
+  const username = env.TELEGRAM_BOT_USERNAME?.replace(/^@/, "").trim();
   if (!token || !username || !/^[A-Za-z0-9_]{5,32}$/.test(username)) return null;
   return { token, username };
 }
@@ -59,7 +65,7 @@ export type MarathonStartConsume =
   | { ok: false; code: "invalid" | "telegram_taken" };
 
 export const TELEGRAM_TAKEN_MESSAGE =
-  "Цей Telegram уже приєднаний до іншого акаунта nmt.in.ua. Від’єднайте його в тому кабінеті або напишіть у підтримку.";
+  "Цей Telegram уже приєднаний до іншого акаунта nmt.in.ua. Відʼєднайте його в тому кабінеті або напишіть у підтримку.";
 
 export async function consumeMarathonStart(
   rawToken: string,

@@ -137,7 +137,7 @@ const HELP_TEXT = [
   "/done &lt;посилання&gt; — завершити завдання зі списку",
   "/stats — статистика цього тижня",
   "/settings — сповіщення",
-  "/stop — відв’язати бота від акаунта",
+  "/stop — відвʼязати бота від акаунта",
   "Пауза сповіщень одного марафону — у «Сповіщення», з підтвердженням. Інші курси лишаються.",
   "/top — таблиця цього марафону. «Загальні» — сума днів усіх курсів, як на сайті.",
   "",
@@ -199,7 +199,7 @@ async function notificationsScreen(
     callback_data: `p:t:${key}`,
   }]);
   if (pauses.length > 0) {
-    lines.push("", "<b>Марафони</b>", "Пауза стосується лише обраного курсу. /stop відв’язує бота від акаунта.");
+    lines.push("", "<b>Марафони</b>", "Пауза стосується лише обраного курсу. /stop відвʼязує бота від акаунта.");
     for (const row of pauses) {
       lines.push(`${row.paused ? "⏸" : "▶"} ${html(row.title)} — ${row.paused ? "на паузі" : "сповіщення увімкнені"}`);
       rows.push([{
@@ -332,7 +332,7 @@ async function renderMenu(request: MenuRequest, deps: MenuDeps): Promise<Telegra
       return { chatId, text: UNLINK_NOTICE };
     } catch (error) {
       log(error);
-      return screen(chatId, "Не вдалося відв’язати бота. Спробуйте в кабінеті на nmt.in.ua.", [navRow()], messageId);
+      return screen(chatId, "Не вдалося відвʼязати бота. Спробуйте в кабінеті на nmt.in.ua.", [navRow()], messageId);
     }
   }
   const withConnection = async <T>(work: (connection: SqlConnection) => Promise<T>): Promise<T> => {
@@ -404,14 +404,14 @@ async function renderMenu(request: MenuRequest, deps: MenuDeps): Promise<Telegra
         const lines = [
           "<b>👤 Мій акаунт</b>",
           "",
-          `Ім’я: ${html(profile.displayName || "—")}`,
+          `Імʼя: ${html(profile.displayName || "—")}`,
           `Роль: ${profile.role === "teacher" ? "Вчитель" : "Учень"}`,
           ...(profile.linkedAt ? [`Telegram підключено: ${formatKyivDateTime(profile.linkedAt)}`] : []),
           "",
           "Змінити дані профілю можна в кабінеті на сайті.",
         ];
         return screen(chatId, lines.join("\n"), [
-          [{ text: "Відв’язати Telegram", callback_data: "m:unlink" }],
+          [{ text: "Відвʼязати Telegram", callback_data: "m:unlink" }],
           [siteButton("🌐 Кабінет на сайті", "/account")],
           navRow(),
         ], messageId);
