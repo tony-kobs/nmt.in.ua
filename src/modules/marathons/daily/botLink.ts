@@ -24,9 +24,15 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
   return getConnection();
 }
 
-export function optionalTelegramBot(): { token: string; username: string } | null {
-  const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
-  const username = process.env.TELEGRAM_BOT_USERNAME?.replace(/^@/, "").trim();
+export function optionalTelegramBot(
+  env: {
+    TELEGRAM_BOT_TOKEN?: string;
+    TELEGRAM_BOT_USERNAME?: string;
+    [key: string]: string | undefined;
+  } = process.env,
+): { token: string; username: string } | null {
+  const token = env.TELEGRAM_BOT_TOKEN?.trim();
+  const username = env.TELEGRAM_BOT_USERNAME?.replace(/^@/, "").trim();
   if (!token || !username || !/^[A-Za-z0-9_]{5,32}$/.test(username)) return null;
   return { token, username };
 }
