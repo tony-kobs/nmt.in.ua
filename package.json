@@ -8,7 +8,11 @@
     "start": "node server.js",
     "lint": "eslint",
     "test": "node --require ./test/stub-server-only.cjs --import tsx --test \"src/**/*.test.ts\" \"lib/**/*.test.js\" \"scripts/**/*.test.mjs\"",
-    "migrate": "node scripts/migrate.mjs"
+    "migrate": "node scripts/migrate.mjs",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:seed": "node scripts/seed-local.mjs",
+    "db:setup": "node scripts/db-setup.mjs"
   },
   "dependencies": {
     "@resvg/resvg-wasm": "^2.6.2",
