@@ -1,16 +1,19 @@
 import type { SqlConnection } from "@/lib/db/mysql";
-import { sampleRandomIds } from "@/lib/sampleRandomIds";
+import { ensureMentorAssignmentsSchema } from "@/modules/mentor-assignments/schema";
 import {
   SESSION_STATUS_COMPLETED,
   SESSION_STATUS_CREATED,
   SESSION_STATUS_PLANNED,
 } from "@/modules/sessions/types";
+import { ensureTeacherSessionsSchema } from "@/modules/teacher-sessions/schema";
 
 import { nowUnixSec } from "./sessionElapsed";
 import { isSessionExpired } from "./sessionExpiry";
+import {
+  loadTopicTaskHistories,
+  pickFreshTaskIds,
+} from "./pickFreshTasks";
 import { TOPIC_TEST_TASK_COUNT } from "./startTopicTest";
-import { ensureMentorAssignmentsSchema } from "@/modules/mentor-assignments/schema";
-import { ensureTeacherSessionsSchema } from "@/modules/teacher-sessions/schema";
 
 const TASK_TYPE_TOPIC = 1;
 const TASK_STATUS_UNANSWERED = 0;
@@ -92,6 +95,8 @@ type StartPlannedSessionDeps = {
   getConnection: () => Promise<SqlConnection>;
   nowSec?: () => number;
   ensureSchema?: () => Promise<void>;
+  /** Test seam. Values in [0, 1). Defaults to Math.random. */
+  random?: () => number;
 };
 
 type SessionRow = {
@@ -257,9 +262,16 @@ export async function startPlannedSession(
                 SQL_SELECT_TASK_IDS_BY_DIFFICULTY,
                 [session.theme_id, difficulty],
               );
-        taskIds = sampleRandomIds(
+        const histories = await loadTopicTaskHistories(
+          connection,
+          [input.userId],
+          session.theme_id,
+        );
+        taskIds = pickFreshTaskIds(
           pool.map((row) => row.id),
-          TOPIC_TEST_TASK_COUNT
+          histories,
+          TOPIC_TEST_TASK_COUNT,
+          deps.random,
         );
       }
       const taskCount = taskIds.length;

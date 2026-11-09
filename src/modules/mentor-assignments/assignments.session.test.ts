@@ -9,6 +9,8 @@ type Call = { sql: string; params: unknown[] };
 
 function harness(options: {
   pool?: Array<{ id: number }>;
+  attempts?: Array<{ user_id: number; task_id: number; solved: number }>;
+  assigned?: Array<{ user_id: number; task_id: number }>;
   ready?: {
     id: number;
     teacher_user_id: number;
@@ -31,6 +33,12 @@ function harness(options: {
       }
       if (sql.includes("FROM themes")) {
         return [{ id: Number(params[0]), name: "Дроби" }];
+      }
+      if (sql.includes("topic-task-attempts")) {
+        return options.attempts ?? [];
+      }
+      if (sql.includes("topic-task-assigned")) {
+        return options.assigned ?? [];
       }
       if (sql.includes("SELECT id FROM quiz_tasks")) {
         return options.pool ?? [{ id: 10 }, { id: 11 }];
@@ -124,6 +132,35 @@ test("quick assign freezes a teacher session and links the assignment", async ()
   );
   assert.equal(assignment?.params[1], 50);
   assert.equal(assignment?.params[4], 2);
+});
+
+test("quick assign skips tasks the student was already given", async () => {
+  const { connection, executes } = harness({
+    pool: [{ id: 10 }, { id: 11 }, { id: 12 }, { id: 13 }],
+    attempts: [{ user_id: 5, task_id: 10, solved: 1 }],
+    assigned: [{ user_id: 5, task_id: 11 }],
+  });
+
+  await createMentorAssignment(
+    { ...base, tasksNumber: 2 },
+    {
+      getConnection: async () => connection,
+      nowSec: () => 1_000,
+      ensureSchema: async () => {},
+      notify: async () => {},
+      random: () => 0,
+    },
+  );
+
+  const tasksInsert = executes.find((call) =>
+    call.sql.includes("INSERT INTO session_tasks"),
+  );
+  const stored: number[] = [];
+  const params = tasksInsert?.params ?? [];
+  for (let index = 1; index < params.length; index += 3) {
+    stored.push(Number(params[index]));
+  }
+  assert.deepEqual(stored.slice().sort((a, b) => a - b), [12, 13]);
 });
 
 test("assigning a ready session does not create another one", async () => {
