@@ -1,7 +1,7 @@
 /**
- * The printable workbook is the fetched catalog in `workbookProblems.json`,
- * not a MySQL table. Arithmetic lines there mix `16+2=?` and `25 - 9 = ?`.
- * Only those lines are normalized. Ordinary Ukrainian sentences stay as stored.
+ * Arithmetic lines in the printable workbook mix `16+2=?` and `25 - 9 = ?`.
+ * Only those lines are normalized, from JSON or from `problems`.
+ * Ordinary Ukrainian sentences stay as stored.
  */
 const ARITHMETIC = /^[\d\s+\-−–—×*/:=?.(),]+$/u;
 
