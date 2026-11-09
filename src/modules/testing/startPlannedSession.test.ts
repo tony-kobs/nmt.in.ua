@@ -36,6 +36,8 @@ function makeConnection(options: {
   session?: ReturnType<typeof makeSession> | null;
   mappingCount?: number;
   tasks?: Array<{ id: number }>;
+  attempts?: Array<{ user_id: number; task_id: number; solved: number }>;
+  assigned?: Array<{ user_id: number; task_id: number }>;
 }) {
   const executeCalls: Array<{ sql: string; params: unknown[] }> = [];
   const queryCalls: Array<{ sql: string; params: unknown[] }> = [];
@@ -50,8 +52,14 @@ function makeConnection(options: {
       if (sql.includes("COUNT(*)")) {
         return [{ mapping_count: options.mappingCount ?? 0 }] as never[];
       }
-      if (sql.includes("FROM session_tasks")) {
+      if (sql.includes("FROM session_tasks") && !sql.includes("topic-task-assigned")) {
         return (options.tasks ?? []) as never[];
+      }
+      if (sql.includes("topic-task-attempts")) {
+        return (options.attempts ?? []) as never[];
+      }
+      if (sql.includes("topic-task-assigned")) {
+        return (options.assigned ?? []) as never[];
       }
       if (sql.includes("FROM quiz_tasks")) {
         return (options.tasks ?? [{ id: 1 }, { id: 2 }]) as never[];
@@ -290,4 +298,26 @@ test("startPlannedSession activates once available_at has passed", async () => {
     { getConnection: async () => connection, nowSec: () => now, ensureSchema: async () => {} },
   );
   assert.equal(result.sessionId, 12);
+});
+
+test("startPlannedSession draws unseen theme tasks before repeats", async () => {
+  const { connection } = makeConnection({
+    session: makeSession(SESSION_STATUS_PLANNED, 9_999_999_999, null, null),
+    tasks: [{ id: 10 }, { id: 11 }, { id: 12 }],
+    attempts: [{ user_id: 1, task_id: 10, solved: 1 }],
+    assigned: [{ user_id: 1, task_id: 11 }],
+  });
+
+  const result = await startPlannedSession(
+    { userId: 1, sessionId: 12 },
+    {
+      getConnection: async () => connection,
+      ensureSchema: async () => {},
+      random: () => 0,
+    },
+  );
+
+  assert.equal(result.taskIds[0], 12);
+  assert.equal(result.taskIds[1], 11);
+  assert.equal(result.taskIds[2], 10);
 });

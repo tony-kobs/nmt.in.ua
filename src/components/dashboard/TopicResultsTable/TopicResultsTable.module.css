@@ -135,12 +135,16 @@
 }
 
 .cardThemeLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   margin: 0;
   font-weight: 700;
   line-height: 1.35;
   color: var(--ink);
   text-decoration-color: transparent;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .cardThemeLink:hover,

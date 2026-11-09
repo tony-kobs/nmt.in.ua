@@ -3,6 +3,10 @@ import { PUBLIC_PAGE_PATHS } from "@/constants/publicRoutes";
 import { absoluteUrl } from "@/constants/seo";
 import { isDatabaseUnavailable } from "@/lib/db/unavailable";
 import { SITEMAP_DAILY_STATUSES } from "@/modules/marathons/daily/publicPage";
+import { textbookSitemapPaths } from "@/modules/textbook/topicPage";
+
+/** Themes and marathon cards live in MySQL, which the build runner does not have. */
+export const dynamic = "force-dynamic";
 
 /** `/t` is a public prefix for `/t/{slug}` cards — there is no index page.
  *  Verify/reset links are token URLs — keep them out of the sitemap.
@@ -32,7 +36,7 @@ function staticEntries(now: Date): MetadataRoute.Sitemap {
   }));
 }
 
-/** Shareable daily marathons (waiting page, open course, finished results) and public teacher cards. */
+/** Shareable daily marathons, public teacher cards, and one URL per textbook theme. */
 export async function loadSitemapDynamicPaths(): Promise<string[]> {
   const { getConnection } = await import("@/lib/db/mysql");
   const connection = await getConnection();
@@ -46,15 +50,19 @@ export async function loadSitemapDynamicPaths(): Promise<string[]> {
     const teachers = await connection.query<{ slug: string }>(
       `SELECT slug FROM teacher_profiles WHERE is_public = 1 AND slug <> '' ORDER BY slug ASC`,
     );
-    return [...marathons.map((row) => `/marathon/${row.slug}`), ...teachers.map((row) => `/t/${row.slug}`)].filter(
+    const themes = await connection.query<{ code: string | null }>(
+      `SELECT code FROM themes WHERE code <> '' ORDER BY ord ASC, id ASC`,
+    );
+    const cards = [...marathons.map((row) => `/marathon/${row.slug}`), ...teachers.map((row) => `/t/${row.slug}`)].filter(
       (path) => PUBLIC_SLUG.test(path),
     );
+    return [...cards, ...textbookSitemapPaths(themes.map((row) => row.code ?? ""))];
   } finally {
     connection.release();
   }
 }
 
-/** Public marketing URLs plus live marathon and teacher cards. Cabinet routes stay out. */
+/** Public marketing URLs, textbook topics, live marathons, and teacher cards. Other cabinet routes stay out. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const entries = staticEntries(now);
@@ -63,8 +71,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       entries.push({
         url: absoluteUrl(path),
         lastModified: now,
-        changeFrequency: "daily",
-        priority: 0.7,
+        changeFrequency: path.startsWith("/materials/textbook") ? "weekly" : "daily",
+        priority: path.startsWith("/materials/textbook") ? 0.5 : 0.7,
       });
     }
   } catch (error) {
