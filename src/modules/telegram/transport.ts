@@ -96,6 +96,16 @@ export async function sendTelegramMessage(reply: TelegramReply, botToken: string
       json: { ...messageJson(reply, inline), message_id: reply.editMessageId },
     });
   }
+  // A task sends the text with the bottom menu removed. Inline answers are added
+  // afterwards on this same message: one bubble cannot carry both markups.
+  if (reply.hideReplyKeyboard) {
+    return sendTelegramPayload({
+      method: "sendMessage",
+      token: botToken,
+      request,
+      json: messageJson(reply, { remove_keyboard: true }),
+    });
+  }
   // One message accepts a single reply_markup, and a message sent with the bottom
   // keyboard cannot be edited. Doing both used to send the text, fail the edit,
   // then send the same text again with the inline buttons. The inline actions
