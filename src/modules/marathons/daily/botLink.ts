@@ -28,6 +28,7 @@ export function optionalTelegramBot(
   env: {
     TELEGRAM_BOT_TOKEN?: string;
     TELEGRAM_BOT_USERNAME?: string;
+    [key: string]: string | undefined;
   } = process.env,
 ): { token: string; username: string } | null {
   const token = env.TELEGRAM_BOT_TOKEN?.trim();

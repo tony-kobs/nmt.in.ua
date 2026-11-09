@@ -11,6 +11,7 @@ export type SupportChatEnv = {
   TELEGRAM_SUPPORT_CHAT_ID?: string;
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_BOT_USERNAME?: string;
+  [key: string]: string | undefined;
 };
 
 export type SupportChatPost =
