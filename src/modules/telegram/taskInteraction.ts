@@ -18,6 +18,13 @@ export type TelegramReply = {
   replyMarkup?: InlineKeyboard;
   /** Bottom menu. Inline answer buttons stay on `replyMarkup`. */
   replyKeyboard?: ReplyKeyboardMarkup;
+  /**
+   * This bubble is a task with inline answers. Delivery removes the bottom
+   * reply keyboard and leaves those buttons on the same message.
+   */
+  hideReplyKeyboard?: boolean;
+  /** Delete this earlier bot message once the replacement has been delivered. */
+  supersedeMessageId?: number;
   /** Apply the reply keyboard, then delete the bubble so the chat stays clear. */
   dropAfterSend?: boolean;
   /** YouTube or Loom, shown as a large link preview above the text. */
