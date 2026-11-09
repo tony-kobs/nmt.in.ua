@@ -56,8 +56,14 @@ function outcomeOf(result: TelegramSendResult): SendOutcome {
   return { ok: false, ...(retryAfter != null ? { retryAfter } : {}) };
 }
 
-function keyboard(reply: TelegramReply): InlineKeyboard | undefined {
+/** First markup on the wire. A task clears the bottom menu; answers are attached after. */
+function outgoingMarkup(reply: TelegramReply): InlineKeyboard | { remove_keyboard: true } | undefined {
+  if (reply.hideReplyKeyboard) return { remove_keyboard: true };
   return reply.replyMarkup;
+}
+
+function withTaskHide(source: TelegramReply, next: TelegramReply): TelegramReply {
+  return source.hideReplyKeyboard ? { ...next, hideReplyKeyboard: true } : next;
 }
 
 function withSiteButton(reply: TelegramReply): InlineKeyboard | undefined {
@@ -109,7 +115,69 @@ export function mediaFallback(reply: TelegramReply): TelegramReply | null {
   return { ...rest, text, ...(markup ? { replyMarkup: markup } : {}) };
 }
 
+function withoutReplyKeyboardEdit(reply: TelegramReply): TelegramReply {
+  if (!reply.hideReplyKeyboard || reply.editMessageId === undefined) return reply;
+  const previous = reply.editMessageId;
+  const { editMessageId: _edit, ...rest } = reply;
+  return { ...rest, supersedeMessageId: rest.supersedeMessageId ?? previous };
+}
+
+/** Inline answers go on the message that already cleared the bottom menu. */
+async function revealTaskButtons(
+  reply: TelegramReply,
+  messageId: number,
+  token: string,
+  options: DeliverOptions,
+): Promise<boolean> {
+  if (!reply.replyMarkup) return true;
+  if (!Number.isSafeInteger(messageId) || messageId <= 0) return false;
+  const request = options.request ?? fetch;
+  const edited = await sendTelegramPayload({
+    method: "editMessageReplyMarkup",
+    token,
+    request,
+    json: { chat_id: reply.chatId, message_id: messageId, reply_markup: reply.replyMarkup },
+  });
+  if (edited.status === "sent" || (edited.status === "rejected" && edited.context.notModified)) return true;
+  const follow = await sendTelegramMessage({
+    chatId: reply.chatId,
+    text: "Оберіть відповідь",
+    replyMarkup: reply.replyMarkup,
+  }, token, request);
+  return follow.status === "sent";
+}
+
+async function dropSuperseded(
+  reply: TelegramReply,
+  messageId: number,
+  token: string,
+  options: DeliverOptions,
+): Promise<void> {
+  const previous = reply.supersedeMessageId;
+  if (!Number.isSafeInteger(previous) || previous == null || previous <= 0 || previous === messageId) return;
+  await sendTelegramPayload({
+    method: "deleteMessage",
+    token,
+    request: options.request ?? fetch,
+    json: { chat_id: reply.chatId, message_id: previous },
+  });
+}
+
 async function sendOne(
+  reply: TelegramReply,
+  token: string,
+  options: DeliverOptions,
+): Promise<TelegramSendResult> {
+  const working = withoutReplyKeyboardEdit(reply);
+  const result = await deliverBubble(working, token, options);
+  if (working.hideReplyKeyboard && result.status === "sent") {
+    const buttonsReady = await revealTaskButtons(working, result.messageId, token, options);
+    if (buttonsReady) await dropSuperseded(working, result.messageId, token, options);
+  }
+  return result;
+}
+
+async function deliverBubble(
   reply: TelegramReply,
   token: string,
   options: DeliverOptions,
@@ -118,7 +186,7 @@ async function sendOne(
   if (result.status !== "rejected" || result.context.retryAfter != null) return result;
   if (reply.formulaTex) {
     const fallback = formulaFallback(reply);
-    if (fallback) return sendTelegramMessage(fallback, token, options.request ?? fetch);
+    if (fallback) return sendTelegramMessage(withTaskHide(reply, fallback), token, options.request ?? fetch);
   }
   console.error("telegram reply rejected", {
     chatId: reply.chatId,
@@ -126,11 +194,11 @@ async function sendOne(
     ...result.context,
   });
   const fallback = mediaFallback(reply);
-  if (fallback) return sendTelegramMessage(fallback, token, options.request ?? fetch);
+  if (fallback) return sendTelegramMessage(withTaskHide(reply, fallback), token, options.request ?? fetch);
   if (reply.parseMode) {
     // Usually malformed HTML: send the same text without markup.
     const { parseMode: _mode, ...plain } = reply;
-    return sendTelegramMessage({ ...plain, text: stripHtml(reply.text) }, token, options.request ?? fetch);
+    return sendTelegramMessage(withTaskHide(reply, { ...plain, text: stripHtml(reply.text) }), token, options.request ?? fetch);
   }
   return result;
 }
@@ -156,13 +224,13 @@ async function sendOneRaw(
           chat_id: reply.chatId,
           caption: reply.text.trim().slice(0, 1024),
           ...(reply.text.trim() && reply.parseMode ? { parse_mode: reply.parseMode } : {}),
-          ...(keyboard(reply) ? { reply_markup: JSON.stringify(keyboard(reply)) } : {}),
+          ...(outgoingMarkup(reply) ? { reply_markup: JSON.stringify(outgoingMarkup(reply)) } : {}),
         },
         file: { field: "photo", filename: "formula.png", bytes: png, type: "image/png" },
       });
     }
     const fallback = formulaFallback(reply);
-    if (fallback) return sendTelegramMessage(fallback, token, request);
+    if (fallback) return sendTelegramMessage(withTaskHide(reply, fallback), token, request);
     return { status: "sent", messageId: 0 };
   }
   if (reply.albumUrls && reply.albumUrls.length > 1) {
@@ -180,11 +248,12 @@ async function sendOneRaw(
       json: { chat_id: reply.chatId, media },
     });
     if (!reply.replyMarkup || group.status !== "sent") return group;
-    const follow = await sendTelegramMessage({
+    const follow = await sendTelegramMessage(withTaskHide(reply, {
       chatId: reply.chatId,
       text: reply.siteLabel?.trim() || "·",
-      replyMarkup: reply.replyMarkup,
-    }, token, request);
+      ...(reply.hideReplyKeyboard ? {} : { replyMarkup: reply.replyMarkup }),
+    }), token, request);
+    if (reply.hideReplyKeyboard) return follow;
     return follow.status === "sent" ? group : follow;
   }
   const photo = reply.photoFileId?.trim() || reply.photoUrl;
@@ -198,7 +267,7 @@ async function sendOneRaw(
         photo,
         ...(reply.text.trim() ? { caption: reply.text.trim().slice(0, 1024) } : {}),
         ...(reply.text.trim() && reply.parseMode ? { parse_mode: reply.parseMode } : {}),
-        ...(keyboard(reply) ? { reply_markup: keyboard(reply) } : {}),
+        ...(outgoingMarkup(reply) ? { reply_markup: outgoingMarkup(reply) } : {}),
       },
     });
   }
@@ -212,7 +281,7 @@ async function sendOneRaw(
         video: reply.videoUrl || reply.videoFileId,
         ...(reply.text.trim() ? { caption: reply.text.trim().slice(0, 1024) } : {}),
         ...(reply.text.trim() && reply.parseMode ? { parse_mode: reply.parseMode } : {}),
-        ...(keyboard(reply) ? { reply_markup: keyboard(reply) } : {}),
+        ...(outgoingMarkup(reply) ? { reply_markup: outgoingMarkup(reply) } : {}),
       },
     });
   }
