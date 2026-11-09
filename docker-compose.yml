@@ -1,0 +1,32 @@
+# Local MySQL for nmt.in.ua. Not production.
+# The repo does not record the hosting patch version. SQL targets MySQL 8
+# (8.0.19+ and 8.4). This image is the 8.0 line.
+# Credentials match the defaults in .env.example. Do not point this file
+# at a remote host and do not put production passwords here.
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: nmt-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: local-root
+      MYSQL_DATABASE: nmt_local
+      MYSQL_USER: nmt
+      MYSQL_PASSWORD: nmt-local
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - nmt_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-plocal-root"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+volumes:
+  nmt_mysql_data:

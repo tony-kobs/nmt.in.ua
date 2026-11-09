@@ -139,11 +139,11 @@ git clone https://github.com/tony-kobs/nmt.in.ua.git
 cd nmt.in.ua
 git checkout dev
 npm install
-cp .env.example .env.local
+npm run db:setup
 npm run dev
 ```
 
-Локально сайт відкриється на [http://localhost:3000](http://localhost:3000).
+Локально сайт відкриється на [http://localhost:3000](http://localhost:3000). База, тестові входи і чого не копіювати з продакшену — [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md).
 
 | Команда | Що робить |
 | --- | --- |
@@ -153,8 +153,10 @@ npm run dev
 | `npm test` | unit-тести |
 | `npm run lint` | ESLint |
 | `npm run migrate` | SQL-міграції |
+| `npm run db:setup` | локальний MySQL, міграції і тестові акаунти |
+| `npm run db:seed` | ще раз тестові акаунти, теми і марафон |
 
-Демо-логінів немає. Тестовий акаунт — через `/register`. Адміна підвищують у базі: `node scripts/promote-admin.mjs <login>`.
+Тестові пошти локальної бази — у [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md). Свого учня можна зареєструвати на `/register`. Адміна з власного акаунта підвищують у базі: `node scripts/promote-admin.mjs <login>`.
 
 <details>
 <summary>Змінні середовища, імпорт і гілки</summary>
