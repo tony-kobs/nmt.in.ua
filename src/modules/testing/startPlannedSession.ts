@@ -41,6 +41,7 @@ const SQL_COUNT_MAPPINGS = `
   WHERE session_id = ?
 `;
 
+/** Same topic bank as the admin list: `quiz_tasks` of this theme only. */
 const SQL_SELECT_TASK_IDS = `SELECT id FROM quiz_tasks WHERE theme_id = ?`;
 const SQL_SELECT_TASK_IDS_BY_DIFFICULTY = `${SQL_SELECT_TASK_IDS} AND difficulty = ?`;
 const SQL_SELECT_LEARNING_TASKS = `

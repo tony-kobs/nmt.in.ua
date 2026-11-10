@@ -52,6 +52,11 @@ const SQL_UPDATE_GUIDE = `
 
 const SQL_THEME_EXISTS = `SELECT id FROM themes WHERE id = ? LIMIT 1`;
 
+/**
+ * Same predicate as a topic hand-out (`SELECT id FROM quiz_tasks WHERE theme_id = ?`
+ * in `startTopicTest` / quick assign). The list is that set, paged and optionally
+ * narrowed by a search. It does not add generators, workbook `problems`, or other themes.
+ */
 const SQL_LIST_BY_THEME = `
   SELECT q.id, q.name, q.task_text, q.difficulty,
     EXISTS (
@@ -60,14 +65,27 @@ const SQL_LIST_BY_THEME = `
     ) AS in_use
   FROM quiz_tasks q
   WHERE q.theme_id = ?
-  ORDER BY q.id ASC
 `;
 
 const SQL_COUNT_BY_THEME = `
   SELECT COUNT(*) AS total
-  FROM quiz_tasks
-  WHERE theme_id = ?
+  FROM quiz_tasks q
+  WHERE q.theme_id = ?
 `;
+
+const SEARCH_MAX = 80;
+
+/** LIKE fragment for the admin list. Empty search keeps the full theme bank. */
+export function themeTaskSearchClause(raw: string): { sql: string; params: string[] } {
+  const trimmed = raw.trim().slice(0, SEARCH_MAX);
+  if (!trimmed) return { sql: "", params: [] };
+  const escaped = trimmed.replace(/[\\%_]/g, (char) => `\\${char}`);
+  const like = `%${escaped}%`;
+  return {
+    sql: " AND (q.name LIKE ? ESCAPE '\\\\' OR q.task_text LIKE ? ESCAPE '\\\\')",
+    params: [like, like],
+  };
+}
 
 const SQL_NEIGHBOR_IDS = `
   SELECT
@@ -317,6 +335,7 @@ function mapListItem(row: ListRow): AdminQuizTaskListItem {
   const label = (fromText || row.name.trim() || `#${row.id}`).slice(0, 160);
   return {
     id: row.id,
+    name: row.name.trim(),
     label,
     taskText,
     difficulty: row.difficulty,
@@ -326,7 +345,7 @@ function mapListItem(row: ListRow): AdminQuizTaskListItem {
 
 export async function getQuizTasksByTheme(
   themeId: number,
-  options: { page?: number; pageSize?: number } = {},
+  options: { page?: number; pageSize?: number; search?: string } = {},
   deps: { getConnection: () => Promise<SqlConnection> } = {
     getConnection: loadDefaultConnection,
   },
@@ -336,11 +355,12 @@ export async function getQuizTasksByTheme(
     Math.floor(options.pageSize ?? ADMIN_TASKS_PAGE_SIZE),
   );
   const requestedPage = Math.max(1, Math.floor(options.page ?? 1));
+  const search = themeTaskSearchClause(options.search ?? "");
   const connection = await deps.getConnection();
   try {
     const countRows = await connection.query<{ total: number | string }>(
-      SQL_COUNT_BY_THEME,
-      [themeId],
+      SQL_COUNT_BY_THEME + search.sql,
+      [themeId, ...search.params],
     );
     const total = Number(countRows[0]?.total ?? 0);
     const totalPages = total === 0 ? 1 : Math.ceil(total / pageSize);
@@ -352,8 +372,8 @@ export async function getQuizTasksByTheme(
         ? []
         : await connection.query<ListRow>(
             // MySQL prepared statements reject `LIMIT ?` — inline validated ints.
-            `${SQL_LIST_BY_THEME} LIMIT ${pageSize} OFFSET ${offset}`,
-            [themeId],
+            `${SQL_LIST_BY_THEME}${search.sql} ORDER BY q.id ASC LIMIT ${pageSize} OFFSET ${offset}`,
+            [themeId, ...search.params],
           );
 
     return {

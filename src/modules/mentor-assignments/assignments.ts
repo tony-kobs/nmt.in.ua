@@ -78,6 +78,7 @@ type MemberRow = {
 
 const SQL_THEME = `SELECT id, name FROM themes WHERE id = ? LIMIT 1`;
 
+/** Subset of the admin list for this theme: one difficulty, still `quiz_tasks` only. */
 const SQL_SELECT_TASK_IDS_AT_DIFFICULTY = `
   SELECT id FROM quiz_tasks WHERE theme_id = ? AND difficulty = ?
 `;

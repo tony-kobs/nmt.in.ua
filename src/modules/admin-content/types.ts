@@ -12,6 +12,8 @@ export const MAX_DIFFICULTY_GUIDE_LENGTH = 4000;
 
 export type AdminQuizTaskListItem = {
   id: number;
+  /** Bank title. The student sees it as a kicker when it is not the question. */
+  name: string;
   /** Plain label for aria/confirm — derived from task text. */
   label: string;
   taskText: string;

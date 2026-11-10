@@ -28,7 +28,11 @@ const SESSION_INITIAL_TIME = 0;
 const TASK_TYPE_TOPIC = 1;
 const TASK_STATUS_UNANSWERED = 0;
 
-/** Indexed id list for the theme — sample in Node instead of `ORDER BY RAND()`. */
+/**
+ * Indexed id list for the theme — sample in Node instead of `ORDER BY RAND()`.
+ * This is the whole topic bank the admin list pages through (`quiz_tasks.theme_id`
+ * only): no workbook `problems`, no other theme, no generator.
+ */
 const SQL_SELECT_TASK_IDS = `SELECT id FROM quiz_tasks WHERE theme_id = ?`;
 
 const SQL_INSERT_SESSION =
