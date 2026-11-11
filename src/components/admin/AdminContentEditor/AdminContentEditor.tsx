@@ -29,6 +29,7 @@ import {
 import { queryHref } from "@/lib/queryHref";
 import { Select } from "@/components/ui/Select";
 import { MathText } from "@/components/ui/MathText";
+import { ThemeParamsPanel } from "./ThemeParamsPanel";
 import css from "./AdminContentEditor.module.css";
 
 const DELETE_INITIAL: DeleteQuizTaskActionState = { status: "idle" };
@@ -382,6 +383,11 @@ export function AdminContentEditor({
               themeId={selectedTheme.id}
               themeName={selectedTheme.name}
               value={selectedTheme.difficultyGuide}
+            />
+            <ThemeParamsPanel
+              key={`params-${selectedTheme.id}`}
+              themeId={selectedTheme.id}
+              params={selectedTheme.params}
             />
           </>
         ) : null}

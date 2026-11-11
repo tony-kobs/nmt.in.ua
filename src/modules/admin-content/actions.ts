@@ -14,6 +14,12 @@ import {
   updateThemeDifficultyGuide,
 } from "./store";
 import {
+  createThemeParam,
+  deleteThemeParam,
+  moveThemeParam,
+  updateThemeParam,
+} from "./themeParams";
+import {
   ADMIN_TASKS_PAGE_SIZE,
   AdminContentError,
   type AdminQuizTask,
@@ -22,6 +28,10 @@ import {
   parseAdminQuizTaskInput,
   parseTaskId,
   parseTaskIds,
+  parseTaskParamDrafts,
+  parseThemeId,
+  parseThemeParamInput,
+  parseThemeParamUpdate,
 } from "./validate";
 
 export type SaveQuizTaskActionState =
@@ -172,7 +182,10 @@ export async function saveQuizTaskAction(
 
   try {
     const fields = readFormFields(formData);
-    const input = parseAdminQuizTaskInput(fields);
+    const input = {
+      ...parseAdminQuizTaskInput(fields),
+      paramDrafts: parseTaskParamDrafts(formData),
+    };
     const rawTaskId = fields.taskId;
     const hasTaskId =
       rawTaskId != null && String(rawTaskId).trim() !== "";
@@ -350,6 +363,187 @@ export async function loadQuizTaskAction(
       };
     }
     console.error("loadQuizTaskAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export type ThemeParamActionState =
+  | { status: "idle" }
+  | { status: "success" }
+  | { status: "error"; code: ThemeParamActionCode };
+
+export type ThemeParamActionCode =
+  | "invalid_input"
+  | "theme_not_found"
+  | "not_found"
+  | "forbidden"
+  | "type_locked"
+  | "code_taken"
+  | "generic";
+
+function mapParamError(error: AdminContentError): ThemeParamActionCode {
+  switch (error.code) {
+    case "invalid_input":
+    case "theme_not_found":
+    case "not_found":
+    case "forbidden":
+    case "type_locked":
+    case "code_taken":
+      return error.code;
+    default:
+      return "generic";
+  }
+}
+
+function readParamForm(formData: FormData): Record<string, unknown> {
+  return {
+    themeId: formData.get("themeId"),
+    paramId: formData.get("paramId"),
+    name: formData.get("name"),
+    code: formData.get("code"),
+    valueType: formData.get("valueType"),
+  };
+}
+
+type CreateParamDeps = {
+  requireUser: typeof requireUser;
+  createThemeParam: typeof createThemeParam;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+type UpdateParamDeps = {
+  requireUser: typeof requireUser;
+  updateThemeParam: typeof updateThemeParam;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+type DeleteParamDeps = {
+  requireUser: typeof requireUser;
+  deleteThemeParam: typeof deleteThemeParam;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+type MoveParamDeps = {
+  requireUser: typeof requireUser;
+  moveThemeParam: typeof moveThemeParam;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+export async function createThemeParamAction(
+  _prev: ThemeParamActionState,
+  formData: FormData,
+  deps: CreateParamDeps = {
+    requireUser,
+    createThemeParam,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<ThemeParamActionState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+
+  try {
+    await deps.createThemeParam(parseThemeParamInput(readParamForm(formData)));
+    bustCaches(deps);
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      return { status: "error", code: mapParamError(error) };
+    }
+    console.error("createThemeParamAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export async function updateThemeParamAction(
+  _prev: ThemeParamActionState,
+  formData: FormData,
+  deps: UpdateParamDeps = {
+    requireUser,
+    updateThemeParam,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<ThemeParamActionState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+
+  try {
+    await deps.updateThemeParam(parseThemeParamUpdate(readParamForm(formData)));
+    bustCaches(deps);
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      return { status: "error", code: mapParamError(error) };
+    }
+    console.error("updateThemeParamAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export async function deleteThemeParamAction(
+  _prev: ThemeParamActionState,
+  formData: FormData,
+  deps: DeleteParamDeps = {
+    requireUser,
+    deleteThemeParam,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<ThemeParamActionState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+
+  try {
+    const themeId = parseThemeId(formData.get("themeId"));
+    const paramId = parseTaskId(formData.get("paramId"));
+    await deps.deleteThemeParam(themeId, paramId);
+    bustCaches(deps);
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      return { status: "error", code: mapParamError(error) };
+    }
+    console.error("deleteThemeParamAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export async function moveThemeParamAction(
+  themeId: number,
+  paramId: number,
+  direction: "up" | "down",
+  deps: MoveParamDeps = {
+    requireUser,
+    moveThemeParam,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<ThemeParamActionState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+
+  try {
+    await deps.moveThemeParam(parseThemeId(themeId), parseTaskId(paramId), direction);
+    bustCaches(deps);
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      return { status: "error", code: mapParamError(error) };
+    }
+    console.error("moveThemeParamAction failed", error);
     return { status: "error", code: "generic" };
   }
 }
