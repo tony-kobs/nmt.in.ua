@@ -15,21 +15,27 @@ export type RoleSwitchMotion = {
  * reports that move as many small scroll events. Show again on the way up
  * or while the reader is still near the top.
  */
+
 export function nextRoleSwitchMotion(input: {
   mobile: boolean;
   scrollY: number;
   hidden: boolean;
   anchorY: number;
 }): RoleSwitchMotion {
-  if (!input.mobile) return { hidden: false, anchorY: input.scrollY };
-  if (input.scrollY <= ROLE_SWITCH_TOP_PX) {
-    return { hidden: false, anchorY: input.scrollY };
+  const { mobile, scrollY, hidden, anchorY } = input;
+
+  if (!mobile || scrollY <= ROLE_SWITCH_TOP_PX) {
+    return { hidden: false, anchorY: scrollY };
   }
-  if (input.scrollY >= input.anchorY + ROLE_SWITCH_DELTA_PX) {
-    return { hidden: true, anchorY: input.scrollY };
+
+  const delta = scrollY - anchorY;
+
+  if (Math.abs(delta) < ROLE_SWITCH_DELTA_PX) {
+    return { hidden, anchorY };
   }
-  if (input.scrollY <= input.anchorY - ROLE_SWITCH_DELTA_PX) {
-    return { hidden: false, anchorY: input.scrollY };
-  }
-  return { hidden: input.hidden, anchorY: input.anchorY };
+
+  return {
+    hidden: delta > 0,
+    anchorY: scrollY,
+  };
 }

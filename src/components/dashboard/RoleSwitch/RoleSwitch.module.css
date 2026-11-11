@@ -65,17 +65,12 @@
   position: sticky;
   top: var(--header-offset);
   z-index: 1;
-  display: grid;
-  grid-template-rows: 1fr;
-  align-items: start;
+  display: block;
   margin-bottom: var(--space-md);
-  transition:
-    grid-template-rows var(--t-slow) var(--ease),
-    opacity var(--t-slow) var(--ease);
 }
 
 .motion[data-compact="true"][data-hidden="true"] {
-  grid-template-rows: 0fr;
+  transform: translateY(-110%);
   opacity: 0;
   pointer-events: none;
 }
@@ -86,7 +81,8 @@
   z-index: auto;
   min-height: 0;
   margin-bottom: 0;
-  overflow: hidden;
+  transition: transform var(--t-slow) var(--ease),
+    opacity var(--t-slow) var(--ease);
 }
 
 .barDrawer {
@@ -109,6 +105,12 @@
 }
 
 @media (min-width: 768px) {
+  .barContent {
+    position: static;
+    top: auto;
+    z-index: auto;
+  }
+
   .barDrawer {
     display: none;
   }
