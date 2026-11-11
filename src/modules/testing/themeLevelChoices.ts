@@ -1,3 +1,4 @@
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import type { SqlConnection } from "@/lib/db/mysql";
 import {
   countMatchingTasks,
@@ -109,7 +110,7 @@ export async function listThemeLevelChoices(
       id: number | string;
       theme_id: number | string;
     }>(
-      `SELECT id, theme_id FROM quiz_tasks WHERE theme_id IN (${themeMarks})`,
+      `SELECT id, theme_id FROM quiz_tasks WHERE theme_id IN (${themeMarks}) AND ${publishedQuizTaskSql()}`,
       themeIds,
     );
     const taskIdsByTheme = new Map<number, number[]>();

@@ -16,6 +16,7 @@ export type {
   ThemeLevelInput,
   ThemeLevelUpdate,
   ThemeTaskMark,
+  QuizTaskStatus,
 } from "./types";
 export {
   AdminContentError,
@@ -35,6 +36,7 @@ export {
   getQuizTaskById,
   getNeighborTaskIds,
   createQuizTask,
+  publishQuizTask,
   updateQuizTask,
   deleteQuizTask,
   deleteQuizTasks,
@@ -68,4 +70,6 @@ export {
   updateThemeLevelAction,
   deleteThemeLevelAction,
   moveThemeLevelAction,
+  generateSimilarTasksAction,
+  publishQuizTaskAction,
 } from "./actions";

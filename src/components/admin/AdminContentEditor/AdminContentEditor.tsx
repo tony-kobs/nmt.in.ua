@@ -15,10 +15,14 @@ import clsx from "clsx";
 import {
   deleteQuizTaskAction,
   deleteQuizTasksAction,
+  generateSimilarTasksAction,
+  publishQuizTaskAction,
   updateQuizTaskDifficultyAction,
   updateThemeDifficultyGuideAction,
   type DeleteQuizTaskActionState,
   type DeleteQuizTasksActionState,
+  type GenerateSimilarState,
+  type PublishQuizTaskState,
 } from "@/modules/admin-content/actions";
 import { MIN_DIFFICULTY } from "@/modules/content-import/schema";
 import {
@@ -35,17 +39,26 @@ import css from "./AdminContentEditor.module.css";
 
 const DELETE_INITIAL: DeleteQuizTaskActionState = { status: "idle" };
 const DELETE_MANY_INITIAL: DeleteQuizTasksActionState = { status: "idle" };
+const GENERATE_INITIAL: GenerateSimilarState = { status: "idle" };
+const PUBLISH_INITIAL: PublishQuizTaskState = { status: "idle" };
 
 function formatThemeLabel(index: number, theme: AdminThemeOption): string {
   return `${index + 1}. ${theme.name}`;
 }
 
-function listHref(themeId: number | null, page: number, search = ""): string {
+function listHref(
+  themeId: number | null,
+  page: number,
+  search = "",
+  status = "all",
+): string {
   const query = search.trim();
+  const taskStatus = status === "draft" || status === "published" ? status : null;
   return queryHref("/", {
     theme: themeId != null ? String(themeId) : null,
     page: page > 1 ? String(page) : null,
     q: query || null,
+    status: taskStatus,
   });
 }
 
@@ -209,6 +222,8 @@ type AdminContentEditorProps = {
   initialThemeId?: number;
   taskPage: AdminQuizTaskListPage;
   search?: string;
+  status?: string;
+  llmEnabled?: boolean;
 };
 
 export function AdminContentEditor({
@@ -216,6 +231,8 @@ export function AdminContentEditor({
   initialThemeId,
   taskPage,
   search = "",
+  status = "all",
+  llmEnabled = false,
 }: AdminContentEditorProps) {
   const t = useTranslations("AdminContent");
   const router = useRouter();
@@ -232,6 +249,14 @@ export function AdminContentEditor({
     deleteQuizTasksAction,
     DELETE_MANY_INITIAL,
   );
+  const [generateState, generateAction, generatePending] = useActionState(
+    generateSimilarTasksAction,
+    GENERATE_INITIAL,
+  );
+  const [publishState, publishAction, publishPending] = useActionState(
+    publishQuizTaskAction,
+    PUBLISH_INITIAL,
+  );
   const [selected, setSelected] = useState<Set<number>>(() => new Set());
   const [difficultyOverrides, setDifficultyOverrides] = useState<
     Record<number, number>
@@ -240,20 +265,25 @@ export function AdminContentEditor({
   const selectAllRef = useRef<HTMLInputElement>(null);
   const difficultyQueue = useRef<Map<number, number>>(new Map());
   const difficultyInflight = useRef<Set<number>>(new Set());
-  const busy = deletePending || bulkPending;
+  const busy = deletePending || bulkPending || generatePending || publishPending;
 
   useEffect(() => {
-    if (deleteState.status === "success" || bulkState.status === "success") {
+    if (
+      deleteState.status === "success" ||
+      bulkState.status === "success" ||
+      generateState.status === "success" ||
+      publishState.status === "success"
+    ) {
       startTransition(() => {
         router.refresh();
       });
     }
-  }, [deleteState, bulkState, router, startTransition]);
+  }, [deleteState, bulkState, generateState, publishState, router, startTransition]);
 
   function onThemeChange(next: number) {
     setThemeId(next);
     startTransition(() => {
-      router.push(listHref(next, 1));
+      router.push(listHref(next, 1, "", status));
     });
   }
 
@@ -425,8 +455,12 @@ export function AdminContentEditor({
         </div>
 
         {themeId ? (
+          <>
           <form className={css.search} action="/" method="get">
             <input type="hidden" name="theme" value={themeId} />
+            {status === "draft" || status === "published" ? (
+              <input type="hidden" name="status" value={status} />
+            ) : null}
             <label className={css.searchLabel} htmlFor="admin-task-search">
               {t("searchLabel")}
             </label>
@@ -445,6 +479,23 @@ export function AdminContentEditor({
               {t("search")}
             </button>
           </form>
+          <label className={css.statusField}>
+            <span className={css.searchLabel}>{t("statusLabel")}</span>
+            <Select
+              value={status === "draft" || status === "published" ? status : "all"}
+              options={[
+                { value: "all", label: t("statusAll") },
+                { value: "published", label: t("statusPublished") },
+                { value: "draft", label: t("statusDraft") },
+              ]}
+              onChange={(next) => {
+                startTransition(() => {
+                  router.push(listHref(themeId, 1, search, next));
+                });
+              }}
+            />
+          </label>
+          </>
         ) : null}
 
         {deleteState.status === "error" ? (
@@ -467,6 +518,31 @@ export function AdminContentEditor({
             {t("deletedMany", { count: bulkState.count })}
           </p>
         ) : null}
+        {publishState.status === "success" ? (
+          <p className={clsx(css.alert, css.alertSuccess)} role="status">
+            {t("published")}
+          </p>
+        ) : null}
+        {generateState.status === "success" ? (
+          <p className={clsx(css.alert, css.alertSuccess)} role="status">
+            {generateState.saved === 0
+              ? t("generatedNone")
+              : t("generated", {
+                  saved: generateState.saved,
+                  discarded: generateState.discarded,
+                })}
+          </p>
+        ) : null}
+        {generateState.status === "error" ? (
+          <p className={clsx(css.alert, css.alertError)} role="alert">
+            {t(`errors.${generateState.code}`)}
+          </p>
+        ) : null}
+        {publishState.status === "error" ? (
+          <p className={clsx(css.alert, css.alertError)} role="alert">
+            {t(`errors.${publishState.code}`)}
+          </p>
+        ) : null}
         {difficultyError ? (
           <p className={clsx(css.alert, css.alertError)} role="alert">
             {t(`errors.${difficultyError}`)}
@@ -474,7 +550,15 @@ export function AdminContentEditor({
         ) : null}
 
         {tasks.length === 0 ? (
-          <p className={css.empty}>{search.trim() ? t("searchEmpty") : t("empty")}</p>
+          <p className={css.empty}>
+            {search.trim()
+              ? t("searchEmpty")
+              : status === "draft"
+                ? t("emptyDrafts")
+                : status === "published"
+                  ? t("emptyPublished")
+                  : t("empty")}
+          </p>
         ) : (
           <>
             <form
@@ -554,12 +638,50 @@ export function AdminContentEditor({
                       </td>
                       <td className={css.colTask}>
                         <span className={css.taskId}>#{task.id}</span>
+                        {task.status === "draft" ? (
+                          <span className={css.badgeDraft}>{t("badgeDraft")}</span>
+                        ) : null}
+                        {task.sourceTaskId ? (
+                          <Link href={`/tasks/${task.sourceTaskId}`} className={css.sourceLink}>
+                            {t("sourceTask", { id: task.sourceTaskId })}
+                          </Link>
+                        ) : null}
                         {task.name && !task.taskText.includes(task.name) ? (
                           <span className={css.taskName}>{task.name}</span>
                         ) : null}
                         <span className={css.taskPreview}>
                           <MathText text={task.taskText} />
                         </span>
+                        {llmEnabled ? (
+                          <form action={generateAction} className={css.generateForm}>
+                            <input type="hidden" name="taskId" value={task.id} />
+                            <label className={css.generateCount}>
+                              <span className={css.srOnly}>{t("generateCount")}</span>
+                              <input
+                                className={css.countInput}
+                                type="number"
+                                name="count"
+                                min={1}
+                                max={5}
+                                defaultValue={3}
+                                inputMode="numeric"
+                                aria-label={t("generateCountAria", { name: task.label })}
+                                disabled={busy}
+                              />
+                            </label>
+                            <button type="submit" className={css.generateBtn} disabled={busy}>
+                              {generatePending ? t("generating") : t("generateSimilar")}
+                            </button>
+                          </form>
+                        ) : null}
+                        {task.status === "draft" ? (
+                          <form action={publishAction} className={css.generateForm}>
+                            <input type="hidden" name="taskId" value={task.id} />
+                            <button type="submit" className={css.publishBtn} disabled={busy}>
+                              {publishPending ? t("publishing") : t("publish")}
+                            </button>
+                          </form>
+                        ) : null}
                       </td>
                       <td className={css.colDifficulty}>
                         <DifficultyControl
@@ -613,7 +735,7 @@ export function AdminContentEditor({
               <nav className={css.pager} aria-label={t("pagerAria")}>
                 {page > 1 ? (
                   <Link
-                    href={listHref(themeId, page - 1, search)}
+                    href={listHref(themeId, page - 1, search, status)}
                     className={css.pagerBtn}
                   >
                     ← {t("prevPage")}
@@ -628,7 +750,7 @@ export function AdminContentEditor({
                 </p>
                 {page < totalPages ? (
                   <Link
-                    href={listHref(themeId, page + 1, search)}
+                    href={listHref(themeId, page + 1, search, status)}
                     className={css.pagerBtn}
                   >
                     {t("nextPage")} →

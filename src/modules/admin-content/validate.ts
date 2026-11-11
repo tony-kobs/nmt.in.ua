@@ -36,6 +36,21 @@ function trimRequired(value: unknown, maxLen: number, field: string): string {
   return trimmed;
 }
 
+const MAX_HINT_SHORT = 280;
+
+/** Lightbulb text. Empty becomes null. Longer than the column is refused. */
+export function parseHintShort(value: unknown): string | null {
+  if (value == null || value === "") return null;
+  if (typeof value !== "string") {
+    throw new AdminContentError("Invalid hint.", "invalid_input");
+  }
+  const trimmed = value.trim();
+  if (trimmed.length > MAX_HINT_SHORT) {
+    throw new AdminContentError("Invalid hint.", "invalid_input");
+  }
+  return trimmed || null;
+}
+
 function trimOptional(value: unknown, maxLen: number): string {
   if (value == null) return "";
   if (typeof value !== "string") {

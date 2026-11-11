@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
 import { resolvePreferredDifficulty } from "./practiceAdaptive";
 import {
@@ -43,7 +44,7 @@ const SQL_SELECT_USED_TASK_IDS = `
   WHERE session_id = ? AND task_type = ${TASK_TYPE_TOPIC}
 `;
 
-const SQL_SELECT_CANDIDATES = `SELECT id, difficulty FROM quiz_tasks WHERE theme_id = ?`;
+const SQL_SELECT_CANDIDATES = `SELECT id, difficulty FROM quiz_tasks WHERE theme_id = ? AND ${publishedQuizTaskSql()}`;
 
 const SQL_INSERT_MAPPING =
   "INSERT INTO tasks2session (task_type, task_id, session_id, user_id, status) VALUES (?, ?, ?, ?, ?)";

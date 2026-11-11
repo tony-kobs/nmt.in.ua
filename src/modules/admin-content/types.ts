@@ -102,6 +102,8 @@ export type AdminThemeOption = {
 
 export const MAX_DIFFICULTY_GUIDE_LENGTH = 4000;
 
+export type QuizTaskStatus = "draft" | "published";
+
 export type AdminQuizTaskListItem = {
   id: number;
   /** Bank title. The student sees it as a kicker when it is not the question. */
@@ -112,6 +114,9 @@ export type AdminQuizTaskListItem = {
   difficulty: number;
   /** True when a topic session already references this task. */
   inUse: boolean;
+  status: QuizTaskStatus;
+  /** Set when this row was generated from another bank task. */
+  sourceTaskId: number | null;
 };
 
 export const ADMIN_TASKS_PAGE_SIZE = 10;
@@ -137,6 +142,10 @@ export type AdminQuizTask = {
   comments: string;
   difficulty: number;
   params: TaskParamValue[];
+  status: QuizTaskStatus;
+  sourceTaskId: number | null;
+  /** Lightbulb text. Empty means the bulb stays hidden. */
+  hintShort: string;
 };
 
 export type AdminQuizTaskInput = {
@@ -150,6 +159,8 @@ export type AdminQuizTaskInput = {
   rightAnswerN: number;
   comments?: string;
   difficulty: number;
+  /** Short lightbulb text. Null clears it. Omitted on older callers leaves it empty. */
+  hintShort?: string | null;
   /** Present when the task form saved marks. Omitted leaves stored values alone. */
   paramDrafts?: TaskParamDraft[];
 };

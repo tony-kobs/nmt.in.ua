@@ -18,8 +18,10 @@ import {
   type AdminQuizTaskListItem,
   type AdminQuizTaskListPage,
   type AdminThemeOption,
+  type QuizTaskStatus,
   type TaskParamValue,
 } from "./types";
+import type { GeneratedDraft } from "./generateSimilar";
 
 /** Default legend for every theme that has not been edited yet. */
 const DEFAULT_DIFFICULTY_GUIDE = `1. Додавання однозначних чисел.
@@ -63,12 +65,12 @@ const SQL_UPDATE_GUIDE = `
 const SQL_THEME_EXISTS = `SELECT id FROM themes WHERE id = ? LIMIT 1`;
 
 /**
- * Same predicate as a topic hand-out (`SELECT id FROM quiz_tasks WHERE theme_id = ?`
- * in `startTopicTest` / quick assign). The list is that set, paged and optionally
- * narrowed by a search. It does not add generators, workbook `problems`, or other themes.
+ * The admin list is the theme bank, paged and optionally narrowed by search
+ * and status. Student hand-out is the published subset of the same theme.
+ * It does not add generators, workbook `problems`, or other themes.
  */
 const SQL_LIST_BY_THEME = `
-  SELECT q.id, q.name, q.task_text, q.difficulty,
+  SELECT q.id, q.name, q.task_text, q.difficulty, q.status, q.source_task_id,
     EXISTS (
       SELECT 1 FROM tasks2session s
       WHERE s.task_id = q.id AND s.task_type = 1
@@ -86,6 +88,14 @@ const SQL_COUNT_BY_THEME = `
 const SEARCH_MAX = 80;
 
 /** LIKE fragment for the admin list. Empty search keeps the full theme bank. */
+/** `all` keeps drafts and published rows. Anything else is ignored. */
+export function themeTaskStatusClause(status: string): { sql: string; params: string[] } {
+  if (status === "draft" || status === "published") {
+    return { sql: " AND q.status = ?", params: [status] };
+  }
+  return { sql: "", params: [] };
+}
+
 export function themeTaskSearchClause(raw: string): { sql: string; params: string[] } {
   const trimmed = raw.trim().slice(0, SEARCH_MAX);
   if (!trimmed) return { sql: "", params: [] };
@@ -109,7 +119,7 @@ const SQL_NEIGHBOR_IDS = `
 
 const SQL_GET_BY_ID = `
   SELECT id, name, task_text, theme_id, answer_1, answer_2, answer_3, answer_4,
-         right_answer_n, comments, difficulty
+         right_answer_n, comments, difficulty, hint_short, status, source_task_id
   FROM quiz_tasks
   WHERE id = ?
   LIMIT 1
@@ -120,15 +130,28 @@ const SQL_NEXT_ID = `SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM quiz_tasks`
 const SQL_INSERT = `
   INSERT INTO quiz_tasks
     (id, name, task_text, theme_id, answer_1, answer_2, answer_3, answer_4,
-     right_answer_n, comments, difficulty)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     right_answer_n, comments, difficulty, hint_short)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`;
+
+const SQL_INSERT_DRAFT = `
+  INSERT INTO quiz_tasks
+    (id, name, task_text, theme_id, answer_1, answer_2, answer_3, answer_4,
+     right_answer_n, comments, difficulty, hint_short, status, source_task_id)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)
+`;
+
+const SQL_PUBLISH = `
+  UPDATE quiz_tasks
+  SET status = 'published'
+  WHERE id = ?
 `;
 
 const SQL_UPDATE = `
   UPDATE quiz_tasks
   SET name = ?, task_text = ?, theme_id = ?,
       answer_1 = ?, answer_2 = ?, answer_3 = ?, answer_4 = ?,
-      right_answer_n = ?, comments = ?, difficulty = ?
+      right_answer_n = ?, comments = ?, difficulty = ?, hint_short = ?
   WHERE id = ?
 `;
 
@@ -194,6 +217,8 @@ type ListRow = {
   task_text: string;
   difficulty: number;
   in_use: number | string | boolean;
+  status?: string | null;
+  source_task_id?: number | string | null;
 };
 
 type TaskRow = {
@@ -208,7 +233,20 @@ type TaskRow = {
   right_answer_n: number;
   comments: string | null;
   difficulty: number;
+  hint_short?: string | null;
+  status?: string | null;
+  source_task_id?: number | string | null;
 };
+
+function readStatus(value: string | null | undefined): QuizTaskStatus {
+  return value === "draft" ? "draft" : "published";
+}
+
+function readSourceId(value: number | string | null | undefined): number | null {
+  if (value == null || value === "") return null;
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
 
 function mapTask(row: TaskRow, params: TaskParamValue[]): AdminQuizTask {
   const right = row.right_answer_n;
@@ -228,6 +266,9 @@ function mapTask(row: TaskRow, params: TaskParamValue[]): AdminQuizTask {
     comments: (row.comments ?? "").trim(),
     difficulty: row.difficulty,
     params,
+    status: readStatus(row.status),
+    sourceTaskId: readSourceId(row.source_task_id),
+    hintShort: (row.hint_short ?? "").trim(),
   };
 }
 
@@ -374,12 +415,14 @@ function mapListItem(row: ListRow): AdminQuizTaskListItem {
     taskText,
     difficulty: row.difficulty,
     inUse: row.in_use === true || Number(row.in_use) === 1,
+    status: readStatus(row.status),
+    sourceTaskId: readSourceId(row.source_task_id),
   };
 }
 
 export async function getQuizTasksByTheme(
   themeId: number,
-  options: { page?: number; pageSize?: number; search?: string } = {},
+  options: { page?: number; pageSize?: number; search?: string; status?: string } = {},
   deps: { getConnection: () => Promise<SqlConnection> } = {
     getConnection: loadDefaultConnection,
   },
@@ -390,11 +433,12 @@ export async function getQuizTasksByTheme(
   );
   const requestedPage = Math.max(1, Math.floor(options.page ?? 1));
   const search = themeTaskSearchClause(options.search ?? "");
+  const status = themeTaskStatusClause(options.status ?? "");
   const connection = await deps.getConnection();
   try {
     const countRows = await connection.query<{ total: number | string }>(
-      SQL_COUNT_BY_THEME + search.sql,
-      [themeId, ...search.params],
+      SQL_COUNT_BY_THEME + search.sql + status.sql,
+      [themeId, ...search.params, ...status.params],
     );
     const total = Number(countRows[0]?.total ?? 0);
     const totalPages = total === 0 ? 1 : Math.ceil(total / pageSize);
@@ -406,8 +450,8 @@ export async function getQuizTasksByTheme(
         ? []
         : await connection.query<ListRow>(
             // MySQL prepared statements reject `LIMIT ?` — inline validated ints.
-            `${SQL_LIST_BY_THEME}${search.sql} ORDER BY q.id ASC LIMIT ${pageSize} OFFSET ${offset}`,
-            [themeId, ...search.params],
+            `${SQL_LIST_BY_THEME}${search.sql}${status.sql} ORDER BY q.id ASC LIMIT ${pageSize} OFFSET ${offset}`,
+            [themeId, ...search.params, ...status.params],
           );
 
     return {
@@ -508,6 +552,7 @@ export async function createQuizTask(
       input.rightAnswerN,
       input.comments ?? "",
       input.difficulty,
+      input.hintShort ?? null,
     ]);
 
     const params = input.paramDrafts
@@ -533,6 +578,9 @@ export async function createQuizTask(
       comments: input.comments ?? "",
       difficulty: input.difficulty,
       params,
+      status: "published",
+      sourceTaskId: null,
+      hintShort: input.hintShort ?? "",
     };
   } catch (error) {
     try {
@@ -559,7 +607,7 @@ export async function updateQuizTask(
   try {
     await connection.beginTransaction();
     await assertThemeExists(connection, input.themeId);
-    const result = await connection.execute(SQL_UPDATE, [
+    await connection.execute(SQL_UPDATE, [
       input.name,
       input.taskText,
       input.themeId,
@@ -570,17 +618,19 @@ export async function updateQuizTask(
       input.rightAnswerN,
       input.comments ?? "",
       input.difficulty,
+      input.hintShort ?? null,
       taskId,
     ]);
-    // An unchanged row reports 0. A parameter-only save must still persist.
-    if (result.affectedRows === 0) {
-      const existing = await connection.query<{ id: number }>(
-        `SELECT id FROM quiz_tasks WHERE id = ? LIMIT 1`,
-        [taskId],
-      );
-      if (!existing[0]) {
-        throw new AdminContentError("Task not found.", "not_found");
-      }
+    const existing = await connection.query<{
+      id: number;
+      status?: string | null;
+      source_task_id?: number | string | null;
+    }>(
+      `SELECT id, status, source_task_id FROM quiz_tasks WHERE id = ? LIMIT 1`,
+      [taskId],
+    );
+    if (!existing[0]) {
+      throw new AdminContentError("Task not found.", "not_found");
     }
     const params = input.paramDrafts
       ? await replaceQuizTaskParams(
@@ -604,6 +654,9 @@ export async function updateQuizTask(
       comments: input.comments ?? "",
       difficulty: input.difficulty,
       params,
+      status: readStatus(existing[0]?.status),
+      sourceTaskId: readSourceId(existing[0]?.source_task_id),
+      hintShort: input.hintShort ?? "",
     };
   } catch (error) {
     try {
@@ -613,6 +666,113 @@ export async function updateQuizTask(
     }
     if (error instanceof AdminContentError) throw error;
     console.error("updateQuizTask: unexpected database error", error);
+    throw new AdminContentError("Database operation failed.", "db_error");
+  } finally {
+    connection.release();
+  }
+}
+
+async function allocateTaskId(connection: SqlConnection): Promise<number> {
+  const nextRows = await connection.query<{ next_id: number | string }>(SQL_NEXT_ID, []);
+  const nextId = Number(nextRows[0]?.next_id);
+  if (!Number.isInteger(nextId) || nextId <= 0) {
+    throw new AdminContentError("Could not allocate task id.", "db_error");
+  }
+  return nextId;
+}
+
+/** Saves verified tasks as drafts and copies the source parameter values. */
+export async function insertGeneratedDrafts(
+  sourceTaskId: number,
+  themeId: number,
+  params: readonly TaskParamValue[],
+  drafts: readonly GeneratedDraft[],
+  deps: { getConnection: () => Promise<SqlConnection> } = {
+    getConnection: loadDefaultConnection,
+  },
+): Promise<number[]> {
+  if (!Number.isInteger(sourceTaskId) || sourceTaskId <= 0) {
+    throw new AdminContentError("Invalid task.", "invalid_input");
+  }
+  if (drafts.length === 0) return [];
+  const connection = await deps.getConnection();
+  try {
+    await connection.beginTransaction();
+    await assertThemeExists(connection, themeId);
+    const source = await connection.query<{ id: number }>(
+      `SELECT id FROM quiz_tasks WHERE id = ? LIMIT 1`,
+      [sourceTaskId],
+    );
+    if (!source[0]) {
+      throw new AdminContentError("Task not found.", "not_found");
+    }
+    const paramDrafts = params.map((value) => ({
+      paramId: value.paramId,
+      raw: String(value.intValue),
+    }));
+    const ids: number[] = [];
+    for (const draft of drafts) {
+      const nextId = await allocateTaskId(connection);
+      await connection.execute(SQL_INSERT_DRAFT, [
+        nextId,
+        draft.name,
+        draft.taskText,
+        themeId,
+        draft.answer1,
+        draft.answer2,
+        draft.answer3,
+        draft.answer4,
+        draft.rightAnswerN,
+        "",
+        draft.difficulty,
+        draft.hintShort,
+        sourceTaskId,
+      ]);
+      if (paramDrafts.length > 0) {
+        await replaceQuizTaskParams(connection, nextId, themeId, paramDrafts);
+      }
+      ids.push(nextId);
+    }
+    await connection.commit();
+    return ids;
+  } catch (error) {
+    try {
+      await connection.rollback();
+    } catch {
+      // The connection may already be rolled back.
+    }
+    if (error instanceof AdminContentError) throw error;
+    console.error("insertGeneratedDrafts: unexpected database error", error);
+    throw new AdminContentError("Database operation failed.", "db_error");
+  } finally {
+    connection.release();
+  }
+}
+
+export async function publishQuizTask(
+  taskId: number,
+  deps: { getConnection: () => Promise<SqlConnection> } = {
+    getConnection: loadDefaultConnection,
+  },
+): Promise<void> {
+  if (!Number.isInteger(taskId) || taskId <= 0) {
+    throw new AdminContentError("Invalid task.", "invalid_input");
+  }
+  const connection = await deps.getConnection();
+  try {
+    const result = await connection.execute(SQL_PUBLISH, [taskId]);
+    if (result.affectedRows === 0) {
+      const existing = await connection.query<{ id: number }>(
+        `SELECT id FROM quiz_tasks WHERE id = ? LIMIT 1`,
+        [taskId],
+      );
+      if (!existing[0]) {
+        throw new AdminContentError("Task not found.", "not_found");
+      }
+    }
+  } catch (error) {
+    if (error instanceof AdminContentError) throw error;
+    console.error("publishQuizTask: unexpected database error", error);
     throw new AdminContentError("Database operation failed.", "db_error");
   } finally {
     connection.release();

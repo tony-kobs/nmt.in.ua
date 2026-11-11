@@ -10,6 +10,7 @@ import { MarathonHomeCards } from "@/components/marathon/MarathonHomeCards";
 import { MarathonInviteBanner } from "@/components/marathon/MarathonInviteBanner";
 import { UpgradeSessionCookie } from "@/components/auth/UpgradeSessionCookie";
 import { pickClientMessages } from "@/i18n/clientMessages";
+import { llmConfigured } from "@/modules/admin-content/generateSimilar";
 import {
   getAdminThemes,
   getQuizTasksByTheme,
@@ -32,6 +33,7 @@ type CabinetHomeProps = {
   initialTab?: string;
   initialPage?: number;
   initialSearch?: string;
+  initialStatus?: string;
   needsCookieUpgrade: boolean;
   saved?: boolean;
 };
@@ -55,6 +57,7 @@ async function CabinetHomeLoaded({
   initialTab,
   initialPage = 1,
   initialSearch = "",
+  initialStatus = "all",
   needsCookieUpgrade,
   saved = false,
 }: CabinetHomeProps) {
@@ -95,6 +98,7 @@ async function CabinetHomeLoaded({
       ? await getQuizTasksByTheme(themeId, {
           page: initialPage,
           search: initialSearch,
+          status: initialStatus,
         })
       : {
           items: [],
@@ -119,6 +123,8 @@ async function CabinetHomeLoaded({
               initialThemeId={themeId}
               taskPage={taskPage}
               search={initialSearch}
+              status={initialStatus}
+              llmEnabled={llmConfigured()}
             />
           </PageFrame>
         </DashboardShell>
