@@ -1,15 +1,15 @@
-# Журнал не пушиться в dev напряму.
-# У PR на dev коміт із журналом лягає в гілку цього PR.
+# Запис PR у dev комітиться в гілку цього PR, не в dev.
 # Push цього коміта йде від GITHUB_TOKEN. Подія pull_request:synchronize
 # від такого токена лишає запуск без jobs (схвалення воркфлоу) і червоний
 # хрестик на PR, тож synchronize тут немає. Нові коміти людини ловить push:
 # push від GITHUB_TOKEN воркфлоу не стартує. Якщо колись стартує, job і так
 # відсікає github-actions[bot].
-# PR лише з docs/changelog.md і старим вказівником гіда — це новини
-# релізу. Його opened теж іде від GITHUB_TOKEN, тому ці два шляхи в paths-ignore.
+# PR лише з цими двома файлами не переписує журнал (paths-ignore).
 # Журнал пишеться лише в docs/changelog.md. Вказівник гіда дія більше не чіпає.
-# У PR dev → main відкривається окремий PR у dev із новинами релізу.
-# Поки той PR відкритий, push у dev оновлює новини.
+# Новини релізу (PR dev → main) комітяться прямо в dev від github-actions[bot].
+# Окремої гілки і pull request немає. Коміт: «docs: новини релізу #N [skip ci]».
+# Якщо push у dev не пройшов, job падає. Гілку і pull request не створює.
+# Старі гілки changelog/* лишаються в branches-ignore, щоб не будити цей workflow.
 name: Changelog
 
 on:
@@ -151,6 +151,9 @@ jobs:
           rm -f changelog-comment.txt
 
   release-news:
+    permissions:
+      contents: write
+      pull-requests: read
     if: >-
       (github.event_name == 'pull_request' &&
       github.event.pull_request.merged == false &&
@@ -229,14 +232,10 @@ jobs:
           TARGET: main
         run: node scripts/record-changelog.mjs
 
-      - name: Open a pull request into dev
+      - name: Commit release news onto dev
         if: steps.pr.outputs.found == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
         run: |
-          # PR_NUMBER приходить зі змінної, яку попередній крок записав у GITHUB_ENV.
-          BRANCH="changelog/release-${PR_NUMBER}"
+          # Прямо в dev. Окремої гілки і pull request немає.
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/changelog.md
@@ -244,75 +243,50 @@ jobs:
             echo "No news to publish."
             exit 0
           fi
-          git commit -m "docs: новини релізу #${PR_NUMBER}"
-          # Лише гілка changelog/release-*. dev і main цей push не чіпає.
-          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
-            git fetch --no-tags origin "refs/heads/${BRANCH}:refs/remotes/origin/${BRANCH}"
-            git push --force-with-lease origin "HEAD:${BRANCH}"
-          else
-            git push origin "HEAD:${BRANCH}"
-          fi
+          git commit -m "docs: новини релізу #${PR_NUMBER} [skip ci]"
 
-          body_file="$(mktemp)"
-          cat > "$body_file" <<EOF
-          Новини для релізу #${PR_NUMBER}.
-
-          Це звичайний pull request у \`dev\`. Після approve і мерджу рядки «Для учня і викладача» входять у реліз \`dev\` → \`main\`.
-          EOF
-
-          fail_open() {
+          fail_push() {
             local detail="$1"
-            local flat
-            flat="$(printf '%s' "$detail" | tr '\n' ' ')"
-            echo "Не вдалося відкрити pull request ${BRANCH} → dev."
-            printf '%s\n' "$detail"
-            if printf '%s\n' "$detail" | grep -F "not permitted to create or approve pull requests" >/dev/null; then
-              echo "::error::GitHub Actions не може створювати pull request. Увімкніть у репозиторії Settings → Actions → General → Allow GitHub Actions to create and approve pull requests, потім перезапустіть цей job."
-            else
-              echo "::error::Не вдалося відкрити pull request ${BRANCH} → dev. ${flat}"
-            fi
+            echo "$detail"
+            echo "::error::${detail} Окрему гілку не створюю і pull request не відкриваю."
             exit 1
           }
 
-          edit_pr() {
-            local number="$1"
-            local err
-            err="$(mktemp)"
-            if gh pr edit "$number" --repo "$REPO" --title "docs: новини релізу #${PR_NUMBER}" --body-file "$body_file" 2>"$err"; then
-              echo "Updated pull request #${number}"
-              return 0
-            fi
-            fail_open "$(cat "$err")"
+          is_non_fast_forward() {
+            grep -E -q 'non-fast-forward|rejected because the remote contains work|tip of your current branch is behind' "$1"
           }
 
-          open_number="$(gh pr list --repo "$REPO" --head "$BRANCH" --base dev --state open --json number --jq '.[0].number // empty')"
-          if [ -n "$open_number" ]; then
-            edit_pr "$open_number"
-            exit 0
-          fi
-
-          closed_number="$(gh pr list --repo "$REPO" --head "$BRANCH" --base dev --state closed --json number,state --jq 'first(.[] | select(.state == "CLOSED") | .number) // empty')"
-          if [ -n "$closed_number" ]; then
-            reopen_err="$(mktemp)"
-            if ! gh pr reopen "$closed_number" --repo "$REPO" 2>"$reopen_err"; then
-              fail_open "$(cat "$reopen_err")"
+          refresh_dev() {
+            local refspec="+refs/heads/dev:refs/remotes/origin/dev"
+            if [ -f "$(git rev-parse --git-path shallow)" ]; then
+              git fetch --unshallow --no-tags origin "$refspec"
+            else
+              git fetch --no-tags origin "$refspec"
             fi
-            edit_pr "$closed_number"
-            exit 0
-          fi
+          }
 
-          create_out="$(mktemp)"
-          create_err="$(mktemp)"
-          if gh pr create --repo "$REPO" --base dev --head "$BRANCH" --title "docs: новини релізу #${PR_NUMBER}" --body-file "$body_file" >"$create_out" 2>"$create_err"; then
-            cat "$create_out"
-            exit 0
-          fi
-
-          # Між list і create PR міг з’явитись. Тоді оновлюємо його, а не падаємо.
-          open_number="$(gh pr list --repo "$REPO" --head "$BRANCH" --base dev --state open --json number --jq '.[0].number // empty')"
-          if [ -n "$open_number" ]; then
-            edit_pr "$open_number"
-            exit 0
-          fi
-
-          fail_open "$(cat "$create_err")"
+          attempt=1
+          while [ "$attempt" -le 3 ]; do
+            err="$(mktemp)"
+            if git push origin "HEAD:dev" >"$err" 2>&1; then
+              echo "Pushed release news onto dev."
+              exit 0
+            fi
+            cat "$err"
+            if ! is_non_fast_forward "$err"; then
+              fail_push "Не вдалося записати новини релізу #${PR_NUMBER} прямо в dev. Якщо гілка захищена, GitHub відхилив push від github-actions[bot]."
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              fail_push "Не вдалося записати новини релізу #${PR_NUMBER} у dev: тричі не вийшов fast-forward."
+            fi
+            echo "dev moved (attempt ${attempt}/3). Fetch and rebase."
+            if ! refresh_dev; then
+              fail_push "Не вдалося підтягнути свіжий dev для новин релізу #${PR_NUMBER}."
+            fi
+            if ! git rebase origin/dev; then
+              git rebase --abort || true
+              fail_push "Не вдалося перебазувати новини релізу #${PR_NUMBER} на свіжий dev."
+            fi
+            attempt=$((attempt + 1))
+          done
+          fail_push "Не вдалося записати новини релізу #${PR_NUMBER} прямо в dev."
