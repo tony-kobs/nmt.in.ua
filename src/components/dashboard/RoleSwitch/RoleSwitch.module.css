@@ -67,6 +67,8 @@
   z-index: 1;
   display: block;
   margin-bottom: var(--space-md);
+  transition: transform var(--t-slow) var(--ease),
+    opacity var(--t-slow) var(--ease);
 }
 
 .motion[data-compact="true"][data-hidden="true"] {
@@ -81,8 +83,6 @@
   z-index: auto;
   min-height: 0;
   margin-bottom: 0;
-  transition: transform var(--t-slow) var(--ease),
-    opacity var(--t-slow) var(--ease);
 }
 
 .barDrawer {
@@ -105,12 +105,6 @@
 }
 
 @media (min-width: 768px) {
-  .barContent {
-    position: static;
-    top: auto;
-    z-index: auto;
-  }
-
   .barDrawer {
     display: none;
   }

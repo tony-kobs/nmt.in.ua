@@ -103,8 +103,6 @@ export function RoleSwitch({
       className={css.motion}
       data-compact={motion.compact ? "true" : undefined}
       data-hidden={motion.hidden ? "true" : undefined}
-      // тимчасово
-      // data-debug-hidden={String(motion.hidden)}
       onFocus={motion.pin}
       onBlur={motion.release}
     >
