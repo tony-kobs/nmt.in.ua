@@ -3,6 +3,17 @@
 Опис pull request — єдине місце, де це пишуть. Після мерджу в `dev` запис з’являється тут. Рядки для учня і викладача збираються в новини, коли реліз потрапляє в `main`. Посилання на скрінкаст з’являється лише після галочки «схвалено показувати». Гід для новачка — [онбординг](./onboarding.md) і [як робити задачу](./contributing.md); цей журнал туди не копіюється.
 
 <!-- changelog:entries -->
+### 2026-11-11 — prevent roleswitch flickering on mobile and desktop (#330)
+
+- Для команди: prevent roleswitch flickering on mobile and desktop
+- Для людей: —
+- Скрінкаст: не потрібен
+- Запис: —
+- Схвалено: ні
+- Автор: Yulia2123
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/330
+<!-- released: no -->
+
 ### 2026-11-11 — ci: новини релізу пушить у dev через deploy key (#329)
 
 - Для команди: ci: новини релізу пушить у dev через deploy key
