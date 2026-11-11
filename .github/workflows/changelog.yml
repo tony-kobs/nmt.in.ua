@@ -219,6 +219,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: dev
+          ssh-key: ${{ secrets.RELEASE_NEWS_DEPLOY_KEY }}
+          persist-credentials: true
 
       - name: Setup Node
         if: steps.pr.outputs.found == 'true'
