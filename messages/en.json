@@ -2446,6 +2446,7 @@
       "code_taken": "This code is already used in this topic.",
       "rules_required": "Add at least one rule.",
       "llm": "Could not generate tasks. Try again.",
+      "llm_api": "The model API returned an error. Nothing was saved.",
       "generic": "Could not complete the action. Try again."
     },
     "paramsTitle": "Task parameters",
@@ -2523,6 +2524,9 @@
     "generating": "Generating…",
     "generated": "Drafts saved: {saved}. Discarded: {discarded}.",
     "generatedNone": "No task passed the check. Nothing was saved.",
+    "rejectedSummary": "Discarded {total}: {details}",
+    "rejectedAnswer": "answer mismatch — {count}",
+    "rejectedFormat": "format — {count}",
     "publish": "Publish",
     "publishing": "Publishing…",
     "published": "Task published.",

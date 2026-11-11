@@ -44,9 +44,11 @@ import {
   parseThemeParamInput,
   parseThemeParamUpdate,
 } from "./validate";
+import type { DiscardReasons } from "./generateNotice";
 import {
   clampSimilarCount,
   completeLlm,
+  GenerateSimilarApiError,
   generateSimilarDrafts,
   llmConfigured,
   readLlmConfig,
@@ -93,8 +95,11 @@ export type LoadQuizTaskActionState =
 
 export type GenerateSimilarState =
   | { status: "idle" }
-  | { status: "success"; saved: number; discarded: number }
-  | { status: "error"; code: "invalid_input" | "not_found" | "forbidden" | "llm" | "generic" };
+  | { status: "success"; saved: number; discarded: number; reasons: DiscardReasons }
+  | {
+      status: "error";
+      code: "invalid_input" | "not_found" | "forbidden" | "llm" | "llm_api" | "generic";
+    };
 
 export type PublishQuizTaskState =
   | { status: "idle" }
@@ -805,8 +810,16 @@ export async function generateSimilarTasksAction(
       result.drafts,
     );
     if (saved.length > 0) bustCaches(deps);
-    return { status: "success", saved: saved.length, discarded: result.discarded };
+    return {
+      status: "success",
+      saved: saved.length,
+      discarded: result.discarded,
+      reasons: result.reasons,
+    };
   } catch (error) {
+    if (error instanceof GenerateSimilarApiError) {
+      return { status: "error", code: "llm_api" };
+    }
     if (error instanceof AdminContentError) {
       if (
         error.code === "invalid_input" ||

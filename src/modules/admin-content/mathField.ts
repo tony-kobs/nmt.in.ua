@@ -207,7 +207,7 @@ function replaceSqrt(input: string): string {
 
     if (degree) {
       out += `√[${degree}](${pretty})`;
-    } else if (/^[0-9]+(?:\{,[0-9]+\})?$/.test(pretty.trim())) {
+    } else if (/^[0-9]+(?:\{,\}[0-9]+)?$/.test(pretty.trim())) {
       out += `√${pretty.trim()}`;
     } else if (/^[0-9A-Za-zπσαβγδωΩ]+$/.test(pretty.trim())) {
       out += `√${pretty.trim()}`;
@@ -510,7 +510,7 @@ export function wrapMathForStorage(value: string): string {
 }
 
 const MATH_ATOM =
-  String.raw`(?:\\[a-zA-Z%]+(?:\s*(?:\{[^}]*\}|\[[^\]]*\]))*|\\[,;!%]|[A-Za-zπσαβγδωΩℝℕℤℚℂ](?:_[0-9A-Za-z]+)?|-?\d+(?:\{,[0-9]+\}|[.,]\d+)?|[+\-*/^=<>(){}]|\\%|[·×÷±≤≥≠≈∼∞∅∠∥⊥∪∩⊂∈⇒→∫∑√°]|√(?:\[[^\]]*\])?(?:\([^)]*\)|\d+))`;
+  String.raw`(?:\\[a-zA-Z%]+(?:\s*(?:\{[^}]*\}|\[[^\]]*\]))*|\\[,;!%]|[A-Za-zπσαβγδωΩℝℕℤℚℂ](?:_[0-9A-Za-z]+)?|-?\d+(?:\{,\}[0-9]+|[.,]\d+)?|[+\-*/^=<>(){}]|\\%|[·×÷±≤≥≠≈∼∞∅∠∥⊥∪∩⊂∈⇒→∫∑√°]|√(?:\[[^\]]*\])?(?:\([^)]*\)|\d+))`;
 
 const MATH_RUN = new RegExp(
   String.raw`${MATH_ATOM}(?:(?:\s|~)*${MATH_ATOM})*`,

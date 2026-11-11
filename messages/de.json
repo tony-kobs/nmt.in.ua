@@ -2446,6 +2446,7 @@
       "code_taken": "Diesen Code gibt es in diesem Thema schon.",
       "rules_required": "Mindestens eine Regel hinzufügen.",
       "llm": "Generieren ist nicht gelungen. Bitte erneut versuchen.",
+      "llm_api": "Die Modell-API hat einen Fehler gemeldet. Nichts wurde gespeichert.",
       "generic": "Aktion fehlgeschlagen. Bitte erneut versuchen."
     },
     "paramsTitle": "Aufgabenparameter",
@@ -2523,6 +2524,9 @@
     "generating": "Erzeugung…",
     "generated": "Entwürfe gespeichert: {saved}. Verworfen: {discarded}.",
     "generatedNone": "Keine Aufgabe hat die Prüfung bestanden. Nichts wurde gespeichert.",
+    "rejectedSummary": "Verworfen {total}: {details}",
+    "rejectedAnswer": "Antwort stimmt nicht — {count}",
+    "rejectedFormat": "Format — {count}",
     "publish": "Veröffentlichen",
     "publishing": "Veröffentlichung…",
     "published": "Aufgabe veröffentlicht.",
