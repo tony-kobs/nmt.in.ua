@@ -1,6 +1,11 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { MIN_DIFFICULTY } from "@/modules/content-import/schema";
 import {
+  loadTaskParamValues,
+  loadThemeParams,
+  replaceQuizTaskParams,
+} from "./themeParams";
+import {
   AdminContentError,
   ADMIN_TASKS_PAGE_SIZE,
   MAX_DIFFICULTY_GUIDE_LENGTH,
@@ -9,6 +14,7 @@ import {
   type AdminQuizTaskListItem,
   type AdminQuizTaskListPage,
   type AdminThemeOption,
+  type TaskParamValue,
 } from "./types";
 
 /** Default legend for every theme that has not been edited yet. */
@@ -200,7 +206,7 @@ type TaskRow = {
   difficulty: number;
 };
 
-function mapTask(row: TaskRow): AdminQuizTask {
+function mapTask(row: TaskRow, params: TaskParamValue[]): AdminQuizTask {
   const right = row.right_answer_n;
   if (right !== 1 && right !== 2 && right !== 3 && right !== 4) {
     throw new AdminContentError("Corrupt right_answer_n.", "db_error");
@@ -217,6 +223,7 @@ function mapTask(row: TaskRow): AdminQuizTask {
     rightAnswerN: right,
     comments: (row.comments ?? "").trim(),
     difficulty: row.difficulty,
+    params,
   };
 }
 
@@ -278,6 +285,13 @@ export async function getAdminThemes(
   const connection = await deps.getConnection();
   try {
     const rows = await connection.query<ThemeRow>(SQL_ADMIN_THEMES, []);
+    const params = await loadThemeParams(connection);
+    const paramsByTheme = new Map<number, AdminThemeOption["params"]>();
+    for (const param of params) {
+      const list = paramsByTheme.get(param.themeId);
+      if (list) list.push(param);
+      else paramsByTheme.set(param.themeId, [param]);
+    }
     return rows.map((row) => ({
       id: row.id,
       code: row.code?.trim() ?? "",
@@ -285,6 +299,7 @@ export async function getAdminThemes(
       ord: row.ord,
       taskCount: Number(row.task_count),
       difficultyGuide: (row.difficulty_guide ?? "").trim(),
+      params: paramsByTheme.get(row.id) ?? [],
     }));
   } finally {
     connection.release();
@@ -398,7 +413,9 @@ export async function getQuizTaskById(
   try {
     const rows = await connection.query<TaskRow>(SQL_GET_BY_ID, [taskId]);
     const row = rows[0];
-    return row ? mapTask(row) : null;
+    if (!row) return null;
+    const params = await loadTaskParamValues(connection, taskId);
+    return mapTask(row, params);
   } finally {
     connection.release();
   }
@@ -474,6 +491,15 @@ export async function createQuizTask(
       input.difficulty,
     ]);
 
+    const params = input.paramDrafts
+      ? await replaceQuizTaskParams(
+          connection,
+          nextId,
+          input.themeId,
+          input.paramDrafts,
+        )
+      : [];
+
     await connection.commit();
     return {
       id: nextId,
@@ -487,6 +513,7 @@ export async function createQuizTask(
       rightAnswerN: input.rightAnswerN as 1 | 2 | 3 | 4,
       comments: input.comments ?? "",
       difficulty: input.difficulty,
+      params,
     };
   } catch (error) {
     try {
@@ -511,6 +538,7 @@ export async function updateQuizTask(
 ): Promise<AdminQuizTask> {
   const connection = await deps.getConnection();
   try {
+    await connection.beginTransaction();
     await assertThemeExists(connection, input.themeId);
     const result = await connection.execute(SQL_UPDATE, [
       input.name,
@@ -525,9 +553,25 @@ export async function updateQuizTask(
       input.difficulty,
       taskId,
     ]);
+    // An unchanged row reports 0. A parameter-only save must still persist.
     if (result.affectedRows === 0) {
-      throw new AdminContentError("Task not found.", "not_found");
+      const existing = await connection.query<{ id: number }>(
+        `SELECT id FROM quiz_tasks WHERE id = ? LIMIT 1`,
+        [taskId],
+      );
+      if (!existing[0]) {
+        throw new AdminContentError("Task not found.", "not_found");
+      }
     }
+    const params = input.paramDrafts
+      ? await replaceQuizTaskParams(
+          connection,
+          taskId,
+          input.themeId,
+          input.paramDrafts,
+        )
+      : await loadTaskParamValues(connection, taskId);
+    await connection.commit();
     return {
       id: taskId,
       name: input.name,
@@ -540,8 +584,14 @@ export async function updateQuizTask(
       rightAnswerN: input.rightAnswerN as 1 | 2 | 3 | 4,
       comments: input.comments ?? "",
       difficulty: input.difficulty,
+      params,
     };
   } catch (error) {
+    try {
+      await connection.rollback();
+    } catch {
+      // The connection may already be rolled back.
+    }
     if (error instanceof AdminContentError) throw error;
     console.error("updateQuizTask: unexpected database error", error);
     throw new AdminContentError("Database operation failed.", "db_error");

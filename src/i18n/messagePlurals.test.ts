@@ -60,6 +60,18 @@ test("other ukrainian count nouns agree with the number", () => {
   assert.match(t("TeacherSessions.assignedWarn", { count: 5 }), /призначено 5 разів\./);
   assert.match(t("AdminContent.pageStatus", { page: 1, totalPages: 1, total: 1 }), /1 завдання$/);
   assert.match(t("AdminContent.pageStatus", { page: 1, totalPages: 1, total: 21 }), /21 завдання$/);
+  assert.equal(
+    t("AdminContent.paramUsedWarning", { count: 1 }),
+    "Використовується в 1 задачі",
+  );
+  assert.equal(
+    t("AdminContent.paramUsedWarning", { count: 3 }),
+    "Використовується в 3 задачах",
+  );
+  assert.equal(
+    t("AdminContent.paramUsedWarning", { count: 5 }),
+    "Використовується в 5 задачах",
+  );
   assert.match(t("AdminProfiles.pageStatus", { page: 1, totalPages: 1, total: 1 }), /1 акаунт$/);
   assert.match(t("FeedbackAdmin.pageStatus", { page: 1, totalPages: 1, total: 2 }), /2 відгуки$/);
 });

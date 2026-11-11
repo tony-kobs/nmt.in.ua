@@ -30,6 +30,7 @@ type FormValues = {
   rightAnswerN: string;
   difficulty: string;
   comments: string;
+  paramValues: Record<number, string>;
 };
 
 function formatThemeLabel(index: number, theme: AdminThemeOption): string {
@@ -37,6 +38,10 @@ function formatThemeLabel(index: number, theme: AdminThemeOption): string {
 }
 
 function valuesFromTask(task: AdminQuizTask): FormValues {
+  const paramValues: Record<number, string> = {};
+  for (const value of task.params) {
+    paramValues[value.paramId] = String(value.intValue);
+  }
   return {
     taskText: toAdminInput(task.taskText),
     themeId: String(task.themeId),
@@ -47,6 +52,7 @@ function valuesFromTask(task: AdminQuizTask): FormValues {
     rightAnswerN: String(task.rightAnswerN),
     difficulty: String(task.difficulty),
     comments: toAdminInput(task.comments),
+    paramValues,
   };
 }
 
@@ -61,6 +67,7 @@ function emptyValues(themeId: number): FormValues {
     rightAnswerN: "1",
     difficulty: "1",
     comments: "",
+    paramValues: {},
   };
 }
 
@@ -107,6 +114,16 @@ export function AdminTaskForm({
     form.themeId && Number(form.themeId) > 0
       ? `/?theme=${form.themeId}`
       : backHref;
+
+  const themeParams =
+    themes.find((theme) => String(theme.id) === form.themeId)?.params ?? [];
+
+  function setParam(paramId: number, raw: string) {
+    setForm((current) => ({
+      ...current,
+      paramValues: { ...current.paramValues, [paramId]: raw },
+    }));
+  }
 
   return (
     <div className={css.shell}>
@@ -208,6 +225,57 @@ export function AdminTaskForm({
                 onChange={(next) => setForm({ ...form, themeId: next })}
               />
             </label>
+          </div>
+
+          <div className={css.params}>
+            <h2 className={css.paramsTitle}>{t("paramsTitle")}</h2>
+            <p className={css.paramsLead}>{t("paramsFormLead")}</p>
+            {themeParams.length === 0 ? (
+              <p className={css.paramsEmpty}>{t("paramsFormEmpty")}</p>
+            ) : (
+              <div className={css.paramList}>
+                {themeParams.map((param) =>
+                  param.valueType === "bool" ? (
+                    <div key={param.id}>
+                      <label className={css.paramCheck}>
+                        <input
+                          type="checkbox"
+                          checked={form.paramValues[param.id] === "1"}
+                          disabled={savePending}
+                          aria-label={t("paramBoolAria", { name: param.name })}
+                          onChange={(event) =>
+                            setParam(param.id, event.target.checked ? "1" : "0")
+                          }
+                        />
+                        <span>{param.name}</span>
+                      </label>
+                      <input
+                        type="hidden"
+                        name={`param.${param.id}`}
+                        value={form.paramValues[param.id] === "1" ? "1" : "0"}
+                      />
+                    </div>
+                  ) : (
+                    <label key={param.id} className={css.field}>
+                      <span className={css.paramIntLabel}>{param.name}</span>
+                      <input
+                        className={clsx(css.input, css.paramNumber)}
+                        type="text"
+                        inputMode="numeric"
+                        name={`param.${param.id}`}
+                        value={form.paramValues[param.id] ?? ""}
+                        aria-label={t("paramIntAria", { name: param.name })}
+                        disabled={savePending}
+                        onChange={(event) => {
+                          const next = event.target.value.replace(/[^\d]/g, "");
+                          setParam(param.id, next.slice(0, 10));
+                        }}
+                      />
+                    </label>
+                  ),
+                )}
+              </div>
+            )}
           </div>
 
           <label className={css.field}>

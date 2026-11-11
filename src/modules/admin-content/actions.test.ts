@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   deleteQuizTaskAction,
   deleteQuizTasksAction,
+  deleteThemeParamAction,
   saveQuizTaskAction,
   updateThemeDifficultyGuideAction,
 } from "./actions";
@@ -35,6 +36,7 @@ const sampleTask = {
   rightAnswerN: 2 as const,
   comments: "",
   difficulty: 3,
+  params: [],
 };
 
 function form(entries: Record<string, string>): FormData {
@@ -188,6 +190,72 @@ test("updateThemeDifficultyGuideAction stores the legend for the theme", async (
   });
   assert.deepEqual(received, { themeId: 2, guide: "1. Додавання." });
   assert.deepEqual(state, { status: "success" });
+});
+
+test("saveQuizTaskAction passes parameter drafts, last value wins", async () => {
+  const data = form({
+    taskText: "1/2 + 1/3",
+    themeId: "5",
+    answer1: "5/6",
+    answer2: "2/5",
+    answer3: "1/6",
+    answer4: "2/3",
+    rightAnswerN: "1",
+    difficulty: "2",
+  });
+  data.append("param.4", "0");
+  data.append("param.4", "1");
+  data.set("param.5", "3");
+  let drafts: { paramId: number; raw: string }[] | undefined;
+  const state = await saveQuizTaskAction({ status: "idle" }, data, {
+    requireUser: async () => admin,
+    createQuizTask: async (input) => {
+      drafts = input.paramDrafts;
+      return sampleTask;
+    },
+    updateQuizTask: async () => sampleTask,
+    revalidatePath: () => undefined,
+    invalidateCatalogCache: () => undefined,
+  });
+  assert.equal(state.status, "success");
+  assert.deepEqual(drafts, [
+    { paramId: 4, raw: "1" },
+    { paramId: 5, raw: "3" },
+  ]);
+});
+
+test("deleteThemeParamAction deletes for staff and refuses a teacher", async () => {
+  let received: { themeId: number; paramId: number } | null = null;
+  const saved = await deleteThemeParamAction(
+    { status: "idle" },
+    form({ themeId: "5", paramId: "8" }),
+    {
+      requireUser: async () => admin,
+      deleteThemeParam: async (themeId, paramId) => {
+        received = { themeId, paramId };
+        return { usageCount: 2 };
+      },
+      revalidatePath: () => undefined,
+      invalidateCatalogCache: () => undefined,
+    },
+  );
+  assert.deepEqual(received, { themeId: 5, paramId: 8 });
+  assert.deepEqual(saved, { status: "success" });
+
+  const teacher = { ...student, id: 2, role: "teacher" as const };
+  const refused = await deleteThemeParamAction(
+    { status: "idle" },
+    form({ themeId: "5", paramId: "8" }),
+    {
+      requireUser: async () => teacher,
+      deleteThemeParam: async () => {
+        throw new Error("should not delete");
+      },
+      revalidatePath: () => undefined,
+      invalidateCatalogCache: () => undefined,
+    },
+  );
+  assert.deepEqual(refused, { status: "error", code: "forbidden" });
 });
 
 test("deleteQuizTasksAction rejects an empty selection", async () => {

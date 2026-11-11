@@ -115,6 +115,7 @@ Cursor і інші моделі дозволені. Перед здачею ти
 | `problems` | Задачник для друку. `/problems` читає цю таблицю, коли `workbook_catalog` (міграція `067`) збігається з `src/content/workbookProblems.json`. Поки `node scripts/import-workbook.mjs --apply` не виконано (після бекапу, не під час деплою), сторінка лишається на JSON. Число `theme_id` — id задачника, не `themes.id`. Який `themes.code` показувати — `src/content/workbookTopicMap.json`. Вставка `:::task problem:` бере назву через ту саму карту |
 | `task_sessions`, `tasks2session` | Спроба учня. `session_type`: 1 учень, 2 авто, 3 викладач, 4 НМТ, 5 діагностика |
 | `themes` | Тема. `code` — якір підручника |
+| `theme_params`, `quiz_task_params` | Параметри завдань однієї теми (`themes`, не розділ підручника). Значення задачі — число в `quiz_task_params`, не JSON у `quiz_tasks`. Міграція `072` |
 | `sessions`, `session_tasks` | Навчальна сесія викладача. Не плутати з `task_sessions` і `user_sessions` |
 | `mentor_assignments` | Призначення. `session_id` тут — сесія викладача |
 | `practice_stage2_attempts` і таблиці форматів | Stage 2. Не новий `session_type` |
@@ -206,7 +207,7 @@ uk / en / de через next-intl. Мова в cookie, префікса `/en` в
 
 ## 8. Міграції
 
-Новий файл у `scripts/sql/` бери наступним вільним номером на свіжому `dev`. Зараз останній — `067`, отже новий — `068_коротка_назва.sql`. Процедура, журнал `schema_migrations` і чому файл не перейменовують після продакшену — [`schema-migrations.md`](./schema-migrations.md).
+Новий файл у `scripts/sql/` бери наступним вільним номером на свіжому `dev`. Зараз найбільший у дереві — `072_theme_task_params.sql`. Номери `068`–`071` лишаються вільними: їх зарезервовано під інші задачі. Новий файл, якщо це не одна з тих задач, — `073_коротка_назва.sql`. Процедура, журнал `schema_migrations` і чому файл не перейменовують після продакшену — [`schema-migrations.md`](./schema-migrations.md).
 
 Перед відкриттям pull request ще раз підтягни `dev`. Якщо той самий номер уже зайняли, перебазуйся і перейменуй **лише свій** файл, якого ще немає в базі. Два студенти з однаковим номером не мерджаться в тиші: перевірка в CI падає на новому дублі.
 

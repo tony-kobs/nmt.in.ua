@@ -1,3 +1,45 @@
+export type ThemeParamValueType = "bool" | "int";
+
+/** One parameter defined on a theme (`themes`, not a textbook section). */
+export type ThemeParam = {
+  id: number;
+  themeId: number;
+  code: string;
+  name: string;
+  valueType: ThemeParamValueType;
+  sort: number;
+  /** Distinct tasks that already store a value for this parameter. */
+  usageCount: number;
+};
+
+/** Saved mark on one quiz task. Bool is 0 or 1. Int is a whole number >= 0. */
+export type TaskParamValue = {
+  paramId: number;
+  intValue: number;
+};
+
+/** Raw `param.<id>` field before it is checked against the task's theme. */
+export type TaskParamDraft = {
+  paramId: number;
+  raw: string;
+};
+
+export type ThemeParamInput = {
+  themeId: number;
+  name: string;
+  code: string;
+  valueType: ThemeParamValueType;
+};
+
+export type ThemeParamUpdate = ThemeParamInput & {
+  paramId: number;
+};
+
+export const MAX_THEME_PARAM_NAME = 255;
+export const MAX_THEME_PARAM_CODE = 64;
+export const MAX_THEME_PARAMS = 40;
+export const MAX_THEME_PARAM_INT = 2_147_483_647;
+
 export type AdminThemeOption = {
   id: number;
   code: string;
@@ -6,6 +48,7 @@ export type AdminThemeOption = {
   taskCount: number;
   /** Plain-text legend of what each difficulty number means in this theme. */
   difficultyGuide: string;
+  params: ThemeParam[];
 };
 
 export const MAX_DIFFICULTY_GUIDE_LENGTH = 4000;
@@ -44,6 +87,7 @@ export type AdminQuizTask = {
   rightAnswerN: 1 | 2 | 3 | 4;
   comments: string;
   difficulty: number;
+  params: TaskParamValue[];
 };
 
 export type AdminQuizTaskInput = {
@@ -57,6 +101,8 @@ export type AdminQuizTaskInput = {
   rightAnswerN: number;
   comments?: string;
   difficulty: number;
+  /** Present when the task form saved marks. Omitted leaves stored values alone. */
+  paramDrafts?: TaskParamDraft[];
 };
 
 export type AdminContentErrorCode =
@@ -65,6 +111,8 @@ export type AdminContentErrorCode =
   | "not_found"
   | "forbidden"
   | "in_use"
+  | "type_locked"
+  | "code_taken"
   | "db_error";
 
 export class AdminContentError extends Error {
