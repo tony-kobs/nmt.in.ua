@@ -23,7 +23,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/327
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-11 — ci: новини релізу комітяться прямо в dev (#326)
 
@@ -34,7 +34,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/326
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-11 — Чернетки схожих завдань з перевіркою (074) (#323)
 
