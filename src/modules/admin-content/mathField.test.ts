@@ -54,6 +54,13 @@ test("wrapRichTextForStorage keeps Ukrainian prose with sqrt", () => {
   );
 });
 
+test("wrapRichTextForStorage keeps a decimal comma inside one formula", () => {
+  assert.equal(
+    wrapRichTextForStorage("Обчисліть: 4,6 + 6,45."),
+    "Обчисліть: $4{,}6 + 6{,}45$.",
+  );
+});
+
 test("wrapMathForStorage wraps plain numbers", () => {
   assert.equal(wrapMathForStorage("12"), "$12$");
   assert.equal(wrapMathForStorage("8,5"), "$8{,}5$");

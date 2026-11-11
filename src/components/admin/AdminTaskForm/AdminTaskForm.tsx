@@ -20,6 +20,7 @@ import type {
 import { toAdminInput } from "@/modules/admin-content/mathField";
 import { MIN_DIFFICULTY } from "@/modules/content-import/schema";
 import { Select } from "@/components/ui/Select";
+import { GenerateSimilarNotice } from "@/components/admin/GenerateSimilarNotice";
 import css from "./AdminTaskForm.module.css";
 
 const SAVE_INITIAL: SaveQuizTaskActionState = { status: "idle" };
@@ -216,14 +217,10 @@ export function AdminTaskForm({
               </p>
             ) : null}
             {generateState.status === "success" ? (
-              <p className={clsx(css.alert, css.alertSuccess)} role="status">
-                {generateState.saved === 0
-                  ? t("generatedNone")
-                  : t("generated", {
-                      saved: generateState.saved,
-                      discarded: generateState.discarded,
-                    })}
-              </p>
+              <GenerateSimilarNotice
+                state={generateState}
+                className={clsx(css.alert, css.alertSuccess)}
+              />
             ) : null}
             {generateState.status === "error" ? (
               <p className={clsx(css.alert, css.alertError)} role="alert">

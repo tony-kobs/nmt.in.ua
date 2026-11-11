@@ -25,6 +25,7 @@ import {
   type PublishQuizTaskState,
 } from "@/modules/admin-content/actions";
 import { MIN_DIFFICULTY } from "@/modules/content-import/schema";
+import { GenerateSimilarNotice } from "@/components/admin/GenerateSimilarNotice";
 import {
   MAX_DIFFICULTY_GUIDE_LENGTH,
   type AdminQuizTaskListPage,
@@ -524,14 +525,10 @@ export function AdminContentEditor({
           </p>
         ) : null}
         {generateState.status === "success" ? (
-          <p className={clsx(css.alert, css.alertSuccess)} role="status">
-            {generateState.saved === 0
-              ? t("generatedNone")
-              : t("generated", {
-                  saved: generateState.saved,
-                  discarded: generateState.discarded,
-                })}
-          </p>
+          <GenerateSimilarNotice
+            state={generateState}
+            className={clsx(css.alert, css.alertSuccess)}
+          />
         ) : null}
         {generateState.status === "error" ? (
           <p className={clsx(css.alert, css.alertError)} role="alert">
