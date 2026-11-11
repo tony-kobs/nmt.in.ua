@@ -31,6 +31,7 @@ type CabinetHomeProps = {
   initialThemeId?: number;
   initialTab?: string;
   initialPage?: number;
+  initialSearch?: string;
   needsCookieUpgrade: boolean;
   saved?: boolean;
 };
@@ -53,6 +54,7 @@ async function CabinetHomeLoaded({
   initialThemeId,
   initialTab,
   initialPage = 1,
+  initialSearch = "",
   needsCookieUpgrade,
   saved = false,
 }: CabinetHomeProps) {
@@ -90,7 +92,10 @@ async function CabinetHomeLoaded({
         ? initialThemeId
         : themes[0]?.id;
     const taskPage = themeId
-      ? await getQuizTasksByTheme(themeId, { page: initialPage })
+      ? await getQuizTasksByTheme(themeId, {
+          page: initialPage,
+          search: initialSearch,
+        })
       : {
           items: [],
           total: 0,
@@ -113,6 +118,7 @@ async function CabinetHomeLoaded({
               themes={themes}
               initialThemeId={themeId}
               taskPage={taskPage}
+              search={initialSearch}
             />
           </PageFrame>
         </DashboardShell>

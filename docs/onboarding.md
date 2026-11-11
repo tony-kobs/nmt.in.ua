@@ -27,11 +27,11 @@ nmt.in.ua — тренажер підготовки до НМТ з матема�
 
 ## 3. Перший день
 
-- Напиши Антону в Telegram: доступ на запис у `tony-kobs/nmt.in.ua`, параметри MySQL і контакти. Ніки в Telegram дає він у перший день, у цьому гіді їх немає. У pull request Антона згадують як [@tony-kobs](https://github.com/tony-kobs).
-- Node.js 24 (як на хостингу і в CI) і npm. Версія записана в `.nvmrc`. Клон, одразу `git checkout dev`. У `main` не працюємо.
-- Скопіюй `.env.example` у `.env.local` і заповни лише `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`. `DB_PORT` у прикладі вже `3306`. Інші рядки не вигадуй. Якщо базу ділите з кимось, додай свій `SESSION_SECRET` (`openssl rand -hex 32`).
+- Напиши Антону в Telegram: доступ на запис у `tony-kobs/nmt.in.ua` і контакти. Ніки в Telegram дає він у перший день, у цьому гіді їх немає. У pull request Антона згадують як [@tony-kobs](https://github.com/tony-kobs). Прод-базу, прод-бота і ключ Brevo не проси: локально вони не потрібні.
+- Node.js 24 (як на хостингу і в CI), npm і Docker. Версія Node записана в `.nvmrc`. Клон, одразу `git checkout dev`. У `main` не працюємо.
+- Локальна база і тестові входи — [LOCAL_DEV.md](./LOCAL_DEV.md): `npm run db:setup`. Файл `.env.example` уже містить локальні `DB_*` під цей Docker. Інші секрети не вигадуй і не копіюй з хостингу.
 - `npm install && npm run dev` → <http://localhost:3000>
-- Зареєструй учня на `/register`. Адміна підвищують так: `node scripts/promote-admin.mjs <login>`.
+- Увійди тестовим учнем із [LOCAL_DEV.md](./LOCAL_DEV.md) або зареєструй свого на `/register`. Адміна з власного акаунта підвищують так: `node scripts/promote-admin.mjs <login>`.
 - Пройди сайт очима, розділ нижче, і зроби розігрів.
 - Після розігріву отримай у Антона доступ до Trello і візьми задачу.
 - Перед версткою прочитай `.cursor/rules/design-system.mdc`. Правила для ШІ лежать у `.cursor/rules/` і `AGENTS.md`.
@@ -46,9 +46,11 @@ cd nmt.in.ua
 git checkout dev
 git pull origin dev
 npm install
-cp .env.example .env.local
+npm run db:setup
 npm run dev
 ```
+
+`npm run db:setup` піднімає локальний MySQL, проганяє міграції і кладе тестові акаунти. Кроки і паролі — [LOCAL_DEV.md](./LOCAL_DEV.md).
 
 Перед `npm install` постав Node.js 24 (як на хостингу і в CI). Номер лежить у `.nvmrc`: за наявності nvm достатньо `nvm use`.
 
@@ -80,6 +82,7 @@ npm run dev
 | `TELEGRAM_SUPPORT_CHAT_ID` | Необов’язково | Звернення і відгуки з сайту лишаються в адмінці |
 | `MARATHON_CRON_SECRET`, `MARATHON_UNSUBSCRIBE_SECRET` | Необов’язково | Секрет статистики марафону і відписки. Для першого проходу сайту не потрібні. Відписка інакше бере `SESSION_SECRET` |
 | `TELEGRAM_NOTIFICATIONS_TRIGGER_SECRET` | Лише прод | Захищений виклик розсилки Telegram, не локальний сайт |
+| `MARATHON_SCHEDULER` | Необов’язково | Порожньо: у development тік розсилки вимкнений, на проді увімкнений. `on` / `off` перекривають це |
 | `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | Лише прод | Секрет збірки і хоста. У `.env.local` для навчання не ставимо |
 
 `HOST` і `PORT` задає панель хостингу. Локально їх не чіпай: `npm run dev` слухає порт 3000.
@@ -92,10 +95,12 @@ npm run dev
 | `npm test` | Перед pull request. Інтеграційні тести з живою MySQL самі пропускаються, якщо `DB_HOST` немає |
 | `npm run lint` | Перед pull request |
 | `npm run build` | Коли чіпаєш сторінки або сервер |
+| `npm run db:setup` | Перший локальний MySQL, міграції і тестові акаунти. Деталі — [LOCAL_DEV.md](./LOCAL_DEV.md) |
 | `npm run migrate` | Застосувати `scripts/sql/` у свою базу. Як це влаштовано — [`schema-migrations.md`](./schema-migrations.md) |
+| `npm run db:seed` | Ще раз локальні акаунти, теми і марафон |
 | `node scripts/promote-admin.mjs <login>` | Зробити акаунт адміном |
 
-Демо-логінів немає.
+Локальні пошти й пароль — у [LOCAL_DEV.md](./LOCAL_DEV.md). На проді цих акаунтів немає.
 
 ## 5. Перший прохід по сайту
 

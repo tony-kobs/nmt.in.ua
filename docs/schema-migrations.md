@@ -25,7 +25,9 @@ node scripts/migrate.mjs --check
 
 У tar входять `scripts/migrate.mjs`, `scripts/migrate-sql.mjs`, `scripts/schema-lock.mjs` і `scripts/sql/`. Якщо їх немає в архіві, вивантаження не починається. `mysql2` — production-залежність: на хості її дає копія `node_modules` живого сайту і `npm install --omit=dev`. Скрипт `dotenv` не імпортує. Немає `scripts/migrate.mjs`, `scripts/sql` або `node_modules/mysql2` — staging стирається, `www` лишається попереднім.
 
-Порожня база цей набір не підніме: старі `ALTER` (наприклад `quiz_tasks`, `themes`) розраховані на вже наявні таблиці контенту. Ціль — поточна база хостингу. Не ігнорувати errno 1146: інакше пропущений `ALTER` записався б як застосований.
+Порожня база хостингу цей набір сама не вигадає: старі `ALTER` розраховані на таблиці контенту, які вже були на сервері. Не ігнорувати errno 1146: інакше пропущений `ALTER` записався б як застосований.
+
+Локально ті самі таблиці створює `002_legacy_content_tables.sql` (`CREATE TABLE IF NOT EXISTS` лише для колонок, які пізніші файли змінюють). На проді ім’я `002_legacy_content_tables.sql` уже стоїть у `schema_migrations`, тож деплой цей файл вдруге не виконує і живі таблиці не переписує. Свіжа база без журналу (`npm run db:setup`, див. [LOCAL_DEV.md](./LOCAL_DEV.md)) проганяє `002`, далі `ALTER`, і отримує ту саму форму.
 
 ## `ensure*` у запиті
 
@@ -37,7 +39,7 @@ node scripts/migrate.mjs --check
 
 | Файл | Що збігається з кодом |
 | --- | --- |
-| `002_legacy_content_tables.sql` | Порожній маркер: `themes`, `quiz_tasks`, `task_sessions` старші за репозиторій |
+| `002_legacy_content_tables.sql` | Порожні `themes`, `theme_connections`, `quiz_tasks`, `task_sessions`, `tasks2session` для свіжої бази. На проді файл уже в журналі і вдруге не виконується |
 | `024_user_notifications.sql` | `src/modules/notifications/schema.ts` |
 | `025_teacher_profile_fields.sql` | колонки візитки з `ensureTeacherProfileSchema` |
 | `037_telegram_task_notifications.sql` | журнал задач Telegram |
