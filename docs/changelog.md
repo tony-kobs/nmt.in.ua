@@ -12,7 +12,7 @@
 - Схвалено: ні
 - Автор: groteskzp
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/318
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-09 — feat: локальний MySQL, seed і повний .env.example (#317)
 
@@ -23,7 +23,7 @@
 - Схвалено: ні
 - Автор: groteskzp
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/317
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-09 — ci: ручний імпорт задачника на прод (#314)
 
@@ -34,7 +34,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/314
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-09 — feat: відгук із сайту дублюється в чат підтримки (#310)
 
@@ -45,7 +45,7 @@
 - Схвалено: ні
 - Автор: groteskzp
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/310
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-09 — feat: задачник читає задачі з бази (#306)
 
@@ -56,7 +56,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/306
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-09 — refactor: сховище марафону, nonce CSP і SEO підручника (#308)
 
@@ -67,7 +67,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/308
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-09 — fix: 404 перевірено, імена лідерборду і кабінет на 375 (#307)
 
@@ -78,7 +78,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/307
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-09 — fix: видача задач з теми спершу дає нові (#311)
 
@@ -89,7 +89,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/311
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-08 — Ховати нижнє меню Telegram, коли починається завдання (#309)
 
@@ -100,7 +100,7 @@
 - Схвалено: ні
 - Автор: groteskzp
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/309
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-08 — fix: мобільна шапка, safe area і відсоток у формулі (#305)
 
@@ -111,7 +111,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/305
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-07 — Публічні тексти на «ти», вхід до LevelUP і коротке біо викладача (#304)
 
@@ -122,7 +122,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/304
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-07 — fix: мобільна шапка кабінету більше не злипається (#303)
 
@@ -133,7 +133,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/303
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-06 — fix(auth): stabilize background and simplify auth page UI (#302)
 
@@ -144,7 +144,7 @@
 - Схвалено: ні
 - Автор: Romanna-Brych
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/302
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-05 — feat: роль розробника і тимчасовий перегляд кабінету (#299)
 
@@ -155,7 +155,7 @@
 - Схвалено: ні
 - Автор: groteskzp
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/299
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-04 — Знаки порівняння в дні марафону більше не зникають (#298)
 
@@ -166,7 +166,7 @@
 - Схвалено: ні
 - Автор: groteskzp
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/298
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-04 — Парковка марафону показує фото, відео і правила вступу (#295)
 
@@ -678,6 +678,21 @@
 ## Новини для сайту
 
 <!-- changelog:news -->
+### 2026-11-11 — [реліз #319](https://github.com/tony-kobs/nmt.in.ua/pull/319)
+
+- [fix: Tab у списку завдань і однакова тема для видачі](https://github.com/tony-kobs/nmt.in.ua/pull/318) — У списку завдань адміна Tab переходить від складності до складності. Змінити і видалити можна мишею. На вузькому екрані рядок більше не стискається в сітку клітинок. Пошук знаходить завдання тієї ж теми, що й тест. Учень у тесті за темою бачить лише завдання цієї теми. Завдання з іншої теми, яке раніше могло підставитись за тим самим номером, більше не з’являється.
+- [feat: локальний MySQL, seed і повний .env.example](https://github.com/tony-kobs/nmt.in.ua/pull/317) — На живому сайті нічого не змінюється. Це лише локальний запуск для розробки.
+- [feat: задачник читає задачі з бази](https://github.com/tony-kobs/nmt.in.ua/pull/306) — Задачник виглядає так само: ті самі завдання, той самий порядок і теми, колонки А Б В Г.
+- [refactor: сховище марафону, nonce CSP і SEO підручника](https://github.com/tony-kobs/nmt.in.ua/pull/308) — Невідома тема підручника більше не відкриває перший розділ: у кабінеті це сторінка «Сторінку не знайдено». У заголовку вкладки на розділі стоїть назва теми. Гість як і раніше потрапляє на вхід, підручник лишається за сесією.
+- [fix: 404 перевірено, імена лідерборду і кабінет на 375](https://github.com/tony-kobs/nmt.in.ua/pull/307) — У таблиці місць марафону імʼя більше не обривається посередині слова: довге імʼя переноситься, а дуже довгий суцільний нік закінчується на «…». На «Сьогодні» картка плану видна цілком. Список сповіщень не вилізає за край екрана.
+- [fix: видача задач з теми спершу дає нові](https://github.com/tony-kobs/nmt.in.ua/pull/311) — Новий тест за темою (на сайті чи в боті) і нове швидке призначення спершу дають задачі, яких цей учень ще не бачив. Коли нові закінчуються — ті, що вже були, але без правильної відповіді, і лише потім повтори. Готова сесія викладача, день марафону і варіант НМТ лишаються тим самим набором.
+- [Ховати нижнє меню Telegram, коли починається завдання](https://github.com/tony-kobs/nmt.in.ua/pull/309) — Під час завдання в Telegram більше не висить меню вибору тесту чи марафону. Відповідати можна кнопками під питанням. Після тесту або дня знову з’являється меню розділу.
+- [fix: мобільна шапка, safe area і відсоток у формулі](https://github.com/tony-kobs/nmt.in.ua/pull/305) — На телефоні шапка не залізає під годинник. У кабінеті зверху дзвіночок і аватар: імʼя й кабінет — у меню аватара, «Про сайт» — у бургері. Адмін бачить перемикач ролі, він ховається, коли гортаєш униз. У задачі `25\text{%}` видно як 25%. Знімки на 375px. Шапка було / стало (768, щоб було видно імʼя і «Про сайт»): [Шапка було](https://cursor.com/agents/bc-da17808d-4e4b-5c0b-af69-413c85932e4b/artifacts?path=%2Fopt%2Fcursor%2Fartifacts%2Fbefore-header-768.png) [Шапка стала](https://cursor.com/agents/bc-da17808d-4e4b-5c0b-af69-413c85932e4b/artifacts?path=%2Fopt%2Fcursor%2Fartifacts%2Fafter-header-768.png) Меню аватара на 375 і «Про сайт» з 768: [Меню аватара](https://cursor.com/agents/bc-da17808d-4e4b-5c0b-af69-413c85932e4b/artifacts?path=%2Fopt%2Fcursor%2Fartifacts%2Fafter-avatar-student-375.png) [Меню аватара з Про сайт](https://cursor.com/agents/bc-da17808d-4e4b-5c0b-af69-413c85932e4b/artifacts?path=%2Fopt%2Fcursor%2Fartifacts%2Fafter-avatar-768.png) Перемикач ролі: біля верху, після скролу вниз, і в бургері: [Перемикач біля верху](https://cursor.com/agents/bc-da17808d-4e4b-5c0b-af69-413c85932e4b/artifacts?path=%2Fopt%2Fcursor%2Fartifacts%2Fafter-header-admin-375.png) [Перемикач сховано](https://cursor.com/agents/bc-da17808d-4e4b-5c0b-af69-413c85932e4b/artifacts?path=%2Fopt%2Fcursor%2Fartifacts%2Fafter-role-hidden-375.png) [Перемикач у меню](https://cursor.com/agents/bc-da17808d-4e4b-5c0b-af69-413c85932e4b/artifacts?path=%2Fopt%2Fcursor%2Fartifacts%2Fafter-menu-admin-375.png) Умова з відсотком було / стало: [Відсоток було](https://cursor.com/agents/bc-da17808d-4e4b-5c0b-af69-413c85932e4b/artifacts?path=%2Fopt%2Fcursor%2Fartifacts%2Fbefore-formula-375.png) [Відсоток стало](https://cursor.com/agents/bc-da17808d-4e4b-5c0b-af69-413c85932e4b/artifacts?path=%2Fopt%2Fcursor%2Fartifacts%2Fafter-formula-375.png)
+- [Публічні тексти на «ти», вхід до LevelUP і коротке біо викладача](https://github.com/tony-kobs/nmt.in.ua/pull/304) — На вітальній і у вході звертання на «ти», реєстрація обіцяє пошту, а біографія викладача коротша — повний текст за «Докладніше».
+- [fix: мобільна шапка кабінету більше не злипається](https://github.com/tony-kobs/nmt.in.ua/pull/303) — На телефоні меню кабінету просторіше: імʼя, мова і вихід більше не тиснуть шапку.
+- [feat: роль розробника і тимчасовий перегляд кабінету](https://github.com/tony-kobs/nmt.in.ua/pull/299) — Учень і викладач нічого нового не бачать. Адмін і розробник у шапці кабінету мають смугу «Як учень», «Як викладач», «Своя роль». Під час перегляду підпис профілю стає «Перегляд: …».
+- [Знаки порівняння в дні марафону більше не зникають](https://github.com/tony-kobs/nmt.in.ua/pull/298) — У дні марафону знак порівняння знову видно в умові й у варіанті: у чаті бота, у прев’ю «Як день виглядає в Telegram» і на сайті. Якщо в кінці умови був список «А. …», «Б. …» тих самих варіантів, що й кнопки, він більше не повторюється.
+
 ### 2026-11-04 — [реліз #296](https://github.com/tony-kobs/nmt.in.ua/pull/296)
 
 - [Парковка марафону показує фото, відео і правила вступу](https://github.com/tony-kobs/nmt.in.ua/pull/295) — До старту марафону на публічній сторінці видно картинку вступу, відео і правила, а не лише назву й кнопку «Долучитись».
