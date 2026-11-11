@@ -1,3 +1,4 @@
+import type { DiscardReasons } from "./generateNotice";
 import { parseAdminQuizTaskInput } from "./validate";
 import type { TaskParamValue } from "./types";
 
@@ -51,7 +52,23 @@ export type LlmComplete = (
 export type GenerateSimilarResult = {
   drafts: GeneratedDraft[];
   discarded: number;
+  reasons: DiscardReasons;
 };
+
+/** The provider failed. The admin message is an API error, not a failed check. */
+export class GenerateSimilarApiError extends Error {
+  constructor() {
+    super("llm_api");
+    this.name = "GenerateSimilarApiError";
+  }
+}
+
+class LlmRequestError extends Error {
+  constructor(readonly status: number) {
+    super("llm_http");
+    this.name = "LlmRequestError";
+  }
+}
 
 const GENERATE_SYSTEM = [
   "Ти складаєш нові тестові завдання з математики для банку.",
@@ -59,7 +76,8 @@ const GENERATE_SYSTEM = [
   "Той самий тип: одне правильне з чотирьох варіантів.",
   "Не копіюй умову зразка. Зміни числа або ситуацію, щоб вийшла інша задача тієї самої ідеї.",
   "Чотири варіанти мають бути різними.",
-  "rightAnswer — одна кирилична літера: А, Б, В, Г або Д.",
+  "rightAnswer — літера варіанта А, Б, В або Г, або текст правильного варіанта.",
+  "Число можна записати з десятковою комою.",
   "hint — одне коротке речення, не довше за 160 символів. Це не розвʼязок, і в ньому немає правильної відповіді.",
   'Відповідай лише JSON: {"tasks":[{"taskText":"","answer1":"","answer2":"","answer3":"","answer4":"","rightAnswer":"Б","hint":""}]}',
 ].join("\n");
@@ -67,8 +85,8 @@ const GENERATE_SYSTEM = [
 const SOLVE_SYSTEM = [
   "Розвʼяжи тестове завдання самостійно. Ключ тобі не дано.",
   "Не пояснюй кроки.",
-  'Відповідай лише JSON: {"answer":"Б"}.',
-  "Літера лише кирилична: А, Б, В, Г або Д.",
+  'Відповідай лише JSON: {"answer":"Б"} для літери варіанта або {"answer":"11,05"} для числа.',
+  "Літера лише кирилична: А, Б, В або Г. Число можна з комою або крапкою.",
 ].join("\n");
 
 /** 1–5, or null when the form value is not a count we accept. */
@@ -98,11 +116,31 @@ function collapse(value: string): string {
   return value.replace(/\$+/g, " ").replace(/\s+/g, " ").trim().toLocaleLowerCase("uk");
 }
 
+/** `$11{,}05$`, `11,05`, `11.05`, spaces and a trailing period are one number. */
 function numericToken(value: string): number | null {
-  const plain = value.replace(/\$/g, "").replace(/\s+/g, "").replace(",", ".");
+  let plain = value
+    .replace(/\$/g, "")
+    .replace(/\\,/g, ".")
+    .replace(/\{[,.]\}/g, ".")
+    .replace(/\s+/g, "")
+    .replace(/,/g, ".");
+  plain = plain.replace(/\.+$/g, "");
   if (!/^-?\d+(?:\.\d+)?$/.test(plain)) return null;
   const parsed = Number(plain);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function numbersClose(left: number, right: number): boolean {
+  const scale = Math.max(1, Math.abs(left), Math.abs(right));
+  return Math.abs(left - right) <= 1e-6 * scale;
+}
+
+function arithmeticPlain(taskText: string): string {
+  return taskText
+    .replace(/\$/g, " ")
+    .replace(/\\,/g, ".")
+    .replace(/\{[,.]\}/g, ".")
+    .replace(/,/g, ".");
 }
 
 export type ArithmeticVerdict =
@@ -112,16 +150,16 @@ export type ArithmeticVerdict =
 
 /**
  * One binary expression of two numbers, when the task is that expression.
- * A unique option equal to the result is a match. A clear result that is
- * not among the options is a mismatch. Anything else stays unknown.
+ * A decimal comma, a dot, `$…$` and TeX `{,}` are the same number, including
+ * trailing zeros. A unique option equal to the result is a match. A clear
+ * result that is not among the options is a mismatch. Anything else stays unknown.
  */
 export function arithmeticVerdict(
   taskText: string,
   answers: readonly string[],
 ): ArithmeticVerdict {
-  const plain = taskText.replace(/\$+/g, " ");
-  const expr =
-    /(-?\d+(?:[.,]\d+)?)\s*([+\-−–*×x/÷:])\s*(-?\d+(?:[.,]\d+)?)/g;
+  const plain = arithmeticPlain(taskText);
+  const expr = /(-?\d+(?:\.\d+)?)\s*([+\-−–*×x/÷:])\s*(-?\d+(?:\.\d+)?)/g;
   const found = [...plain.matchAll(expr)];
   if (found.length !== 1) return { kind: "unknown" };
   const left = numericToken(found[0][1] ?? "");
@@ -140,7 +178,7 @@ export function arithmeticVerdict(
   const hits: number[] = [];
   answers.forEach((answer, index) => {
     const token = numericToken(answer);
-    if (token != null && Math.abs(token - value) < 1e-9) hits.push(index + 1);
+    if (token != null && numbersClose(token, value)) hits.push(index + 1);
   });
   if (hits.length === 1 && hits[0]! >= 1 && hits[0]! <= 4) {
     return { kind: "match", index: hits[0] as 1 | 2 | 3 | 4 };
@@ -179,8 +217,56 @@ function readString(record: Record<string, unknown>, keys: string[]): string {
   for (const key of keys) {
     const value = record[key];
     if (typeof value === "string") return value;
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
   }
   return "";
+}
+
+function sameAnswer(left: string, right: string): boolean {
+  const a = numericToken(left);
+  const b = numericToken(right);
+  if (a != null && b != null) return numbersClose(a, b);
+  const foldedLeft = collapse(left);
+  const foldedRight = collapse(right);
+  return foldedLeft.length > 0 && foldedLeft === foldedRight;
+}
+
+function optionKey(answer: string): string {
+  const token = numericToken(answer);
+  if (token != null) return `n:${token.toFixed(6)}`;
+  const folded = collapse(answer);
+  return folded ? `s:${folded}` : "";
+}
+
+/**
+ * A choice letter А–Г, the text of one option, or an index 1–4.
+ * A number is the option value when it matches one option, not a forced letter.
+ */
+function resolveChoiceIndex(
+  value: unknown,
+  answers: readonly string[],
+): 1 | 2 | 3 | 4 | null {
+  const letter = cyrillicAnswerIndex(value);
+  if (letter != null) return letter === 5 ? null : letter;
+
+  const text =
+    typeof value === "number" && Number.isFinite(value)
+      ? String(value)
+      : typeof value === "string"
+        ? value.trim()
+        : "";
+  if (!text) return null;
+  const hits: number[] = [];
+  answers.forEach((answer, index) => {
+    if (index < 4 && sameAnswer(answer, text)) hits.push(index + 1);
+  });
+  if (hits.length > 1) return null;
+  if (hits.length === 1) return hits[0] as 1 | 2 | 3 | 4;
+  const index = numericToken(text);
+  if (index != null && Number.isInteger(index) && index >= 1 && index <= 4) {
+    return index as 1 | 2 | 3 | 4;
+  }
+  return null;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -188,18 +274,75 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
+function extractJson(body: string): string | null {
+  const start = body.search(/[[{]/);
+  if (start < 0) return null;
+  const stack: string[] = [];
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < body.length; i += 1) {
+    const ch = body[i]!;
+    if (inString) {
+      if (escape) escape = false;
+      else if (ch === "\\") escape = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+    if (ch === "{" || ch === "[") stack.push(ch);
+    else if (ch === "}" || ch === "]") {
+      const open = stack.pop();
+      const paired = (open === "{" && ch === "}") || (open === "[" && ch === "]");
+      if (!paired) return null;
+      if (stack.length === 0) return body.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
+function parseJsonCandidate(body: string): unknown | undefined {
+  const trimmed = body.trim();
+  if (!trimmed) return undefined;
+  try {
+    const value = JSON.parse(trimmed) as unknown;
+    if (typeof value === "string") {
+      const nested = value.trim();
+      if (nested.startsWith("{") || nested.startsWith("[")) {
+        try {
+          return JSON.parse(nested) as unknown;
+        } catch {
+          return value;
+        }
+      }
+    }
+    return value;
+  } catch {
+    const sliced = extractJson(trimmed);
+    if (!sliced) return undefined;
+    try {
+      return JSON.parse(sliced) as unknown;
+    } catch {
+      return undefined;
+    }
+  }
+}
+
 /** Pull a JSON object or array out of a model reply, including a fenced block. */
 export function parseModelJson(text: string): unknown {
   const trimmed = text.trim();
-  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const body = (fenced?.[1] ?? trimmed).trim();
-  try {
-    return JSON.parse(body);
-  } catch {
-    const start = body.search(/[[{]/);
-    if (start < 0) throw new Error("json");
-    return JSON.parse(body.slice(start));
+  const candidates: string[] = [];
+  for (const match of trimmed.matchAll(/```(?:json)?\s*([\s\S]*?)```/gi)) {
+    if (match[1]?.trim()) candidates.push(match[1].trim());
   }
+  candidates.push(trimmed);
+  for (const candidate of candidates) {
+    const value = parseJsonCandidate(candidate);
+    if (value !== undefined) return value;
+  }
+  throw new Error("json");
 }
 
 function taskItems(payload: unknown): unknown[] {
@@ -210,28 +353,32 @@ function taskItems(payload: unknown): unknown[] {
   return Array.isArray(tasks) ? tasks : [];
 }
 
+type TakenItem =
+  | { draft: GeneratedDraft }
+  | { reason: "shape" | "key" | "copy" | "options" | "validate" | "hint" };
+
 /**
- * One model item becomes a draft only when validate.ts accepts it, the
- * letter is Cyrillic А–Д, the hint is short, and the text is not a copy.
+ * One model item becomes a draft only when validate.ts accepts it, the key
+ * is a letter А–Г, an option value, or an index 1–4, the hint is short, and
+ * the text is not a copy.
  */
-export function acceptGeneratedItem(
-  item: unknown,
-  source: SimilarSource,
-): GeneratedDraft | null {
+function takeGeneratedItem(item: unknown, source: SimilarSource): TakenItem {
   const record = asRecord(item);
-  if (!record) return null;
+  if (!record) return { reason: "shape" };
   const taskText = readString(record, ["taskText", "task_text", "question"]);
   const answer1 = readString(record, ["answer1", "answer_1"]);
   const answer2 = readString(record, ["answer2", "answer_2"]);
   const answer3 = readString(record, ["answer3", "answer_3"]);
   const answer4 = readString(record, ["answer4", "answer_4"]);
-  const letter = cyrillicAnswerIndex(
-    readString(record, ["rightAnswer", "right_answer", "answer"]),
-  );
-  if (letter == null) return null;
-  if (collapse(taskText) === collapse(source.taskText)) return null;
   const answers = [answer1, answer2, answer3, answer4];
-  if (new Set(answers.map(collapse).filter(Boolean)).size !== 4) return null;
+  const letter = resolveChoiceIndex(
+    record.rightAnswer ?? record.right_answer ?? record.answer,
+    answers,
+  );
+  if (letter == null) return { reason: "key" };
+  if (collapse(taskText) === collapse(source.taskText)) return { reason: "copy" };
+  const keys = answers.map(optionKey).filter(Boolean);
+  if (new Set(keys).size !== 4) return { reason: "options" };
 
   let parsed;
   try {
@@ -247,32 +394,43 @@ export function acceptGeneratedItem(
       comments: "",
     });
   } catch {
-    return null;
+    return { reason: "validate" };
   }
 
   const correct = [parsed.answer1, parsed.answer2, parsed.answer3, parsed.answer4][
     parsed.rightAnswerN - 1
   ];
+  const rawCorrect = answers[letter - 1] ?? "";
   const hint = acceptShortHint(
     readString(record, ["hint", "hintShort", "hint_short"]),
     correct ?? "",
   );
-  if (!hint) return null;
-  if (collapse(hint) === collapse(parsed.taskText)) return null;
+  if (!hint || leaksAnswer(hint, rawCorrect)) return { reason: "hint" };
+  if (collapse(hint) === collapse(parsed.taskText)) return { reason: "hint" };
 
   return {
-    name: parsed.name,
-    taskText: parsed.taskText,
-    themeId: parsed.themeId,
-    answer1: parsed.answer1,
-    answer2: parsed.answer2,
-    answer3: parsed.answer3,
-    answer4: parsed.answer4,
-    rightAnswerN: parsed.rightAnswerN as 1 | 2 | 3 | 4,
-    comments: "",
-    difficulty: parsed.difficulty,
-    hintShort: hint,
+    draft: {
+      name: parsed.name,
+      taskText: parsed.taskText,
+      themeId: parsed.themeId,
+      answer1: parsed.answer1,
+      answer2: parsed.answer2,
+      answer3: parsed.answer3,
+      answer4: parsed.answer4,
+      rightAnswerN: parsed.rightAnswerN as 1 | 2 | 3 | 4,
+      comments: "",
+      difficulty: parsed.difficulty,
+      hintShort: hint,
+    },
   };
+}
+
+export function acceptGeneratedItem(
+  item: unknown,
+  source: SimilarSource,
+): GeneratedDraft | null {
+  const taken = takeGeneratedItem(item, source);
+  return "draft" in taken ? taken.draft : null;
 }
 
 function solveUser(draft: GeneratedDraft): string {
@@ -285,36 +443,32 @@ function solveUser(draft: GeneratedDraft): string {
   ].join("\n");
 }
 
-function solvedIndex(text: string): number | null {
-  let payload: unknown;
+function solvedIndex(text: string, answers: readonly string[]): number | null {
   try {
-    payload = parseModelJson(text);
+    const payload = parseModelJson(text);
+    const record = asRecord(payload);
+    if (record) {
+      return resolveChoiceIndex(record.answer ?? record.rightAnswer ?? record.letter, answers);
+    }
+    if (typeof payload === "string" || typeof payload === "number") {
+      return resolveChoiceIndex(payload, answers);
+    }
+    return null;
   } catch {
-    return cyrillicAnswerIndex(text);
+    return resolveChoiceIndex(text, answers);
   }
-  const record = asRecord(payload);
-  if (!record) return null;
-  return cyrillicAnswerIndex(record.answer ?? record.rightAnswer ?? record.letter);
 }
 
 async function answerConfirmed(
   draft: GeneratedDraft,
   complete: LlmComplete,
 ): Promise<boolean> {
-  const verdict = arithmeticVerdict(draft.taskText, [
-    draft.answer1,
-    draft.answer2,
-    draft.answer3,
-    draft.answer4,
-  ]);
+  const answers = [draft.answer1, draft.answer2, draft.answer3, draft.answer4];
+  const verdict = arithmeticVerdict(draft.taskText, answers);
   if (verdict.kind === "match") return verdict.index === draft.rightAnswerN;
   if (verdict.kind === "mismatch") return false;
-  try {
-    const reply = await complete(SOLVE_SYSTEM, solveUser(draft), { temperature: 0 });
-    return solvedIndex(reply) === draft.rightAnswerN;
-  } catch {
-    return false;
-  }
+  const reply = await complete(SOLVE_SYSTEM, solveUser(draft), { temperature: 0 });
+  return solvedIndex(reply, answers) === draft.rightAnswerN;
 }
 
 function generateUser(source: SimilarSource, count: number): string {
@@ -340,43 +494,88 @@ function generateUser(source: SimilarSource, count: number): string {
  * Ask for `count` tasks, keep those that pass validation and an independent
  * check, and report how many were thrown away.
  */
+function warnReject(taskId: number, reason: string): void {
+  console.warn("generateSimilar rejected", { taskId, reason });
+}
+
+function apiFailureCode(error: unknown): string {
+  if (error instanceof LlmRequestError) return `llm_http:${error.status}`;
+  if (error instanceof Error) {
+    if (
+      error.message === "llm_http" ||
+      error.message === "llm_empty" ||
+      error.message === "llm_unconfigured"
+    ) {
+      return error.message;
+    }
+    if (error.name === "TimeoutError" || error.name === "AbortError") return "llm_timeout";
+  }
+  return "llm_failed";
+}
+
+function emptyResult(): GenerateSimilarResult {
+  return { drafts: [], discarded: 0, reasons: { answer: 0, format: 0 } };
+}
+
 export async function generateSimilarDrafts(input: {
   source: SimilarSource;
   count: number;
   complete: LlmComplete;
 }): Promise<GenerateSimilarResult> {
   const count = clampSimilarCount(input.count);
-  if (count == null) return { drafts: [], discarded: 0 };
+  if (count == null) return emptyResult();
+  const taskId = input.source.id;
+  const reasons: DiscardReasons = { answer: 0, format: 0 };
+  let reply: string;
+  try {
+    reply = await input.complete(GENERATE_SYSTEM, generateUser(input.source, count), {
+      temperature: 0.4,
+    });
+  } catch (error) {
+    warnReject(taskId, `api:${apiFailureCode(error)}`);
+    throw new GenerateSimilarApiError();
+  }
   let payload: unknown;
   try {
-    const reply = await input.complete(
-      GENERATE_SYSTEM,
-      generateUser(input.source, count),
-      { temperature: 0.4 },
-    );
     payload = parseModelJson(reply);
   } catch {
-    return { drafts: [], discarded: count };
+    reasons.format = count;
+    warnReject(taskId, "format:not_json");
+    return { drafts: [], discarded: count, reasons };
   }
 
   const items = taskItems(payload).slice(0, count);
-  let discarded = count - items.length;
+  for (let missing = items.length; missing < count; missing += 1) {
+    reasons.format += 1;
+    warnReject(taskId, "format:short_reply");
+  }
   const accepted: GeneratedDraft[] = [];
   for (const item of items) {
-    const draft = acceptGeneratedItem(item, input.source);
-    if (!draft) {
-      discarded += 1;
+    const taken = takeGeneratedItem(item, input.source);
+    if ("reason" in taken) {
+      reasons.format += 1;
+      warnReject(taskId, `format:${taken.reason}`);
       continue;
     }
-    accepted.push(draft);
+    accepted.push(taken.draft);
   }
 
   const drafts: GeneratedDraft[] = [];
   for (const draft of accepted) {
-    if (await answerConfirmed(draft, input.complete)) drafts.push(draft);
-    else discarded += 1;
+    let ok = false;
+    try {
+      ok = await answerConfirmed(draft, input.complete);
+    } catch (error) {
+      warnReject(taskId, `api:${apiFailureCode(error)}`);
+      throw new GenerateSimilarApiError();
+    }
+    if (ok) drafts.push(draft);
+    else {
+      reasons.answer += 1;
+      warnReject(taskId, "answer_mismatch");
+    }
   }
-  return { drafts, discarded };
+  return { drafts, discarded: reasons.answer + reasons.format, reasons };
 }
 
 function defaultModel(provider: string): string {
@@ -433,6 +632,12 @@ function messageText(content: unknown): string {
     .join("");
 }
 
+/** Groq json_object mode rejects the call unless the prompt contains the word JSON. */
+function withJsonCue(system: string, user: string): { system: string; user: string } {
+  if (/\bjson\b/i.test(`${system}\n${user}`)) return { system, user };
+  return { system: `${system}\nRespond with JSON.`, user };
+}
+
 /** OpenAI-compatible chat completions, or Anthropic messages. No key in the body. */
 export async function completeLlm(
   config: LlmConfig,
@@ -455,13 +660,15 @@ export async function completeLlm(
     };
   } else {
     headers.authorization = `Bearer ${config.apiKey}`;
+    const prompted = withJsonCue(system, user);
     body = {
       model: config.model,
       temperature: options?.temperature ?? 0.4,
+      // llama-3.3-70b-versatile on Groq accepts json_object, not json_schema.
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
+        { role: "system", content: prompted.system },
+        { role: "user", content: prompted.user },
       ],
     };
   }
@@ -472,7 +679,7 @@ export async function completeLlm(
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(45_000),
   });
-  if (!response.ok) throw new Error("llm_http");
+  if (!response.ok) throw new LlmRequestError(response.status);
   const payload = (await response.json()) as {
     choices?: { message?: { content?: unknown } }[];
     content?: unknown;

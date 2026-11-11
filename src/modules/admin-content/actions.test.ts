@@ -10,6 +10,7 @@ import {
   saveQuizTaskAction,
   updateThemeDifficultyGuideAction,
 } from "./actions";
+import { GenerateSimilarApiError } from "./generateSimilar";
 import { AdminContentError } from "./types";
 
 const admin = {
@@ -302,6 +303,7 @@ test("generateSimilarTasksAction saves only the drafts the checker kept", async 
           },
         ],
         discarded: 1,
+        reasons: { answer: 1, format: 0 },
       }),
       insertGeneratedDrafts: async () => {
         saved.push(1);
@@ -314,7 +316,37 @@ test("generateSimilarTasksAction saves only the drafts the checker kept", async 
     },
   );
   assert.deepEqual(saved, [1]);
-  assert.deepEqual(state, { status: "success", saved: 1, discarded: 1 });
+  assert.deepEqual(state, {
+    status: "success",
+    saved: 1,
+    discarded: 1,
+    reasons: { answer: 1, format: 0 },
+  });
+});
+
+test("generateSimilarTasksAction reports a model API error instead of a failed check", async () => {
+  let inserted = 0;
+  const state = await generateSimilarTasksAction(
+    { status: "idle" },
+    form({ taskId: "10", count: "3" }),
+    {
+      requireUser: async () => admin,
+      getQuizTaskById: async () => sampleTask,
+      generateDrafts: async () => {
+        throw new GenerateSimilarApiError();
+      },
+      insertGeneratedDrafts: async () => {
+        inserted += 1;
+        return [];
+      },
+      llmReady: () => true,
+      complete: async () => "",
+      revalidatePath: () => undefined,
+      invalidateCatalogCache: () => undefined,
+    },
+  );
+  assert.equal(inserted, 0);
+  assert.deepEqual(state, { status: "error", code: "llm_api" });
 });
 
 test("generateSimilarTasksAction stays closed without a model key", async () => {
