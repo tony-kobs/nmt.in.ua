@@ -1662,7 +1662,8 @@
       "faq": "FAQ",
       "login": "Log in",
       "register": "Create account",
-      "cabinet": "Workspace"
+      "cabinet": "Workspace",
+      "internMy": "Oleksandra's page"
     },
     "hero": {
       "titleStart": "Prepare for the NMT in maths",
@@ -2983,5 +2984,11 @@
     "bankProblem": "Workbook",
     "taskTitle": "Task",
     "taskImageAlt": "Picture for the task"
+  },
+  "InternMyPage": {
+    "name": "Oleksandra Dubrovina",
+    "task1": "Multiplication calculator: implemented multiplication of two numbers",
+    "codeLink": "Repository",
+    "liveLink": "Live demo"
   }
 }
