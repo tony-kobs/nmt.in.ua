@@ -300,6 +300,50 @@ test("startPlannedSession activates once available_at has passed", async () => {
   assert.equal(result.sessionId, 12);
 });
 
+test("startPlannedSession narrows a bank pick to the assignment level", async () => {
+  const session = {
+    ...makeSession(SESSION_STATUS_PLANNED, 9_999_999_999, null, 1, null),
+    level_id: 7,
+  };
+  const { connection, executeCalls } = makeConnection({
+    session,
+    tasks: [{ id: 10 }, { id: 11 }],
+  });
+  const original = connection.query.bind(connection);
+  connection.query = async (sql, params) => {
+    if (sql.includes("FROM theme_levels")) return [{ id: 7 }] as never[];
+    if (sql.includes("FROM theme_level_rules")) {
+      return [
+        {
+          param_id: 1,
+          value_type: "int",
+          bool_value: null,
+          int_min: 2,
+          int_max: 3,
+        },
+      ] as never[];
+    }
+    if (sql.includes("FROM quiz_task_params")) {
+      return [
+        { task_id: 10, param_id: 1, int_value: 2 },
+        { task_id: 11, param_id: 1, int_value: 9 },
+      ] as never[];
+    }
+    return original(sql, params);
+  };
+
+  const result = await startPlannedSession(
+    { userId: 1, sessionId: 12 },
+    { getConnection: async () => connection, ensureSchema: async () => {}, random: () => 0 },
+  );
+
+  assert.deepEqual(result.taskIds, [10]);
+  const mapping = executeCalls.find((call) =>
+    call.sql.includes("INSERT INTO tasks2session"),
+  );
+  assert.equal(mapping?.params[1], 10);
+});
+
 test("startPlannedSession draws unseen theme tasks before repeats", async () => {
   const { connection } = makeConnection({
     session: makeSession(SESSION_STATUS_PLANNED, 9_999_999_999, null, null),

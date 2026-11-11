@@ -9,6 +9,19 @@ export type AvailableTopicTheme = {
   taskCount: number;
 };
 
+/**
+ * A level the student or teacher can pick. `matchCount` is tasks whose stored
+ * parameter values satisfy every rule. A task with no value for a rule's
+ * parameter is not counted.
+ */
+export type ThemeLevelChoice = {
+  id: number;
+  themeId: number;
+  name: string;
+  sort: number;
+  matchCount: number;
+};
+
 /** One answer option exposed to the client (no correctness metadata). */
 export type SessionTaskAnswer = {
   number: 1 | 2 | 3 | 4 | 5;

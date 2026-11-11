@@ -37,6 +37,13 @@ function readDifficulty(formData: FormData): number {
   return Number(formData.get("difficulty"));
 }
 
+function readOptionalLevelId(formData: FormData): number | null {
+  const raw = String(formData.get("levelId") ?? "").trim();
+  if (!raw) return null;
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : Number.NaN;
+}
+
 function readScheduleMode(formData: FormData): "now" | "datetime" {
   const raw = String(formData.get("scheduleMode") ?? "now");
   return raw === "datetime" ? "datetime" : "now";
@@ -79,6 +86,7 @@ export async function createMentorAssignmentAction(
       difficulty: readDifficulty(formData),
       studentIds: readStudentIds(formData),
       sessionId: learningSessionId,
+      levelId: readOptionalLevelId(formData),
       scheduleMode: readScheduleMode(formData),
       availableAtUnix: readLocalDateTimeUnix(formData, "availableAtLocal"),
       dueAtUnix: readLocalDateTimeUnix(formData, "dueAtLocal"),

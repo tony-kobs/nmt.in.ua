@@ -14,6 +14,12 @@ import {
   updateThemeDifficultyGuide,
 } from "./store";
 import {
+  createThemeLevel,
+  deleteThemeLevel,
+  moveThemeLevel,
+  updateThemeLevel,
+} from "./themeLevels";
+import {
   createThemeParam,
   deleteThemeParam,
   moveThemeParam,
@@ -30,6 +36,8 @@ import {
   parseTaskIds,
   parseTaskParamDrafts,
   parseThemeId,
+  parseThemeLevelForm,
+  parseThemeLevelUpdate,
   parseThemeParamInput,
   parseThemeParamUpdate,
 } from "./validate";
@@ -121,6 +129,8 @@ function bustCaches(deps: BustCaches) {
   deps.revalidatePath("/");
   deps.revalidatePath("/problems");
   deps.revalidatePath("/tasks");
+  deps.revalidatePath("/topic");
+  deps.revalidatePath("/assign");
 }
 
 type SaveDeps = {
@@ -379,6 +389,7 @@ export type ThemeParamActionCode =
   | "forbidden"
   | "type_locked"
   | "code_taken"
+  | "rules_required"
   | "generic";
 
 function mapParamError(error: AdminContentError): ThemeParamActionCode {
@@ -389,6 +400,7 @@ function mapParamError(error: AdminContentError): ThemeParamActionCode {
     case "forbidden":
     case "type_locked":
     case "code_taken":
+    case "rules_required":
       return error.code;
     default:
       return "generic";
@@ -544,6 +556,148 @@ export async function moveThemeParamAction(
       return { status: "error", code: mapParamError(error) };
     }
     console.error("moveThemeParamAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export type ThemeLevelActionState = ThemeParamActionState;
+
+type CreateLevelDeps = {
+  requireUser: typeof requireUser;
+  createThemeLevel: typeof createThemeLevel;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+type UpdateLevelDeps = {
+  requireUser: typeof requireUser;
+  updateThemeLevel: typeof updateThemeLevel;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+type DeleteLevelDeps = {
+  requireUser: typeof requireUser;
+  deleteThemeLevel: typeof deleteThemeLevel;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+type MoveLevelDeps = {
+  requireUser: typeof requireUser;
+  moveThemeLevel: typeof moveThemeLevel;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+export async function createThemeLevelAction(
+  _prev: ThemeLevelActionState,
+  formData: FormData,
+  deps: CreateLevelDeps = {
+    requireUser,
+    createThemeLevel,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<ThemeLevelActionState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+  try {
+    await deps.createThemeLevel(parseThemeLevelForm(formData));
+    bustCaches(deps);
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      return { status: "error", code: mapParamError(error) };
+    }
+    console.error("createThemeLevelAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export async function updateThemeLevelAction(
+  _prev: ThemeLevelActionState,
+  formData: FormData,
+  deps: UpdateLevelDeps = {
+    requireUser,
+    updateThemeLevel,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<ThemeLevelActionState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+  try {
+    await deps.updateThemeLevel(parseThemeLevelUpdate(formData));
+    bustCaches(deps);
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      return { status: "error", code: mapParamError(error) };
+    }
+    console.error("updateThemeLevelAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export async function deleteThemeLevelAction(
+  _prev: ThemeLevelActionState,
+  formData: FormData,
+  deps: DeleteLevelDeps = {
+    requireUser,
+    deleteThemeLevel,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<ThemeLevelActionState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+  try {
+    await deps.deleteThemeLevel(
+      parseThemeId(formData.get("themeId")),
+      parseTaskId(formData.get("levelId")),
+    );
+    bustCaches(deps);
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      return { status: "error", code: mapParamError(error) };
+    }
+    console.error("deleteThemeLevelAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export async function moveThemeLevelAction(
+  themeId: number,
+  levelId: number,
+  direction: "up" | "down",
+  deps: MoveLevelDeps = {
+    requireUser,
+    moveThemeLevel,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<ThemeLevelActionState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+  try {
+    await deps.moveThemeLevel(parseThemeId(themeId), parseTaskId(levelId), direction);
+    bustCaches(deps);
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      return { status: "error", code: mapParamError(error) };
+    }
+    console.error("moveThemeLevelAction failed", error);
     return { status: "error", code: "generic" };
   }
 }

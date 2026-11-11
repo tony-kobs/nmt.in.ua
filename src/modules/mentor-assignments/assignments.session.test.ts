@@ -134,6 +134,59 @@ test("quick assign freezes a teacher session and links the assignment", async ()
   assert.equal(assignment?.params[4], 2);
 });
 
+test("quick assign keeps only tasks that match the parameter level", async () => {
+  const { connection, executes } = harness({
+    pool: [{ id: 10 }, { id: 11 }, { id: 12 }],
+  });
+  const original = connection.query.bind(connection);
+  connection.query = async <T,>(sql: string, params?: unknown[]) => {
+    if (sql.includes("FROM theme_levels")) return [{ id: 7 }] as T[];
+    if (sql.includes("FROM theme_level_rules")) {
+      return [
+        {
+          param_id: 1,
+          value_type: "bool",
+          bool_value: 0,
+          int_min: null,
+          int_max: null,
+        },
+      ] as T[];
+    }
+    if (sql.includes("FROM quiz_task_params")) {
+      return [
+        { task_id: 10, param_id: 1, int_value: 0 },
+        { task_id: 12, param_id: 1, int_value: 1 },
+      ] as T[];
+    }
+    return original(sql, params);
+  };
+
+  await createMentorAssignment(
+    { ...base, levelId: 7, tasksNumber: 5 },
+    {
+      getConnection: async () => connection,
+      nowSec: () => 1_000,
+      ensureSchema: async () => {},
+      notify: async () => {},
+      random: () => 0,
+    },
+  );
+
+  const tasksInsert = executes.find((call) =>
+    call.sql.includes("INSERT INTO session_tasks"),
+  );
+  const stored: number[] = [];
+  const params = tasksInsert?.params ?? [];
+  for (let index = 1; index < params.length; index += 3) {
+    stored.push(Number(params[index]));
+  }
+  assert.deepEqual(stored, [10]);
+  const assignment = executes.find((call) =>
+    call.sql.includes("INSERT INTO mentor_assignments"),
+  );
+  assert.equal(assignment?.params.at(-1), 7);
+});
+
 test("quick assign skips tasks the student was already given", async () => {
   const { connection, executes } = harness({
     pool: [{ id: 10 }, { id: 11 }, { id: 12 }, { id: 13 }],

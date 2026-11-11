@@ -16,7 +16,10 @@ import {
   resolveInitialThemeId,
 } from "@/modules/testing/parseThemeQueryParam";
 import { TOPIC_TEST_TASK_COUNT } from "@/modules/testing/topicTestMode";
-import type { AvailableTopicTheme } from "@/modules/testing/types";
+import type {
+  AvailableTopicTheme,
+  ThemeLevelChoice,
+} from "@/modules/testing/types";
 import clsx from "clsx";
 import css from "./TopicTestStart.module.css";
 
@@ -36,6 +39,8 @@ function suggestedCount(bankSize: number): number {
 
 type TopicTestStartProps = {
   themes: AvailableTopicTheme[];
+  /** Shown only for the selected theme. Empty means the start screen stays as before. */
+  levels?: readonly ThemeLevelChoice[];
   initialThemeId?: number;
   displayName: string;
   /** False when Stage 2 tables/seed (028–031) are missing — hide interactive tab. */
@@ -51,6 +56,7 @@ type TopicTestStartProps = {
 /** “Тест за темою” — тема + кількість завдань з банку. */
 export function TopicTestStart({
   themes,
+  levels = [],
   initialThemeId,
   displayName,
   interactiveAvailable = true,
@@ -108,15 +114,33 @@ export function TopicTestStart({
 
   const selectedTheme =
     themes.find((theme) => theme.id === selectedThemeId) ?? themes[0];
-  const bankSize = selectedTheme?.taskCount ?? 0;
+  const themeLevels = levels
+    .filter((level) => level.themeId === selectedThemeId)
+    .slice()
+    .sort((a, b) => a.sort - b.sort || a.id - b.id);
+  const [levelId, setLevelId] = useState("");
+  const [levelThemeId, setLevelThemeId] = useState(selectedThemeId);
+  if (levelThemeId !== selectedThemeId) {
+    setLevelThemeId(selectedThemeId);
+    setLevelId("");
+  }
+  const selectedLevel =
+    themeLevels.find((level) => String(level.id) === levelId) ?? null;
+  const bankSize = selectedLevel
+    ? selectedLevel.matchCount
+    : (selectedTheme?.taskCount ?? 0);
+  const emptyLevel = selectedLevel != null && selectedLevel.matchCount === 0;
   const controlsDisabled = pending || isRedirecting;
 
   const [taskCountInput, setTaskCountInput] = useState(() =>
     String(suggestedCount(bankSize)),
   );
-  const [countThemeId, setCountThemeId] = useState(selectedThemeId);
-  if (countThemeId !== selectedThemeId) {
-    setCountThemeId(selectedThemeId);
+  const [countKey, setCountKey] = useState(
+    `${selectedThemeId}:${levelId}`,
+  );
+  const nextCountKey = `${selectedThemeId}:${levelId}`;
+  if (countKey !== nextCountKey) {
+    setCountKey(nextCountKey);
     setTaskCountInput(String(suggestedCount(bankSize)));
   }
   const parsedCount = Number(taskCountInput);
@@ -207,6 +231,32 @@ export function TopicTestStart({
                 />
               </label>
 
+              {themeLevels.length > 0 ? (
+                <label className={clsx(css.field, css.fieldLevel)}>
+                  <span className={css.label}>{t("selectLevel")}</span>
+                  <Select
+                    name="levelId"
+                    value={levelId}
+                    disabled={controlsDisabled}
+                    options={[
+                      { value: "", label: t("levelAll") },
+                      ...themeLevels.map((level) => ({
+                        value: String(level.id),
+                        label: level.name,
+                      })),
+                    ]}
+                    onChange={setLevelId}
+                  />
+                  {emptyLevel ? (
+                    <span className={css.levelEmpty} role="status">
+                      {t("levelEmpty")}
+                    </span>
+                  ) : (
+                    <span className={css.hint}>{t("levelHint")}</span>
+                  )}
+                </label>
+              ) : null}
+
               <div className={css.fieldCount}>
                 <label className={css.label} htmlFor="topic-task-count">
                   {t("tasks")}
@@ -239,7 +289,9 @@ export function TopicTestStart({
                   </span>
                 </div>
                 <span className={css.hint} id="topic-task-count-hint">
-                  {t("tasksHint", { total: bankSize })}
+                  {selectedLevel
+                    ? t("levelTasksHint", { total: bankSize })
+                    : t("tasksHint", { total: bankSize })}
                 </span>
               </div>
             </div>
@@ -247,7 +299,7 @@ export function TopicTestStart({
             <button
               type="submit"
               className={css.start}
-              disabled={controlsDisabled || !countValid}
+              disabled={controlsDisabled || !countValid || emptyLevel}
             >
               {isRedirecting
                 ? t("redirecting")

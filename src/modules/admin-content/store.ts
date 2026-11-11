@@ -1,6 +1,10 @@
 import type { SqlConnection } from "@/lib/db/mysql";
 import { MIN_DIFFICULTY } from "@/modules/content-import/schema";
 import {
+  loadThemeLevels,
+  loadThemeTaskInventory,
+} from "./themeLevels";
+import {
   loadTaskParamValues,
   loadThemeParams,
   replaceQuizTaskParams,
@@ -286,21 +290,36 @@ export async function getAdminThemes(
   try {
     const rows = await connection.query<ThemeRow>(SQL_ADMIN_THEMES, []);
     const params = await loadThemeParams(connection);
+    const levels = await loadThemeLevels(connection);
+    const inventory = await loadThemeTaskInventory(connection);
     const paramsByTheme = new Map<number, AdminThemeOption["params"]>();
     for (const param of params) {
       const list = paramsByTheme.get(param.themeId);
       if (list) list.push(param);
       else paramsByTheme.set(param.themeId, [param]);
     }
-    return rows.map((row) => ({
-      id: row.id,
-      code: row.code?.trim() ?? "",
-      name: row.name?.trim() ?? "",
-      ord: row.ord,
-      taskCount: Number(row.task_count),
-      difficultyGuide: (row.difficulty_guide ?? "").trim(),
-      params: paramsByTheme.get(row.id) ?? [],
-    }));
+    const levelsByTheme = new Map<number, AdminThemeOption["levels"]>();
+    for (const level of levels) {
+      const list = levelsByTheme.get(level.themeId);
+      if (list) list.push(level);
+      else levelsByTheme.set(level.themeId, [level]);
+    }
+    return rows.map((row) => {
+      const taskIds = inventory.taskIdsByTheme.get(row.id) ?? [];
+      const idSet = new Set(taskIds);
+      return {
+        id: row.id,
+        code: row.code?.trim() ?? "",
+        name: row.name?.trim() ?? "",
+        ord: row.ord,
+        taskCount: Number(row.task_count),
+        difficultyGuide: (row.difficulty_guide ?? "").trim(),
+        params: paramsByTheme.get(row.id) ?? [],
+        levels: levelsByTheme.get(row.id) ?? [],
+        taskIds,
+        marks: inventory.marks.filter((mark) => idSet.has(mark.taskId)),
+      };
+    });
   } finally {
     connection.release();
   }

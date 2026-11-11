@@ -12,6 +12,7 @@ import {
 import { listTeacherSessions } from "@/modules/teacher-sessions";
 import { getTeacherStudents } from "@/modules/teacher-students/getTeacherStudents";
 import { getAvailableTopicThemes } from "@/modules/testing/getAvailableTopicThemes";
+import { listThemeLevelChoices } from "@/modules/testing/themeLevelChoices";
 import type { MentorAssignmentDetail } from "@/modules/mentor-assignments";
 
 const item = getNavItem("/assign");
@@ -29,8 +30,9 @@ export default async function AssignPage() {
   const user = await requireRole(TEACHING_STAFF_ROLES);
   const t = await getTranslations("TeacherAssign");
 
-  const [themes, students, assignments, sessions] = await Promise.all([
+  const [themes, levels, students, assignments, sessions] = await Promise.all([
     getAvailableTopicThemes(),
+    listThemeLevelChoices(),
     getTeacherStudents(user.id).catch((error) => {
       console.error("assign: getTeacherStudents failed", error);
       return [];
@@ -60,6 +62,7 @@ export default async function AssignPage() {
     <PageFrame kicker={t("kicker")} title={t("title")} lead={t("lead")}>
       <TeacherAssignWorkspace
         themes={themes}
+        levels={levels}
         students={students.map((row) => ({
           studentUserId: row.studentUserId,
           login: row.login,

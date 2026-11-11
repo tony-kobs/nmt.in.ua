@@ -540,3 +540,103 @@ test("a new topic test prefers tasks this student has not been given", async () 
     true,
   );
 });
+
+test("a selected level narrows the pool before the fresh-task pick", async () => {
+  const calls: string[] = [];
+  const connection: SqlConnection = {
+    beginTransaction: async () => {},
+    query: async <T,>(sql: string) => {
+      calls.push(sql);
+      if (sql.includes("FROM quiz_tasks") && !sql.includes("quiz_task_params")) {
+        return [{ id: 10 }, { id: 11 }, { id: 12 }] as T[];
+      }
+      if (sql.includes("FROM theme_levels")) return [{ id: 7 }] as T[];
+      if (sql.includes("FROM theme_level_rules")) {
+        return [
+          {
+            param_id: 1,
+            value_type: "bool",
+            bool_value: 1,
+            int_min: null,
+            int_max: null,
+          },
+        ] as T[];
+      }
+      if (sql.includes("FROM quiz_task_params")) {
+        return [
+          { task_id: 10, param_id: 1, int_value: 1 },
+          { task_id: 12, param_id: 1, int_value: 0 },
+        ] as T[];
+      }
+      return [] as T[];
+    },
+    execute: async (sql: string, params: unknown[] = []) => {
+      calls.push(sql);
+      if (sql.startsWith("INSERT INTO task_sessions")) {
+        return { insertId: 50, affectedRows: 1 };
+      }
+      if (sql.startsWith("INSERT INTO tasks2session")) {
+        return { insertId: 0, affectedRows: params.length / 5 };
+      }
+      return { insertId: 0, affectedRows: 0 };
+    },
+    commit: async () => {},
+    rollback: async () => {},
+    release: () => {},
+  };
+
+  const result = await startTopicTest(
+    { userId: 7, themeId: 4, taskCount: 10, levelId: 7 },
+    { getConnection: async () => connection, random: () => 0 },
+  );
+
+  assert.deepEqual(result.taskIds, [10]);
+  const bank = calls.find((sql) => sql === "SELECT id FROM quiz_tasks WHERE theme_id = ?");
+  assert.ok(bank);
+});
+
+test("an empty level rolls back with a clear error and does not insert a session", async () => {
+  let rolledBack = false;
+  const connection: SqlConnection = {
+    beginTransaction: async () => {},
+    query: async <T,>(sql: string) => {
+      if (sql.includes("FROM quiz_tasks") && !sql.includes("quiz_task_params")) {
+        return [{ id: 11 }] as T[];
+      }
+      if (sql.includes("FROM theme_levels")) return [{ id: 7 }] as T[];
+      if (sql.includes("FROM theme_level_rules")) {
+        return [
+          {
+            param_id: 1,
+            value_type: "bool",
+            bool_value: 1,
+            int_min: null,
+            int_max: null,
+          },
+        ] as T[];
+      }
+      return [] as T[];
+    },
+    execute: async () => {
+      throw new Error("must not insert");
+    },
+    commit: async () => {
+      throw new Error("must not commit");
+    },
+    rollback: async () => {
+      rolledBack = true;
+    },
+    release: () => {},
+  };
+
+  await assert.rejects(
+    () =>
+      startTopicTest(
+        { userId: 7, themeId: 4, taskCount: 5, levelId: 7 },
+        { getConnection: async () => connection },
+      ),
+    (error: unknown) =>
+      error instanceof StartTopicTestError && error.code === "level_empty",
+  );
+  assert.equal(rolledBack, true);
+});

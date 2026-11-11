@@ -29,6 +29,7 @@ import {
 import { queryHref } from "@/lib/queryHref";
 import { Select } from "@/components/ui/Select";
 import { MathText } from "@/components/ui/MathText";
+import { ThemeLevelsPanel } from "./ThemeLevelsPanel";
 import { ThemeParamsPanel } from "./ThemeParamsPanel";
 import css from "./AdminContentEditor.module.css";
 
@@ -388,6 +389,14 @@ export function AdminContentEditor({
               key={`params-${selectedTheme.id}`}
               themeId={selectedTheme.id}
               params={selectedTheme.params}
+            />
+            <ThemeLevelsPanel
+              key={`levels-${selectedTheme.id}`}
+              themeId={selectedTheme.id}
+              params={selectedTheme.params}
+              levels={selectedTheme.levels}
+              taskIds={selectedTheme.taskIds}
+              marks={selectedTheme.marks}
             />
           </>
         ) : null}

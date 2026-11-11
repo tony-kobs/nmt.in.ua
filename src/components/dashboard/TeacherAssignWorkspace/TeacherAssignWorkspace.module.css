@@ -124,6 +124,20 @@ a.submit {
   text-transform: uppercase;
 }
 
+.levelNote {
+  margin: 0;
+  color: var(--subtle);
+  font-size: var(--fs-small);
+  line-height: 1.4;
+}
+
+.levelEmpty {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
 .scheduleRow {
   display: flex;
   flex-wrap: wrap;

@@ -9,6 +9,7 @@ import {
   parseTaskId,
   parseTaskParamDrafts,
   parseThemeId,
+  parseThemeLevelForm,
   parseThemeParamInput,
   suggestParamCode,
   uniqueParamCode,
@@ -156,6 +157,35 @@ test("normalizeTaskParamValues keeps this theme only and rejects a negative int"
   assert.throws(
     () => normalizeTaskParamValues([{ paramId: 2, raw: "-1" }], theme),
     (error: unknown) => error instanceof AdminContentError && error.code === "invalid_input",
+  );
+});
+
+test("parseThemeLevelForm keeps enabled rules and refuses a level with none", () => {
+  const data = new FormData();
+  data.set("themeId", "5");
+  data.set("name", " звичайні дроби, без модуля, 2–3 дії ");
+  data.set("rule.1.on", "1");
+  data.set("rule.1.bool", "1");
+  data.set("rule.3.on", "1");
+  data.set("rule.3.min", "2");
+  data.set("rule.3.max", "3");
+  data.set("rule.2.bool", "0");
+  assert.deepEqual(parseThemeLevelForm(data), {
+    themeId: 5,
+    name: "звичайні дроби, без модуля, 2–3 дії",
+    rules: [
+      { paramId: 1, boolValue: 1, intMin: null, intMax: null },
+      { paramId: 3, boolValue: null, intMin: 2, intMax: 3 },
+    ],
+  });
+
+  const empty = new FormData();
+  empty.set("themeId", "5");
+  empty.set("name", "Порожній");
+  assert.throws(
+    () => parseThemeLevelForm(empty),
+    (error: unknown) =>
+      error instanceof AdminContentError && error.code === "rules_required",
   );
 });
 
