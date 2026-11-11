@@ -35,10 +35,54 @@ export type ThemeParamUpdate = ThemeParamInput & {
   paramId: number;
 };
 
+/** One constraint inside a theme level. Bool uses `boolValue`. Int uses inclusive bounds. */
+export type ThemeLevelRule = {
+  paramId: number;
+  valueType: ThemeParamValueType;
+  boolValue: 0 | 1 | null;
+  intMin: number | null;
+  intMax: number | null;
+};
+
+export type ThemeLevel = {
+  id: number;
+  themeId: number;
+  name: string;
+  sort: number;
+  rules: ThemeLevelRule[];
+};
+
+/** Rule as submitted, before it is checked against the parameter's type. */
+export type ThemeLevelRuleDraft = {
+  paramId: number;
+  boolValue: 0 | 1 | null;
+  intMin: number | null;
+  intMax: number | null;
+};
+
+export type ThemeLevelInput = {
+  themeId: number;
+  name: string;
+  rules: ThemeLevelRuleDraft[];
+};
+
+export type ThemeLevelUpdate = ThemeLevelInput & {
+  levelId: number;
+};
+
+/** One stored mark, used to count tasks that match a level while it is edited. */
+export type ThemeTaskMark = {
+  taskId: number;
+  paramId: number;
+  intValue: number;
+};
+
 export const MAX_THEME_PARAM_NAME = 255;
 export const MAX_THEME_PARAM_CODE = 64;
 export const MAX_THEME_PARAMS = 40;
 export const MAX_THEME_PARAM_INT = 2_147_483_647;
+export const MAX_THEME_LEVELS = 40;
+export const MAX_THEME_LEVEL_NAME = 255;
 
 export type AdminThemeOption = {
   id: number;
@@ -49,6 +93,11 @@ export type AdminThemeOption = {
   /** Plain-text legend of what each difficulty number means in this theme. */
   difficultyGuide: string;
   params: ThemeParam[];
+  levels: ThemeLevel[];
+  /** Quiz task ids of this theme. The level editor counts matches against them. */
+  taskIds: number[];
+  /** Stored parameter values. A task with no row for a parameter is absent here. */
+  marks: ThemeTaskMark[];
 };
 
 export const MAX_DIFFICULTY_GUIDE_LENGTH = 4000;
@@ -113,6 +162,7 @@ export type AdminContentErrorCode =
   | "in_use"
   | "type_locked"
   | "code_taken"
+  | "rules_required"
   | "db_error";
 
 export class AdminContentError extends Error {

@@ -11,6 +11,11 @@ export type {
   ThemeParamUpdate,
   TaskParamValue,
   TaskParamDraft,
+  ThemeLevel,
+  ThemeLevelRule,
+  ThemeLevelInput,
+  ThemeLevelUpdate,
+  ThemeTaskMark,
 } from "./types";
 export {
   AdminContentError,
@@ -21,6 +26,8 @@ export {
   MAX_THEME_PARAM_CODE,
   MAX_THEME_PARAMS,
   MAX_THEME_PARAM_INT,
+  MAX_THEME_LEVELS,
+  MAX_THEME_LEVEL_NAME,
 } from "./types";
 export {
   getAdminThemes,
@@ -41,6 +48,12 @@ export {
   deleteThemeParam,
 } from "./themeParams";
 export {
+  createThemeLevel,
+  updateThemeLevel,
+  moveThemeLevel,
+  deleteThemeLevel,
+} from "./themeLevels";
+export {
   saveQuizTaskAction,
   deleteQuizTaskAction,
   deleteQuizTasksAction,
@@ -51,4 +64,8 @@ export {
   updateThemeParamAction,
   deleteThemeParamAction,
   moveThemeParamAction,
+  createThemeLevelAction,
+  updateThemeLevelAction,
+  deleteThemeLevelAction,
+  moveThemeLevelAction,
 } from "./actions";

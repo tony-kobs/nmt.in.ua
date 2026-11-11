@@ -16,6 +16,9 @@ import {
   type AdminQuizTaskInput,
   type TaskParamDraft,
   type TaskParamValue,
+  type ThemeLevelInput,
+  type ThemeLevelRuleDraft,
+  type ThemeLevelUpdate,
   type ThemeParamInput,
   type ThemeParamUpdate,
   type ThemeParamValueType,
@@ -282,6 +285,72 @@ export function parseThemeParamInput(
     name,
     code: readParamCode(name, raw.code),
     valueType: readParamValueType(raw.valueType),
+  };
+}
+
+const RULE_ON = /^rule\.(\d+)\.on$/;
+
+function readRuleBool(value: FormDataEntryValue | null): 0 | 1 | null {
+  if (value == null || value === "") return null;
+  if (value === "0") return 0;
+  if (value === "1") return 1;
+  throw new AdminContentError("Invalid rule.", "invalid_input");
+}
+
+function readRuleBound(value: FormDataEntryValue | null): number | null {
+  if (value == null) return null;
+  if (typeof value !== "string") {
+    throw new AdminContentError("Invalid rule.", "invalid_input");
+  }
+  const raw = value.trim();
+  if (raw === "") return null;
+  if (!/^\d+$/.test(raw)) {
+    throw new AdminContentError("Invalid rule.", "invalid_input");
+  }
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed) || parsed > MAX_THEME_PARAM_INT) {
+    throw new AdminContentError("Invalid rule.", "invalid_input");
+  }
+  return parsed;
+}
+
+/**
+ * One enabled parameter is one rule. A bool submits 0 or 1. An int submits
+ * inclusive min and max. The store checks the type against the theme.
+ * A level with no enabled parameter is refused.
+ */
+export function parseThemeLevelForm(formData: FormData): ThemeLevelInput {
+  const themeId = parseThemeId(formData.get("themeId"));
+  const name = readParamName(formData.get("name"));
+  const enabled: number[] = [];
+  for (const [key, value] of formData.entries()) {
+    const match = RULE_ON.exec(key);
+    if (!match || value !== "1") continue;
+    const paramId = Number(match[1]);
+    if (!Number.isInteger(paramId) || paramId <= 0) {
+      throw new AdminContentError("Invalid rule.", "invalid_input");
+    }
+    enabled.push(paramId);
+  }
+  if (enabled.length === 0) {
+    throw new AdminContentError("A level needs a rule.", "rules_required");
+  }
+  if (new Set(enabled).size !== enabled.length) {
+    throw new AdminContentError("Invalid rule.", "invalid_input");
+  }
+  const rules: ThemeLevelRuleDraft[] = enabled.map((paramId) => ({
+    paramId,
+    boolValue: readRuleBool(formData.get(`rule.${paramId}.bool`)),
+    intMin: readRuleBound(formData.get(`rule.${paramId}.min`)),
+    intMax: readRuleBound(formData.get(`rule.${paramId}.max`)),
+  }));
+  return { themeId, name, rules };
+}
+
+export function parseThemeLevelUpdate(formData: FormData): ThemeLevelUpdate {
+  return {
+    ...parseThemeLevelForm(formData),
+    levelId: parseTaskId(formData.get("levelId")),
   };
 }
 

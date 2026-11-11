@@ -8,7 +8,10 @@ import clsx from "clsx";
 import { SessionTaskCard } from "@/components/dashboard/TeacherSessionEditor";
 import { Select } from "@/components/ui/Select";
 import type { TeacherSessionSummary } from "@/modules/teacher-sessions";
-import type { AvailableTopicTheme } from "@/modules/testing/types";
+import type {
+  AvailableTopicTheme,
+  ThemeLevelChoice,
+} from "@/modules/testing/types";
 import type {
   MentorAssignmentDetail,
   MentorAssignmentSummary,
@@ -32,6 +35,8 @@ export type AssignStudentOption = {
 
 type TeacherAssignWorkspaceProps = {
   themes: AvailableTopicTheme[];
+  /** Parameter levels. Hidden when the chosen theme has none. */
+  levels?: readonly ThemeLevelChoice[];
   students: AssignStudentOption[];
   assignments: MentorAssignmentSummary[];
   sessions: TeacherSessionSummary[];
@@ -62,6 +67,7 @@ function progressClass(status: MemberProgressStatus): string {
 
 export function TeacherAssignWorkspace({
   themes,
+  levels = [],
   students,
   assignments,
   sessions,
@@ -74,6 +80,10 @@ export function TeacherAssignWorkspace({
       ? document.documentElement.lang || "uk-UA"
       : "uk-UA";
 
+  const [quickThemeId, setQuickThemeId] = useState(
+    () => String(themes[0]?.id ?? ""),
+  );
+  const [paramLevelId, setParamLevelId] = useState("");
   const [assignMode, setAssignMode] = useState<"quick" | "session">("quick");
   const [scheduleMode, setScheduleMode] = useState<"now" | "datetime">("now");
   const readySessions = sessions.filter((session) => session.taskCount > 0);
@@ -93,6 +103,17 @@ export function TeacherAssignWorkspace({
   const [filterProgress, setFilterProgress] = useState<
     "all" | "pending" | "overdue" | "done"
   >("all");
+  const themeParamLevels = levels
+    .filter((level) => String(level.themeId) === quickThemeId)
+    .slice()
+    .sort((a, b) => a.sort - b.sort || a.id - b.id);
+  const chosenParamLevel =
+    themeParamLevels.find((level) => String(level.id) === paramLevelId) ??
+    null;
+  const paramLevelEmpty =
+    assignMode === "quick" &&
+    chosenParamLevel != null &&
+    chosenParamLevel.matchCount === 0;
 
   const [createState, createAction, createPending] = useActionState(
     createMentorAssignmentAction,
@@ -309,15 +330,45 @@ export function TeacherAssignWorkspace({
                   <span className={css.label}>{t("topic")}</span>
                   <Select
                     name="themeId"
-                    defaultValue={String(themes[0]!.id)}
+                    value={quickThemeId}
                     disabled={createPending}
                     required
                     options={themes.map((theme) => ({
                       value: String(theme.id),
                       label: theme.name,
                     }))}
+                    onChange={(next) => {
+                      setQuickThemeId(next);
+                      setParamLevelId("");
+                    }}
                   />
                 </label>
+
+                {themeParamLevels.length > 0 ? (
+                  <label className={css.field}>
+                    <span className={css.label}>{t("paramLevel")}</span>
+                    <Select
+                      name="levelId"
+                      value={paramLevelId}
+                      disabled={createPending}
+                      options={[
+                        { value: "", label: t("paramLevelAll") },
+                        ...themeParamLevels.map((level) => ({
+                          value: String(level.id),
+                          label: level.name,
+                        })),
+                      ]}
+                      onChange={setParamLevelId}
+                    />
+                    {chosenParamLevel && chosenParamLevel.matchCount === 0 ? (
+                      <span className={css.levelEmpty} role="status">
+                        {t("paramLevelEmpty")}
+                      </span>
+                    ) : (
+                      <span className={css.levelNote}>{t("paramLevelHint")}</span>
+                    )}
+                  </label>
+                ) : null}
 
                 <label className={css.field}>
                   <span className={css.label}>{t("difficulty")}</span>
@@ -423,6 +474,7 @@ export function TeacherAssignWorkspace({
               disabled={
                 createPending ||
                 selectedIds.size === 0 ||
+                paramLevelEmpty ||
                 (assignMode === "session" && readySessions.length === 0)
               }
             >

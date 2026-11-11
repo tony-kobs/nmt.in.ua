@@ -6,6 +6,7 @@ import { requireUser } from "@/modules/auth/getCurrentUser";
 import { isPlatformStaff } from "@/modules/auth/types";
 import { countStage2CatalogTasks } from "@/modules/stage2/rounds";
 import { getAvailableTopicThemes } from "@/modules/testing/getAvailableTopicThemes";
+import { listThemeLevelChoices } from "@/modules/testing/themeLevelChoices";
 import { parseThemeQueryParam } from "@/modules/testing/parseThemeQueryParam";
 
 type TopicPageProps = {
@@ -35,14 +36,16 @@ export default async function TopicPage({ searchParams }: TopicPageProps) {
   if (isPlatformStaff(user.role)) redirect("/");
 
   const params = await searchParams;
-  const [themes, stage2Count] = await Promise.all([
+  const [themes, levels, stage2Count] = await Promise.all([
     getAvailableTopicThemes(),
+    listThemeLevelChoices(),
     countStage2CatalogTasks(),
   ]);
 
   return (
     <TopicTestStart
       themes={themes}
+      levels={levels}
       initialThemeId={parseThemeQueryParam(readParam(params.theme))}
       displayName={user.displayName}
       interactiveAvailable={stage2Count > 0}

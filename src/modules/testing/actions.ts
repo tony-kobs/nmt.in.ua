@@ -71,6 +71,7 @@ import { sessionCompletionFollowUp } from "./sessionCompletionFollowUp";
 
 export type StartTopicTestErrorCode =
   | "insufficientTasks"
+  | "levelEmpty"
   | "alreadyInProgress"
   | "invalidInput"
   | "invalidTaskCount"
@@ -115,9 +116,13 @@ export async function startTopicTestAction(
 ): Promise<StartTopicTestActionState> {
   const themeId = Number(formData.get("themeId"));
   const taskCount = parseRequestedTaskCount(formData.get("taskCount"));
+  const levelId = readOptionalLevelId(formData);
 
   if (taskCount === null) {
     return { status: "error", code: "invalidTaskCount" };
+  }
+  if (levelId === "invalid") {
+    return { status: "error", code: "invalidInput" };
   }
 
   try {
@@ -127,6 +132,7 @@ export async function startTopicTestAction(
       themeId,
       taskCount,
       mode: "standard",
+      ...(levelId != null ? { levelId } : {}),
     });
     return {
       status: "success",
@@ -138,6 +144,9 @@ export async function startTopicTestAction(
       switch (error.code) {
         case "insufficient_tasks":
           return { status: "error", code: "insufficientTasks" };
+
+        case "level_empty":
+          return { status: "error", code: "levelEmpty" };
 
         case "already_in_progress":
           return { status: "error", code: "alreadyInProgress" };
@@ -153,6 +162,17 @@ export async function startTopicTestAction(
     console.error("startTopicTestAction: unexpected error", error);
     return { status: "error", code: "generic" };
   }
+}
+
+/** Empty or missing means the whole theme bank. Anything else must be a positive id. */
+function readOptionalLevelId(formData: FormData): number | null | "invalid" {
+  const raw = formData.get("levelId");
+  if (raw == null) return null;
+  const text = String(raw).trim();
+  if (text === "" || text === "0") return null;
+  const parsed = Number(text);
+  if (!Number.isInteger(parsed) || parsed <= 0) return "invalid";
+  return parsed;
 }
 
 export type StartNmtSimulatorErrorCode =
