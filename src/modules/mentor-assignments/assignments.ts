@@ -1,8 +1,13 @@
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import type { SqlConnection } from "@/lib/db/mysql";
 import {
   loadTopicTaskHistories,
   pickFreshTaskIds,
 } from "@/modules/testing/pickFreshTasks";
+import {
+  narrowTaskIdsByLevel,
+  ThemeLevelPoolError,
+} from "@/modules/testing/narrowTaskPool";
 import {
   SESSION_STATUS_COMPLETED,
   SESSION_STATUS_PLANNED,
@@ -78,9 +83,9 @@ type MemberRow = {
 
 const SQL_THEME = `SELECT id, name FROM themes WHERE id = ? LIMIT 1`;
 
-/** Subset of the admin list for this theme: one difficulty, still `quiz_tasks` only. */
+/** Published tasks of this theme and difficulty. Drafts stay in the admin bank. */
 const SQL_SELECT_TASK_IDS_AT_DIFFICULTY = `
-  SELECT id FROM quiz_tasks WHERE theme_id = ? AND difficulty = ?
+  SELECT id FROM quiz_tasks WHERE theme_id = ? AND difficulty = ? AND ${publishedQuizTaskSql()}
 `;
 
 const SQL_INSERT_ASSIGNMENT = `
@@ -94,8 +99,9 @@ const SQL_INSERT_ASSIGNMENT = `
     due_at,
     schedule_mode,
     status,
-    created_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
+    created_at,
+    level_id
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
 `;
 
 const SQL_INSERT_MEMBER = `
@@ -372,6 +378,12 @@ export type CreateMentorAssignmentInput = {
    * Omit to quick-assign: an implicit session is created from the bank.
    */
   sessionId?: number | null;
+  /**
+   * Optional parameter level for a quick assignment. Combined with difficulty.
+   * Omit it and the difficulty pool is unchanged. A task with no value for a
+   * rule's parameter is not included.
+   */
+  levelId?: number | null;
 };
 
 export async function createMentorAssignment(
@@ -416,6 +428,18 @@ export async function createMentorAssignment(
     throw new MentorAssignmentsError(
       "difficulty must be a positive integer.",
       "invalid_input"
+    );
+  }
+  const levelId =
+    input.levelId == null
+      ? null
+      : isPositiveInt(input.levelId)
+        ? input.levelId
+        : null;
+  if (input.levelId != null && levelId == null) {
+    throw new MentorAssignmentsError(
+      "levelId must be a positive integer.",
+      "invalid_input",
     );
   }
 
@@ -481,13 +505,48 @@ export async function createMentorAssignment(
         SQL_SELECT_TASK_IDS_AT_DIFFICULTY,
         [themeId, difficulty],
       );
+      let poolIds = pool.map((row) => Number(row.id)).filter((id) => id > 0);
+      if (poolIds.length < 1) {
+        await connection.rollback();
+        throw new MentorAssignmentsError(
+          "No quiz tasks at this difficulty for the theme.",
+          "insufficient_tasks",
+        );
+      }
+      if (levelId != null) {
+        try {
+          const narrowed = await narrowTaskIdsByLevel(
+            connection,
+            themeId,
+            poolIds,
+            levelId,
+          );
+          if (narrowed.emptyLevel || narrowed.ids.length < 1) {
+            await connection.rollback();
+            throw new MentorAssignmentsError(
+              "No tasks match this level.",
+              "level_empty",
+            );
+          }
+          poolIds = narrowed.ids;
+        } catch (error) {
+          if (error instanceof ThemeLevelPoolError) {
+            await connection.rollback();
+            throw new MentorAssignmentsError(
+              "Level does not belong to this theme.",
+              "invalid_input",
+            );
+          }
+          throw error;
+        }
+      }
       const histories = await loadTopicTaskHistories(
         connection,
         studentIds,
         themeId,
       );
       const taskIds = pickFreshTaskIds(
-        pool.map((row) => Number(row.id)),
+        poolIds,
         histories,
         requestedTasks,
         deps.random,
@@ -532,6 +591,7 @@ export async function createMentorAssignment(
       schedule.dueAt,
       input.scheduleMode,
       createdAt,
+      readySessionId == null ? levelId : null,
     ]);
     if (inserted.insertId <= 0) {
       await connection.rollback();

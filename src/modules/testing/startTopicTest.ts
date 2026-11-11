@@ -1,8 +1,13 @@
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { ensureSelfScoreSchema } from "@/modules/self-score/schema";
 import { isValidSelfScore } from "@/modules/self-score/types";
 import { nowUnixSec } from "./sessionElapsed";
 import { computeSessionDeadline } from "./sessionExpiry";
+import {
+  narrowTaskIdsByLevel,
+  ThemeLevelPoolError,
+} from "./narrowTaskPool";
 import {
   loadTopicTaskHistories,
   pickFreshTaskIds,
@@ -30,10 +35,9 @@ const TASK_STATUS_UNANSWERED = 0;
 
 /**
  * Indexed id list for the theme — sample in Node instead of `ORDER BY RAND()`.
- * This is the whole topic bank the admin list pages through (`quiz_tasks.theme_id`
- * only): no workbook `problems`, no other theme, no generator.
+ * Published rows only: drafts stay in the admin bank.
  */
-const SQL_SELECT_TASK_IDS = `SELECT id FROM quiz_tasks WHERE theme_id = ?`;
+const SQL_SELECT_TASK_IDS = `SELECT id FROM quiz_tasks WHERE theme_id = ? AND ${publishedQuizTaskSql()}`;
 
 const SQL_INSERT_SESSION =
   "INSERT INTO task_sessions (user_id, session_type, theme_id, tasks_number, right_number, time, session_status, start_time, expire_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -55,6 +59,12 @@ export type StartTopicTestInput = {
    * the session. TopicTestStart no longer sends this; diagnostic and other
    * callers may still pass it. */
   selfScore?: number;
+  /**
+   * Optional theme level. When set, the pool is only tasks that match every
+   * rule. A task with no value for a rule's parameter does not match.
+   * Omit it and the whole theme bank is used, as before.
+   */
+  levelId?: number;
 };
 
 export type StartTopicTestResult = {
@@ -67,6 +77,7 @@ export type StartTopicTestResult = {
 export type StartTopicTestErrorCode =
   | "invalid_input"
   | "insufficient_tasks"
+  | "level_empty"
   | "already_in_progress"
   | "db_error";
 
@@ -100,7 +111,7 @@ export function validateStartTopicTestInput(
       "invalid_input",
     );
   }
-  const { userId, themeId, mode, selfScore, taskCount } = input as Record<
+  const { userId, themeId, mode, selfScore, taskCount, levelId } = input as Record<
     string,
     unknown
   >;
@@ -127,12 +138,23 @@ export function validateStartTopicTestInput(
     }
     parsedTaskCount = parsed;
   }
+  let parsedLevelId: number | undefined;
+  if (levelId != null) {
+    if (!isPositiveInt(levelId)) {
+      throw new StartTopicTestError(
+        "levelId must be a positive integer.",
+        "invalid_input",
+      );
+    }
+    parsedLevelId = levelId;
+  }
   return {
     userId,
     themeId,
     mode: parseTopicTestMode(mode),
     taskCount: parsedTaskCount,
     selfScore: selfScore as number | undefined,
+    ...(parsedLevelId != null ? { levelId: parsedLevelId } : {}),
   };
 }
 
@@ -148,8 +170,11 @@ async function loadDefaultConnection(): Promise<SqlConnection> {
  * Starts a topic-test session: selects up to `taskCount` (or the mode default)
  * distinct tasks for the theme (or all available when fewer). Tasks this
  * student has not been given come first, then ones they have not solved,
- * then repeats. Inserts one `task_sessions` row and one `tasks2session` row
- * per task, all inside a single transaction. Answer order is the bank order.
+ * then repeats. When `levelId` is set, the pool is narrowed to tasks that
+ * match that level before the same pick. A task with no stored value for a
+ * rule's parameter is not in the pool. Without a level, the query is the
+ * whole theme bank. Inserts one `task_sessions` row and one `tasks2session`
+ * row per task, all inside a single transaction. Answer order is the bank order.
  */
 export async function startTopicTest(
   rawInput: unknown,
@@ -180,13 +205,41 @@ export async function startTopicTest(
       const pool = await connection.query<{ id: number }>(SQL_SELECT_TASK_IDS, [
         input.themeId,
       ]);
+      let poolIds = pool.map((row) => row.id);
+      if (input.levelId != null) {
+        try {
+          const narrowed = await narrowTaskIdsByLevel(
+            connection,
+            input.themeId,
+            poolIds,
+            input.levelId,
+          );
+          if (narrowed.emptyLevel) {
+            await connection.rollback();
+            throw new StartTopicTestError(
+              "No tasks match the selected level.",
+              "level_empty",
+            );
+          }
+          poolIds = narrowed.ids;
+        } catch (error) {
+          if (error instanceof ThemeLevelPoolError) {
+            await connection.rollback();
+            throw new StartTopicTestError(
+              "Level does not belong to this theme.",
+              "invalid_input",
+            );
+          }
+          throw error;
+        }
+      }
       const histories = await loadTopicTaskHistories(
         connection,
         [input.userId],
         input.themeId,
       );
       const taskIds = pickFreshTaskIds(
-        pool.map((row) => row.id),
+        poolIds,
         histories,
         taskLimit,
         deps.random,

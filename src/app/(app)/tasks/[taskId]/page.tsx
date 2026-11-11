@@ -8,6 +8,7 @@ import {
   getNeighborTaskIds,
   getQuizTaskById,
 } from "@/modules/admin-content";
+import { llmConfigured } from "@/modules/admin-content/generateSimilar";
 import { requireRole } from "@/modules/auth/getCurrentUser";
 import { PLATFORM_STAFF_ROLES } from "@/modules/auth/types";
 
@@ -69,6 +70,7 @@ export default async function EditAdminTaskPage({ params }: EditTaskPageProps) {
         task={task}
         nextTaskId={neighbors.nextId}
         backHref={`/?theme=${task.themeId}`}
+        llmEnabled={llmConfigured()}
       />
     </PageFrame>
   );

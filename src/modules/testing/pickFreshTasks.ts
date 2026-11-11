@@ -8,7 +8,8 @@ import type { SqlConnection } from "@/lib/db/mysql";
  * is still new for more of the selected students ranks first. Ties are
  * shuffled with `random` (values in [0, 1)).
  *
- * Answer options are not touched. The caller decides which ids are legal.
+ * Answer options are not touched. The caller decides which ids are legal
+ * and must pass only published bank ids. A draft never belongs in this draw.
  */
 
 const TASK_TYPE_TOPIC = 1;

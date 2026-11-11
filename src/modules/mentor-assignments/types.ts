@@ -43,6 +43,7 @@ export type MentorAssignmentsErrorCode =
   | "invalid_input"
   | "theme_not_found"
   | "insufficient_tasks"
+  | "level_empty"
   | "no_students"
   | "students_not_linked"
   | "not_found"

@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SqlConnection } from "@/lib/db/mysql";
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import { normalizeNmtComment, normalizeNmtRichText } from "@/modules/testing/normalizeNmtRichText";
 import { resolveNmtMatch } from "@/modules/testing/nmtMatch";
 import { resolveTaskPresentation } from "@/modules/testing/taskPresentation";
@@ -235,7 +236,7 @@ const QUIZ_SQL = `SELECT q.id, q.name, q.task_text, q.answer_1, q.answer_2, q.an
             q.right_answer_n, q.comments, t.code AS theme_code, t.name AS theme_name
      FROM quiz_tasks q
      LEFT JOIN themes t ON t.id = q.theme_id
-     WHERE q.id IN `;
+     WHERE ${publishedQuizTaskSql("q")} AND q.id IN `;
 
 // problems.theme_id is the zadachnyk topic id, not themes.id. Joining on id
 // labels fractions (JSON 4) as ALG-09-EQ-INEQ. The CASE follows workbookTopicMap.json.
@@ -319,13 +320,15 @@ function searchSql(bank: BankKind): string {
       : bank === "problem"
         ? `SELECT p.id, p.name, p.problem_text AS task_text, t.code AS theme_code, t.name AS theme_name`
         : `SELECT q.id, q.name, q.task_text, t.code AS theme_code, t.name AS theme_name`;
+  const published = bank === "quiz" ? `${publishedQuizTaskSql("q")} AND (` : "";
+  const close = bank === "quiz" ? ")" : "";
   return `${select}
     ${from}
-    WHERE CAST(${idColumn} AS CHAR) = ?
+    WHERE ${published}CAST(${idColumn} AS CHAR) = ?
        OR ${nameColumn} LIKE ? ESCAPE '\\\\'
        OR ${textColumn} LIKE ? ESCAPE '\\\\'
        OR t.code LIKE ? ESCAPE '\\\\'
-       OR t.name LIKE ? ESCAPE '\\\\'
+       OR t.name LIKE ? ESCAPE '\\\\'${close}
     LIMIT ${SEARCH_LIMIT}`;
 }
 

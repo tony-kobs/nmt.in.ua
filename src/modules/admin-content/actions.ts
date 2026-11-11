@@ -9,10 +9,24 @@ import {
   deleteQuizTask,
   deleteQuizTasks,
   getQuizTaskById,
+  insertGeneratedDrafts,
+  publishQuizTask,
   updateQuizTask,
   updateQuizTaskDifficulty,
   updateThemeDifficultyGuide,
 } from "./store";
+import {
+  createThemeLevel,
+  deleteThemeLevel,
+  moveThemeLevel,
+  updateThemeLevel,
+} from "./themeLevels";
+import {
+  createThemeParam,
+  deleteThemeParam,
+  moveThemeParam,
+  updateThemeParam,
+} from "./themeParams";
 import {
   ADMIN_TASKS_PAGE_SIZE,
   AdminContentError,
@@ -20,9 +34,24 @@ import {
 } from "./types";
 import {
   parseAdminQuizTaskInput,
+  parseHintShort,
   parseTaskId,
   parseTaskIds,
+  parseTaskParamDrafts,
+  parseThemeId,
+  parseThemeLevelForm,
+  parseThemeLevelUpdate,
+  parseThemeParamInput,
+  parseThemeParamUpdate,
 } from "./validate";
+import {
+  clampSimilarCount,
+  completeLlm,
+  generateSimilarDrafts,
+  llmConfigured,
+  readLlmConfig,
+  type LlmComplete,
+} from "./generateSimilar";
 
 export type SaveQuizTaskActionState =
   | { status: "idle" }
@@ -62,6 +91,16 @@ export type LoadQuizTaskActionState =
   | { status: "success"; task: AdminQuizTask }
   | { status: "error"; code: "invalid_input" | "not_found" | "forbidden" | "generic" };
 
+export type GenerateSimilarState =
+  | { status: "idle" }
+  | { status: "success"; saved: number; discarded: number }
+  | { status: "error"; code: "invalid_input" | "not_found" | "forbidden" | "llm" | "generic" };
+
+export type PublishQuizTaskState =
+  | { status: "idle" }
+  | { status: "success"; taskId: number }
+  | { status: "error"; code: "invalid_input" | "not_found" | "forbidden" | "generic" };
+
 function readFormFields(formData: FormData): Record<string, unknown> {
   return {
     taskText: formData.get("taskText"),
@@ -73,7 +112,9 @@ function readFormFields(formData: FormData): Record<string, unknown> {
     rightAnswerN: formData.get("rightAnswerN"),
     comments: formData.get("comments"),
     difficulty: formData.get("difficulty"),
+    hintShort: formData.get("hintShort"),
     taskId: formData.get("taskId"),
+    count: formData.get("count"),
   };
 }
 
@@ -111,6 +152,8 @@ function bustCaches(deps: BustCaches) {
   deps.revalidatePath("/");
   deps.revalidatePath("/problems");
   deps.revalidatePath("/tasks");
+  deps.revalidatePath("/topic");
+  deps.revalidatePath("/assign");
 }
 
 type SaveDeps = {
@@ -172,7 +215,11 @@ export async function saveQuizTaskAction(
 
   try {
     const fields = readFormFields(formData);
-    const input = parseAdminQuizTaskInput(fields);
+    const input = {
+      ...parseAdminQuizTaskInput(fields),
+      hintShort: parseHintShort(fields.hintShort),
+      paramDrafts: parseTaskParamDrafts(formData),
+    };
     const rawTaskId = fields.taskId;
     const hasTaskId =
       rawTaskId != null && String(rawTaskId).trim() !== "";
@@ -350,6 +397,456 @@ export async function loadQuizTaskAction(
       };
     }
     console.error("loadQuizTaskAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export type ThemeParamActionState =
+  | { status: "idle" }
+  | { status: "success" }
+  | { status: "error"; code: ThemeParamActionCode };
+
+export type ThemeParamActionCode =
+  | "invalid_input"
+  | "theme_not_found"
+  | "not_found"
+  | "forbidden"
+  | "type_locked"
+  | "code_taken"
+  | "rules_required"
+  | "generic";
+
+function mapParamError(error: AdminContentError): ThemeParamActionCode {
+  switch (error.code) {
+    case "invalid_input":
+    case "theme_not_found":
+    case "not_found":
+    case "forbidden":
+    case "type_locked":
+    case "code_taken":
+    case "rules_required":
+      return error.code;
+    default:
+      return "generic";
+  }
+}
+
+function readParamForm(formData: FormData): Record<string, unknown> {
+  return {
+    themeId: formData.get("themeId"),
+    paramId: formData.get("paramId"),
+    name: formData.get("name"),
+    code: formData.get("code"),
+    valueType: formData.get("valueType"),
+  };
+}
+
+type CreateParamDeps = {
+  requireUser: typeof requireUser;
+  createThemeParam: typeof createThemeParam;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+type UpdateParamDeps = {
+  requireUser: typeof requireUser;
+  updateThemeParam: typeof updateThemeParam;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+type DeleteParamDeps = {
+  requireUser: typeof requireUser;
+  deleteThemeParam: typeof deleteThemeParam;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+type MoveParamDeps = {
+  requireUser: typeof requireUser;
+  moveThemeParam: typeof moveThemeParam;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+export async function createThemeParamAction(
+  _prev: ThemeParamActionState,
+  formData: FormData,
+  deps: CreateParamDeps = {
+    requireUser,
+    createThemeParam,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<ThemeParamActionState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+
+  try {
+    await deps.createThemeParam(parseThemeParamInput(readParamForm(formData)));
+    bustCaches(deps);
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      return { status: "error", code: mapParamError(error) };
+    }
+    console.error("createThemeParamAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export async function updateThemeParamAction(
+  _prev: ThemeParamActionState,
+  formData: FormData,
+  deps: UpdateParamDeps = {
+    requireUser,
+    updateThemeParam,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<ThemeParamActionState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+
+  try {
+    await deps.updateThemeParam(parseThemeParamUpdate(readParamForm(formData)));
+    bustCaches(deps);
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      return { status: "error", code: mapParamError(error) };
+    }
+    console.error("updateThemeParamAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export async function deleteThemeParamAction(
+  _prev: ThemeParamActionState,
+  formData: FormData,
+  deps: DeleteParamDeps = {
+    requireUser,
+    deleteThemeParam,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<ThemeParamActionState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+
+  try {
+    const themeId = parseThemeId(formData.get("themeId"));
+    const paramId = parseTaskId(formData.get("paramId"));
+    await deps.deleteThemeParam(themeId, paramId);
+    bustCaches(deps);
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      return { status: "error", code: mapParamError(error) };
+    }
+    console.error("deleteThemeParamAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export async function moveThemeParamAction(
+  themeId: number,
+  paramId: number,
+  direction: "up" | "down",
+  deps: MoveParamDeps = {
+    requireUser,
+    moveThemeParam,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<ThemeParamActionState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+
+  try {
+    await deps.moveThemeParam(parseThemeId(themeId), parseTaskId(paramId), direction);
+    bustCaches(deps);
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      return { status: "error", code: mapParamError(error) };
+    }
+    console.error("moveThemeParamAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export type ThemeLevelActionState = ThemeParamActionState;
+
+type CreateLevelDeps = {
+  requireUser: typeof requireUser;
+  createThemeLevel: typeof createThemeLevel;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+type UpdateLevelDeps = {
+  requireUser: typeof requireUser;
+  updateThemeLevel: typeof updateThemeLevel;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+type DeleteLevelDeps = {
+  requireUser: typeof requireUser;
+  deleteThemeLevel: typeof deleteThemeLevel;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+type MoveLevelDeps = {
+  requireUser: typeof requireUser;
+  moveThemeLevel: typeof moveThemeLevel;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+export async function createThemeLevelAction(
+  _prev: ThemeLevelActionState,
+  formData: FormData,
+  deps: CreateLevelDeps = {
+    requireUser,
+    createThemeLevel,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<ThemeLevelActionState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+  try {
+    await deps.createThemeLevel(parseThemeLevelForm(formData));
+    bustCaches(deps);
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      return { status: "error", code: mapParamError(error) };
+    }
+    console.error("createThemeLevelAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export async function updateThemeLevelAction(
+  _prev: ThemeLevelActionState,
+  formData: FormData,
+  deps: UpdateLevelDeps = {
+    requireUser,
+    updateThemeLevel,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<ThemeLevelActionState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+  try {
+    await deps.updateThemeLevel(parseThemeLevelUpdate(formData));
+    bustCaches(deps);
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      return { status: "error", code: mapParamError(error) };
+    }
+    console.error("updateThemeLevelAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export async function deleteThemeLevelAction(
+  _prev: ThemeLevelActionState,
+  formData: FormData,
+  deps: DeleteLevelDeps = {
+    requireUser,
+    deleteThemeLevel,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<ThemeLevelActionState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+  try {
+    await deps.deleteThemeLevel(
+      parseThemeId(formData.get("themeId")),
+      parseTaskId(formData.get("levelId")),
+    );
+    bustCaches(deps);
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      return { status: "error", code: mapParamError(error) };
+    }
+    console.error("deleteThemeLevelAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+export async function moveThemeLevelAction(
+  themeId: number,
+  levelId: number,
+  direction: "up" | "down",
+  deps: MoveLevelDeps = {
+    requireUser,
+    moveThemeLevel,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<ThemeLevelActionState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+  try {
+    await deps.moveThemeLevel(parseThemeId(themeId), parseTaskId(levelId), direction);
+    bustCaches(deps);
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      return { status: "error", code: mapParamError(error) };
+    }
+    console.error("moveThemeLevelAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+type GenerateDeps = {
+  requireUser: typeof requireUser;
+  getQuizTaskById: typeof getQuizTaskById;
+  insertGeneratedDrafts: typeof insertGeneratedDrafts;
+  generateDrafts: typeof generateSimilarDrafts;
+  llmReady: () => boolean;
+  complete: LlmComplete;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+type PublishDeps = {
+  requireUser: typeof requireUser;
+  publishQuizTask: typeof publishQuizTask;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+function defaultComplete(): LlmComplete {
+  return (system, user, options) => {
+    const config = readLlmConfig();
+    if (!config) throw new Error("llm_unconfigured");
+    return completeLlm(config, system, user, options);
+  };
+}
+
+export async function generateSimilarTasksAction(
+  _prev: GenerateSimilarState,
+  formData: FormData,
+  deps: GenerateDeps = {
+    requireUser,
+    getQuizTaskById,
+    insertGeneratedDrafts,
+    generateDrafts: generateSimilarDrafts,
+    llmReady: llmConfigured,
+    complete: defaultComplete(),
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<GenerateSimilarState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+  if (!deps.llmReady()) {
+    return { status: "error", code: "llm" };
+  }
+  try {
+    const fields = readFormFields(formData);
+    const taskId = parseTaskId(fields.taskId);
+    const count = clampSimilarCount(fields.count);
+    if (count == null) {
+      return { status: "error", code: "invalid_input" };
+    }
+    const task = await deps.getQuizTaskById(taskId);
+    if (!task) return { status: "error", code: "not_found" };
+    const result = await deps.generateDrafts({
+      source: {
+        id: task.id,
+        themeId: task.themeId,
+        difficulty: task.difficulty,
+        taskText: task.taskText,
+        answer1: task.answer1,
+        answer2: task.answer2,
+        answer3: task.answer3,
+        answer4: task.answer4,
+        rightAnswerN: task.rightAnswerN,
+        params: task.params,
+      },
+      count,
+      complete: deps.complete,
+    });
+    const saved = await deps.insertGeneratedDrafts(
+      task.id,
+      task.themeId,
+      task.params,
+      result.drafts,
+    );
+    if (saved.length > 0) bustCaches(deps);
+    return { status: "success", saved: saved.length, discarded: result.discarded };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      if (
+        error.code === "invalid_input" ||
+        error.code === "not_found" ||
+        error.code === "forbidden"
+      ) {
+        return { status: "error", code: error.code };
+      }
+      return { status: "error", code: "generic" };
+    }
+    console.error("generateSimilarTasksAction failed", error);
+    return { status: "error", code: "llm" };
+  }
+}
+
+export async function publishQuizTaskAction(
+  _prev: PublishQuizTaskState,
+  formData: FormData,
+  deps: PublishDeps = {
+    requireUser,
+    publishQuizTask,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<PublishQuizTaskState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+  try {
+    const taskId = parseTaskId(formData.get("taskId"));
+    await deps.publishQuizTask(taskId);
+    bustCaches(deps);
+    return { status: "success", taskId };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      const code = mapDeleteError(error);
+      return { status: "error", code: code === "in_use" ? "generic" : code };
+    }
+    console.error("publishQuizTaskAction failed", error);
     return { status: "error", code: "generic" };
   }
 }

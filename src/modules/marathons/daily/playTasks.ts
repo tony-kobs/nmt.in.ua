@@ -8,6 +8,7 @@
  */
 
 import { promptWithoutCopiedOptions } from "./promptOptions";
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 
 export type PendingPlayTask = {
   id: number;
@@ -47,6 +48,7 @@ export const PENDING_TASK_SQL = `
   FROM marathon_day_tasks t
   LEFT JOIN quiz_tasks q ON q.id = t.question_id
   WHERE t.day_id = ?
+    AND (t.question_id IS NULL OR ${publishedQuizTaskSql("q")})
   ORDER BY t.sort_order
 `;
 
@@ -59,6 +61,7 @@ export const REVIEW_TASK_SQL = `
   FROM marathon_day_tasks t
   LEFT JOIN quiz_tasks q ON q.id = t.question_id
   WHERE t.day_id = ?
+    AND (t.question_id IS NULL OR ${publishedQuizTaskSql("q")})
   ORDER BY t.sort_order
 `;
 

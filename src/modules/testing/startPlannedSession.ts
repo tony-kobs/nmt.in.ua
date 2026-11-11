@@ -1,3 +1,4 @@
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { ensureMentorAssignmentsSchema } from "@/modules/mentor-assignments/schema";
 import {
@@ -9,6 +10,10 @@ import { ensureTeacherSessionsSchema } from "@/modules/teacher-sessions/schema";
 
 import { nowUnixSec } from "./sessionElapsed";
 import { isSessionExpired } from "./sessionExpiry";
+import {
+  narrowTaskIdsByLevel,
+  ThemeLevelPoolError,
+} from "./narrowTaskPool";
 import {
   loadTopicTaskHistories,
   pickFreshTaskIds,
@@ -27,6 +32,7 @@ const SQL_SELECT_SESSION = `
     ts.expire_time,
     ma.available_at,
     ma.difficulty,
+    ma.level_id,
     ma.session_id AS learning_session_id
   FROM task_sessions ts
   LEFT JOIN mentor_assignment_members mam ON mam.session_id = ts.id
@@ -41,13 +47,13 @@ const SQL_COUNT_MAPPINGS = `
   WHERE session_id = ?
 `;
 
-/** Same topic bank as the admin list: `quiz_tasks` of this theme only. */
-const SQL_SELECT_TASK_IDS = `SELECT id FROM quiz_tasks WHERE theme_id = ?`;
+/** Published topic bank of this theme. Drafts are not handed to a student. */
+const SQL_SELECT_TASK_IDS = `SELECT id FROM quiz_tasks WHERE theme_id = ? AND ${publishedQuizTaskSql()}`;
 const SQL_SELECT_TASK_IDS_BY_DIFFICULTY = `${SQL_SELECT_TASK_IDS} AND difficulty = ?`;
 const SQL_SELECT_LEARNING_TASKS = `
   SELECT st.quiz_task_id AS id
   FROM session_tasks st
-  INNER JOIN quiz_tasks q ON q.id = st.quiz_task_id
+  INNER JOIN quiz_tasks q ON q.id = st.quiz_task_id AND ${publishedQuizTaskSql("q")}
   WHERE st.session_id = ?
   ORDER BY st.position ASC, st.id ASC
 `;
@@ -109,6 +115,8 @@ type SessionRow = {
   available_at: number | null;
   /** From mentor assignment LEFT JOIN — null for auto-planned sessions. */
   difficulty: number | null;
+  /** Parameter level chosen for a quick assignment. Null means the whole pool. */
+  level_id?: number | null;
   /** Teacher session (`sessions.id`) when the assignment was linked. */
   learning_session_id?: number | null;
 };
@@ -263,13 +271,44 @@ export async function startPlannedSession(
                 SQL_SELECT_TASK_IDS_BY_DIFFICULTY,
                 [session.theme_id, difficulty],
               );
+        const levelRaw = Number(session.level_id);
+        const levelId =
+          Number.isInteger(levelRaw) && levelRaw > 0 ? levelRaw : null;
+        let poolIds = pool.map((row) => Number(row.id)).filter((id) => id > 0);
+        if (levelId != null) {
+          try {
+            const narrowed = await narrowTaskIdsByLevel(
+              connection,
+              session.theme_id,
+              poolIds,
+              levelId,
+            );
+            if (narrowed.emptyLevel) {
+              await connection.rollback();
+              throw new StartPlannedSessionError(
+                "No tasks match the assignment level.",
+                "insufficient_tasks",
+              );
+            }
+            poolIds = narrowed.ids;
+          } catch (error) {
+            if (error instanceof ThemeLevelPoolError) {
+              await connection.rollback();
+              throw new StartPlannedSessionError(
+                "The assignment level is no longer on this theme.",
+                "insufficient_tasks",
+              );
+            }
+            throw error;
+          }
+        }
         const histories = await loadTopicTaskHistories(
           connection,
           [input.userId],
           session.theme_id,
         );
         taskIds = pickFreshTaskIds(
-          pool.map((row) => row.id),
+          poolIds,
           histories,
           TOPIC_TEST_TASK_COUNT,
           deps.random,

@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SqlConnection } from "@/lib/db/mysql";
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import { sampleRandomIds } from "@/lib/sampleRandomIds";
 import { SESSION_STATUS_PLANNED } from "@/modules/sessions/types";
 
@@ -448,6 +449,7 @@ const SQL_SEARCH = `
     answer_1, answer_2, answer_3, answer_4, right_answer_n, comments
   FROM quiz_tasks
   WHERE theme_id = ?
+    AND ${publishedQuizTaskSql()}
     AND (? = 0 OR difficulty = ?)
     AND (? = '' OR name LIKE ? OR task_text LIKE ?)
   ORDER BY id ASC
@@ -510,7 +512,7 @@ export async function fillSessionFromBank(
       ? ` AND id NOT IN (${exclude.map(() => "?").join(", ")})`
       : "";
     const pool = await connection.query<{ id: number }>(
-      `SELECT id FROM quiz_tasks WHERE theme_id = ? AND difficulty = ?${filter}`,
+      `SELECT id FROM quiz_tasks WHERE theme_id = ? AND difficulty = ? AND ${publishedQuizTaskSql()}${filter}`,
       [themeId, difficulty, ...exclude],
     );
     const picked = sampleRandomIds(

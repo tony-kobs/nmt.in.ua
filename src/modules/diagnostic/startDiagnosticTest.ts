@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import { nowUnixSec } from "@/modules/testing/sessionElapsed";
 import { computeSessionDeadline } from "@/modules/testing/sessionExpiry";
 import {
@@ -23,6 +24,7 @@ export const SQL_BANK_ELIGIBILITY = `
     COUNT(*) AS task_count,
     COUNT(DISTINCT theme_id) AS theme_count
   FROM quiz_tasks
+  WHERE ${publishedQuizTaskSql()}
 `;
 
 const SQL_INSERT_SESSION = `

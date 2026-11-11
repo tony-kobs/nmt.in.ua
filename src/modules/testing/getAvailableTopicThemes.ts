@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import { cachedCatalogQuery } from "@/lib/cache/catalogCache";
 import type { AvailableTopicTheme } from "./types";
 
@@ -7,7 +8,7 @@ export type { AvailableTopicTheme } from "./types";
 const SQL_AVAILABLE_THEMES = `
   SELECT t.id, t.code, t.name, t.ord, COUNT(q.id) AS task_count
   FROM themes t
-  INNER JOIN quiz_tasks q ON q.theme_id = t.id
+  INNER JOIN quiz_tasks q ON q.theme_id = t.id AND ${publishedQuizTaskSql("q")}
   GROUP BY t.id, t.code, t.name, t.ord
   HAVING task_count >= 1
   ORDER BY t.ord ASC, t.id ASC

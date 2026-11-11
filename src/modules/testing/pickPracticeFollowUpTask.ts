@@ -1,8 +1,9 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import { pickRandomId } from "@/lib/sampleRandomIds";
 
 const SQL_SELECT_CANDIDATES = `
-  SELECT id, difficulty FROM quiz_tasks WHERE theme_id = ?
+  SELECT id, difficulty FROM quiz_tasks WHERE theme_id = ? AND ${publishedQuizTaskSql()}
 `;
 
 export type FollowUpCandidate = { id: number; difficulty: number };
