@@ -1,3 +1,4 @@
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import type { SqlConnection } from "@/lib/db/mysql";
 import {
   loadTopicTaskHistories,
@@ -82,9 +83,9 @@ type MemberRow = {
 
 const SQL_THEME = `SELECT id, name FROM themes WHERE id = ? LIMIT 1`;
 
-/** Subset of the admin list for this theme: one difficulty, still `quiz_tasks` only. */
+/** Published tasks of this theme and difficulty. Drafts stay in the admin bank. */
 const SQL_SELECT_TASK_IDS_AT_DIFFICULTY = `
-  SELECT id FROM quiz_tasks WHERE theme_id = ? AND difficulty = ?
+  SELECT id FROM quiz_tasks WHERE theme_id = ? AND difficulty = ? AND ${publishedQuizTaskSql()}
 `;
 
 const SQL_INSERT_ASSIGNMENT = `

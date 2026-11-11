@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SqlConnection } from "@/lib/db/mysql";
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import { sampleRandomIds } from "@/lib/sampleRandomIds";
 
 /**
@@ -67,7 +68,7 @@ export type BankPreview = {
 export const BANK_THEMES_SQL = `
   SELECT t.id, t.code, t.name, COUNT(q.id) AS task_count
   FROM themes t
-  INNER JOIN quiz_tasks q ON q.theme_id = t.id
+  INNER JOIN quiz_tasks q ON q.theme_id = t.id AND ${publishedQuizTaskSql("q")}
   GROUP BY t.id, t.code, t.name, t.ord
   ORDER BY t.ord ASC, t.id ASC
 `;
@@ -152,7 +153,7 @@ export async function sampleThemePreviews(
   const exclude = sanitizeIds(input.excludeIds);
   return withSql(async (connection) => {
     const rows = await connection.query<{ id: number }>(
-      `SELECT id FROM quiz_tasks WHERE theme_id = ?`,
+      `SELECT id FROM quiz_tasks WHERE theme_id = ? AND ${publishedQuizTaskSql()}`,
       [input.themeId],
     );
     const picked = pickBankIds(
@@ -211,7 +212,7 @@ export async function insertSampledTasks(
     await connection.beginTransaction();
     try {
       const allowed = await connection.query<{ id: number }>(
-        `SELECT id FROM quiz_tasks WHERE theme_id = ? AND id IN (${questionIds.map(() => "?").join(", ")})`,
+        `SELECT id FROM quiz_tasks WHERE theme_id = ? AND id IN (${questionIds.map(() => "?").join(", ")}) AND ${publishedQuizTaskSql()}`,
         [input.themeId, ...questionIds],
       );
       const allowedIds = new Set(allowed.map((row) => Number(row.id)));
@@ -276,7 +277,7 @@ export async function replaceBankTask(
       [dayId],
     );
     const pool = await connection.query<{ id: number }>(
-      `SELECT id FROM quiz_tasks WHERE theme_id = ?`,
+      `SELECT id FROM quiz_tasks WHERE theme_id = ? AND ${publishedQuizTaskSql()}`,
       [row.theme_id],
     );
     const next = pickBankIds(

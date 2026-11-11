@@ -68,6 +68,7 @@ type HomePageProps = {
     tab?: string | string[];
     page?: string | string[];
     q?: string | string[];
+    status?: string | string[];
     saved?: string | string[];
   }>;
 };
@@ -79,6 +80,12 @@ function readThemeParam(
     return raw[0];
   }
   return raw;
+}
+
+function readStatusParam(raw: string | string[] | undefined): string {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (value === "draft" || value === "published") return value;
+  return "all";
 }
 
 function readPageParam(raw: string | string[] | undefined): number {
@@ -111,6 +118,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const initialTab = readThemeParam(params.tab);
   const initialPage = readPageParam(params.page);
   const initialSearch = (readThemeParam(params.q) ?? "").trim().slice(0, 80);
+  const initialStatus = readStatusParam(params.status);
   const saved = readThemeParam(params.saved) === "1";
   const [{ CabinetHome }, needsCookieUpgrade] = await Promise.all([
     import("../_home/CabinetHome"),
@@ -131,6 +139,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         initialTab={initialTab}
         initialPage={initialPage}
         initialSearch={initialSearch}
+        initialStatus={initialStatus}
         needsCookieUpgrade={needsCookieUpgrade}
         saved={saved}
       />

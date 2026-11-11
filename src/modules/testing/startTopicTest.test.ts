@@ -591,7 +591,9 @@ test("a selected level narrows the pool before the fresh-task pick", async () =>
   );
 
   assert.deepEqual(result.taskIds, [10]);
-  const bank = calls.find((sql) => sql === "SELECT id FROM quiz_tasks WHERE theme_id = ?");
+  const bank = calls.find(
+    (sql) => sql === "SELECT id FROM quiz_tasks WHERE theme_id = ? AND status = 'published'",
+  );
   assert.ok(bank);
 });
 

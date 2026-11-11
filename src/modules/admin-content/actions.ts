@@ -9,6 +9,8 @@ import {
   deleteQuizTask,
   deleteQuizTasks,
   getQuizTaskById,
+  insertGeneratedDrafts,
+  publishQuizTask,
   updateQuizTask,
   updateQuizTaskDifficulty,
   updateThemeDifficultyGuide,
@@ -32,6 +34,7 @@ import {
 } from "./types";
 import {
   parseAdminQuizTaskInput,
+  parseHintShort,
   parseTaskId,
   parseTaskIds,
   parseTaskParamDrafts,
@@ -41,6 +44,14 @@ import {
   parseThemeParamInput,
   parseThemeParamUpdate,
 } from "./validate";
+import {
+  clampSimilarCount,
+  completeLlm,
+  generateSimilarDrafts,
+  llmConfigured,
+  readLlmConfig,
+  type LlmComplete,
+} from "./generateSimilar";
 
 export type SaveQuizTaskActionState =
   | { status: "idle" }
@@ -80,6 +91,16 @@ export type LoadQuizTaskActionState =
   | { status: "success"; task: AdminQuizTask }
   | { status: "error"; code: "invalid_input" | "not_found" | "forbidden" | "generic" };
 
+export type GenerateSimilarState =
+  | { status: "idle" }
+  | { status: "success"; saved: number; discarded: number }
+  | { status: "error"; code: "invalid_input" | "not_found" | "forbidden" | "llm" | "generic" };
+
+export type PublishQuizTaskState =
+  | { status: "idle" }
+  | { status: "success"; taskId: number }
+  | { status: "error"; code: "invalid_input" | "not_found" | "forbidden" | "generic" };
+
 function readFormFields(formData: FormData): Record<string, unknown> {
   return {
     taskText: formData.get("taskText"),
@@ -91,7 +112,9 @@ function readFormFields(formData: FormData): Record<string, unknown> {
     rightAnswerN: formData.get("rightAnswerN"),
     comments: formData.get("comments"),
     difficulty: formData.get("difficulty"),
+    hintShort: formData.get("hintShort"),
     taskId: formData.get("taskId"),
+    count: formData.get("count"),
   };
 }
 
@@ -194,6 +217,7 @@ export async function saveQuizTaskAction(
     const fields = readFormFields(formData);
     const input = {
       ...parseAdminQuizTaskInput(fields),
+      hintShort: parseHintShort(fields.hintShort),
       paramDrafts: parseTaskParamDrafts(formData),
     };
     const rawTaskId = fields.taskId;
@@ -698,6 +722,131 @@ export async function moveThemeLevelAction(
       return { status: "error", code: mapParamError(error) };
     }
     console.error("moveThemeLevelAction failed", error);
+    return { status: "error", code: "generic" };
+  }
+}
+
+type GenerateDeps = {
+  requireUser: typeof requireUser;
+  getQuizTaskById: typeof getQuizTaskById;
+  insertGeneratedDrafts: typeof insertGeneratedDrafts;
+  generateDrafts: typeof generateSimilarDrafts;
+  llmReady: () => boolean;
+  complete: LlmComplete;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+type PublishDeps = {
+  requireUser: typeof requireUser;
+  publishQuizTask: typeof publishQuizTask;
+  revalidatePath: typeof revalidatePath;
+  invalidateCatalogCache: typeof invalidateCatalogCache;
+};
+
+function defaultComplete(): LlmComplete {
+  return (system, user, options) => {
+    const config = readLlmConfig();
+    if (!config) throw new Error("llm_unconfigured");
+    return completeLlm(config, system, user, options);
+  };
+}
+
+export async function generateSimilarTasksAction(
+  _prev: GenerateSimilarState,
+  formData: FormData,
+  deps: GenerateDeps = {
+    requireUser,
+    getQuizTaskById,
+    insertGeneratedDrafts,
+    generateDrafts: generateSimilarDrafts,
+    llmReady: llmConfigured,
+    complete: defaultComplete(),
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<GenerateSimilarState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+  if (!deps.llmReady()) {
+    return { status: "error", code: "llm" };
+  }
+  try {
+    const fields = readFormFields(formData);
+    const taskId = parseTaskId(fields.taskId);
+    const count = clampSimilarCount(fields.count);
+    if (count == null) {
+      return { status: "error", code: "invalid_input" };
+    }
+    const task = await deps.getQuizTaskById(taskId);
+    if (!task) return { status: "error", code: "not_found" };
+    const result = await deps.generateDrafts({
+      source: {
+        id: task.id,
+        themeId: task.themeId,
+        difficulty: task.difficulty,
+        taskText: task.taskText,
+        answer1: task.answer1,
+        answer2: task.answer2,
+        answer3: task.answer3,
+        answer4: task.answer4,
+        rightAnswerN: task.rightAnswerN,
+        params: task.params,
+      },
+      count,
+      complete: deps.complete,
+    });
+    const saved = await deps.insertGeneratedDrafts(
+      task.id,
+      task.themeId,
+      task.params,
+      result.drafts,
+    );
+    if (saved.length > 0) bustCaches(deps);
+    return { status: "success", saved: saved.length, discarded: result.discarded };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      if (
+        error.code === "invalid_input" ||
+        error.code === "not_found" ||
+        error.code === "forbidden"
+      ) {
+        return { status: "error", code: error.code };
+      }
+      return { status: "error", code: "generic" };
+    }
+    console.error("generateSimilarTasksAction failed", error);
+    return { status: "error", code: "llm" };
+  }
+}
+
+export async function publishQuizTaskAction(
+  _prev: PublishQuizTaskState,
+  formData: FormData,
+  deps: PublishDeps = {
+    requireUser,
+    publishQuizTask,
+    revalidatePath,
+    invalidateCatalogCache,
+  },
+): Promise<PublishQuizTaskState> {
+  const user = await deps.requireUser();
+  if (!canImportContent(user.role)) {
+    return { status: "error", code: "forbidden" };
+  }
+  try {
+    const taskId = parseTaskId(formData.get("taskId"));
+    await deps.publishQuizTask(taskId);
+    bustCaches(deps);
+    return { status: "success", taskId };
+  } catch (error) {
+    if (error instanceof AdminContentError) {
+      const code = mapDeleteError(error);
+      return { status: "error", code: code === "in_use" ? "generic" : code };
+    }
+    console.error("publishQuizTaskAction failed", error);
     return { status: "error", code: "generic" };
   }
 }

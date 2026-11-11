@@ -1,3 +1,4 @@
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { ensureSelfScoreSchema } from "@/modules/self-score/schema";
 import { isValidSelfScore } from "@/modules/self-score/types";
@@ -34,10 +35,9 @@ const TASK_STATUS_UNANSWERED = 0;
 
 /**
  * Indexed id list for the theme — sample in Node instead of `ORDER BY RAND()`.
- * This is the whole topic bank the admin list pages through (`quiz_tasks.theme_id`
- * only): no workbook `problems`, no other theme, no generator.
+ * Published rows only: drafts stay in the admin bank.
  */
-const SQL_SELECT_TASK_IDS = `SELECT id FROM quiz_tasks WHERE theme_id = ?`;
+const SQL_SELECT_TASK_IDS = `SELECT id FROM quiz_tasks WHERE theme_id = ? AND ${publishedQuizTaskSql()}`;
 
 const SQL_INSERT_SESSION =
   "INSERT INTO task_sessions (user_id, session_type, theme_id, tasks_number, right_number, time, session_status, start_time, expire_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";

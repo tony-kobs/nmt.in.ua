@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import clsx from "clsx";
 import {
+  generateSimilarTasksAction,
+  publishQuizTaskAction,
   saveQuizTaskAction,
+  type GenerateSimilarState,
+  type PublishQuizTaskState,
   type SaveQuizTaskActionState,
 } from "@/modules/admin-content/actions";
 import type {
@@ -19,6 +23,8 @@ import { Select } from "@/components/ui/Select";
 import css from "./AdminTaskForm.module.css";
 
 const SAVE_INITIAL: SaveQuizTaskActionState = { status: "idle" };
+const GENERATE_INITIAL: GenerateSimilarState = { status: "idle" };
+const PUBLISH_INITIAL: PublishQuizTaskState = { status: "idle" };
 
 type FormValues = {
   taskText: string;
@@ -30,6 +36,7 @@ type FormValues = {
   rightAnswerN: string;
   difficulty: string;
   comments: string;
+  hintShort: string;
   paramValues: Record<number, string>;
 };
 
@@ -52,6 +59,7 @@ function valuesFromTask(task: AdminQuizTask): FormValues {
     rightAnswerN: String(task.rightAnswerN),
     difficulty: String(task.difficulty),
     comments: toAdminInput(task.comments),
+    hintShort: task.hintShort,
     paramValues,
   };
 }
@@ -67,6 +75,7 @@ function emptyValues(themeId: number): FormValues {
     rightAnswerN: "1",
     difficulty: "1",
     comments: "",
+    hintShort: "",
     paramValues: {},
   };
 }
@@ -78,6 +87,7 @@ export type AdminTaskFormProps = {
   task?: AdminQuizTask;
   nextTaskId?: number | null;
   backHref: string;
+  llmEnabled?: boolean;
 };
 
 export function AdminTaskForm({
@@ -87,6 +97,7 @@ export function AdminTaskForm({
   task,
   nextTaskId = null,
   backHref,
+  llmEnabled = false,
 }: AdminTaskFormProps) {
   const t = useTranslations("AdminContent");
   const router = useRouter();
@@ -97,6 +108,14 @@ export function AdminTaskForm({
   const [saveState, saveAction, savePending] = useActionState(
     saveQuizTaskAction,
     SAVE_INITIAL,
+  );
+  const [generateState, generateAction, generatePending] = useActionState(
+    generateSimilarTasksAction,
+    GENERATE_INITIAL,
+  );
+  const [publishState, publishAction, publishPending] = useActionState(
+    publishQuizTaskAction,
+    PUBLISH_INITIAL,
   );
 
   useEffect(() => {
@@ -109,6 +128,11 @@ export function AdminTaskForm({
 
     router.refresh();
   }, [saveState, router]);
+
+  useEffect(() => {
+    if (generateState.status !== "success" && publishState.status !== "success") return;
+    router.refresh();
+  }, [generateState, publishState, router]);
 
   const listHref =
     form.themeId && Number(form.themeId) > 0
@@ -139,6 +163,80 @@ export function AdminTaskForm({
       </div>
 
       <section className={css.panel} aria-label={t("formAria")}>
+        {mode === "edit" && task ? (
+          <div className={css.draftBox}>
+            <p className={css.badgeRow}>
+              <span className={task.status === "draft" ? css.badgeDraft : css.badgeLive}>
+                {task.status === "draft" ? t("badgeDraft") : t("badgePublished")}
+              </span>
+              {task.sourceTaskId ? (
+                <Link href={`/tasks/${task.sourceTaskId}`} className={css.sourceLink}>
+                  {t("sourceTask", { id: task.sourceTaskId })}
+                </Link>
+              ) : null}
+            </p>
+            {task.status === "draft" ? <p className={css.hint}>{t("draftNote")}</p> : null}
+            {task.status === "draft" ? (
+              <form action={publishAction} className={css.generateForm}>
+                <input type="hidden" name="taskId" value={task.id} />
+                <button type="submit" className={css.publishBtn} disabled={publishPending || savePending}>
+                  {publishPending ? t("publishing") : t("publish")}
+                </button>
+              </form>
+            ) : null}
+            {llmEnabled ? (
+              <form action={generateAction} className={css.generateForm}>
+                <input type="hidden" name="taskId" value={task.id} />
+                <label className={css.generateCount}>
+                  <span className={css.label}>{t("generateCount")}</span>
+                  <input
+                    className={css.countInput}
+                    type="number"
+                    name="count"
+                    min={1}
+                    max={5}
+                    defaultValue={3}
+                    inputMode="numeric"
+                    aria-label={t("generateCount")}
+                    disabled={generatePending || savePending}
+                  />
+                </label>
+                <button
+                  type="submit"
+                  className={css.generateBtn}
+                  disabled={generatePending || savePending}
+                >
+                  {generatePending ? t("generating") : t("generateSimilar")}
+                </button>
+              </form>
+            ) : null}
+            {publishState.status === "success" ? (
+              <p className={clsx(css.alert, css.alertSuccess)} role="status">
+                {t("published")}
+              </p>
+            ) : null}
+            {generateState.status === "success" ? (
+              <p className={clsx(css.alert, css.alertSuccess)} role="status">
+                {generateState.saved === 0
+                  ? t("generatedNone")
+                  : t("generated", {
+                      saved: generateState.saved,
+                      discarded: generateState.discarded,
+                    })}
+              </p>
+            ) : null}
+            {generateState.status === "error" ? (
+              <p className={clsx(css.alert, css.alertError)} role="alert">
+                {t(`errors.${generateState.code}`)}
+              </p>
+            ) : null}
+            {publishState.status === "error" ? (
+              <p className={clsx(css.alert, css.alertError)} role="alert">
+                {t(`errors.${publishState.code}`)}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <form action={saveAction} className={css.form}>
           {mode === "edit" && task ? (
             <input type="hidden" name="taskId" value={task.id} />
@@ -277,6 +375,20 @@ export function AdminTaskForm({
               </div>
             )}
           </div>
+
+          <label className={css.field}>
+            <span className={css.label}>{t("hintShort")}</span>
+            <textarea
+              className={css.hintArea}
+              name="hintShort"
+              value={form.hintShort}
+              onChange={(e) => setForm({ ...form, hintShort: e.target.value })}
+              rows={2}
+              maxLength={280}
+              disabled={savePending}
+            />
+            <span className={css.hint}>{t("hintShortHint")}</span>
+          </label>
 
           <label className={css.field}>
             <span className={css.label}>{t("comments")}</span>

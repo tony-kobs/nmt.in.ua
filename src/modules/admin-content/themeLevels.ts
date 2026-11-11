@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import { readStoredRule } from "@/modules/testing/themeLevelMatch";
 import {
   AdminContentError,
@@ -34,6 +35,7 @@ const SQL_RULES = `
 const SQL_TASK_IDS = `
   SELECT id, theme_id
   FROM quiz_tasks
+  WHERE ${publishedQuizTaskSql()}
   ORDER BY theme_id ASC, id ASC
 `;
 

@@ -1,4 +1,5 @@
 import type { SqlConnection } from "@/lib/db/mysql";
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import { SESSION_STATUS_COMPLETED } from "@/modules/sessions/types";
 import { isSessionExpired } from "@/modules/testing/sessionExpiry";
 import { TASK_STATUS_UNANSWERED } from "@/modules/testing/types";
@@ -32,10 +33,11 @@ const SQL_PROGRESS_MAPPINGS = `
   ORDER BY t2s.id ASC
 `;
 
-/** Whole bank — theme filter happens in `selectDiagnosticTask`. */
+/** Published bank — theme filter happens in `selectDiagnosticTask`. */
 const SQL_BANK_CANDIDATES = `
   SELECT id, theme_id AS themeId, difficulty
   FROM quiz_tasks
+  WHERE ${publishedQuizTaskSql()}
 `;
 
 const SQL_INSERT_MAPPING = `

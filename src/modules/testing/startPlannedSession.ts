@@ -1,3 +1,4 @@
+import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { ensureMentorAssignmentsSchema } from "@/modules/mentor-assignments/schema";
 import {
@@ -46,13 +47,13 @@ const SQL_COUNT_MAPPINGS = `
   WHERE session_id = ?
 `;
 
-/** Same topic bank as the admin list: `quiz_tasks` of this theme only. */
-const SQL_SELECT_TASK_IDS = `SELECT id FROM quiz_tasks WHERE theme_id = ?`;
+/** Published topic bank of this theme. Drafts are not handed to a student. */
+const SQL_SELECT_TASK_IDS = `SELECT id FROM quiz_tasks WHERE theme_id = ? AND ${publishedQuizTaskSql()}`;
 const SQL_SELECT_TASK_IDS_BY_DIFFICULTY = `${SQL_SELECT_TASK_IDS} AND difficulty = ?`;
 const SQL_SELECT_LEARNING_TASKS = `
   SELECT st.quiz_task_id AS id
   FROM session_tasks st
-  INNER JOIN quiz_tasks q ON q.id = st.quiz_task_id
+  INNER JOIN quiz_tasks q ON q.id = st.quiz_task_id AND ${publishedQuizTaskSql("q")}
   WHERE st.session_id = ?
   ORDER BY st.position ASC, st.id ASC
 `;

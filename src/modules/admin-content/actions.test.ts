@@ -5,6 +5,8 @@ import {
   deleteQuizTaskAction,
   deleteQuizTasksAction,
   deleteThemeParamAction,
+  generateSimilarTasksAction,
+  publishQuizTaskAction,
   saveQuizTaskAction,
   updateThemeDifficultyGuideAction,
 } from "./actions";
@@ -37,6 +39,9 @@ const sampleTask = {
   comments: "",
   difficulty: 3,
   params: [],
+  status: "published" as const,
+  sourceTaskId: null,
+  hintShort: "",
 };
 
 function form(entries: Record<string, string>): FormData {
@@ -270,4 +275,82 @@ test("deleteQuizTasksAction rejects an empty selection", async () => {
     },
   );
   assert.deepEqual(state, { status: "error", code: "invalid_input" });
+});
+
+test("generateSimilarTasksAction saves only the drafts the checker kept", async () => {
+  const saved: number[] = [];
+  const state = await generateSimilarTasksAction(
+    { status: "idle" },
+    form({ taskId: "10", count: "2" }),
+    {
+      requireUser: async () => admin,
+      getQuizTaskById: async () => sampleTask,
+      generateDrafts: async () => ({
+        drafts: [
+          {
+            name: "Нова",
+            taskText: "Скільки буде 9 + 2?",
+            themeId: 2,
+            answer1: "10",
+            answer2: "11",
+            answer3: "12",
+            answer4: "13",
+            rightAnswerN: 2,
+            comments: "",
+            difficulty: 3,
+            hintShort: "Додай до десяти.",
+          },
+        ],
+        discarded: 1,
+      }),
+      insertGeneratedDrafts: async () => {
+        saved.push(1);
+        return [41];
+      },
+      llmReady: () => true,
+      complete: async () => "",
+      revalidatePath: () => undefined,
+      invalidateCatalogCache: () => undefined,
+    },
+  );
+  assert.deepEqual(saved, [1]);
+  assert.deepEqual(state, { status: "success", saved: 1, discarded: 1 });
+});
+
+test("generateSimilarTasksAction stays closed without a model key", async () => {
+  const state = await generateSimilarTasksAction(
+    { status: "idle" },
+    form({ taskId: "10", count: "1" }),
+    {
+      requireUser: async () => admin,
+      getQuizTaskById: async () => {
+        throw new Error("should not load");
+      },
+      generateDrafts: async () => {
+        throw new Error("should not generate");
+      },
+      insertGeneratedDrafts: async () => {
+        throw new Error("should not insert");
+      },
+      llmReady: () => false,
+      complete: async () => "",
+      revalidatePath: () => undefined,
+      invalidateCatalogCache: () => undefined,
+    },
+  );
+  assert.deepEqual(state, { status: "error", code: "llm" });
+});
+
+test("publishQuizTaskAction publishes one task", async () => {
+  let published = 0;
+  const state = await publishQuizTaskAction({ status: "idle" }, form({ taskId: "10" }), {
+    requireUser: async () => admin,
+    publishQuizTask: async (taskId) => {
+      published = taskId;
+    },
+    revalidatePath: () => undefined,
+    invalidateCatalogCache: () => undefined,
+  });
+  assert.equal(published, 10);
+  assert.deepEqual(state, { status: "success", taskId: 10 });
 });
