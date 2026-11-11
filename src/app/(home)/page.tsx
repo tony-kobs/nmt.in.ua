@@ -67,6 +67,7 @@ type HomePageProps = {
     theme?: string | string[];
     tab?: string | string[];
     page?: string | string[];
+    q?: string | string[];
     saved?: string | string[];
   }>;
 };
@@ -109,6 +110,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const initialThemeId = parseThemeQueryParam(readThemeParam(params.theme));
   const initialTab = readThemeParam(params.tab);
   const initialPage = readPageParam(params.page);
+  const initialSearch = (readThemeParam(params.q) ?? "").trim().slice(0, 80);
   const saved = readThemeParam(params.saved) === "1";
   const [{ CabinetHome }, needsCookieUpgrade] = await Promise.all([
     import("../_home/CabinetHome"),
@@ -128,6 +130,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         initialThemeId={initialThemeId}
         initialTab={initialTab}
         initialPage={initialPage}
+        initialSearch={initialSearch}
         needsCookieUpgrade={needsCookieUpgrade}
         saved={saved}
       />

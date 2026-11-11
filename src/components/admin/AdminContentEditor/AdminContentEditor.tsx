@@ -38,11 +38,41 @@ function formatThemeLabel(index: number, theme: AdminThemeOption): string {
   return `${index + 1}. ${theme.name}`;
 }
 
-function listHref(themeId: number | null, page: number): string {
+function listHref(themeId: number | null, page: number, search = ""): string {
+  const query = search.trim();
   return queryHref("/", {
     theme: themeId != null ? String(themeId) : null,
     page: page > 1 ? String(page) : null,
+    q: query || null,
   });
+}
+
+function PencilIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4.5 19.5 5.6 15 15.2 5.4a1.6 1.6 0 0 1 2.3 0l1.1 1.1a1.6 1.6 0 0 1 0 2.3L9 18.4 4.5 19.5Z"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+      />
+      <path d="m13.8 6.8 3.4 3.4" stroke="currentColor" strokeWidth="1.75" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M5 7.5h14M9.5 7.4V5.8A1.3 1.3 0 0 1 10.8 4.5h2.4a1.3 1.3 0 0 1 1.3 1.3v1.6M8 7.5l.7 11.2a1.3 1.3 0 0 0 1.3 1.2h3.9a1.3 1.3 0 0 0 1.3-1.2L16 7.5"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
 function DifficultyControl({
@@ -176,12 +206,14 @@ type AdminContentEditorProps = {
   themes: AdminThemeOption[];
   initialThemeId?: number;
   taskPage: AdminQuizTaskListPage;
+  search?: string;
 };
 
 export function AdminContentEditor({
   themes,
   initialThemeId,
   taskPage,
+  search = "",
 }: AdminContentEditorProps) {
   const t = useTranslations("AdminContent");
   const router = useRouter();
@@ -377,6 +409,29 @@ export function AdminContentEditor({
           )}
         </div>
 
+        {themeId ? (
+          <form className={css.search} action="/" method="get">
+            <input type="hidden" name="theme" value={themeId} />
+            <label className={css.searchLabel} htmlFor="admin-task-search">
+              {t("searchLabel")}
+            </label>
+            <input
+              id="admin-task-search"
+              key={`${themeId ?? ""}:${search}`}
+              className={css.input}
+              type="search"
+              name="q"
+              defaultValue={search}
+              placeholder={t("searchPlaceholder")}
+              autoComplete="off"
+              maxLength={80}
+            />
+            <button type="submit" className={css.searchBtn}>
+              {t("search")}
+            </button>
+          </form>
+        ) : null}
+
         {deleteState.status === "error" ? (
           <p className={clsx(css.alert, css.alertError)} role="alert">
             {t(`errors.${deleteState.code}`)}
@@ -404,7 +459,7 @@ export function AdminContentEditor({
         ) : null}
 
         {tasks.length === 0 ? (
-          <p className={css.empty}>{t("empty")}</p>
+          <p className={css.empty}>{search.trim() ? t("searchEmpty") : t("empty")}</p>
         ) : (
           <>
             <form
@@ -449,6 +504,7 @@ export function AdminContentEditor({
                           type="checkbox"
                           checked={allOnPage}
                           disabled={busy || pageIds.length === 0}
+                          tabIndex={-1}
                           aria-label={t("selectAllAria")}
                           onChange={(event) => togglePage(event.target.checked)}
                         />
@@ -475,12 +531,17 @@ export function AdminContentEditor({
                             type="checkbox"
                             checked={selected.has(task.id)}
                             disabled={busy}
+                            tabIndex={-1}
                             aria-label={t("selectAria", { name: task.label })}
                             onChange={() => toggleTask(task.id)}
                           />
                         </label>
                       </td>
-                      <td>
+                      <td className={css.colTask}>
+                        <span className={css.taskId}>#{task.id}</span>
+                        {task.name && !task.taskText.includes(task.name) ? (
+                          <span className={css.taskName}>{task.name}</span>
+                        ) : null}
                         <span className={css.taskPreview}>
                           <MathText text={task.taskText} />
                         </span>
@@ -499,9 +560,10 @@ export function AdminContentEditor({
                         <Link
                           href={`/tasks/${task.id}`}
                           className={css.editBtn}
+                          tabIndex={-1}
                           aria-label={t("editAria", { name: task.label })}
                         >
-                          <span aria-hidden>|</span>
+                          <PencilIcon />
                         </Link>
                       </td>
                       <td className={css.colAction}>
@@ -518,10 +580,11 @@ export function AdminContentEditor({
                           <button
                             type="submit"
                             className={css.deleteBtn}
+                            tabIndex={-1}
                             aria-label={t("deleteAria", { name: task.label })}
                             disabled={busy}
                           >
-                            <span aria-hidden>×</span>
+                            <TrashIcon />
                           </button>
                         </form>
                       </td>
@@ -535,7 +598,7 @@ export function AdminContentEditor({
               <nav className={css.pager} aria-label={t("pagerAria")}>
                 {page > 1 ? (
                   <Link
-                    href={listHref(themeId, page - 1)}
+                    href={listHref(themeId, page - 1, search)}
                     className={css.pagerBtn}
                   >
                     ← {t("prevPage")}
@@ -550,7 +613,7 @@ export function AdminContentEditor({
                 </p>
                 {page < totalPages ? (
                   <Link
-                    href={listHref(themeId, page + 1)}
+                    href={listHref(themeId, page + 1, search)}
                     className={css.pagerBtn}
                   >
                     {t("nextPage")} →

@@ -70,7 +70,11 @@ const SQL_SESSION_TASKS = `
     'mcq' AS task_kind,
     qt.hint_short AS card_short
   FROM tasks2session t2s
-  INNER JOIN quiz_tasks qt ON qt.id = t2s.task_id
+  INNER JOIN task_sessions ts ON ts.id = t2s.session_id
+  INNER JOIN quiz_tasks qt
+    ON qt.id = t2s.task_id
+   AND t2s.task_type = 1
+   AND (ts.theme_id IS NULL OR qt.theme_id = ts.theme_id)
   WHERE t2s.session_id = ?
   ORDER BY t2s.id ASC
 `;

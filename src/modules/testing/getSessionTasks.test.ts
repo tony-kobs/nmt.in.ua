@@ -125,7 +125,10 @@ test("getSessionTasks joins tasks2session with quiz_tasks and maps client-safe f
   assert.match(calls[0]!.sql, /t\.code AS theme_code/);
   assert.deepEqual(calls[0]?.params, [42, 1]);
   assert.match(calls[1]!.sql, /FROM tasks2session t2s/);
-  assert.match(calls[1]!.sql, /INNER JOIN quiz_tasks qt ON qt\.id = t2s\.task_id/);
+  assert.match(calls[1]!.sql, /INNER JOIN quiz_tasks qt/);
+  assert.match(calls[1]!.sql, /qt\.id = t2s\.task_id/);
+  assert.match(calls[1]!.sql, /t2s\.task_type = 1/);
+  assert.match(calls[1]!.sql, /ts\.theme_id IS NULL OR qt\.theme_id = ts\.theme_id/);
   assert.match(calls[1]!.sql, /WHERE t2s\.session_id = \?/);
   assert.match(calls[1]!.sql, /CASE WHEN t2s.retry_used = 1 AND t2s.status = -1 THEN qt.right_answer_n ELSE NULL/);
   assert.match(calls[1]!.sql, /CASE WHEN t2s.retry_used = 1 AND t2s.status = -1 THEN qt.comments ELSE NULL/);
