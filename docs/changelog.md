@@ -12,7 +12,7 @@
 - Схвалено: так
 - Автор: sasha-dubrovina28
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/332
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-12 — Feature/intern sasha-dubrovina28 (#331)
 
@@ -23,7 +23,7 @@
 - Схвалено: ні
 - Автор: sasha-dubrovina28
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/331
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-11 — prevent roleswitch flickering on mobile and desktop (#330)
 
@@ -34,7 +34,7 @@
 - Схвалено: ні
 - Автор: Yulia2123
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/330
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-11 — ci: новини релізу пушить у dev через deploy key (#329)
 
@@ -45,7 +45,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/329
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-11 — fix: схожі завдання на Groq не гублять десяткову кому (#327)
 
@@ -777,6 +777,12 @@
 ## Новини для сайту
 
 <!-- changelog:news -->
+### 2026-11-12 — [реліз #333](https://github.com/tony-kobs/nmt.in.ua/pull/333)
+
+- [fix: use design tokens, mobile-first css, add header and footer](https://github.com/tony-kobs/nmt.in.ua/pull/332) — Додано Header і Footer на сторінці стажера.
+- [Feature/intern sasha-dubrovina28](https://github.com/tony-kobs/nmt.in.ua/pull/331) — На сайт (в футері) зʼявилася сторінка Олександри з інформацією про виконане завдання «Калькулятор множення».
+- [prevent roleswitch flickering on mobile and desktop](https://github.com/tony-kobs/nmt.in.ua/pull/330) — Покращено відображення панелі перемикання ролей на mobile, desktop. Тепер вона не повинна перекривати вміст сторінки, а на мобільних пристроях зручно з'являється під час прокручування вгору та приховується під час прокручування вниз.
+
 ### 2026-11-11 — [реліз #324](https://github.com/tony-kobs/nmt.in.ua/pull/324)
 
 - [Чернетки схожих завдань з перевіркою (074)](https://github.com/tony-kobs/nmt.in.ua/pull/323) — Учень як і раніше бачить лише опубліковані завдання. Чернетка в тест, діагностику, призначення і марафон не потрапляє.
