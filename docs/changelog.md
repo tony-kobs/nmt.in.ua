@@ -9,7 +9,7 @@
 - Для людей: Додано Header і Footer на сторінці стажера.
 - Скрінкаст: потрібен
 - Запис: https://github.com/user-attachments/assets/b947f67a-4fc9-44ab-b21b-d2130c5cf0e6
-- Схвалено: ні
+- Схвалено: так
 - Автор: sasha-dubrovina28
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/332
 <!-- released: no -->
