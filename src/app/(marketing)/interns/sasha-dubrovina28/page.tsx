@@ -1,20 +1,17 @@
 import { getTranslations } from "next-intl/server";
+import { LandingHeader } from "@/components/welcome/LandingHeader/LandingHeader";
+import { LandingFooter } from "@/components/welcome/LandingFooter/LandingFooter";
+import landing from "@/components/welcome/landing.module.css";
 import InternCard from "./InternCard";
+import styles from "./page.module.css";
 
 export default async function InternPage() {
   const t = await getTranslations("InternMyPage");
 
   return (
-    <main
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        width: "100%",
-        minWidth: 0,
-        padding: "40px 16px",
-        boxSizing: "border-box",
-      }}
-    >
+    <div className={`${landing.page} ${styles.page}`}>
+      <LandingHeader />
+    <main className={styles.main}>
       <InternCard
         name={t("name")}
         taskDescription={t("task1")}
@@ -23,6 +20,8 @@ export default async function InternPage() {
         codeUrl="https://github.com/sasha-dubrovina28/math-trainer"
         liveUrl="https://math-trainer-phi.vercel.app/"
       />
-    </main>
+      </main>
+      <LandingFooter/>
+    </div>
   );
 }
