@@ -1,7 +1,14 @@
 "use client";
 
 import clsx from "clsx";
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type FocusEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type FocusEvent,
+} from "react";
 import { useFormStatus } from "react-dom";
 import { useTranslations } from "next-intl";
 import { switchRoleAction } from "@/modules/auth/switchRoleAction";
@@ -99,36 +106,39 @@ export function RoleSwitch({
       onFocus={motion.pin}
       onBlur={motion.release}
     >
-    <form
-      action={switchRoleAction}
-      className={clsx(css.bar, variant === "drawer" ? css.barDrawer : css.barContent)}
-      data-viewing={viewing ? "true" : undefined}
-      inert={motion.hidden ? true : undefined}
-    >
-      <p id={statusId} className={css.status} role="status">
-        {viewing
-          ? t("roleSwitchStatus", { role: effectiveLabel, real: realLabel })
-          : t("roleSwitchIdle")}
-      </p>
-      <div className={css.choices} role="group" aria-labelledby={statusId}>
-        <RoleChoice
-          value="student"
-          pressed={effectiveRole === "student"}
-          label={t("roleSwitchStudent")}
-        />
-        <RoleChoice
-          value="teacher"
-          pressed={effectiveRole === "teacher"}
-          label={t("roleSwitchTeacher")}
-        />
-        <RoleChoice
-          value="self"
-          pressed={!viewing}
-          emphasize={viewing}
-          label={t("roleSwitchSelf", { role: realLabel })}
-        />
-      </div>
-    </form>
+      <form
+        action={switchRoleAction}
+        className={clsx(
+          css.bar,
+          variant === "drawer" ? css.barDrawer : css.barContent
+        )}
+        data-viewing={viewing ? "true" : undefined}
+        inert={motion.hidden ? true : undefined}
+      >
+        <p id={statusId} className={css.status} role="status">
+          {viewing
+            ? t("roleSwitchStatus", { role: effectiveLabel, real: realLabel })
+            : t("roleSwitchIdle")}
+        </p>
+        <div className={css.choices} role="group" aria-labelledby={statusId}>
+          <RoleChoice
+            value="student"
+            pressed={effectiveRole === "student"}
+            label={t("roleSwitchStudent")}
+          />
+          <RoleChoice
+            value="teacher"
+            pressed={effectiveRole === "teacher"}
+            label={t("roleSwitchTeacher")}
+          />
+          <RoleChoice
+            value="self"
+            pressed={!viewing}
+            emphasize={viewing}
+            label={t("roleSwitchSelf", { role: realLabel })}
+          />
+        </div>
+      </form>
     </div>
   );
 }
