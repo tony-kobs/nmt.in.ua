@@ -1,19 +1,19 @@
 .card {
     width: 100%;
-    max-width: 640px;
-    padding: 32px;
-    border-radius: 20px;
-    background: #ffffff;
-    color: #20212d;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+    max-width: 100%;
+    padding: var(--space-md);
+    border-radius: var(--radius-lg);
+    background: var(--sheet);
+    color: var(--ink);
+    box-shadow: var(--shadow-md);
 }
 
 .header {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid #e5e7eb;
+    gap: var(--space-sm);
+    padding-bottom: var(--space-lg);
+    border-bottom: 1px solid var(--line);
 }
 
 .avatar {
@@ -21,105 +21,106 @@
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    width: 56px;
-    height: 56px;
-    border-radius: 14px;
-    background: #eef0ff;
-    font-size: 28px;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    background: var(--ultimate-bg);
+    font-size: 22px;
 }
 
 .name {
     min-width: 0;
     margin: 0;
-    font-size: 26px;
+    font-size: var(--fs-h3);
     font-weight: 700;
     line-height: 1.2;
     overflow-wrap: anywhere;
 }
 
 .content {
-    padding-top: 24px;
+    padding-top: var(--space-lg);
 }
 
 .description {
-    margin: 0 0 24px;
-    color: #555b69;
-    font-size: 16px;
+    margin: 0 0 var(--space-lg);
+    color: var(--muted);
+    font-size: var(--fs-body);
     line-height: 1.6;
     overflow-wrap: anywhere;
 }
 
 .links {
     display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
+    flex-wrap: column;
+    gap: var(--space-sm);
 }
 
 .codeLink,
 .liveLink {
     display: inline-flex;
+    width: 100%;
     min-height: 44px;
     align-items: center;
     justify-content: center;
-    padding: 12px 18px;
-    border-radius: 10px;
-    font-size: 14px;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    font-size: var(--fs-small);
     font-weight: 600;
     text-align: center;
-    text-decoration: none;
-    transition: background-color 0.2s;
 }
 
 .codeLink {
-    background: #f0f1f5;
-    color: #252631;
+    background: var(--surface);
+    color: var(--ink);
 }
 
 .codeLink:hover {
-    background: #e2e4ea;
+    background: var(--surface-hover);
 }
 
 .liveLink {
-    background: #4f46e5;
-    color: #ffffff;
+    background: var(--green-fill);
+    color: var(--on-accent);
 }
-
-.liveLink:hover {
-    background: #4338ca;
-}
-
-.codeLink:focus-visible,
-.liveLink:focus-visible {
-    outline: 3px solid #818cf8;
-    outline-offset: 3px;
-}
-
-@media (max-width: 480px) {
+@media (min-width: 768px) {
     .card {
-        padding: 20px;
-        border-radius: 16px;
+        padding: var(--space-xl);
+        max-width: 640px;
     }
-
-    .header {
-        gap: 12px;
-    }
-
     .avatar {
-        width: 44px;
-        height: 44px;
-        font-size: 22px;
+        width: 56px;
+        height: 56px;
+        font-size: 28px;
     }
-
-    .name {
-        font-size: 21px;
-    }
-
     .links {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
     }
 
     .codeLink,
     .liveLink {
-        width: 100%;
+        width: auto;
+    }
+}
+@media (min-width: 1240px) {
+    .card {
+        max-width: 720px;
+    }
+}
+@media (min-width: 1440px) {
+    .card {
+        max-width: 800px;
+        padding: var(--space-2xl);
+        }
+    
+    .avatar {
+        width: 64px;
+        height: 64px;
+        font-size: 32px;
+    }
+}
+@media (min-width: 1920px) {
+    .card {
+        max-width: 880px;
     }
 }
