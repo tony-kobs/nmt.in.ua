@@ -79,27 +79,26 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
               {progress?.materialsViewed ? (
                 <section className={css.stack} aria-labelledby="day-tasks">
                   <h2 id="day-tasks">{t("tasksTitle")}</h2>
-                  {submitted ? (
-                    <p className={css.alert} role="status">
-                      {progress.passed
-                        ? t("markPassed", { score: progress.score ?? 0 })
-                        : t("markFailed", { score: progress.score ?? 0 })}
-                    </p>
-                  ) : null}
-                  {submitted ? (
-                    <p className={css.meta}>
-                      {t("dayTime", { time: dayTime })}
-                      {" · "}
-                      {t("totalTime", { time: totalTime })}
-                    </p>
-                  ) : null}
-                  {submitted && rankNote ? (
-                    <p className={css.rankNote} role="status">{rankNote}</p>
-                  ) : null}
-                  {submitted ? (
-                    <div className={css.stack}>
-                      {reviewIntro ? <p className={css.lead}>{reviewIntro}</p> : null}
-                      {review.map((task, index) => (
+                    {submitted ? (
+                      <>
+                        <div className={css.resultBlock}>
+                          <p className={css.alert} role="status">
+                            {progress.passed
+                              ? t("markPassed", { score: progress.score ?? 0 })
+                              : t("markFailed", { score: progress.score ?? 0 })}
+                          </p>
+                          <p className={css.meta}>
+                            {t("dayTime", { time: dayTime })}
+                            {" · "}
+                            {t("totalTime", { time: totalTime })}
+                          </p>
+                          {rankNote ? (
+                            <p className={css.rankNote} role="status">{rankNote}</p>
+                          ) : null}
+                          {reviewIntro ? <p className={css.lead}>{reviewIntro}</p> : null}
+                        </div>
+                        <div className={css.stack}>
+                          {review.map((task, index) => (
                         <TestTaskCard
                           key={task.id}
                           heading="h3"
@@ -154,7 +153,8 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                           </ol>
                         </TestTaskCard>
                       ))}
-                    </div>
+                        </div>
+                        </>
                   ) : (
                     <form id={MARATHON_DAY_FORM_ID} action={submitDayAction} className={css.stack}>
                       <MarathonDayDraftRestore />
