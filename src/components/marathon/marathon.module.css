@@ -200,7 +200,16 @@
 }
 
 .narrow .buttonQuiet {
-  background: transparent;
+  background: var(--paper);
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.narrow .buttonQuiet:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.narrow .buttonQuiet:active:not(:disabled) {
+  background: var(--paper-deep);
 }
 
 .button:focus-visible,
