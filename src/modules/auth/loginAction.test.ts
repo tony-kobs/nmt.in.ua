@@ -98,3 +98,28 @@ test("loginAction opens a session and redirects on success", async () => {
   assert.equal(state.message, "redirect:/topic");
   assert.equal(cookieUser, 7);
 });
+
+test("parent login always opens its own cabinet, including with another next path", async () => {
+  for (const next of [undefined, "/topic", "/assign", "//example.com"]) {
+    let openedRole: AuthUser["role"] | undefined;
+    await assert.rejects(
+      loginAction(
+        IDLE,
+        form({
+          email: "olenka@example.com",
+          password: "correct-horse",
+          ...(next === undefined ? {} : { next }),
+        }),
+        {
+          findUserByEmail: async () => account({ role: "parent" }),
+          recordLoginPresence: async () => undefined,
+          cancelDeletion: async () => undefined,
+          setSessionCookie: async (user) => { openedRole = user.role; },
+          redirectTo: (path) => { throw new Error(`redirect:${path}`); },
+        },
+      ),
+      { message: "redirect:/parent" },
+    );
+    assert.equal(openedRole, "parent");
+  }
+});

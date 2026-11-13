@@ -82,6 +82,7 @@ const EMPTY_ROLE_COUNTS: AdminProfilesRoleCounts = {
   teacher: 0,
   admin: 0,
   dev: 0,
+  parent: 0,
 };
 
 function isCountedRole(role: string): role is UserRole {

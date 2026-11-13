@@ -18,7 +18,13 @@ test("createUser inserts a student and returns AuthUser", async () => {
     },
     execute: async (sql, params = []) => {
       if (sql.includes("CREATE TABLE")) {
+        if (sql.includes("app_users")) {
+          assert.match(sql, /role ENUM\('student', 'teacher', 'admin', 'dev', 'parent'\)/);
+        }
         return { insertId: 0, affectedRows: 0 };
+      }
+      if (sql.includes("MODIFY COLUMN role")) {
+        assert.match(sql, /ENUM\('student', 'teacher', 'admin', 'dev', 'parent'\)/);
       }
       if (sql.includes("ON DUPLICATE KEY UPDATE")) {
         return { insertId: 0, affectedRows: 1 };

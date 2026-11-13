@@ -1,4 +1,8 @@
 {
+  "ParentDashboard": {
+    "title": "Parent dashboard",
+    "placeholder": "Your children’s progress will appear here"
+  },
   "Dashboard": {
     "hideMenu": "Hide menu"
   },
@@ -20,7 +24,8 @@
       "student": "Student",
       "teacher": "Teacher",
       "admin": "Admin",
-      "dev": "Developer"
+      "dev": "Developer",
+      "parent": "Parent"
     },
     "viewingAs": "Viewing as {role}",
     "roleSwitchIdle": "You can temporarily open the student or teacher cabinet. The stored role does not change.",
@@ -1898,7 +1903,8 @@
     "roles": {
       "student": "Student",
       "teacher": "Teacher",
-      "admin": "Admin"
+      "admin": "Admin",
+      "parent": "Parent"
     },
     "errors": {
       "requiredFields": "Enter your email and password.",

@@ -1,4 +1,8 @@
 {
+  "ParentDashboard": {
+    "title": "Elternbereich",
+    "placeholder": "Hier wird der Lernfortschritt Ihrer Kinder angezeigt"
+  },
   "Dashboard": {
     "hideMenu": "Menü ausblenden"
   },
@@ -20,7 +24,8 @@
       "student": "Schüler",
       "teacher": "Lehrer",
       "admin": "Admin",
-      "dev": "Entwickler"
+      "dev": "Entwickler",
+      "parent": "Eltern"
     },
     "viewingAs": "Ansicht: {role}",
     "roleSwitchIdle": "Du kannst vorübergehend das Schüler- oder Lehrerkabinett öffnen. Die gespeicherte Rolle ändert sich nicht.",
@@ -1898,7 +1903,8 @@
     "roles": {
       "student": "Schüler",
       "teacher": "Lehrkraft",
-      "admin": "Admin"
+      "admin": "Admin",
+      "parent": "Eltern"
     },
     "errors": {
       "requiredFields": "Gib E-Mail und Passwort ein.",
