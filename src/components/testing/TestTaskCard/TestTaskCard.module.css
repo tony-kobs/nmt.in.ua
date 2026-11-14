@@ -115,10 +115,13 @@
 
 .option {
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 0.15rem var(--space-sm);
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   min-height: 44px;
   margin: 0;
   padding: 10px 14px;
@@ -130,17 +133,55 @@
   font-weight: 600;
   line-height: 1.35;
   text-align: start;
+  white-space: normal;
   cursor: pointer;
 }
 
+.option:has(.mark) {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.option:has(> svg) {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+}
+
 .mark {
-  flex-shrink: 0;
+  grid-column: 1;
   font-weight: 800;
+  line-height: 1.35;
 }
 
 .optionText {
-  flex: 1;
+  grid-column: 2;
   min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.option:not(:has(.mark)) .optionText {
+  grid-column: 1;
+}
+
+.option > svg {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: center;
+}
+
+.option > :not(.mark):not(.optionText):not(input):not(svg) {
+  grid-column: 1 / -1;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.optionText > * {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .option:has(img) {
