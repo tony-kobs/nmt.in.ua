@@ -14,6 +14,17 @@
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/339
 <!-- released: no -->
 
+### 2026-11-14 — fix: markdown у вступі і матеріалах дня марафону (#338)
+
+- Для команди: fix: markdown у вступі і матеріалах дня марафону
+- Для людей: —
+- Скрінкаст: не потрібен
+- Запис: —
+- Схвалено: ні
+- Автор: tony-kobs
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/338
+<!-- released: no -->
+
 ### 2026-11-12 — fix: use design tokens, mobile-first css, add header and footer (#332)
 
 - Для команди: Токени замість сирих кольорів, mobile-first брейкпоінти (768 / 1240 / 1440 / 1920); Додано Header і Footer.

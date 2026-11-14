@@ -12,7 +12,8 @@ import {
 } from "@/modules/marathons/daily/actions";
 import { formatKyivWhen } from "@/modules/marathons/daily/calendar";
 import { durationLocale, formatMarathonDurationOrDash } from "@/modules/marathons/daily/durationText";
-import { loomEmbedSrc, renderSafeMarkdown, youtubeEmbedSrc } from "@/modules/marathons/daily/richText";
+import { loomEmbedSrc, youtubeEmbedSrc } from "@/modules/marathons/daily/richText";
+import { MarathonMarkdown } from "./MarathonMarkdown";
 import type { PendingPlayTask, ReviewedPlayTask } from "@/modules/marathons/daily/playTasks";
 import type { DailyMarathon, DayProgress, MarathonDay, Material } from "@/modules/marathons/daily/store";
 import { MarathonDayDraftRestore } from "./MarathonDayDraftRestore";
@@ -50,7 +51,7 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
       <PageFrame
         kicker={t("dayLabel", { n: day.dayNumber })}
         title={day.topic}
-        lead={day.introText ?? undefined}
+        lead={day.introText ? <MarathonMarkdown source={day.introText} /> : undefined}
       >
         <div className={css.stack}>
           {message ? <p className={css.alert} role="alert">{message}</p> : null}
@@ -208,10 +209,9 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
 function MaterialBlock({ material, title }: { material: Material; title: string }) {
   if (material.type === "text") {
     return (
-      <div
-        className={`${css.card} ${css.prose}`}
-        dangerouslySetInnerHTML={{ __html: renderSafeMarkdown(material.urlOrBody) }}
-      />
+      <div className={css.card}>
+        <MarathonMarkdown source={material.urlOrBody} />
+      </div>
     );
   }
   const src = material.type === "youtube"
