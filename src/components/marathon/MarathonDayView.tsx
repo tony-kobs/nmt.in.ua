@@ -46,14 +46,14 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
   const submitted = progress?.completedAt != null;
   const message = marathonErrorText(t, error);
   return (
-    <div className={css.narrow}>
+    <div className={`${css.narrow} ${css.dayPage}`}>
       <SavedToast active={saved} text={t("saved")} />
       <PageFrame
         kicker={t("dayLabel", { n: day.dayNumber })}
         title={day.topic}
         lead={day.introText ? <MarathonMarkdown source={day.introText} /> : undefined}
       >
-        <div className={css.stack}>
+        <div className={css.daySections}>
           {message ? <p className={css.alert} role="alert">{message}</p> : null}
           {lockedUntil ? (
             <p className={css.alert}>
@@ -61,25 +61,28 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
             </p>
           ) : (
             <>
-              <section className={css.stack} aria-labelledby="day-materials">
-                <h2 id="day-materials">{t("materialsTitle")}</h2>
-                {day.imageUrl ? (
-                  <Image className={css.shot} src={day.imageUrl} alt={day.topic} width={1200} height={800} unoptimized />
-                ) : null}
-                {materials.map((material) => (
-                  <MaterialBlock key={material.id} material={material} title={day.topic} />
-                ))}
-                {!progress?.materialsViewed ? (
-                  <form action={markMaterialsAction}>
-                    <input type="hidden" name="slug" value={marathon.slug} />
-                    <input type="hidden" name="day" value={day.dayNumber} />
-                    <button type="submit" className={css.button}>{t("toTasks")}</button>
-                  </form>
-                ) : null}
+              <section className={css.daySection} aria-labelledby="day-materials">
+                <h2 id="day-materials" className={css.dayHeading}>{t("materialsTitle")}</h2>
+                <div className={css.stack}>
+                  {day.imageUrl ? (
+                    <Image className={css.shot} src={day.imageUrl} alt={day.topic} width={1200} height={800} unoptimized />
+                  ) : null}
+                  {materials.map((material) => (
+                    <MaterialBlock key={material.id} material={material} title={day.topic} />
+                  ))}
+                  {!progress?.materialsViewed ? (
+                    <form action={markMaterialsAction}>
+                      <input type="hidden" name="slug" value={marathon.slug} />
+                      <input type="hidden" name="day" value={day.dayNumber} />
+                      <button type="submit" className={css.button}>{t("toTasks")}</button>
+                    </form>
+                  ) : null}
+                </div>
               </section>
               {progress?.materialsViewed ? (
-                <section className={css.stack} aria-labelledby="day-tasks">
-                  <h2 id="day-tasks">{t("tasksTitle")}</h2>
+                <section className={css.daySection} aria-labelledby="day-tasks">
+                  <h2 id="day-tasks" className={css.dayHeading}>{t("tasksTitle")}</h2>
+                  <div className={css.stack}>
                     {submitted ? (
                       <>
                         <div className={css.resultBlock}>
@@ -98,7 +101,6 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                           ) : null}
                           {reviewIntro ? <p className={css.lead}>{reviewIntro}</p> : null}
                         </div>
-                        <div className={css.stack}>
                           {review.map((task, index) => (
                         <TestTaskCard
                           key={task.id}
@@ -154,7 +156,6 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                           </ol>
                         </TestTaskCard>
                       ))}
-                        </div>
                         </>
                   ) : (
                     <form id={MARATHON_DAY_FORM_ID} action={submitDayAction} className={css.stack}>
@@ -193,6 +194,7 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                       <button type="submit" className={css.button}>{t("submit")}</button>
                     </form>
                   )}
+                  </div>
                 </section>
               ) : null}
             </>
