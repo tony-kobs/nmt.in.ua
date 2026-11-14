@@ -17,24 +17,40 @@
 .inlineFormula {
   display: inline-block;
   max-width: 100%;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.inlineFormula :global(.katex),
+.inlineFormula :global(.katex-html),
+.displayFormula :global(.katex),
+.displayFormula :global(.katex-html) {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .inlineFormula :global(.katex) {
   display: inline-block;
-  white-space: nowrap;
 }
 
 .displayFormula {
   display: block;
   width: 100%;
-  margin: 0.65em 0;
+  margin-block: var(--space-sm);
+  margin-inline: 0;
   text-align: center;
 }
 
 .displayFormula :global(.katex-display) {
-  min-width: max-content;
-  margin: 0;
-  padding: 0.15rem 0;
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
+  margin-block: 0;
+  margin-inline: auto;
+  text-align: center;
 }
 
 /* Slightly tighter KaTeX on narrow screens so more fits before scroll. */
