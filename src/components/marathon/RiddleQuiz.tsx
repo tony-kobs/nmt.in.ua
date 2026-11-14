@@ -4,7 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { useTranslations } from "next-intl";
 import { checkRiddleAction } from "@/modules/marathons/daily/actions";
 import type { PublicRiddle } from "@/modules/marathons/daily/riddleQuiz";
-import { TestTaskCard, optionLetter } from "@/components/testing/TestTaskCard";
+import { TestTaskCard, optionLetter, topicOptionsStackUntilTablet } from "@/components/testing/TestTaskCard";
 import cardCss from "@/components/testing/TestTaskCard/TestTaskCard.module.css";
 import css from "./marathon.module.css";
 
@@ -116,7 +116,15 @@ function RiddleCard({ riddle }: { riddle: PublicRiddle }) {
       }
       result={solved ? t("riddleCorrect") : undefined}
     >
-      <div role="group" aria-labelledby={titleId} className={cardCss.answers}>
+      <div
+        role="group"
+        aria-labelledby={titleId}
+        className={`${cardCss.answers}${
+          topicOptionsStackUntilTablet(riddle.options.map((option) => option.label))
+            ? ` ${cardCss.answersSingleUntilMd}`
+            : ""
+        }`}
+      >
         {riddle.options.map((option, index) => {
           const right = solved && option.id === choiceId;
           const wrong = !solved && option.id === wrongId && waiting;

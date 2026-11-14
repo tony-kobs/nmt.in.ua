@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { MathText } from "@/components/ui/MathText/MathText";
-import { TestTaskCard, optionLetter } from "@/components/testing/TestTaskCard";
+import { TestTaskCard, optionLetter, topicOptionsStackUntilTablet } from "@/components/testing/TestTaskCard";
 import cardCss from "@/components/testing/TestTaskCard/TestTaskCard.module.css";
 import { MARATHON_DAY_FORM_ID } from "@/lib/deploymentSkew";
 import {
@@ -125,7 +125,7 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                             )
                           }
                         >
-                          <ol className={cardCss.answers}>
+                          <ol className={`${cardCss.answers}${topicOptionsStackUntilTablet(task.options) ? ` ${cardCss.answersSingleUntilMd}` : ""}`}>
                             {task.options.map((option, optionIndex) => {
                               const number = optionIndex + 1;
                               const chosen = task.choice === number;
@@ -170,7 +170,7 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                           badge={day.topic}
                           prompt={<MathText text={task.prompt} as="div" />}
                         >
-                          <div className={cardCss.answers}>
+                          <div className={`${cardCss.answers}${topicOptionsStackUntilTablet(task.options) ? ` ${cardCss.answersSingleUntilMd}` : ""}`}>
                             {task.options.map((option, optionIndex) => (
                               <label key={`${task.id}-${optionIndex}`} className={cardCss.option}>
                                 <input
