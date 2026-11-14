@@ -104,6 +104,24 @@
   height: auto;
 }
 
+/* Statement math sits a step above the heavy prompt text. The display
+   wrapper stays at 1em so it does not multiply the inner size. Answer
+   options keep the base KaTeX size. */
+.prompt :global(span.katex-display) {
+  font-size: 1em;
+}
+
+.prompt :global(span.katex) {
+  font-size: 1.12em;
+  letter-spacing: normal;
+}
+
+@media (min-width: 768px) {
+  .prompt :global(span.katex) {
+    font-size: 1.28em;
+  }
+}
+
 .answers {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
