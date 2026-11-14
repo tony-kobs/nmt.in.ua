@@ -26,7 +26,11 @@ export function PageFrame({
         {kicker ? <p className={css.kicker}>{kicker}</p> : null}
         <h1 className={css.title}>{title}</h1>
         {lead ? (
-          <p className={clsx(css.lead, plainLead && css.leadPlain)}>{lead}</p>
+          typeof lead === "string" ? (
+            <p className={clsx(css.lead, plainLead && css.leadPlain)}>{lead}</p>
+          ) : (
+            <div className={clsx(css.lead, plainLead && css.leadPlain)}>{lead}</div>
+          )
         ) : null}
       </header>
       {children}
