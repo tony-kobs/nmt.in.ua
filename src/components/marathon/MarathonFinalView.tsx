@@ -2,8 +2,18 @@ import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { convertMarathonAction } from "@/modules/marathons/daily/actions";
-import { durationLocale, formatMarathonDurationOrDash, totalKnownSeconds } from "@/modules/marathons/daily/durationText";
-import type { DailyMarathon, DayProgress, MarathonDay, Participant } from "@/modules/marathons/daily/store";
+import { evaluateDayAccess } from "@/modules/marathons/daily/calendar";
+import {
+  durationLocale,
+  formatMarathonDurationOrDash,
+  totalKnownSeconds,
+} from "@/modules/marathons/daily/durationText";
+import type {
+  DailyMarathon,
+  DayProgress,
+  MarathonDay,
+  Participant,
+} from "@/modules/marathons/daily/store";
 import css from "./marathon.module.css";
 
 type MarathonFinalViewProps = {
@@ -24,30 +34,61 @@ export async function MarathonFinalView({
   const t = await getTranslations("Marathon");
   const uiLocale = durationLocale(await getLocale());
   const totalTime = formatMarathonDurationOrDash(
-    totalKnownSeconds(progress.filter((row) => row.completedAt != null).map((row) => row.durationSeconds)),
-    uiLocale,
+    totalKnownSeconds(
+      progress
+        .filter((row) => row.completedAt != null)
+        .map((row) => row.durationSeconds)
+    ),
+    uiLocale
   );
   const byDay = new Map(progress.map((item) => [item.dayNumber, item]));
+  const now = new Date();
+
   const weak = days.filter((day) => {
+    const access = evaluateDayAccess({
+      now,
+      startDate: marathon.startDate,
+      unlockHour: marathon.unlockHour,
+      daysCount: marathon.daysCount,
+      dayNumber: day.dayNumber,
+    });
+
+    if (!access.open) return false;
+
     const mark = byDay.get(day.dayNumber);
     return !mark?.completedAt || !mark.passed;
   });
-  const allPassed = days.length > 0 && days.every((day) => byDay.get(day.dayNumber)?.passed);
-  const allDone = days.length > 0 && days.every((day) => byDay.get(day.dayNumber)?.completedAt);
-  const badge = allPassed ? t("badgeAll") : allDone ? t("badgeFinish") : t("badgePartial");
+  const allPassed =
+    days.length > 0 && days.every((day) => byDay.get(day.dayNumber)?.passed);
+  const allDone =
+    days.length > 0 &&
+    days.every((day) => byDay.get(day.dayNumber)?.completedAt);
+  const badge = allPassed
+    ? t("badgeAll")
+    : allDone
+    ? t("badgeFinish")
+    : t("badgePartial");
   return (
     <div className={css.narrow}>
-      <PageFrame kicker={t("kicker")} title={t("finalTitle")} lead={marathon.title}>
+      <PageFrame
+        kicker={t("kicker")}
+        title={t("finalTitle")}
+        lead={marathon.title}
+      >
         <div className={css.stack}>
           <div className={css.finalHero}>
-            <p className={css.finalMark} aria-hidden="true">🏅 π</p>
+            <p className={css.finalMark} aria-hidden="true">
+              🏅 π
+            </p>
             {marathon.status === "finished" ? (
               <p className={css.lead}>{t("finishedNote")}</p>
             ) : null}
             {summary ? <p className={css.lead}>{summary}</p> : null}
             <div className={css.finalStats}>
               <p className={css.badge}>{badge}</p>
-              <p className={css.meta}>{t("streak", { count: participant.streak })}</p>
+              <p className={css.meta}>
+                {t("streak", { count: participant.streak })}
+              </p>
               <p className={css.meta}>{t("totalTime", { time: totalTime })}</p>
             </div>
           </div>
@@ -62,17 +103,24 @@ export async function MarathonFinalView({
                       href={`/marathon/${marathon.slug}/day/${day.dayNumber}`}
                       className={`${css.day} ${mark?.passed ? css.passed : ""}`}
                     >
-                      <span className={css.kicker}>{t("dayLabel", { n: day.dayNumber })}</span>
+                      <span className={css.kicker}>
+                        {t("dayLabel", { n: day.dayNumber })}
+                      </span>
                       <strong>{day.topic}</strong>
                       <span className={css.meta}>
                         {mark?.completedAt == null
                           ? t("notDone")
                           : mark.passed
-                            ? t("markPassed", { score: mark.score ?? 0 })
-                            : t("markFailed", { score: mark.score ?? 0 })}
+                          ? t("markPassed", { score: mark.score ?? 0 })
+                          : t("markFailed", { score: mark.score ?? 0 })}
                         {mark?.completedAt == null
                           ? ""
-                          : ` · ${t("dayTime", { time: formatMarathonDurationOrDash(mark.durationSeconds, uiLocale) })}`}
+                          : ` · ${t("dayTime", {
+                              time: formatMarathonDurationOrDash(
+                                mark.durationSeconds,
+                                uiLocale
+                              ),
+                            })}`}
                       </span>
                     </Link>
                   </li>
@@ -93,7 +141,9 @@ export async function MarathonFinalView({
           {marathon.finalCtaText && marathon.finalCtaUrl ? (
             <form action={convertMarathonAction}>
               <input type="hidden" name="slug" value={marathon.slug} />
-              <button type="submit" className={css.button}>{marathon.finalCtaText}</button>
+              <button type="submit" className={css.button}>
+                {marathon.finalCtaText}
+              </button>
             </form>
           ) : null}
           <div className={css.actions}>
