@@ -522,7 +522,15 @@
   background: var(--green-bg);
   color: var(--ink);
 }
-
+.resultBlock {
+  display: grid;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: var(--space-md);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
 .options {
   display: grid;
   gap: var(--space-xs);
