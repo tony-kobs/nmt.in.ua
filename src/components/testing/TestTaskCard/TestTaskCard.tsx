@@ -40,6 +40,28 @@ function Pin() {
   );
 }
 
+function badgeText(badge: ReactNode) {
+  return typeof badge === "string" || typeof badge === "number" ? ` ${badge}` : "";
+}
+
+function HeadRow({
+  titleId,
+  title,
+  badge,
+  heading,
+}: Pick<TestTaskCardProps, "titleId" | "title" | "badge" | "heading">) {
+  const Tag = heading === "h3" ? "h3" : "h2";
+  return (
+    <div className={css.head}>
+      <Tag id={titleId} className={css.title}>
+        <Dots />
+        <span>{title}</span>
+      </Tag>
+      {badge ? <span className={css.badge}>{badge}</span> : null}
+    </div>
+  );
+}
+
 function Heading({
   as,
   heading,
@@ -47,31 +69,27 @@ function Heading({
   title,
   badge,
 }: Pick<TestTaskCardProps, "as" | "heading" | "titleId" | "title" | "badge">) {
-  const label = (
-    <>
-      <Dots />
-      <span id={as === "fieldset" ? titleId : undefined}>{title}</span>
-    </>
-  );
-
   if (as === "fieldset") {
+    // A visible legend sits on the fieldset border and ignores the card padding.
+    // The name stays in the legend; the row below is a normal flex child.
     return (
-      <legend className={css.head}>
-        <span className={css.title}>{label}</span>
-        {badge ? <span className={css.badge}>{badge}</span> : null}
-      </legend>
+      <>
+        <legend className="visually-hidden">
+          {title}
+          {badgeText(badge)}
+        </legend>
+        <div className={css.head} aria-hidden="true">
+          <span id={titleId} className={css.title}>
+            <Dots />
+            <span>{title}</span>
+          </span>
+          {badge ? <span className={css.badge}>{badge}</span> : null}
+        </div>
+      </>
     );
   }
 
-  const Tag = heading === "h3" ? "h3" : "h2";
-  return (
-    <div className={css.head}>
-      <Tag id={titleId} className={css.title}>
-        {label}
-      </Tag>
-      {badge ? <p className={css.badge}>{badge}</p> : null}
-    </div>
-  );
+  return <HeadRow heading={heading} titleId={titleId} title={title} badge={badge} />;
 }
 
 export function TestTaskCard({
