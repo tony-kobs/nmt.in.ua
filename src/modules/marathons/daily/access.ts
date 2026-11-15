@@ -127,6 +127,13 @@ export function visibleSidebar(input: {
   void input.marathonHref;
   void input.cabinetScope;
 
+  if (input.role === "parent") {
+    return [
+      { href: "/parent", labelKey: "parent", status: "ready", icon: "chart" },
+      { href: "/account", labelKey: "account", status: "ready", icon: "id" },
+    ];
+  }
+
   const items: SidebarLink[] = DASHBOARD_NAV.filter((item) => {
     if (isPlatformStaff(input.role)) return ADMIN_NAV_SET.has(item.href);
     if (input.role === "teacher" && item.href === "/") return false;

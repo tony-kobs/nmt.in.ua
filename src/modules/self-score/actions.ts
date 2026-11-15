@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireUserId } from "@/modules/auth/getCurrentUser";
+import { rethrowNavigation } from "@/lib/db/unavailable";
+import { requireTrainingUserId } from "@/modules/auth/getCurrentUser";
 import {
   recordSelfScore,
   RecordSelfScoreError,
@@ -22,7 +23,7 @@ export type SaveThemeSelfScoreErrorCode =
   | "generic";
 
 type SaveThemeSelfScoreDeps = {
-  requireUserId: typeof requireUserId;
+  requireUserId: typeof requireTrainingUserId;
   recordSelfScore: typeof recordSelfScore;
   revalidatePath: typeof revalidatePath;
 };
@@ -50,7 +51,7 @@ function isResultsSelfScore(value: unknown): value is number {
 export async function saveThemeSelfScoreAction(
   input: SaveThemeSelfScoreInput,
   deps: SaveThemeSelfScoreDeps = {
-    requireUserId,
+    requireUserId: requireTrainingUserId,
     recordSelfScore,
     revalidatePath,
   },
@@ -62,7 +63,8 @@ export async function saveThemeSelfScoreAction(
   let userId: number;
   try {
     userId = await deps.requireUserId();
-  } catch {
+  } catch (error) {
+    rethrowNavigation(error);
     return { status: "error", code: "unauthorized" };
   }
 

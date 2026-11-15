@@ -1,7 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { decideViewRole, effectiveRole } from "./viewRole";
+import { decideViewRole, effectiveRole, viewHomePath } from "./viewRole";
+
+test("each role has its cabinet home and parent is not a staff view", () => {
+  assert.equal(viewHomePath("parent"), "/parent");
+  assert.equal(viewHomePath("teacher"), "/assign");
+  for (const role of ["student", "admin", "dev"] as const) {
+    assert.equal(viewHomePath(role), "/");
+  }
+  assert.equal(effectiveRole("parent", "admin"), "parent");
+  assert.equal(effectiveRole("parent", "teacher"), "parent");
+  assert.deepEqual(decideViewRole("parent", "teacher"), { ok: false });
+  assert.deepEqual(decideViewRole("admin", "parent"), { ok: false });
+});
 
 test("effective role follows the database unless staff is viewing student or teacher", () => {
   assert.equal(effectiveRole("teacher", "student"), "teacher");

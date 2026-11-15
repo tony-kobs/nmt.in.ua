@@ -3,7 +3,7 @@ export type StudentOption = {
   displayName: string;
 };
 
-export const USER_ROLES = ["student", "teacher", "admin", "dev"] as const;
+export const USER_ROLES = ["student", "teacher", "admin", "dev", "parent"] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
 
@@ -100,6 +100,8 @@ export function roleLabel(role: UserRole): string {
       return "Адмін";
     case "dev":
       return "Розробник";
+    case "parent":
+      return "Батьки";
   }
 }
 

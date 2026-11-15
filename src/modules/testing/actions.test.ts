@@ -669,3 +669,37 @@ test("markSessionStartedAction maps not_found to a client-safe error", async () 
     code: "notFound",
   });
 });
+
+test("a parent redirect never starts a test or stores an answer", async () => {
+  const leave = async () => {
+    const error = new Error("redirect");
+    (error as { digest?: string }).digest = "NEXT_REDIRECT;/parent";
+    throw error;
+  };
+  let started = false;
+  await assert.rejects(() => startTopicTestAction(
+    IDLE_STATE,
+    formDataWith({ themeId: "2", taskCount: "5" }),
+    {
+      startTopicTest: (async () => {
+        started = true;
+        throw new Error("ran");
+      }) as typeof startTopicTest,
+      requireUserId: leave,
+    },
+  ));
+  assert.equal(started, false);
+
+  let answered = false;
+  await assert.rejects(() => checkAnswerAction(
+    { sessionId: 1, mappingId: 2, answerNumber: 1 },
+    {
+      checkAnswer: (async () => {
+        answered = true;
+        throw new Error("ran");
+      }) as typeof checkAnswer,
+      requireUserId: leave,
+    },
+  ));
+  assert.equal(answered, false);
+});

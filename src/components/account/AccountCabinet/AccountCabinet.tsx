@@ -12,6 +12,9 @@ import {
 } from "@/modules/auth/actions";
 import { PASSWORD_MAX_LEN, PASSWORD_MIN_LEN } from "@/modules/auth/validateRegistration";
 import { RecentResults } from "@/components/dashboard/RecentResults";
+import { ParentInvitePanel } from "@/components/dashboard/ParentInvitePanel/ParentInvitePanel";
+import { LinkedParentsPanel } from "./LinkedParentsPanel";
+import type { LinkedParent } from "@/modules/parent-students/unlinkParent";
 import { UserAvatar } from "@/components/account/UserAvatar";
 import { TeacherProfileEditor } from "@/components/account/TeacherProfileEditor";
 import { AccountPhotoPanel } from "./AccountPhotoPanel";
@@ -32,6 +35,7 @@ type AccountCabinetProps = {
   telegramLinked: boolean;
   telegramUsername?: string | null;
   notificationPreferences: UserChannelPreferences;
+  linkedParents?: LinkedParent[];
 };
 
 export function AccountCabinet({
@@ -41,6 +45,7 @@ export function AccountCabinet({
   telegramLinked,
   telegramUsername = null,
   notificationPreferences,
+  linkedParents = [],
 }: AccountCabinetProps) {
   const t = useTranslations("AccountCabinet");
   const tHeader = useTranslations("Header");
@@ -101,6 +106,14 @@ export function AccountCabinet({
           profile={teacherProfile}
           suggestedSlug={normalizeSlug(user.login)}
         />
+      ) : null}
+
+      {user.role === "student" && (user.realRole ?? user.role) === "student" ? (
+        <ParentInvitePanel key={user.id} user={{ id: user.id, role: user.role, realRole: user.realRole }} />
+      ) : null}
+
+      {user.role === "student" && (user.realRole ?? user.role) === "student" ? (
+        <LinkedParentsPanel parents={linkedParents} />
       ) : null}
 
       {!isPlatformStaff(user.role) ? <RecentResults items={recentResults} /> : null}

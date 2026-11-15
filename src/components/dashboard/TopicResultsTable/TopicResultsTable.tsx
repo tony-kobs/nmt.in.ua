@@ -16,6 +16,8 @@ type TopicResultsTableProps = {
   page?: number;
   pathname?: string;
   queryParams?: Record<string, string | null | undefined>;
+  /** Replaces the default footer hint. Parents keep the student color legend. */
+  hint?: string;
 };
 
 export async function TopicResultsTable({
@@ -28,6 +30,7 @@ export async function TopicResultsTable({
   page = 1,
   pathname = "/results",
   queryParams = {},
+  hint,
 }: TopicResultsTableProps) {
   const t = await getTranslations("TopicResultsTable");
   const visible = hideEmptyThemes
@@ -59,7 +62,7 @@ export async function TopicResultsTable({
         />
       )}
 
-      <p className={css.hint}>{readOnly ? t("hintTeacher") : t("hint")}</p>
+      <p className={css.hint}>{hint ?? (readOnly ? t("hintTeacher") : t("hint"))}</p>
     </section>
   );
 }

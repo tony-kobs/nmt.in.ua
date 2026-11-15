@@ -16,6 +16,8 @@ import { isDatabaseUnavailable, rethrowNavigation } from "@/lib/db/unavailable";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { parentMustLeave } from "@/modules/parent-students/parentCabinet";
 
 /** App cabinet hits MySQL; never prerender at build. */
 export const dynamic = "force-dynamic";
@@ -50,12 +52,15 @@ export default async function AppLayout({
       }
     }
     cabinetScope = user.cabinetScope ?? "full";
-    try {
-      invites = (await ensureStudentMarathonInvites(user.id)).invites;
-    } catch (error) {
-      rethrowNavigation(error);
-      if (isDatabaseUnavailable(error)) return <DatabaseUnavailable />;
-      console.error("marathon invites", error);
+    if (user.role === "parent" && parentMustLeave(pathname)) redirect("/parent");
+    if (user.role !== "parent") {
+      try {
+        invites = (await ensureStudentMarathonInvites(user.id)).invites;
+      } catch (error) {
+        rethrowNavigation(error);
+        if (isDatabaseUnavailable(error)) return <DatabaseUnavailable />;
+        console.error("marathon invites", error);
+      }
     }
   }
 
