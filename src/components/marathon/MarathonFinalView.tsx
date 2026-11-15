@@ -94,10 +94,7 @@ export async function MarathonFinalView({
             <form action={convertMarathonAction}>
               <input type="hidden" name="slug" value={marathon.slug} />
               <button type="submit" className={css.button}>
-                {!marathon.finalCtaText?.trim() ||
-                  marathon.finalCtaText.trim().toLowerCase() === "continue learning"
-                  ? t("defaults.finalCta")
-                  : marathon.finalCtaText}
+                {marathon.finalCtaText.trim() || t("defaults.finalCta")}
               </button>
             </form>
           ) : null}
