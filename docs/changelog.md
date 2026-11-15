@@ -12,7 +12,7 @@
 - Схвалено: ні
 - Автор: Romanna-Brych
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/343
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-15 — fix: correct translated final CTA and fix btn (#335)
 
@@ -23,7 +23,7 @@
 - Схвалено: ні
 - Автор: sasha-dubrovina28
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/335
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-14 — [QA-improvement] Виділити математичні вирази в умовах завдань (#342)
 
@@ -34,7 +34,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/342
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-14 — [QA-improvement] Відступи й вирівнювання на сторінці дня марафону (#341)
 
@@ -45,7 +45,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/341
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-14 — [bug][LOW] Поламана шапка картки завдання в дні марафону (#340)
 
@@ -56,7 +56,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/340
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-14 — fix: fix background for marathon result (#334)
 
@@ -67,7 +67,7 @@
 - Схвалено: ні
 - Автор: sasha-dubrovina28
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/334
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-14 — fix weak topics that require further study (#336)
 
@@ -78,7 +78,7 @@
 - Схвалено: так
 - Автор: Yulia2123
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/336
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-14 — fix: перенос довгих варіантів відповіді на 375px (#339)
 
@@ -89,7 +89,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/339
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-14 — fix: markdown у вступі і матеріалах дня марафону (#338)
 
@@ -100,7 +100,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/338
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-12 — fix: use design tokens, mobile-first css, add header and footer (#332)
 
@@ -876,6 +876,15 @@
 ## Новини для сайту
 
 <!-- changelog:news -->
+### 2026-11-15 — [реліз #344](https://github.com/tony-kobs/nmt.in.ua/pull/344)
+
+- [fix: correct translated final CTA and fix btn](https://github.com/tony-kobs/nmt.in.ua/pull/335) — Коректне відображення кнопки в підсумку марафону під кожну мову. Візуально допрацьовані кнопки "Таблиця місць" , "Підсумок", "Усі марафони"
+- [[QA-improvement] Виділити математичні вирази в умовах завдань](https://github.com/tony-kobs/nmt.in.ua/pull/342) — У тексті умови формули трохи більші за слова навколо і не розриваються всередині виразу. Окрема формула стоїть по центру.
+- [[QA-improvement] Відступи й вирівнювання на сторінці дня марафону](https://github.com/tony-kobs/nmt.in.ua/pull/341) — На дні марафону секції, фото і кнопки стоять рівніше: фото на ширину тексту, кнопки не розтягуються на всю колонку.
+- [[bug][LOW] Поламана шапка картки завдання в дні марафону](https://github.com/tony-kobs/nmt.in.ua/pull/340) — На дні марафону номер завдання і назва теми більше не прилипають до рамки картки.
+- [fix: fix background for marathon result](https://github.com/tony-kobs/nmt.in.ua/pull/334) — Покращена читабельність результатів проходження тесту.
+- [fix weak topics that require further study](https://github.com/tony-kobs/nmt.in.ua/pull/336) — На фінальному екрані марафону в блоці ''Слабкі теми'' тепер відображаються лише відкриті дні, які ще не пройдені або складені неуспішно. Теми майбутніх, ще закритих днів більше не відображаються.
+
 ### 2026-11-12 — [реліз #333](https://github.com/tony-kobs/nmt.in.ua/pull/333)
 
 - [fix: use design tokens, mobile-first css, add header and footer](https://github.com/tony-kobs/nmt.in.ua/pull/332) — Додано Header і Footer на сторінці стажера.
