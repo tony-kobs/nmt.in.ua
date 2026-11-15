@@ -68,6 +68,7 @@ export const PUBLIC_CLIENT_NAMESPACES = [
   "SessionExpiredNotice",
   "LoginForm",
   "RegisterForm",
+  "ParentRegister",
   "TeacherRegister",
   "TeacherPublicCard",
   "CheckEmail",

@@ -1,4 +1,15 @@
 {
+  "ParentRegister": {
+    "title": "Elternkonto erstellen",
+    "lead": "Registrieren Sie sich mit Ihrer Einladung, um den Lernfortschritt Ihres Kindes zu sehen. Bestätigen Sie anschließend Ihre E-Mail-Adresse.",
+    "submit": "Als Elternteil registrieren",
+    "invalidTitle": "Ungültige Einladung",
+    "invalidMessage": "Diese Einladung ist nicht verfügbar. Sie wurde möglicherweise verwendet, widerrufen oder ist abgelaufen. Bitten Sie das Kind oder die Lehrkraft um eine neue Einladung.",
+    "signIn": "Anmelden",
+    "asideTitle": "Begleiten Sie Ihr Kind beim Lernen",
+    "asideLead": "Sehen Sie Ergebnisse und Lernfortschritte in Ihrem Elternbereich.",
+    "asideBadge": "Für Eltern"
+  },
   "ParentDashboard": {
     "title": "Elternbereich",
     "placeholder": "Hier wird der Lernfortschritt Ihrer Kinder angezeigt"

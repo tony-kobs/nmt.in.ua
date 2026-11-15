@@ -9,6 +9,7 @@ const EXACT_PAGES = new Set<string>([
   "/welcome",
   "/login",
   "/register",
+  "/register/parent",
   "/register/check-email",
   "/register/teacher",
   "/register/teacher/fail",

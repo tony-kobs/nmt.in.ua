@@ -1,4 +1,15 @@
 {
+  "ParentRegister": {
+    "title": "Create a parent account",
+    "lead": "Register with your invitation to view your child’s progress. Confirm your email after registering.",
+    "submit": "Register as a parent",
+    "invalidTitle": "Invalid invitation",
+    "invalidMessage": "This invitation is unavailable. It may have been used, revoked or expired. Ask the student or teacher for a new invitation.",
+    "signIn": "Sign in",
+    "asideTitle": "Stay connected to your child’s learning",
+    "asideLead": "View results and progress in your parent dashboard.",
+    "asideBadge": "For parents"
+  },
   "ParentDashboard": {
     "title": "Parent dashboard",
     "placeholder": "Your children’s progress will appear here"
