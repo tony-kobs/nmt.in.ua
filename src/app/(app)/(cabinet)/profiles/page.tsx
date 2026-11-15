@@ -57,7 +57,7 @@ const EMPTY_PAGE: AdminProfilesPage = {
   page: 1,
   pageSize: ADMIN_PROFILES_PAGE_SIZE,
   totalPages: 1,
-  roleCounts: { all: 0, student: 0, teacher: 0, admin: 0, dev: 0 },
+  roleCounts: { all: 0, student: 0, teacher: 0, admin: 0, dev: 0, parent: 0 },
 };
 
 export default async function ProfilesPage({

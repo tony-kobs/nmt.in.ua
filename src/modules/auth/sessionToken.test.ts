@@ -10,6 +10,24 @@ import {
 
 const NOW = 1_700_000_000;
 
+test("parent session round-trips, renews without extending expiry, and expires", async () => {
+  const input = {
+    userId: 9,
+    role: "parent" as const,
+    displayName: "Parent",
+    login: "parent-test",
+  };
+  const token = await createSessionToken(input, NOW);
+  const payload = await verifySessionToken(token, NOW);
+  assert.equal(payload?.role, "parent");
+  assert.equal(payload?.userId, 9);
+  const exp = NOW + SESSION_MAX_AGE_SEC;
+  assert.equal(payload?.exp, exp);
+  const renewed = await createRenewedSessionToken(input, exp);
+  assert.equal((await verifySessionToken(renewed, NOW + 60))?.exp, exp);
+  assert.equal(await verifySessionToken(renewed, exp), null);
+});
+
 test("createSessionToken and verifySessionToken round-trip", async () => {
   const token = await createSessionToken(
     {

@@ -14,6 +14,7 @@ import {
 } from "@/lib/requestBudget";
 import { clientIp, isBlockedPath } from "@/lib/security";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
+import { parentMustLeave } from "@/modules/parent-students/parentCabinet";
 import { isPlatformStaff, type SessionPayload } from "@/modules/auth/types";
 import {
   SESSION_COOKIE_NAME,
@@ -77,6 +78,10 @@ function authGuard(
   session: SessionPayload | null,
 ): NextResponse | null {
   const { pathname } = request.nextUrl;
+
+  if (session?.role === "parent" && parentMustLeave(pathname)) {
+    return redirectOnSite("/parent");
+  }
 
   if (skipsAuth(pathname)) return null;
 

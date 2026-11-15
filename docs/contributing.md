@@ -62,6 +62,8 @@ Cursor і інші моделі дозволені. Перед здачею ти
 | `src/constants/publicRoutes.ts` | Шляхи без сесії |
 | `src/app/(app)/session/[id]/` | Тренажер однієї сесії |
 | `src/app/(app)/(cabinet)/` | Сторінки кабінету |
+| `src/app/(marketing)/(flow)/register/parent/page.tsx` | Реєстрація батьків за запрошенням. Якщо батьківський акаунт уже є, сторінка веде на `/parent/accept` |
+| `src/app/(app)/(cabinet)/parent/` | Кабінет батьків: лише перегляд прогресу дитини |
 | `src/components/welcome/` | Секції лендінгу |
 | `src/components/dashboard/` | Шапка, меню, старт тесту |
 | `src/components/testing/` | TopicTrainer, NmtTrainer, підсумок |

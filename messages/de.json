@@ -1,4 +1,66 @@
 {
+  "ParentInvites": {
+    "title": "Eltern einladen",
+    "studentLead": "Erstelle einen einmaligen Link, damit deine Eltern sich registrieren und deinen Lernfortschritt sehen können.",
+    "teacherLead": "Wählen Sie ein Kind aus Ihrer Liste und erstellen Sie einen einmaligen Link für dessen Eltern.",
+    "student": "Schüler oder Schülerin",
+    "chooseStudent": "Kind auswählen",
+    "noStudents": "Fügen Sie zuerst ein Kind zu Ihrer Liste hinzu.",
+    "create": "Eltern einladen",
+    "creating": "Wird erstellt…",
+    "link": "Einladungslink für Eltern",
+    "copy": "Link kopieren",
+    "copied": "Link kopiert",
+    "ready": "Der Link ist bereit. Geben Sie ihn persönlich an die Eltern weiter.",
+    "expires": "Gültig bis {when}",
+    "privacy": "Dieser einmalige Link gilt 7 Tage. Er wird nur hier angezeigt, bis Sie die Seite verlassen.",
+    "copyFailed": "Automatisches Kopieren fehlgeschlagen. Der Link ist markiert und kann manuell kopiert werden.",
+    "errors": {
+      "unauthorized": "Melden Sie sich an, um eine Einladung zu erstellen.",
+      "forbidden": "Für dieses Kind konnte keine Einladung erstellt werden. Prüfen Sie Ihre Liste oder laden Sie die Seite neu.",
+      "rate_limited": "Einladungslimit erreicht: bis zu 3 aktive Einladungen pro Kind und Absender; bis zu 5 pro Stunde für Lernende oder 50 für Lehrkräfte. Versuchen Sie es später erneut.",
+      "generic": "Die Einladung konnte nicht erstellt werden. Versuchen Sie es später erneut."
+    }
+  },
+  "ParentRegister": {
+    "title": "Elternkonto erstellen",
+    "lead": "Registrieren Sie sich mit Ihrer Einladung, um den Lernfortschritt Ihres Kindes zu sehen. Bestätigen Sie anschließend Ihre E-Mail-Adresse.",
+    "submit": "Als Elternteil registrieren",
+    "invalidTitle": "Ungültige Einladung",
+    "invalidMessage": "Diese Einladung ist nicht verfügbar. Sie wurde möglicherweise verwendet, widerrufen oder ist abgelaufen. Bitten Sie das Kind oder die Lehrkraft um eine neue Einladung.",
+    "signIn": "Anmelden",
+    "asideTitle": "Begleiten Sie Ihr Kind beim Lernen",
+    "asideLead": "Sehen Sie Ergebnisse und Lernfortschritte in Ihrem Elternbereich.",
+    "asideBadge": "Für Eltern",
+    "hasAccount": "Schon ein Elternkonto? Anmelden"
+  },
+  "ParentDashboard": {
+    "title": "Elternbereich",
+    "placeholder": "Hier wird der Lernfortschritt Ihrer Kinder angezeigt",
+    "lead": "Sehen Sie den Lernfortschritt Ihrer Kinder ein.",
+    "chooseChild": "Kind auswählen",
+    "loading": "Fortschritt wird geladen…",
+    "summaryLead": "Nur abgeschlossene Tests. Der Prozentsatz zeigt den Anteil richtiger Antworten, nicht den Abschluss des Lehrplans oder eine NMT-Punktzahl.",
+    "completedTests": "Abgeschlossene Tests",
+    "completedTasks": "Bearbeitete Aufgaben",
+    "correctAnswers": "Richtige Antworten",
+    "correctPercent": "Anteil richtiger Antworten",
+    "noTests": "Dieses Kind hat noch keine abgeschlossenen Tests. Ergebnisse erscheinen nach Abschluss eines Tests.",
+    "topics": "Fortschritt nach Thema",
+    "topicsLead": "Versuche, Durchschnitt, die letzten drei Tests und das Tempo. Eine leere Zelle bedeutet: noch kein abgeschlossener Versuch.",
+    "topicsHint": "Leere Zellen sind Themen ohne abgeschlossenen Versuch. Farben: grün ab 70 %, gelb von 40 % bis 69 %, rot unter 40 %.",
+    "noTopics": "Noch keine Ergebnisse nach Themen.",
+    "noChildren": "Mit Ihrem Konto sind noch keine Kinder verknüpft. Nach der Verknüpfung erscheint ihr Fortschritt hier.",
+    "acceptTitle": "Kind verknüpfen",
+    "acceptLead": "Diese Einladung fügt ein Kind zu Ihrem Bereich hinzu. Ein zweites Konto ist nicht nötig.",
+    "acceptChild": "Kind: {name}",
+    "acceptSubmit": "Verknüpfen",
+    "acceptPending": "Wird verknüpft…",
+    "acceptInvalid": "Diese Einladung ist nicht verfügbar. Sie wurde vielleicht schon verwendet oder ist abgelaufen. Bitten Sie um eine neue.",
+    "acceptWrongRole": "Diese Einladung kann nur ein Elternkonto annehmen. Melden Sie sich damit an oder erstellen Sie ein Konto über diesen Link.",
+    "acceptError": "Das Kind konnte nicht verknüpft werden. Versuchen Sie es erneut.",
+    "backToCabinet": "Zum Bereich"
+  },
   "Dashboard": {
     "hideMenu": "Menü ausblenden"
   },
@@ -20,7 +82,8 @@
       "student": "Schüler",
       "teacher": "Lehrer",
       "admin": "Admin",
-      "dev": "Entwickler"
+      "dev": "Entwickler",
+      "parent": "Eltern"
     },
     "viewingAs": "Ansicht: {role}",
     "roleSwitchIdle": "Du kannst vorübergehend das Schüler- oder Lehrerkabinett öffnen. Die gespeicherte Rolle ändert sich nicht.",
@@ -72,12 +135,16 @@
       "leaderboard": "Marathon-Rangliste",
       "marathons": "Marathon",
       "marathon": "Marathon",
-      "support": "Anfragen"
+      "support": "Anfragen",
+      "parent": "Kinder",
+      "account": "Konto"
     }
   },
   "RecentResults": {
     "title": "Letzte Ergebnisse",
-    "empty": "Die Ergebnisse erscheinen nach deinen ersten Tests."
+    "empty": "Die Ergebnisse erscheinen nach deinen ersten Tests.",
+    "startedAt": "Testbeginn: {date}",
+    "unknownDate": "Startdatum unbekannt"
   },
   "AccountCabinet": {
     "telegramConnect": "Telegram verbinden",
@@ -144,6 +211,13 @@
     "joinInviteTitle": "Einladungscode",
     "joinInviteLead": "Wenn eine Lehrkraft einen Code oder Link geschickt hat, nimm ihn hier an.",
     "joinInviteCta": "Code eingeben",
+    "linkedParentsTitle": "Eltern",
+    "linkedParentsLead": "Diese Personen sehen deinen Fortschritt. Trennen entfernt den Zugriff sofort.",
+    "linkedParentsEmpty": "Noch niemand verknüpft.",
+    "unlinkParent": "Trennen",
+    "unlinkPending": "Wird getrennt…",
+    "unlinkConfirm": "{name} trennen? Der Zugriff auf den Fortschritt verschwindet sofort.",
+    "unlinkError": "Trennen ist nicht gelungen. Versuch es erneut.",
     "errors": {
       "requiredFields": "Bitte alle Felder ausfüllen.",
       "passwordTooShort": "Das neue Passwort ist zu kurz.",
@@ -1899,7 +1973,8 @@
     "roles": {
       "student": "Schüler",
       "teacher": "Lehrkraft",
-      "admin": "Admin"
+      "admin": "Admin",
+      "parent": "Eltern"
     },
     "errors": {
       "requiredFields": "Gib E-Mail und Passwort ein.",

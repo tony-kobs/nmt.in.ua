@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { MathText } from "@/components/ui/MathText/MathText";
-import { TestTaskCard, optionLetter } from "@/components/testing/TestTaskCard";
+import { TestTaskCard, optionLetter, topicOptionsStackUntilTablet } from "@/components/testing/TestTaskCard";
 import cardCss from "@/components/testing/TestTaskCard/TestTaskCard.module.css";
 import { MARATHON_DAY_FORM_ID } from "@/lib/deploymentSkew";
 import {
@@ -12,7 +12,8 @@ import {
 } from "@/modules/marathons/daily/actions";
 import { formatKyivWhen } from "@/modules/marathons/daily/calendar";
 import { durationLocale, formatMarathonDurationOrDash } from "@/modules/marathons/daily/durationText";
-import { loomEmbedSrc, renderSafeMarkdown, youtubeEmbedSrc } from "@/modules/marathons/daily/richText";
+import { loomEmbedSrc, youtubeEmbedSrc } from "@/modules/marathons/daily/richText";
+import { MarathonMarkdown } from "./MarathonMarkdown";
 import type { PendingPlayTask, ReviewedPlayTask } from "@/modules/marathons/daily/playTasks";
 import type { DailyMarathon, DayProgress, MarathonDay, Material } from "@/modules/marathons/daily/store";
 import { MarathonDayDraftRestore } from "./MarathonDayDraftRestore";
@@ -45,14 +46,14 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
   const submitted = progress?.completedAt != null;
   const message = marathonErrorText(t, error);
   return (
-    <div className={css.narrow}>
+    <div className={`${css.narrow} ${css.dayPage}`}>
       <SavedToast active={saved} text={t("saved")} />
       <PageFrame
         kicker={t("dayLabel", { n: day.dayNumber })}
         title={day.topic}
-        lead={day.introText ?? undefined}
+        lead={day.introText ? <MarathonMarkdown source={day.introText} /> : undefined}
       >
-        <div className={css.stack}>
+        <div className={css.daySections}>
           {message ? <p className={css.alert} role="alert">{message}</p> : null}
           {lockedUntil ? (
             <p className={css.alert}>
@@ -60,46 +61,47 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
             </p>
           ) : (
             <>
-              <section className={css.stack} aria-labelledby="day-materials">
-                <h2 id="day-materials">{t("materialsTitle")}</h2>
-                {day.imageUrl ? (
-                  <Image className={css.shot} src={day.imageUrl} alt={day.topic} width={1200} height={800} unoptimized />
-                ) : null}
-                {materials.map((material) => (
-                  <MaterialBlock key={material.id} material={material} title={day.topic} />
-                ))}
-                {!progress?.materialsViewed ? (
-                  <form action={markMaterialsAction}>
-                    <input type="hidden" name="slug" value={marathon.slug} />
-                    <input type="hidden" name="day" value={day.dayNumber} />
-                    <button type="submit" className={css.button}>{t("toTasks")}</button>
-                  </form>
-                ) : null}
+              <section className={css.daySection} aria-labelledby="day-materials">
+                <h2 id="day-materials" className={css.dayHeading}>{t("materialsTitle")}</h2>
+                <div className={css.stack}>
+                  {day.imageUrl ? (
+                    <Image className={css.shot} src={day.imageUrl} alt={day.topic} width={1200} height={800} unoptimized />
+                  ) : null}
+                  {materials.map((material) => (
+                    <MaterialBlock key={material.id} material={material} title={day.topic} />
+                  ))}
+                  {!progress?.materialsViewed ? (
+                    <form action={markMaterialsAction}>
+                      <input type="hidden" name="slug" value={marathon.slug} />
+                      <input type="hidden" name="day" value={day.dayNumber} />
+                      <button type="submit" className={css.button}>{t("toTasks")}</button>
+                    </form>
+                  ) : null}
+                </div>
               </section>
               {progress?.materialsViewed ? (
-                <section className={css.stack} aria-labelledby="day-tasks">
-                  <h2 id="day-tasks">{t("tasksTitle")}</h2>
-                  {submitted ? (
-                    <p className={css.alert} role="status">
-                      {progress.passed
-                        ? t("markPassed", { score: progress.score ?? 0 })
-                        : t("markFailed", { score: progress.score ?? 0 })}
-                    </p>
-                  ) : null}
-                  {submitted ? (
-                    <p className={css.meta}>
-                      {t("dayTime", { time: dayTime })}
-                      {" · "}
-                      {t("totalTime", { time: totalTime })}
-                    </p>
-                  ) : null}
-                  {submitted && rankNote ? (
-                    <p className={css.rankNote} role="status">{rankNote}</p>
-                  ) : null}
-                  {submitted ? (
-                    <div className={css.stack}>
-                      {reviewIntro ? <p className={css.lead}>{reviewIntro}</p> : null}
-                      {review.map((task, index) => (
+                <section className={css.daySection} aria-labelledby="day-tasks">
+                  <h2 id="day-tasks" className={css.dayHeading}>{t("tasksTitle")}</h2>
+                  <div className={css.stack}>
+                    {submitted ? (
+                      <>
+                        <div className={css.resultBlock}>
+                          <p className={css.alert} role="status">
+                            {progress.passed
+                              ? t("markPassed", { score: progress.score ?? 0 })
+                              : t("markFailed", { score: progress.score ?? 0 })}
+                          </p>
+                          <p className={css.meta}>
+                            {t("dayTime", { time: dayTime })}
+                            {" · "}
+                            {t("totalTime", { time: totalTime })}
+                          </p>
+                          {rankNote ? (
+                            <p className={css.rankNote} role="status">{rankNote}</p>
+                          ) : null}
+                          {reviewIntro ? <p className={css.lead}>{reviewIntro}</p> : null}
+                        </div>
+                          {review.map((task, index) => (
                         <TestTaskCard
                           key={task.id}
                           heading="h3"
@@ -124,7 +126,7 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                             )
                           }
                         >
-                          <ol className={cardCss.answers}>
+                          <ol className={`${cardCss.answers}${topicOptionsStackUntilTablet(task.options) ? ` ${cardCss.answersSingleUntilMd}` : ""}`}>
                             {task.options.map((option, optionIndex) => {
                               const number = optionIndex + 1;
                               const chosen = task.choice === number;
@@ -154,7 +156,7 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                           </ol>
                         </TestTaskCard>
                       ))}
-                    </div>
+                        </>
                   ) : (
                     <form id={MARATHON_DAY_FORM_ID} action={submitDayAction} className={css.stack}>
                       <MarathonDayDraftRestore />
@@ -169,7 +171,7 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                           badge={day.topic}
                           prompt={<MathText text={task.prompt} as="div" />}
                         >
-                          <div className={cardCss.answers}>
+                          <div className={`${cardCss.answers}${topicOptionsStackUntilTablet(task.options) ? ` ${cardCss.answersSingleUntilMd}` : ""}`}>
                             {task.options.map((option, optionIndex) => (
                               <label key={`${task.id}-${optionIndex}`} className={cardCss.option}>
                                 <input
@@ -192,6 +194,7 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
                       <button type="submit" className={css.button}>{t("submit")}</button>
                     </form>
                   )}
+                  </div>
                 </section>
               ) : null}
             </>
@@ -208,10 +211,9 @@ export async function MarathonDayView(props: MarathonDayViewProps) {
 function MaterialBlock({ material, title }: { material: Material; title: string }) {
   if (material.type === "text") {
     return (
-      <div
-        className={`${css.card} ${css.prose}`}
-        dangerouslySetInnerHTML={{ __html: renderSafeMarkdown(material.urlOrBody) }}
-      />
+      <div className={css.card}>
+        <MarathonMarkdown source={material.urlOrBody} />
+      </div>
     );
   }
   const src = material.type === "youtube"

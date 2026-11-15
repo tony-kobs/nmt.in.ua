@@ -88,7 +88,8 @@ function isUserRole(value: unknown): value is UserRole {
     value === "student" ||
     value === "teacher" ||
     value === "admin" ||
-    value === "dev"
+    value === "dev" ||
+    value === "parent"
   );
 }
 

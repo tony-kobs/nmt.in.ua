@@ -7,8 +7,9 @@ import {
   type RecommendationTranslator,
 } from "@/modules/recommendations";
 import { getStudentTopicStats } from "@/modules/recommendations/getStudentTopicStats";
+import { rethrowNavigation } from "@/lib/db/unavailable";
 import {
-  requireSessionUserId,
+  requireTrainingUserId,
   type requireUserId,
 } from "@/modules/auth/getCurrentUser";
 import { revalidatePath } from "next/cache";
@@ -88,7 +89,7 @@ type AuthDeps = {
   requireUserId: typeof requireUserId;
 };
 
-const defaultAuthDeps: AuthDeps = { requireUserId: requireSessionUserId };
+const defaultAuthDeps: AuthDeps = { requireUserId: requireTrainingUserId };
 
 async function getRecommendationTranslator(
   locale: "uk" | "en" | "de",
@@ -140,6 +141,7 @@ export async function startTopicTestAction(
       mode: result.mode,
     };
   } catch (error) {
+    rethrowNavigation(error);
     if (error instanceof StartTopicTestError) {
       switch (error.code) {
         case "insufficient_tasks":
@@ -192,7 +194,7 @@ export async function startNmtSimulatorAction(
   formData: FormData,
 ): Promise<StartNmtSimulatorActionState> {
   try {
-    const userId = await requireSessionUserId();
+    const userId = await requireTrainingUserId();
     const rawVariant = String(formData.get("variantId") ?? "random");
     const variantId =
       rawVariant === "random" ? ("random" as const) : Number(rawVariant);
@@ -204,6 +206,7 @@ export async function startNmtSimulatorAction(
       sessionId: result.sessionId,
     };
   } catch (error) {
+    rethrowNavigation(error);
     if (error instanceof StartNmtSimulatorError) {
       switch (error.code) {
         case "insufficient_tasks":
@@ -269,6 +272,7 @@ export async function checkAnswerAction(
       ...(result.revealed ? { revealed: result.revealed } : {}),
     };
   } catch (error) {
+    rethrowNavigation(error);
     if (error instanceof CheckAnswerError) {
       switch (error.code) {
         case "invalid_input":
@@ -345,6 +349,7 @@ export async function finishTrainerSessionAction(
 
     return { status: "success", summary, recommendations, insight };
   } catch (error) {
+    rethrowNavigation(error);
     if (error instanceof FinishTrainerSessionError) {
       switch (error.code) {
         case "invalid_input":
@@ -388,6 +393,7 @@ export async function markSessionStartedAction(
     });
     return { status: "success", startTime: result.startTime };
   } catch (error) {
+    rethrowNavigation(error);
     if (error instanceof MarkSessionStartedError) {
       switch (error.code) {
         case "invalid_input":
@@ -426,6 +432,7 @@ export async function skipTaskAnswerAction(
     });
     return { status: "success", correct: false };
   } catch (error) {
+    rethrowNavigation(error);
     if (error instanceof SkipTaskAnswerError) {
       switch (error.code) {
         case "not_found":
@@ -450,7 +457,7 @@ export async function skipTaskAnswerAction(
 export async function getSessionMistakeReviewAction(
   sessionId: number,
 ): Promise<SessionMistakeItem[]> {
-  const userId = await requireSessionUserId();
+  const userId = await requireTrainingUserId();
   return getSessionMistakeReview(sessionId, userId);
 }
 
@@ -477,6 +484,7 @@ export async function getTaskHintAction(
     });
     return { status: "success", available: result.available, hint: result.hint };
   } catch (error) {
+    rethrowNavigation(error);
     if (error instanceof GetTaskHintError) {
       switch (error.code) {
         case "invalid_input":
@@ -520,6 +528,7 @@ export async function addSimilarPracticeTaskAction(
     });
     return { status: "success", mappingId: result.mappingId, task: result.task };
   } catch (error) {
+    rethrowNavigation(error);
     if (error instanceof AddSimilarPracticeTaskError) {
       switch (error.code) {
         case "invalid_input":
@@ -575,6 +584,7 @@ export async function getTaskHintLevelAction(
       isFinal: result.isFinal,
     };
   } catch (error) {
+    rethrowNavigation(error);
     if (error instanceof GetTaskHintLevelError) {
       switch (error.code) {
         case "invalid_input":
@@ -619,6 +629,7 @@ export async function startMistakeReviewRoundAction(
     });
     return { status: "success", sessionId: result.sessionId };
   } catch (error) {
+    rethrowNavigation(error);
     if (error instanceof StartMistakeReviewRoundError) {
       switch (error.code) {
         case "invalid_input":
@@ -665,6 +676,7 @@ export async function addSpacedRepetitionTaskAction(
       ? { status: "success", added: true, mappingId: result.mappingId, task: result.task }
       : { status: "success", added: false };
   } catch (error) {
+    rethrowNavigation(error);
     if (error instanceof AddSpacedRepetitionTaskError) {
       switch (error.code) {
         case "invalid_input":

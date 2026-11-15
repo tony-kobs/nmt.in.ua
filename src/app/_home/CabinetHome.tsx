@@ -18,6 +18,7 @@ import {
 } from "@/modules/admin-content";
 import { findUserById } from "@/modules/auth/users";
 import { canImportContent, type AuthUser } from "@/modules/auth/types";
+import { viewHomePath } from "@/modules/auth/viewRole";
 import { SavedToast } from "@/components/marathon/SavedToast";
 import { ensureStudentMarathonInvites } from "@/modules/marathons/daily/invites";
 import { ensureTopicTestReminders } from "@/modules/notifications/topicReminders";
@@ -77,8 +78,8 @@ async function CabinetHomeLoaded({
     });
   }
 
-  if (user.role === "teacher") {
-    redirect("/assign");
+  if (user.role === "teacher" || user.role === "parent") {
+    redirect(viewHomePath(user.role));
   }
 
   const savedText = saved ? (await getTranslations("Marathon"))("saved") : "";

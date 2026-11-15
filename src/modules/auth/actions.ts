@@ -14,6 +14,7 @@ import {
   setSessionCookie,
 } from "./getCurrentUser";
 import { effectiveRole } from "./viewRole";
+import { parentAfterLoginPath } from "@/modules/parent-students/parentCabinet";
 import { changePassword, ChangePasswordError } from "./changePassword";
 import type { ChangePasswordErrorCode } from "./changePassword";
 import {
@@ -129,8 +130,9 @@ export async function loginAction(
     console.error("login: cancel scheduled deletion failed", error);
   }
   await (deps.setSessionCookie ?? setSessionCookie)(user);
-  if (deps.redirectTo) return deps.redirectTo(nextPath);
-  redirect(nextPath);
+  const destination = user.role === "parent" ? parentAfterLoginPath(nextPath) : nextPath;
+  if (deps.redirectTo) return deps.redirectTo(destination);
+  redirect(destination);
 }
 
 /**

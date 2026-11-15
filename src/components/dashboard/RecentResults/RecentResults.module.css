@@ -43,8 +43,24 @@
 }
 
 .item strong {
+  flex-shrink: 0;
   color: var(--green-dark);
   font-family: var(--font-display);
+}
+
+.description {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2xs);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.description time,
+.description small {
+  color: var(--subtle);
+  font-size: var(--fs-small);
+  font-weight: 400;
 }
 
 .hint {

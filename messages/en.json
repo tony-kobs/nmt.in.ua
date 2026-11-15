@@ -1,4 +1,66 @@
 {
+  "ParentInvites": {
+    "title": "Invite parents",
+    "studentLead": "Create a one-time link so your parents can register and view your progress.",
+    "teacherLead": "Choose one of your students and create a one-time link for their parents.",
+    "student": "Student",
+    "chooseStudent": "Choose a student",
+    "noStudents": "Add a student to your list first.",
+    "create": "Invite parents",
+    "creating": "Creating…",
+    "link": "Parent invitation link",
+    "copy": "Copy link",
+    "copied": "Link copied",
+    "ready": "Your link is ready. Share it privately with the parents.",
+    "expires": "Valid until {when}",
+    "privacy": "This one-time link expires in 7 days. It is shown only here until you leave this page.",
+    "copyFailed": "Automatic copying failed. The link is selected so you can copy it manually.",
+    "errors": {
+      "unauthorized": "Sign in to create an invitation.",
+      "forbidden": "An invitation could not be created for this student. Check your student list or refresh the page.",
+      "rate_limited": "Invitation limit reached: up to 3 active invitations per student and author; up to 5 per hour for a student or 50 for a teacher. Try again later.",
+      "generic": "Could not create an invitation. Please try again later."
+    }
+  },
+  "ParentRegister": {
+    "title": "Create a parent account",
+    "lead": "Register with your invitation to view your child’s progress. Confirm your email after registering.",
+    "submit": "Register as a parent",
+    "invalidTitle": "Invalid invitation",
+    "invalidMessage": "This invitation is unavailable. It may have been used, revoked or expired. Ask the student or teacher for a new invitation.",
+    "signIn": "Sign in",
+    "asideTitle": "Stay connected to your child’s learning",
+    "asideLead": "View results and progress in your parent dashboard.",
+    "asideBadge": "For parents",
+    "hasAccount": "Already have a parent account? Sign in"
+  },
+  "ParentDashboard": {
+    "title": "Parent dashboard",
+    "placeholder": "Your children’s progress will appear here",
+    "lead": "View your children’s learning progress.",
+    "chooseChild": "Choose a child",
+    "loading": "Loading progress…",
+    "summaryLead": "Completed tests only. The percentage represents correct answers, not curriculum completion or an NMT score.",
+    "completedTests": "Completed tests",
+    "completedTasks": "Completed tasks",
+    "correctAnswers": "Correct answers",
+    "correctPercent": "Correct answer percentage",
+    "noTests": "This child has no completed tests yet. Results will appear after a test is completed.",
+    "topics": "Progress by topic",
+    "topicsLead": "Attempts, average percent, the last three tests and speed. An empty cell means there is no finished attempt yet.",
+    "topicsHint": "Empty cells are topics without a finished attempt. Colours: green from 70%, yellow from 40% to 69%, red below 40%.",
+    "noTopics": "No topic results yet.",
+    "noChildren": "No children are linked to your account yet. Their progress will appear here once they are linked.",
+    "acceptTitle": "Link a child",
+    "acceptLead": "This invitation adds a child to your cabinet. You do not need a second account.",
+    "acceptChild": "Child: {name}",
+    "acceptSubmit": "Link",
+    "acceptPending": "Linking…",
+    "acceptInvalid": "This invitation is unavailable. It may have been used or it has expired. Ask for a new one.",
+    "acceptWrongRole": "Only a parent account can accept this invitation. Sign in with that account, or create one from this link.",
+    "acceptError": "The child could not be linked. Try again.",
+    "backToCabinet": "Back to the cabinet"
+  },
   "Dashboard": {
     "hideMenu": "Hide menu"
   },
@@ -20,7 +82,8 @@
       "student": "Student",
       "teacher": "Teacher",
       "admin": "Admin",
-      "dev": "Developer"
+      "dev": "Developer",
+      "parent": "Parent"
     },
     "viewingAs": "Viewing as {role}",
     "roleSwitchIdle": "You can temporarily open the student or teacher cabinet. The stored role does not change.",
@@ -72,12 +135,16 @@
       "leaderboard": "Marathon leaderboard",
       "marathons": "Marathon",
       "marathon": "Marathon",
-      "support": "Messages"
+      "support": "Messages",
+      "parent": "Children",
+      "account": "Account"
     }
   },
   "RecentResults": {
     "title": "Recent results",
-    "empty": "Results will appear after your first tests."
+    "empty": "Results will appear after your first tests.",
+    "startedAt": "Test started: {date}",
+    "unknownDate": "Start date unavailable"
   },
   "AccountCabinet": {
     "telegramConnect": "Connect Telegram",
@@ -144,6 +211,13 @@
     "joinInviteTitle": "Invite code",
     "joinInviteLead": "If a teacher sent you a code or a link, accept it here.",
     "joinInviteCta": "Enter code",
+    "linkedParentsTitle": "Parents",
+    "linkedParentsLead": "These people can see your progress. Unlinking removes access immediately.",
+    "linkedParentsEmpty": "No one is linked yet.",
+    "unlinkParent": "Unlink",
+    "unlinkPending": "Unlinking…",
+    "unlinkConfirm": "Unlink {name}? They will lose access to your progress immediately.",
+    "unlinkError": "Could not unlink. Try again.",
     "errors": {
       "requiredFields": "Fill in all fields.",
       "passwordTooShort": "The new password is too short.",
@@ -1899,7 +1973,8 @@
     "roles": {
       "student": "Student",
       "teacher": "Teacher",
-      "admin": "Admin"
+      "admin": "Admin",
+      "parent": "Parent"
     },
     "errors": {
       "requiredFields": "Enter your email and password.",
