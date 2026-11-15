@@ -80,3 +80,23 @@ test("the hand-in checklist does not leak into the team note", () => {
   assert.equal(notes.link, "https://example.com/video");
   assert.equal(notes.team.includes("npm test"), false);
 });
+
+test("a later screencast block with a Latin x wins over a Cyrillic mark", () => {
+  const body = [
+    "## Скрінкаст",
+    "",
+    "- [х] потрібен",
+    "- [ ] схвалено показувати",
+    "- Посилання: https://example.com/old",
+    "",
+    "## Скрінкаст",
+    "",
+    "- [x] потрібен",
+    "- [ ] схвалено показувати",
+    "- Посилання: https://example.com/video",
+  ].join("\n");
+  const notes = parseReleaseNotes(body, "fix: x");
+  assert.equal(notes.needed, true);
+  assert.equal(notes.approved, false);
+  assert.equal(notes.link, "https://example.com/video");
+});

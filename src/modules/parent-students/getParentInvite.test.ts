@@ -5,7 +5,7 @@ import type { SqlConnection } from "@/lib/db/mysql";
 import { getParentInvite } from "./getParentInvite";
 
 const token = randomBytes(32).toString("base64url");
-const active = { used_at: null, revoked_at: null, unexpired: 1, student_role: "student", is_banned: 0 };
+const active = { used_at: null, revoked_at: null, unexpired: 1, student_role: "student", is_banned: 0, display_name: "Оленка" };
 
 function fixture(rows: unknown[] = [active], fail = false) {
   let released = false;
@@ -28,7 +28,7 @@ function fixture(rows: unknown[] = [active], fail = false) {
 
 test("returns only validity for a live student invite and releases the connection", async () => {
   const f = fixture();
-  assert.deepEqual(await getParentInvite(token, f.deps), { valid: true });
+  assert.deepEqual(await getParentInvite(token, f.deps), { valid: true, childName: "Оленка" });
   assert.equal(f.released(), true);
 });
 

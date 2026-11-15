@@ -120,6 +120,28 @@
   box-shadow: var(--ring);
 }
 
+.parentList {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.parentRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.parentName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .photoRow {
   display: flex;
   flex-wrap: wrap;

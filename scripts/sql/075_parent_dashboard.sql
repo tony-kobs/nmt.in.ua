@@ -3,6 +3,8 @@
 -- Adds the parent role without changing any existing account's role.
 -- Parent registration is invitation-only; implemented separately.
 -- Append the ENUM value to preserve existing role indexes.
+-- Idempotent: ALTER repeats the same ENUM, CREATE TABLE IF NOT EXISTS
+-- does not duplicate parent_students or parent_invites.
 
 ALTER TABLE app_users
   MODIFY COLUMN role ENUM('student', 'teacher', 'admin', 'dev', 'parent') NOT NULL;

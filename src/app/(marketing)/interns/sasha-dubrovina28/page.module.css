@@ -1,0 +1,14 @@
+.page {
+    display: flex;
+    flex-direction: column;
+}
+
+.main {
+    display: flex;
+    flex: 1;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    padding: var(--space-xl) var(--container-pad);
+}

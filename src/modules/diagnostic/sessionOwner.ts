@@ -16,6 +16,9 @@ async function sessionUserId(): Promise<number | null> {
   if (!account || account.isBanned) {
     redirect("/api/auth/clear-session");
   }
+  if (account.role === "parent") {
+    redirect("/parent");
+  }
   return payload.userId;
 }
 

@@ -91,10 +91,18 @@ test("child progress reads on guarded local MySQL with owned fixtures only", {
     await t.test("own-child weighted totals exclude unfinished sessions, unknown modes and follow-ups", async () => {
       const result = await getChildProgress(child.id, deps(parent));
       assert.deepEqual(result.summary, { completedSessions: 4, totalTasks: 21, correctAnswers: 14, correctPercent: 14 / 21 * 100 });
-      assert.equal(result.topics.length, 2);
-      const algebra = result.topics.find((row) => row.themeId === themes[0])!;
-      assert.equal(algebra.completedSessions, 2); assert.equal(algebra.totalTasks, 12);
-      assert.equal(algebra.correctPercent, 8 / 12 * 100);
+      const algebra = result.topics.find((row) => row.themeId === themes[0]);
+      const geometry = result.topics.find((row) => row.themeId === themes[1]);
+      assert.ok(algebra && geometry);
+      assert.equal(algebra.themeCode, `${prefix}-a`);
+      assert.equal(algebra.attemptsCount, 2);
+      assert.equal(algebra.overallPercent, 40);
+      assert.equal(algebra.lastThreePercent, 40);
+      assert.equal(algebra.avgSecondsPerTask, 18);
+      assert.ok(algebra.displayIndex >= 1);
+      assert.equal(geometry.attemptsCount, 1);
+      assert.equal(geometry.overallPercent, 100);
+      assert.equal(geometry.avgSecondsPerTask, 12);
       assert.equal(result.recentResults.length, 4);
       assert.deepEqual(result.recentResults.map((row) => row.startedAt), [4000, 3000, 2000, 1000]);
       const nmt = result.recentResults.find((row) => row.sessionType === 4)!;
@@ -105,7 +113,9 @@ test("child progress reads on guarded local MySQL with owned fixtures only", {
     await t.test("empty history has null percentage and no topic/recent rows", async () => {
       const result = await getChildProgress(empty.id, deps(parent));
       assert.deepEqual(result.summary, { completedSessions: 0, totalTasks: 0, correctAnswers: 0, correctPercent: null });
-      assert.deepEqual(result.topics, []); assert.deepEqual(result.recentResults, []);
+      assert.deepEqual(result.recentResults, []);
+      assert.ok(result.topics.some((row) => row.themeId === themes[0]));
+      assert.ok(result.topics.every((row) => row.attemptsCount === 0 && row.overallPercent === null && row.lastThreePercent === null));
     });
 
     await t.test("foreign children are unavailable and each parent sees only their child", async () => {

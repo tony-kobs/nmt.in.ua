@@ -99,8 +99,15 @@ test("loginAction opens a session and redirects on success", async () => {
   assert.equal(cookieUser, 7);
 });
 
-test("parent login always opens its own cabinet, including with another next path", async () => {
-  for (const next of [undefined, "/topic", "/assign", "//example.com"]) {
+test("parent login opens its cabinet, and keeps an invite accept path", async () => {
+  const cases = [
+    [undefined, "/parent"],
+    ["/topic", "/parent"],
+    ["/assign", "/parent"],
+    ["//example.com", "/parent"],
+    ["/parent/accept?token=abc", "/parent/accept?token=abc"],
+  ] as const;
+  for (const [next, expected] of cases) {
     let openedRole: AuthUser["role"] | undefined;
     await assert.rejects(
       loginAction(
@@ -118,7 +125,7 @@ test("parent login always opens its own cabinet, including with another next pat
           redirectTo: (path) => { throw new Error(`redirect:${path}`); },
         },
       ),
-      { message: "redirect:/parent" },
+      { message: `redirect:${expected}` },
     );
     assert.equal(openedRole, "parent");
   }

@@ -1,0 +1,40 @@
+.form {
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.child {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.error {
+  margin: 0;
+  color: var(--ink);
+}
+
+.submit {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--grad-brand);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.submit:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.submit:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}

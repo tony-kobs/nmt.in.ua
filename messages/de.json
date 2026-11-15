@@ -31,7 +31,8 @@
     "signIn": "Anmelden",
     "asideTitle": "Begleiten Sie Ihr Kind beim Lernen",
     "asideLead": "Sehen Sie Ergebnisse und Lernfortschritte in Ihrem Elternbereich.",
-    "asideBadge": "Für Eltern"
+    "asideBadge": "Für Eltern",
+    "hasAccount": "Schon ein Elternkonto? Anmelden"
   },
   "ParentDashboard": {
     "title": "Elternbereich",
@@ -46,9 +47,19 @@
     "correctPercent": "Anteil richtiger Antworten",
     "noTests": "Dieses Kind hat noch keine abgeschlossenen Tests. Ergebnisse erscheinen nach Abschluss eines Tests.",
     "topics": "Fortschritt nach Thema",
-    "topicsLead": "Gesamtergebnisse aller abgeschlossenen Tests je Thema.",
+    "topicsLead": "Versuche, Durchschnitt, die letzten drei Tests und das Tempo. Eine leere Zelle bedeutet: noch kein abgeschlossener Versuch.",
+    "topicsHint": "Leere Zellen sind Themen ohne abgeschlossenen Versuch. Farben: grün ab 70 %, gelb von 40 % bis 69 %, rot unter 40 %.",
     "noTopics": "Noch keine Ergebnisse nach Themen.",
-    "noChildren": "Mit Ihrem Konto sind noch keine Kinder verknüpft. Nach der Verknüpfung erscheint ihr Fortschritt hier."
+    "noChildren": "Mit Ihrem Konto sind noch keine Kinder verknüpft. Nach der Verknüpfung erscheint ihr Fortschritt hier.",
+    "acceptTitle": "Kind verknüpfen",
+    "acceptLead": "Diese Einladung fügt ein Kind zu Ihrem Bereich hinzu. Ein zweites Konto ist nicht nötig.",
+    "acceptChild": "Kind: {name}",
+    "acceptSubmit": "Verknüpfen",
+    "acceptPending": "Wird verknüpft…",
+    "acceptInvalid": "Diese Einladung ist nicht verfügbar. Sie wurde vielleicht schon verwendet oder ist abgelaufen. Bitten Sie um eine neue.",
+    "acceptWrongRole": "Diese Einladung kann nur ein Elternkonto annehmen. Melden Sie sich damit an oder erstellen Sie ein Konto über diesen Link.",
+    "acceptError": "Das Kind konnte nicht verknüpft werden. Versuchen Sie es erneut.",
+    "backToCabinet": "Zum Bereich"
   },
   "Dashboard": {
     "hideMenu": "Menü ausblenden"
@@ -124,7 +135,9 @@
       "leaderboard": "Marathon-Rangliste",
       "marathons": "Marathon",
       "marathon": "Marathon",
-      "support": "Anfragen"
+      "support": "Anfragen",
+      "parent": "Kinder",
+      "account": "Konto"
     }
   },
   "RecentResults": {
@@ -198,6 +211,13 @@
     "joinInviteTitle": "Einladungscode",
     "joinInviteLead": "Wenn eine Lehrkraft einen Code oder Link geschickt hat, nimm ihn hier an.",
     "joinInviteCta": "Code eingeben",
+    "linkedParentsTitle": "Eltern",
+    "linkedParentsLead": "Diese Personen sehen deinen Fortschritt. Trennen entfernt den Zugriff sofort.",
+    "linkedParentsEmpty": "Noch niemand verknüpft.",
+    "unlinkParent": "Trennen",
+    "unlinkPending": "Wird getrennt…",
+    "unlinkConfirm": "{name} trennen? Der Zugriff auf den Fortschritt verschwindet sofort.",
+    "unlinkError": "Trennen ist nicht gelungen. Versuch es erneut.",
     "errors": {
       "requiredFields": "Bitte alle Felder ausfüllen.",
       "passwordTooShort": "Das neue Passwort ist zu kurz.",
@@ -1716,7 +1736,8 @@
       "faq": "Fragen",
       "login": "Anmelden",
       "register": "Konto erstellen",
-      "cabinet": "Arbeitsbereich"
+      "cabinet": "Arbeitsbereich",
+      "internMy": "Oleksandras Seite"
     },
     "hero": {
       "titleStart": "Bereite dich auf die NMT in Mathematik",
@@ -3038,5 +3059,11 @@
     "bankProblem": "Aufgabenheft",
     "taskTitle": "Aufgabe",
     "taskImageAlt": "Bild zur Aufgabe"
+  },
+  "InternMyPage": {
+    "name": "Oleksandra Dubrovina",
+    "task1": "Multiplikationsrechner: Multiplikation zweier Zahlen implementiert",
+    "codeLink": "Repository",
+    "liveLink": "Live-Demo"
   }
 }

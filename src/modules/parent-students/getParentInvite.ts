@@ -4,7 +4,9 @@ import type { SqlConnection } from "@/lib/db/mysql";
 import { hashAuthToken } from "@/modules/auth/authTokens";
 import { validateParentInviteToken } from "@/validations/parentInviteValidation";
 
-export type GetParentInviteResult = { valid: boolean };
+export type GetParentInviteResult =
+  | { valid: true; childName: string }
+  | { valid: false };
 
 type InviteRow = {
   used_at: Date | string | null;
@@ -12,6 +14,7 @@ type InviteRow = {
   unexpired: number;
   student_role: string;
   is_banned: number;
+  display_name: string | null;
 };
 
 async function loadConnection(): Promise<SqlConnection> {
@@ -31,7 +34,7 @@ export async function getParentInvite(
   try {
     connection = await deps.getConnection();
     const rows = await connection.query<InviteRow>(
-      `SELECT pi.used_at, pi.revoked_at,
+      `SELECT pi.used_at, pi.revoked_at, u.display_name,
               (pi.expires_at > CURRENT_TIMESTAMP) AS unexpired,
               u.role AS student_role, u.is_banned
        FROM parent_invites pi
@@ -41,8 +44,10 @@ export async function getParentInvite(
       [hashAuthToken(parsed.token)],
     );
     const row = rows[0];
-    return { valid: !!row && row.used_at === null && row.revoked_at === null
-      && row.unexpired === 1 && row.student_role === "student" && row.is_banned === 0 };
+    const valid = !!row && row.used_at === null && row.revoked_at === null
+      && row.unexpired === 1 && row.student_role === "student" && row.is_banned === 0;
+    if (!valid || !row) return { valid: false };
+    return { valid: true, childName: row.display_name?.trim() || "—" };
   } catch {
     // Same public result for missing invitations and failures. Never log tokens/SQL errors.
     return { valid: false };

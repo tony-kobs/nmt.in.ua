@@ -114,8 +114,14 @@ import { loginCandidatesFromEmail, normalizeCtaUrl } from "./utm";
 
 const RETURN_COOKIE = "marathon_return";
 
-async function requireManager() {
+async function requireMarathonUser() {
   const user = await requireUser();
+  if (user.role === "parent") redirect("/parent");
+  return user;
+}
+
+async function requireManager() {
+  const user = await requireMarathonUser();
   if (!hasPermission(user.role, "marathon:manage")) redirect("/");
   return user;
 }
@@ -613,7 +619,7 @@ async function openMarathon(slug: string) {
 }
 
 export async function joinMarathonAction(formData: FormData): Promise<void> {
-  const user = await requireUser();
+  const user = await requireMarathonUser();
   const slug = readText(formData.get("slug"), 64);
   const marathon = await getPublicDailyBySlug(slug);
   if (!marathon || (marathon.status !== "draft" && marathon.status !== "active")) {
@@ -639,7 +645,7 @@ export async function joinMarathonAction(formData: FormData): Promise<void> {
 }
 
 export async function declineMarathonAction(formData: FormData): Promise<void> {
-  const user = await requireUser();
+  const user = await requireMarathonUser();
   const slug = readText(formData.get("slug"), 64);
   const marathon = await openMarathon(slug);
   if (!marathon) redirect("/");
@@ -781,7 +787,7 @@ export async function registerMarathonAction(
 }
 
 export async function markMaterialsAction(formData: FormData): Promise<void> {
-  const user = await requireUser();
+  const user = await requireMarathonUser();
   const slug = readText(formData.get("slug"), 64);
   const dayNumber = readInt(formData.get("day"));
   const marathon = await openMarathon(slug);
@@ -802,7 +808,7 @@ export async function markMaterialsAction(formData: FormData): Promise<void> {
 }
 
 export async function submitDayAction(formData: FormData): Promise<void> {
-  const user = await requireUser();
+  const user = await requireMarathonUser();
   const slug = readText(formData.get("slug"), 64);
   const dayNumber = readInt(formData.get("day"));
   const dayPath = `/marathon/${slug}/day/${dayNumber ?? 1}`;
@@ -881,7 +887,7 @@ export async function submitDayAction(formData: FormData): Promise<void> {
 }
 
 export async function seeIntroAction(formData: FormData): Promise<void> {
-  const user = await requireUser();
+  const user = await requireMarathonUser();
   const slug = readText(formData.get("slug"), 64);
   const marathon = await openMarathon(slug);
   if (!marathon) redirect("/");
@@ -893,7 +899,7 @@ export async function seeIntroAction(formData: FormData): Promise<void> {
 }
 
 export async function setChannelAction(formData: FormData): Promise<void> {
-  const user = await requireUser();
+  const user = await requireMarathonUser();
   const slug = readText(formData.get("slug"), 64);
   const marathon = await openMarathon(slug);
   if (!marathon) redirect("/");
@@ -917,7 +923,7 @@ export async function setChannelAction(formData: FormData): Promise<void> {
 }
 
 export async function notifyPrefsAction(formData: FormData): Promise<void> {
-  const user = await requireUser();
+  const user = await requireMarathonUser();
   const slug = readText(formData.get("slug"), 64);
   const marathon = await openMarathon(slug);
   if (!marathon) redirect("/");
@@ -982,7 +988,7 @@ export async function updateMaterialAction(
 }
 
 export async function linkBotAction(formData: FormData): Promise<void> {
-  const user = await requireUser();
+  const user = await requireMarathonUser();
   const slug = readText(formData.get("slug"), 64);
   const marathon = await openMarathon(slug);
   if (!marathon) redirect("/");
@@ -994,7 +1000,7 @@ export async function linkBotAction(formData: FormData): Promise<void> {
 }
 
 export async function convertMarathonAction(formData: FormData): Promise<void> {
-  const user = await requireUser();
+  const user = await requireMarathonUser();
   const slug = readText(formData.get("slug"), 64);
   const marathon = await openMarathon(slug);
   if (!marathon) redirect("/");
