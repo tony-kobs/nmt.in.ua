@@ -35,7 +35,20 @@
   },
   "ParentDashboard": {
     "title": "Parent dashboard",
-    "placeholder": "Your children’s progress will appear here"
+    "placeholder": "Your children’s progress will appear here",
+    "lead": "View your children’s learning progress.",
+    "chooseChild": "Choose a child",
+    "loading": "Loading progress…",
+    "summaryLead": "Completed tests only. The percentage represents correct answers, not curriculum completion or an NMT score.",
+    "completedTests": "Completed tests",
+    "completedTasks": "Completed tasks",
+    "correctAnswers": "Correct answers",
+    "correctPercent": "Correct answer percentage",
+    "noTests": "This child has no completed tests yet. Results will appear after a test is completed.",
+    "topics": "Progress by topic",
+    "topicsLead": "Totals from all completed tests for each topic.",
+    "noTopics": "No topic results yet.",
+    "noChildren": "No children are linked to your account yet. Their progress will appear here once they are linked."
   },
   "Dashboard": {
     "hideMenu": "Hide menu"
@@ -116,7 +129,9 @@
   },
   "RecentResults": {
     "title": "Recent results",
-    "empty": "Results will appear after your first tests."
+    "empty": "Results will appear after your first tests.",
+    "startedAt": "Test started: {date}",
+    "unknownDate": "Start date unavailable"
   },
   "AccountCabinet": {
     "telegramConnect": "Connect Telegram",

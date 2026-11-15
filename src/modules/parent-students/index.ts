@@ -9,4 +9,5 @@ export { requireParentChild } from "./requireParentChild";
 export { ParentAccessError } from "./types";
 export type { ParentChild, ParentAccessErrorCode } from "./types";
 export { getChildProgress } from "./getChildProgress";
+export { loadParentDashboard } from "./loadParentDashboard";
 export type { ChildProgress, ChildProgressSummary, ChildTopicProgress, ChildRecentResult } from "./buildChildProgress";

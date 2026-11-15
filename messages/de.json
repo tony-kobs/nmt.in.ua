@@ -35,7 +35,20 @@
   },
   "ParentDashboard": {
     "title": "Elternbereich",
-    "placeholder": "Hier wird der Lernfortschritt Ihrer Kinder angezeigt"
+    "placeholder": "Hier wird der Lernfortschritt Ihrer Kinder angezeigt",
+    "lead": "Sehen Sie den Lernfortschritt Ihrer Kinder ein.",
+    "chooseChild": "Kind auswählen",
+    "loading": "Fortschritt wird geladen…",
+    "summaryLead": "Nur abgeschlossene Tests. Der Prozentsatz zeigt den Anteil richtiger Antworten, nicht den Abschluss des Lehrplans oder eine NMT-Punktzahl.",
+    "completedTests": "Abgeschlossene Tests",
+    "completedTasks": "Bearbeitete Aufgaben",
+    "correctAnswers": "Richtige Antworten",
+    "correctPercent": "Anteil richtiger Antworten",
+    "noTests": "Dieses Kind hat noch keine abgeschlossenen Tests. Ergebnisse erscheinen nach Abschluss eines Tests.",
+    "topics": "Fortschritt nach Thema",
+    "topicsLead": "Gesamtergebnisse aller abgeschlossenen Tests je Thema.",
+    "noTopics": "Noch keine Ergebnisse nach Themen.",
+    "noChildren": "Mit Ihrem Konto sind noch keine Kinder verknüpft. Nach der Verknüpfung erscheint ihr Fortschritt hier."
   },
   "Dashboard": {
     "hideMenu": "Menü ausblenden"
@@ -116,7 +129,9 @@
   },
   "RecentResults": {
     "title": "Letzte Ergebnisse",
-    "empty": "Die Ergebnisse erscheinen nach deinen ersten Tests."
+    "empty": "Die Ergebnisse erscheinen nach deinen ersten Tests.",
+    "startedAt": "Testbeginn: {date}",
+    "unknownDate": "Startdatum unbekannt"
   },
   "AccountCabinet": {
     "telegramConnect": "Telegram verbinden",

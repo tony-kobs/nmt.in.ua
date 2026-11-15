@@ -14,6 +14,7 @@ export const CORE_CLIENT_NAMESPACES = [
   "RecentResults",
   "AccountCabinet",
   "ParentInvites",
+  "ParentDashboard",
   "TopicTestStart",
   "RecommendedActions",
   "TopicTrainer",
