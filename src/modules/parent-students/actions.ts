@@ -1,13 +1,14 @@
 "use server";
 
-import { createParentInvite, type CreateParentInviteResult } from "./createParentInvite";
+import type { CreateParentInviteResult } from "./createParentInvite";
+import { handleCreateParentInvite } from "./createParentInviteAction";
 import { handleParentRegistration, type RegisterParentActionState } from "./registerParentAction";
 
 export type { RegisterParentActionState } from "./registerParentAction";
 
-/** No arguments or injectable dependencies exposed to the client. */
-export async function createParentInviteAction(): Promise<CreateParentInviteResult> {
-  return createParentInvite();
+/** Only studentId is accepted; authorization and validation stay server-side. */
+export async function createParentInviteAction(formData?: FormData): Promise<CreateParentInviteResult> {
+  return handleCreateParentInvite(formData);
 }
 
 /** Compatible with useActionState; role, student id and dependencies are not accepted. */
