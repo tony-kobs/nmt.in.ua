@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { useTranslations } from "next-intl";
 import { MathText } from "@/components/ui/MathText";
-import { TestTaskCard } from "@/components/testing/TestTaskCard";
+import { TestTaskCard, topicOptionsStackUntilTablet } from "@/components/testing/TestTaskCard";
 import cardCss from "@/components/testing/TestTaskCard/TestTaskCard.module.css";
 import {
   getFindErrorTaskAction,
@@ -127,7 +127,15 @@ export function FindErrorTaskCard({ taskId, roundId, diagnostic = false, quiet =
       </div>
 
       <p className={css.optionsLabel}>{t("findErrorOptionsLabel")}</p>
-      <div className={cardCss.answers} role="radiogroup" aria-label={t("findErrorOptionsLabel")}>
+      <div
+        className={clsx(
+          cardCss.answers,
+          topicOptionsStackUntilTablet(task.correctionOptions.map((option) => option.text)) &&
+            cardCss.answersSingleUntilMd,
+        )}
+        role="radiogroup"
+        aria-label={t("findErrorOptionsLabel")}
+      >
         {task.correctionOptions.map((option) => {
           const isSelected = selectedOption === option.number;
           const isCorrectOption = revealed?.rightCorrectionN === option.number;
