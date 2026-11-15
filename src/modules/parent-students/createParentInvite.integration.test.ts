@@ -1,43 +1,14 @@
 import assert from "node:assert/strict";
 import { createHash, randomBytes } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { hostname } from "node:os";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { parseEnv } from "node:util";
 import test from "node:test";
 import mysql, { type ResultSetHeader, type RowDataPacket } from "mysql2/promise";
 import type { SqlConnection } from "@/lib/db/mysql";
 import type { AuthUser } from "@/modules/auth/types";
 import { createParentInvite } from "./createParentInvite";
+import { localConfig, readLocalConfig, target, verifyServer } from "../../../test/parentLocalMysql";
 
 // Explicit opt-in only. `check` performs SELECTs and closes, without any writes.
 const mode = process.env.NMT_PARENT_INVITE_INTEGRATION;
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-const target = { DB_HOST: "127.0.0.1", DB_PORT: "3306", DB_USER: "nmt_dev", DB_NAME: "nmt_local", DB_SSL: "0" };
-
-function localConfig(
-  env: Record<string, string | undefined>,
-  shell: Record<string, string | undefined>,
-) {
-  for (const [key, value] of Object.entries(target)) {
-    if (env[key] !== value || (shell[key] !== undefined && shell[key] !== value)) {
-      throw new Error(`Local integration refused: ${key} must match the fixed local target.`);
-    }
-  }
-  if (!env.DB_PASSWORD?.trim()) throw new Error("Local integration refused: local password is missing.");
-  return { host: target.DB_HOST, port: 3306, user: target.DB_USER,
-    database: target.DB_NAME, password: env.DB_PASSWORD, connectTimeout: 5000 };
-}
-
-function verifyServer(row: Record<string, unknown>, machine = hostname()) {
-  const normalize = (value: string) => value.toLowerCase().replace(/\.local\.?$/, "").replace(/\.$/, "");
-  if (row.db !== "nmt_local" || !["nmt_dev@localhost", "nmt_dev@127.0.0.1"].includes(String(row.account))
-    || normalize(String(row.host)) !== normalize(machine) || Number(row.port) !== 3306) {
-    throw new Error("Local integration refused: DATABASE(), CURRENT_USER(), hostname or port mismatch.");
-  }
-}
-
 test("integration guard rejects remote targets and unexpected server identities", () => {
   const env = { ...target, DB_PASSWORD: "not-a-real-password" };
   localConfig(env, {});
@@ -57,7 +28,7 @@ test("parent invite on guarded local MySQL; own fixtures only, always cleaned up
   skip: mode !== "1" && mode !== "check",
 }, async (t) => {
   // Never use Next env loading, the application pool, migrations or schema ensures.
-  const config = localConfig(parseEnv(readFileSync(path.join(root, ".env.local"), "utf8")), process.env);
+  const config = readLocalConfig();
   let connection: Awaited<ReturnType<typeof mysql.createConnection>>;
   try { connection = await mysql.createConnection(config); }
   catch { throw new Error("Local integration connection failed; credentials and driver details withheld."); }
