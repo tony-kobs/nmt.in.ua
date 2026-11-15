@@ -1,4 +1,27 @@
 {
+  "ParentInvites": {
+    "title": "Eltern einladen",
+    "studentLead": "Erstelle einen einmaligen Link, damit deine Eltern sich registrieren und deinen Lernfortschritt sehen können.",
+    "teacherLead": "Wählen Sie ein Kind aus Ihrer Liste und erstellen Sie einen einmaligen Link für dessen Eltern.",
+    "student": "Schüler oder Schülerin",
+    "chooseStudent": "Kind auswählen",
+    "noStudents": "Fügen Sie zuerst ein Kind zu Ihrer Liste hinzu.",
+    "create": "Eltern einladen",
+    "creating": "Wird erstellt…",
+    "link": "Einladungslink für Eltern",
+    "copy": "Link kopieren",
+    "copied": "Link kopiert",
+    "ready": "Der Link ist bereit. Geben Sie ihn persönlich an die Eltern weiter.",
+    "expires": "Gültig bis {when}",
+    "privacy": "Dieser einmalige Link gilt 7 Tage. Er wird nur hier angezeigt, bis Sie die Seite verlassen.",
+    "copyFailed": "Automatisches Kopieren fehlgeschlagen. Der Link ist markiert und kann manuell kopiert werden.",
+    "errors": {
+      "unauthorized": "Melden Sie sich an, um eine Einladung zu erstellen.",
+      "forbidden": "Für dieses Kind konnte keine Einladung erstellt werden. Prüfen Sie Ihre Liste oder laden Sie die Seite neu.",
+      "rate_limited": "Einladungslimit erreicht: bis zu 3 aktive Einladungen pro Kind und Absender; bis zu 5 pro Stunde für Lernende oder 50 für Lehrkräfte. Versuchen Sie es später erneut.",
+      "generic": "Die Einladung konnte nicht erstellt werden. Versuchen Sie es später erneut."
+    }
+  },
   "ParentRegister": {
     "title": "Elternkonto erstellen",
     "lead": "Registrieren Sie sich mit Ihrer Einladung, um den Lernfortschritt Ihres Kindes zu sehen. Bestätigen Sie anschließend Ihre E-Mail-Adresse.",

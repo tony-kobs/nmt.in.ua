@@ -1,4 +1,27 @@
 {
+  "ParentInvites": {
+    "title": "Invite parents",
+    "studentLead": "Create a one-time link so your parents can register and view your progress.",
+    "teacherLead": "Choose one of your students and create a one-time link for their parents.",
+    "student": "Student",
+    "chooseStudent": "Choose a student",
+    "noStudents": "Add a student to your list first.",
+    "create": "Invite parents",
+    "creating": "Creating…",
+    "link": "Parent invitation link",
+    "copy": "Copy link",
+    "copied": "Link copied",
+    "ready": "Your link is ready. Share it privately with the parents.",
+    "expires": "Valid until {when}",
+    "privacy": "This one-time link expires in 7 days. It is shown only here until you leave this page.",
+    "copyFailed": "Automatic copying failed. The link is selected so you can copy it manually.",
+    "errors": {
+      "unauthorized": "Sign in to create an invitation.",
+      "forbidden": "An invitation could not be created for this student. Check your student list or refresh the page.",
+      "rate_limited": "Invitation limit reached: up to 3 active invitations per student and author; up to 5 per hour for a student or 50 for a teacher. Try again later.",
+      "generic": "Could not create an invitation. Please try again later."
+    }
+  },
   "ParentRegister": {
     "title": "Create a parent account",
     "lead": "Register with your invitation to view your child’s progress. Confirm your email after registering.",

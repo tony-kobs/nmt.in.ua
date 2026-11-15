@@ -12,6 +12,7 @@ import {
 } from "@/modules/auth/actions";
 import { PASSWORD_MAX_LEN, PASSWORD_MIN_LEN } from "@/modules/auth/validateRegistration";
 import { RecentResults } from "@/components/dashboard/RecentResults";
+import { ParentInvitePanel } from "@/components/dashboard/ParentInvitePanel/ParentInvitePanel";
 import { UserAvatar } from "@/components/account/UserAvatar";
 import { TeacherProfileEditor } from "@/components/account/TeacherProfileEditor";
 import { AccountPhotoPanel } from "./AccountPhotoPanel";
@@ -101,6 +102,10 @@ export function AccountCabinet({
           profile={teacherProfile}
           suggestedSlug={normalizeSlug(user.login)}
         />
+      ) : null}
+
+      {user.role === "student" && (user.realRole ?? user.role) === "student" ? (
+        <ParentInvitePanel key={user.id} user={{ id: user.id, role: user.role, realRole: user.realRole }} />
       ) : null}
 
       {!isPlatformStaff(user.role) ? <RecentResults items={recentResults} /> : null}

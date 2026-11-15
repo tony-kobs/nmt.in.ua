@@ -13,6 +13,7 @@ export const CORE_CLIENT_NAMESPACES = [
   "LanguageSwitcher",
   "RecentResults",
   "AccountCabinet",
+  "ParentInvites",
   "TopicTestStart",
   "RecommendedActions",
   "TopicTrainer",
