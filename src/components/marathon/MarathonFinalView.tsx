@@ -138,11 +138,11 @@ export async function MarathonFinalView({
               </ul>
             </section>
           ) : null}
-          {marathon.finalCtaText && marathon.finalCtaUrl ? (
+          {marathon.finalCtaUrl ? (
             <form action={convertMarathonAction}>
               <input type="hidden" name="slug" value={marathon.slug} />
               <button type="submit" className={css.button}>
-                {marathon.finalCtaText}
+                {marathon.finalCtaText.trim() || t("defaults.finalCta")}
               </button>
             </form>
           ) : null}
