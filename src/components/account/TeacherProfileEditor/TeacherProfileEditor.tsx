@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 
 import {
   saveTeacherProfileAction,
+  setTeacherPagePublishedAction,
   submitTeacherProfileForModerationAction,
   type SaveTeacherProfileActionState,
 } from "@/modules/teachers/actions";
@@ -29,6 +30,7 @@ import {
   teacherPublicPath,
   type TeacherProfile,
 } from "@/modules/teachers/types";
+import { burcobLandingFormUrl } from "@/modules/teachers/landingUrl";
 import css from "./TeacherProfileEditor.module.css";
 import {
   LESSON_CURRENCIES,
@@ -46,11 +48,13 @@ const INITIAL: SaveTeacherProfileActionState = { status: "idle" };
 type TeacherProfileEditorProps = {
   profile: TeacherProfile;
   suggestedSlug: string;
+  landingOrderUrl?: string | null;
 };
 
 export function TeacherProfileEditor({
   profile,
   suggestedSlug,
+  landingOrderUrl = burcobLandingFormUrl(),
 }: TeacherProfileEditorProps) {
   const t = useTranslations("TeacherProfile");
   const [state, setState] = useState<SaveTeacherProfileActionState>(INITIAL);
@@ -620,6 +624,50 @@ export function TeacherProfileEditor({
           {fieldError(errors.joinMotivation?.message)}
         </label>
 
+        <label className={css.field}>
+          <span className={css.label}>{t("photoUrl")}</span>
+          <input className={css.input} {...register("photoUrl")} disabled={disabled} />
+          <span className={css.hint}>{t("photoUrlHint")}</span>
+          {fieldError(errors.photoUrl?.message)}
+        </label>
+        <label className={css.field}>
+          <span className={css.label}>{t("about")}</span>
+          <textarea className={css.textarea} {...register("about")} rows={4} disabled={disabled} />
+          {fieldError(errors.about?.message)}
+        </label>
+        <label className={css.field}>
+          <span className={css.label}>{t("approach")}</span>
+          <textarea className={css.textarea} {...register("approach")} rows={4} disabled={disabled} />
+          {fieldError(errors.approach?.message)}
+        </label>
+        <label className={css.field}>
+          <span className={css.label}>{t("program")}</span>
+          <textarea className={css.textarea} {...register("program")} rows={4} disabled={disabled} />
+          {fieldError(errors.program?.message)}
+        </label>
+        <fieldset className={css.field}>
+          <legend className={css.label}>{t("reviewTitle")}</legend>
+          {([1, 2, 3] as const).map((index) => (
+            <div key={index} className={css.field}>
+              <label className={css.field}>
+                <span className={css.label}>{t("reviewName")}</span>
+                <input className={css.input} {...register(`reviewName${index}`)} disabled={disabled} />
+              </label>
+              <label className={css.field}>
+                <span className={css.label}>{t("reviewText")}</span>
+                <textarea className={css.textarea} {...register(`reviewText${index}`)} rows={3} disabled={disabled} />
+              </label>
+            </div>
+          ))}
+          {fieldError(errors.reviewText1?.message)}
+        </fieldset>
+        <label className={css.field}>
+          <span className={css.label}>{t("externalUrl")}</span>
+          <input className={css.input} {...register("externalUrl")} inputMode="url" disabled={disabled} />
+          <span className={css.hint}>{t("externalUrlHint")}</span>
+          {fieldError(errors.externalUrl?.message)}
+        </label>
+
         <div className={css.actions}>
           <button type="submit" className={css.submit} disabled={disabled}>
             {pending ? t("saving") : t("save")}
@@ -648,6 +696,23 @@ export function TeacherProfileEditor({
           </button>
         </div>
       </form>
+      <form action={setTeacherPagePublishedAction}>
+        <input type="hidden" name="published" value={profile.isPublic ? "0" : "1"} />
+        <button type="submit" className={css.submit}>
+          {profile.isPublic ? t("unpublish") : t("publish")}
+        </button>
+      </form>
+      {landingOrderUrl ? (
+        <section className={css.panel} aria-labelledby="teacher-landing-order">
+          <h3 id="teacher-landing-order" className={css.label}>
+            {t("landingOrderTitle")}
+          </h3>
+          <p className={css.hint}>{t("landingOrderLead")}</p>
+          <a className={css.share} href={landingOrderUrl} target="_blank" rel="noopener noreferrer">
+            {t("landingOrderCta")}
+          </a>
+        </section>
+      ) : null}
     </section>
   );
 }
