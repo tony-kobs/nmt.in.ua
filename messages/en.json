@@ -2298,10 +2298,24 @@
       "server": "Could not save. Try again."
     }
   },
+  "Seo": {
+    "breadcrumb": "Breadcrumb",
+    "home": "Home",
+    "diagnostic": "Diagnostic test",
+    "marathon": "Marathon"
+  },
   "Metadata": {
     "welcome": {
       "title": "NMT math preparation",
       "description": "An online workspace for NMT prep: topic tests, results, recommendations, and an exam simulator."
+    },
+    "welcomePage": {
+      "title": "Welcome page",
+      "description": "The LevelUP welcome: how you prepare for the NMT in maths, with tests, a simulator and a textbook."
+    },
+    "intern": {
+      "title": "Oleksandra Dubrovina",
+      "description": "Oleksandra Dubrovina's page: a multiplication calculator, the code and a live demo."
     },
     "home": {
       "title": "Today",
@@ -2336,8 +2350,8 @@
       "description": "Interactive trainer with test tasks for a topic."
     },
     "diagnostic": {
-      "title": "Diagnostic test",
-      "description": "A short diagnostic across topics. Difficulty follows your answers."
+      "title": "Math diagnostic test",
+      "description": "A short diagnostic across maths topics. Difficulty follows your answers."
     },
     "diagnosticSession": {
       "title": "Diagnostic test",

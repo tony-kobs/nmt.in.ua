@@ -2,9 +2,10 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { DatabaseUnavailable } from "@/components/status/DatabaseUnavailable";
 import { DiagnosticShell } from "@/components/diagnostic/DiagnosticShell";
+import { PublicBreadcrumbs } from "@/components/seo/PublicBreadcrumbs";
 import { isDatabaseUnavailable, rethrowNavigation } from "@/lib/db/unavailable";
 import { TeacherPublicCard } from "@/components/teachers/TeacherPublicCard";
-import { createPageMetadata } from "@/constants/seo";
+import { createPageMetadata, fitMetaDescription } from "@/constants/seo";
 import { getPublicTeacherCard, teacherPublicPath } from "@/modules/teachers";
 
 type TeacherPublicPageProps = {
@@ -37,12 +38,16 @@ export async function generateMetadata({ params }: TeacherPublicPageProps) {
     });
   }
 
+  const named = card.headline
+    ? t("titleWithHeadline", { name: card.displayName, headline: card.headline })
+    : t("titleNamed", { name: card.displayName });
   return createPageMetadata({
-    title: card.headline
-      ? t("titleWithHeadline", { name: card.displayName, headline: card.headline })
-      : t("titleNamed", { name: card.displayName }),
-    description: card.about || card.bio || t("descriptionNamed", { name: card.displayName }),
+    title: named,
+    description: fitMetaDescription(
+      card.about || card.bio || t("descriptionNamed", { name: card.displayName }),
+    ),
     path: teacherPublicPath(card.slug),
+    ogImageAlt: card.displayName,
   });
 }
 
@@ -62,9 +67,17 @@ export default async function TeacherPublicPage({
     notFound();
   }
 
+  const seo = await getTranslations("Seo");
   return (
     <DiagnosticShell>
-      <TeacherPublicCard card={card} />
+      <PublicBreadcrumbs
+        label={seo("breadcrumb")}
+        items={[
+          { name: seo("home"), path: "/" },
+          { name: card.displayName, path: teacherPublicPath(card.slug) },
+        ]}
+      />
+      <TeacherPublicCard card={card} heading="h1" />
     </DiagnosticShell>
   );
 }

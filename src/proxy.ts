@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { isKnownPage } from "@/constants/appRoutes";
+import { isKnownPage, normalizePagePath } from "@/constants/appRoutes";
 import { PUBLIC_PAGE_PATHS } from "@/constants/publicRoutes";
 import { contentSecurityPolicy, createRequestNonce } from "@/lib/contentSecurityPolicy";
 import { hasPermission } from "@/modules/auth/permissions";
@@ -191,6 +191,23 @@ export async function proxy(request: NextRequest) {
         "X-Content-Type-Options": "nosniff",
       },
     }));
+  }
+
+  // A `loading.tsx` sibling turns `redirect()` into HTTP 200 plus a meta refresh.
+  const path = normalizePagePath(pathname);
+  if (path === "/register/teacher") {
+    return seal(NextResponse.redirect(absoluteSiteUrl("/register?role=teacher"), 308));
+  }
+  const verifyToken = path === "/verify-email"
+    ? request.nextUrl.searchParams.get("token")?.trim() ?? ""
+    : "";
+  if (verifyToken) {
+    return seal(
+      NextResponse.redirect(
+        absoluteSiteUrl(`/api/auth/verify-email?token=${encodeURIComponent(verifyToken)}`),
+        307,
+      ),
+    );
   }
 
   const authResponse = authGuard(request, session);

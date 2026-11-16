@@ -1,7 +1,9 @@
 import { getTranslations } from "next-intl/server";
 import { DiagnosticIntro } from "@/components/diagnostic/DiagnosticIntro";
 import { DiagnosticShell } from "@/components/diagnostic/DiagnosticShell";
-import { createPageMetadata } from "@/constants/seo";
+import { PublicBreadcrumbs } from "@/components/seo/PublicBreadcrumbs";
+import { JsonLd } from "@/components/seo";
+import { buildCourseJsonLd, createPageMetadata, getSiteUrl } from "@/constants/seo";
 import { hasEligibleDiagnosticContent } from "@/modules/diagnostic";
 
 export async function generateMetadata() {
@@ -44,9 +46,27 @@ async function resolveContentAvailable(): Promise<boolean> {
 /** Public diagnostic entry point — no auth required (see PUBLIC_PATHS in
  * src/proxy.ts). Guests get a signed nmt_guest cookie the first time they
  * submit the form (inside startDiagnosticAction), not on this render. */
-export default function DiagnosticPage() {
+export default async function DiagnosticPage() {
+  const seo = await getTranslations("Seo");
+  const meta = await getTranslations("Metadata.diagnostic");
   return (
     <DiagnosticShell mathDecor="intro">
+      <PublicBreadcrumbs
+        label={seo("breadcrumb")}
+        items={[
+          { name: seo("home"), path: "/" },
+          { name: seo("diagnostic"), path: "/diagnostic" },
+        ]}
+      />
+      <JsonLd
+        data={buildCourseJsonLd({
+          id: `${getSiteUrl()}/diagnostic#course`,
+          name: meta("title"),
+          description: meta("description"),
+          path: "/diagnostic",
+          teaches: "Математика НМТ",
+        })}
+      />
       <DiagnosticIntro availability={resolveContentAvailable()} />
     </DiagnosticShell>
   );

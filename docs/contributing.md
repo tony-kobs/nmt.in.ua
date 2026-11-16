@@ -42,7 +42,7 @@ git checkout -b feature/коротка-назва
 
 Групи маршрутів: `src/app/(home)/page.tsx` — `/`; `src/app/(marketing)/` — лендінг, вхід, діагностика, публічна візитка; `src/app/(app)/` — кабінет. Корінь — лише `html` / `body` і `globals.css`.
 
-`loading.tsx` не став поруч зі сторінкою, яка кличе `notFound()`: відповідь тоді їде зі статусом 200.
+`loading.tsx` не став поруч зі сторінкою, яка кличе `notFound()` або `redirect()`: відповідь тоді їде зі статусом 200.
 
 ### Журнал
 
@@ -63,7 +63,8 @@ Cursor і інші моделі дозволені. Перед здачею ти
 | `src/app/(app)/session/[id]/` | Тренажер однієї сесії |
 | `src/app/(app)/(cabinet)/` | Сторінки кабінету |
 | `src/app/(marketing)/(flow)/register/parent/page.tsx` | Реєстрація батьків за запрошенням. Якщо батьківський акаунт уже є, сторінка веде на `/parent/accept` |
-| `src/app/(app)/(cabinet)/parent/` | Кабінет батьків: лише перегляд прогресу дитини |
+| `src/app/(app)/parent/` | Кабінет батьків: лише перегляд прогресу дитини. Поза `(cabinet)`, бо сторінка кличе `notFound()` |
+| `src/constants/seo.ts` | Title, description, canonical, robots, sitemap і JSON-LD |
 | `src/components/welcome/` | Секції лендінгу |
 | `src/components/dashboard/` | Шапка, меню, старт тесту |
 | `src/components/testing/` | TopicTrainer, NmtTrainer, підсумок |

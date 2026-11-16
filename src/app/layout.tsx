@@ -10,6 +10,7 @@ import {
   THEME_COLOR,
   absoluteUrl,
   createPageMetadata,
+  googleSiteVerification,
   siteIcons,
 } from "@/constants/seo";
 import { DeploymentSkewReload } from "@/components/status/DeploymentSkewReload";
@@ -28,6 +29,8 @@ const manrope = Manrope({
   variable: "--font-manrope",
   display: "swap",
 });
+
+const googleVerification = googleSiteVerification();
 
 /**
  * Root shell only: html/body + global CSS.
@@ -72,6 +75,7 @@ export const metadata: Metadata = {
   other: {
     "mobile-web-app-capable": "yes",
   },
+  ...(googleVerification ? { verification: { google: googleVerification } } : {}),
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
