@@ -39,6 +39,8 @@ const NAV_ICONS: Record<string, NavIconName> = {
   "/leaderboard": "trophy",
   "/admin/marathons": "flame",
   "/admin/support": "headset",
+  "/promo": "ticket",
+  "/admin/promos": "ticket",
 };
 
 const NAV_KEYS: Record<string, string> = {
@@ -59,6 +61,8 @@ const NAV_KEYS: Record<string, string> = {
   "/leaderboard": "leaderboard",
   "/admin/marathons": "marathons",
   "/admin/support": "support",
+  "/promo": "promo",
+  "/admin/promos": "promo",
 };
 
 const MARATHON_ICON: NavIconName = "flag";
@@ -146,6 +150,8 @@ export function visibleSidebar(input: {
     if (item.href === "/admin/marathons" || item.href === "/admin/support") {
       return hasPermission(input.role, "marathon:manage");
     }
+    if (item.href === "/admin/promos") return false;
+    if (item.href === "/promo") return input.role === "teacher";
     if (item.href === "/admin/textbook") return false;
     if (item.href === "/leaderboard") return input.role !== "student";
     return true;

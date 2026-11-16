@@ -117,6 +117,18 @@ export const DASHBOARD_NAV: NavItem[] = [
     description: "Повідомлення учасників з бота і відповідь у Telegram.",
     status: "ready",
   },
+  {
+    href: "/promo",
+    label: "Промокоди",
+    description: "Код безкоштовного доступу для учнів, привʼязаний до викладача.",
+    status: "ready",
+  },
+  {
+    href: "/admin/promos",
+    label: "Промокоди",
+    description: "Коди безкоштовного доступу: створити, вимкнути і побачити використання.",
+    status: "ready",
+  },
 ];
 
 export function getNavItem(href: string): NavItem {
