@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { JsonLd } from "@/components/seo";
+import { buildFaqJsonLd } from "@/constants/seo";
 import { Reveal } from "@/components/ui/Reveal";
 import { PlusIcon } from "../icons";
 import landing from "../landing.module.css";
@@ -11,15 +12,12 @@ const FAQ_KEYS = ["price", "who", "mobile", "recommendations", "teacher"] as con
 export async function Faq() {
   const t = await getTranslations("WelcomeLanding.faq");
 
-  const faqJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQ_KEYS.map((key) => ({
-      "@type": "Question",
-      name: t(`items.${key}.q`),
-      acceptedAnswer: { "@type": "Answer", text: t(`items.${key}.a`) },
+  const faqJsonLd = buildFaqJsonLd(
+    FAQ_KEYS.map((key) => ({
+      question: t(`items.${key}.q`),
+      answer: t(`items.${key}.a`),
     })),
-  };
+  );
 
   return (
     <section id="faq" className={landing.section} aria-labelledby="faq-title">

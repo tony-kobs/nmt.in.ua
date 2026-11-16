@@ -1,5 +1,5 @@
 import { JsonLd } from "@/components/seo/JsonLd";
-import { absoluteUrl } from "@/constants/seo";
+import { buildTeacherProfileJsonLd } from "@/constants/seo";
 import type { PublicTeacherCard } from "@/modules/teachers";
 import { teacherPublicPath } from "@/modules/teachers";
 import { TeacherPublicCardView } from "./TeacherPublicCardView";
@@ -7,45 +7,31 @@ import { TeacherPublicCardView } from "./TeacherPublicCardView";
 type TeacherPublicCardProps = {
   card: PublicTeacherCard;
   showCta?: boolean;
+  /** Public `/t/{slug}` is the only place this name is the page h1. */
+  heading?: "h1" | "p";
 };
 
 export function TeacherPublicCard({
   card,
   showCta = true,
+  heading = "p",
 }: TeacherPublicCardProps) {
   const path = teacherPublicPath(card.slug);
-
-  const personLd: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "Person",
+  const profileLd = buildTeacherProfileJsonLd({
     name: card.displayName,
-    url: absoluteUrl(path),
-  };
-
-  if (card.headline) {
-    personLd.jobTitle = card.headline;
-  }
-
-  if (card.bio) {
-    personLd.description = card.bio;
-  }
-
-  if (card.city || card.country) {
-    personLd.address = {
-      "@type": "PostalAddress",
-      ...(card.city ? { addressLocality: card.city } : {}),
-      ...(card.country ? { addressCountry: card.country } : {}),
-    };
-  }
-
-  if (card.contactUrl) {
-    personLd.sameAs = [card.contactUrl];
-  }
+    path,
+    headline: card.headline,
+    description: card.about || card.bio || null,
+    city: card.city,
+    country: card.country,
+    contactUrl: card.contactUrl,
+    image: card.photoUrl,
+  });
 
   return (
     <>
-      <JsonLd data={personLd} />
-      <TeacherPublicCardView card={card} showCta={showCta} layout="page" />
+      <JsonLd data={profileLd} />
+      <TeacherPublicCardView card={card} showCta={showCta} layout="page" heading={heading} />
     </>
   );
 }

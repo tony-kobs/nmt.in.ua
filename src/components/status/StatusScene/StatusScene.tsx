@@ -85,9 +85,15 @@ export function StatusScene({
               pack.kicker
             )}
           </p>
-          <h1 id="status-title" className={css.title}>
-            {pack.title}
-          </h1>
+          {variant === "loading" ? (
+            <p id="status-title" className={css.title}>
+              {pack.title}
+            </p>
+          ) : (
+            <h1 id="status-title" className={css.title}>
+              {pack.title}
+            </h1>
+          )}
           <p className={css.lead}>{pack.lead}</p>
           {art && "imageAlt" in pack ? (
             <figure className={css.art}>

@@ -70,6 +70,7 @@ npm run dev
 | `SITE_URL` | Необов’язково | Origin у листах. Для локальних листів постав `http://localhost:3000`. На проді localhost ігнорується, лишається `https://nmt.in.ua` |
 | `MAIL_SITE_URL` | Необов’язково | Запасний origin листів, якщо `SITE_URL` порожній |
 | `NEXT_PUBLIC_SITE_URL` | Необов’язково для `npm run dev` | Canonical. Порожнє → `https://nmt.in.ua` (`src/constants/seo.ts`). Інлайниться на `next build`. У листах не використовується |
+| `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` | Необов’язково | Токен з Google Search Console (лише значення `content`, без тега). Порожнє — мета-тег не рендериться. Читається в рантаймі, не інлайниться на збірку |
 | `BREVO_API_KEY` | Необов’язково локально. На проді потрібен, щоб лист пішов | Локально текст падає в консоль `[mail:log]`. На проді без ключа відправка закрита |
 | `MAIL_FROM` | Необов’язково | `NMT.in.ua <noreply@nmt.in.ua>` |
 | `CONTENT_IMPORT_API_KEY` | Необов’язково для кабінету | `POST /api/import` без ключа відповідає 401 |
