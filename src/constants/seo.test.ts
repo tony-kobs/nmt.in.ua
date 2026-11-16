@@ -60,12 +60,7 @@ test("createPageMetadata includes canonical, OG image, and twitter card", () => 
   });
 
   assert.equal(meta.alternates?.canonical, absoluteUrl("/results"));
-  assert.deepEqual(meta.alternates?.languages, {
-    uk: absoluteUrl("/results"),
-    en: absoluteUrl("/results"),
-    de: absoluteUrl("/results"),
-    "x-default": absoluteUrl("/results"),
-  });
+  assert.equal(meta.alternates?.languages, undefined);
 
   const welcome = createPageMetadata({
     title: "Вітальна",
@@ -79,7 +74,7 @@ test("createPageMetadata includes canonical, OG image, and twitter card", () => 
   assert.ok(og && typeof og === "object" && !Array.isArray(og));
   if (og && typeof og === "object" && !Array.isArray(og)) {
     assert.equal(og.locale, "uk_UA");
-    assert.deepEqual(og.alternateLocale, ["en_US", "de_DE"]);
+    assert.equal(og.alternateLocale, undefined);
     const images = og.images;
     assert.ok(Array.isArray(images) && images.length > 0);
     const first = images[0];

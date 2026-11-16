@@ -43,7 +43,7 @@ test("pickTextbookTopic opens the first theme, then 404s an unknown code", () =>
   assert.equal(pickTextbookTopic([], null).status, "empty");
 });
 
-test("textbook topic metadata is unique and carries canonical plus hreflang", () => {
+test("textbook topic metadata is unique and carries a canonical URL", () => {
   const fractions = textbookTopicMeta(themes[0]!, {
     title: "Підручник",
     description: "Загальний опис",
@@ -71,12 +71,7 @@ test("textbook topic metadata is unique and carries canonical plus hreflang", ()
 
   const meta = createPageMetadata(fractions);
   assert.equal(meta.alternates?.canonical, absoluteUrl(fractions.path));
-  assert.deepEqual(meta.alternates?.languages, {
-    uk: absoluteUrl(fractions.path),
-    en: absoluteUrl(fractions.path),
-    de: absoluteUrl(fractions.path),
-    "x-default": absoluteUrl(fractions.path),
-  });
+  assert.equal(meta.alternates?.languages, undefined);
 });
 
 test("textbook sitemap lists each theme once and skips a broken code", () => {
