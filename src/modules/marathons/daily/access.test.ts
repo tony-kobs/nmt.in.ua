@@ -54,6 +54,8 @@ test("a platform student sees the marathon shelf beside the usual sections", () 
   assert.ok(!hrefs.includes("/leaderboard"));
   assert.ok(!hrefs.includes("/admin/marathons"));
   assert.ok(!hrefs.includes("/admin/support"));
+  assert.ok(!hrefs.includes("/promo"));
+  assert.ok(!hrefs.includes("/admin/promos"));
   assert.ok(!hrefs.includes("/assign"));
 });
 
@@ -65,6 +67,8 @@ test("teachers and admins keep their menus when a marathon href is present", () 
   }).map((item) => item.href);
   assert.ok(teacher.includes("/assign"));
   assert.ok(teacher.includes("/students"));
+  assert.ok(teacher.includes("/promo"));
+  assert.ok(!teacher.includes("/admin/promos"));
   assert.ok(teacher.includes("/leaderboard"));
   assert.ok(!teacher.includes("/"));
   assert.ok(!teacher.includes("/marathon"));

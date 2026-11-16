@@ -201,6 +201,7 @@ const AUTH_MIGRATIONS = [
   "048_account_deletion_grace.sql",
   "066_app_users_dev_role.sql",
   "075_parent_dashboard.sql",
+  "076_promo_codes.sql",
 ];
 
 async function runAuthSchemaMigration(connection: SqlConnection): Promise<void> {

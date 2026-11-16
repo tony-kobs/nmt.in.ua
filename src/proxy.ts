@@ -20,6 +20,12 @@ import {
   SESSION_COOKIE_NAME,
   verifySessionToken,
 } from "@/modules/auth/sessionToken";
+import {
+  ATTRIBUTION_MAX_AGE_SEC,
+  PROMO_COOKIE,
+  REF_COOKIE,
+  attributionFromSearch,
+} from "@/modules/promo/values";
 
 function redirectOnSite(path: string): NextResponse {
   return NextResponse.redirect(absoluteSiteUrl(path));
@@ -46,8 +52,14 @@ function requiresAdmin(pathname: string): boolean {
     pathname === "/feedback" ||
     pathname.startsWith("/feedback/") ||
     pathname === "/tasks" ||
-    pathname.startsWith("/tasks/")
+    pathname.startsWith("/tasks/") ||
+    pathname === "/admin/promos" ||
+    pathname.startsWith("/admin/promos/")
   );
+}
+
+function requiresPromoDesk(pathname: string): boolean {
+  return pathname === "/promo" || pathname.startsWith("/promo/");
 }
 
 function requiresTeacherOrAdmin(pathname: string): boolean {
@@ -112,6 +124,14 @@ function authGuard(
     return redirectOnSite("/");
   }
 
+  if (
+    requiresPromoDesk(pathname) &&
+    session.role !== "teacher" &&
+    !isPlatformStaff(session.role)
+  ) {
+    return redirectOnSite("/");
+  }
+
   return null;
 }
 
@@ -120,6 +140,16 @@ export async function proxy(request: NextRequest) {
   const nonce = createRequestNonce();
   const csp = contentSecurityPolicy(nonce, process.env.NODE_ENV !== "production");
   const seal = (response: NextResponse) => {
+    const found = attributionFromSearch(request.nextUrl.searchParams);
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: "lax" as const,
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: ATTRIBUTION_MAX_AGE_SEC,
+    };
+    if (found.promo) response.cookies.set(PROMO_COOKIE, found.promo, cookieOptions);
+    if (found.ref) response.cookies.set(REF_COOKIE, found.ref, cookieOptions);
     response.headers.set("Content-Security-Policy", csp);
     return response;
   };

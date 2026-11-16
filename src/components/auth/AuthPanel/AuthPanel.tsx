@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AuthModeNav, type AuthMode } from "../AuthModeNav/AuthModeNav";
 import { LoginForm } from "../LoginForm/LoginForm";
-import { RegisterForm } from "../RegisterForm";
+import { RegisterForm, type RegisterAttribution } from "../RegisterForm";
 import {
   RegisterRolePicker,
   type RegisterRole,
@@ -15,6 +15,7 @@ type AuthPanelProps = {
   nextPath: string;
   initialRole: RegisterRole;
   from?: "diagnostic";
+  attribution?: RegisterAttribution | null;
 };
 
 function authUrl(mode: AuthMode, role: RegisterRole, nextPath: string, from?: "diagnostic") {
@@ -33,6 +34,7 @@ export function AuthPanel({
   nextPath,
   initialRole,
   from,
+  attribution = null,
 }: AuthPanelProps) {
   const [mode, setMode] = useState(initialMode);
   const [role, setRole] = useState(initialRole);
@@ -60,7 +62,7 @@ export function AuthPanel({
               remember(mode, next);
             }}
           />
-          <RegisterForm nextPath={nextPath} role={role} from={from} />
+          <RegisterForm nextPath={nextPath} role={role} from={from} attribution={attribution} />
         </>
       ) : (
         <LoginForm nextPath={nextPath} />

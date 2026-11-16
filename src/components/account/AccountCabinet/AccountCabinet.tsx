@@ -20,6 +20,7 @@ import { TeacherProfileEditor } from "@/components/account/TeacherProfileEditor"
 import { AccountPhotoPanel } from "./AccountPhotoPanel";
 import { NotificationSettings } from "./NotificationSettings";
 import { TelegramLinkControl } from "./TelegramLinkControl";
+import { PromoRedeemPanel } from "./PromoRedeemPanel";
 import type { UserChannelPreferences } from "@/modules/notifications/channels";
 import type { RecentResultItem } from "@/modules/results/getRecentResults";
 import type { TeacherProfile } from "@/modules/teachers/types";
@@ -36,6 +37,8 @@ type AccountCabinetProps = {
   telegramUsername?: string | null;
   notificationPreferences: UserChannelPreferences;
   linkedParents?: LinkedParent[];
+  promoAccessUntil?: string | null;
+  promoTeachers?: string[];
 };
 
 export function AccountCabinet({
@@ -46,6 +49,8 @@ export function AccountCabinet({
   telegramUsername = null,
   notificationPreferences,
   linkedParents = [],
+  promoAccessUntil = null,
+  promoTeachers = [],
 }: AccountCabinetProps) {
   const t = useTranslations("AccountCabinet");
   const tHeader = useTranslations("Header");
@@ -88,6 +93,10 @@ export function AccountCabinet({
       <AccountPhotoPanel user={user} />
       <TelegramLinkControl linked={telegramLinked} username={telegramUsername} />
       <NotificationSettings preferences={notificationPreferences} />
+
+      {user.role === "student" && (user.realRole ?? user.role) === "student" ? (
+        <PromoRedeemPanel accessUntil={promoAccessUntil} teachers={promoTeachers} />
+      ) : null}
 
       {user.role === "student" ? (
         <section className={css.panel} aria-labelledby="account-join-title">
