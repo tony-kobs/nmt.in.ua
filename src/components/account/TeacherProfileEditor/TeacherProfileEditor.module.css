@@ -195,6 +195,13 @@
   color: var(--green-dark);
 }
 
+a.share {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  text-decoration: none;
+}
+
 .share:hover:not(:disabled),
 .share:focus-visible:not(:disabled) {
   border-color: var(--green);

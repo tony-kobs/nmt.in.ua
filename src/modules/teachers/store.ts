@@ -3,6 +3,7 @@ import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { ensureAuthSchema } from "@/modules/auth/users";
 import type { UserRole } from "@/modules/auth/types";
+import type { TeacherReview } from "./types";
 import { ensureTeacherProfileSchema } from "./schema";
 import {
   canEditTeacherProfile,
@@ -24,6 +25,11 @@ type TeacherProfileRow = {
   slug: string;
   headline: string | null;
   bio: string | null;
+  photo_url: string | null;
+  about_text: string | null;
+  approach: string | null;
+  program: string | null;
+  reviews_json: string | null;
   experience: string | null;
   publications: string | null;
   city: string | null;
@@ -32,6 +38,7 @@ type TeacherProfileRow = {
   teaching_levels: string | null;
   teaching_languages: string | null;
   contact_url: string | null;
+  external_url: string | null;
   phone: string | null;
   lesson_price: number | string | null;
   lesson_currency: string | null;
@@ -50,6 +57,11 @@ type PublicTeacherRow = {
   slug: string;
   headline: string | null;
   bio: string | null;
+  photo_url: string | null;
+  about_text: string | null;
+  approach: string | null;
+  program: string | null;
+  reviews_json: string | null;
   experience: string | null;
   publications: string | null;
   city: string | null;
@@ -61,6 +73,7 @@ type PublicTeacherRow = {
   lesson_currency: string | null;
   lesson_duration_minutes: number | string | null;
   contact_url: string | null;
+  external_url: string | null;
   is_public: number | boolean;
   display_name: string;
   login: string;
@@ -78,6 +91,11 @@ const SQL_GET_OWN = `
     slug,
     headline,
     bio,
+    photo_url,
+    about_text,
+    approach,
+    program,
+    reviews_json,
     experience,
     publications,
     city,
@@ -86,6 +104,7 @@ const SQL_GET_OWN = `
     teaching_levels,
     teaching_languages,
     contact_url,
+    external_url,
     phone,
     lesson_price,
     lesson_currency,
@@ -108,6 +127,11 @@ const SQL_GET_PUBLIC = `
     p.slug,
     p.headline,
     p.bio,
+    p.photo_url,
+    p.about_text,
+    p.approach,
+    p.program,
+    p.reviews_json,
     p.experience,
   p.publications,
 p.city,
@@ -119,6 +143,7 @@ p.lesson_price,
 p.lesson_currency,
 p.lesson_duration_minutes,
 p.contact_url,
+    p.external_url,
     p.is_public,
     u.display_name,
     u.login,
@@ -217,6 +242,23 @@ type StoreDeps = {
   getConnection: () => Promise<SqlConnection>;
 };
 
+function parseReviews(raw: string | null): TeacherReview[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const name = "name" in item ? String(item.name).trim() : "";
+      const text = "text" in item ? String(item.text).trim() : "";
+      if (!name || !text) return [];
+      return [{ name, text }];
+    });
+  } catch {
+    return [];
+  }
+}
+
 function parseStringArrayJson(raw: string | null): string[] {
   if (!raw) return [];
 
@@ -293,6 +335,11 @@ function mapProfile(row: TeacherProfileRow): TeacherProfile {
     slug: row.slug,
     headline: row.headline?.trim() ?? "",
     bio: row.bio?.trim() ?? "",
+    photoUrl: row.photo_url?.trim() ?? "",
+    about: row.about_text?.trim() ?? "",
+    approach: row.approach?.trim() ?? "",
+    program: row.program?.trim() ?? "",
+    reviews: parseReviews(row.reviews_json),
     experience: row.experience?.trim() ?? "",
     publications: row.publications?.trim() ?? "",
     city: row.city?.trim() ?? "",
@@ -301,6 +348,7 @@ function mapProfile(row: TeacherProfileRow): TeacherProfile {
     teachingLevels: parseTeacherLevels(row.teaching_levels),
     teachingLanguages: parseTeachingLanguages(row.teaching_languages),
     contactUrl: row.contact_url?.trim() ?? "",
+    externalUrl: row.external_url?.trim() ?? "",
     phone: row.phone?.trim() ?? "",
     lessonPrice: asNullableNumber(row.lesson_price),
     lessonCurrency: parseLessonCurrency(row.lesson_currency),
@@ -321,6 +369,11 @@ function mapPublicTeacherCard(row: PublicTeacherRow): PublicTeacherCard {
     slug: row.slug,
     headline: row.headline?.trim() ?? "",
     bio: row.bio?.trim() ?? "",
+    photoUrl: row.photo_url?.trim() ?? "",
+    about: row.about_text?.trim() ?? "",
+    approach: row.approach?.trim() ?? "",
+    program: row.program?.trim() ?? "",
+    reviews: parseReviews(row.reviews_json),
     experience: row.experience?.trim() ?? "",
     publications: row.publications?.trim() ?? "",
     city: row.city?.trim() ?? "",
@@ -332,6 +385,7 @@ function mapPublicTeacherCard(row: PublicTeacherRow): PublicTeacherCard {
     lessonCurrency: parseLessonCurrency(row.lesson_currency),
     lessonDurationMinutes: asNullableInt(row.lesson_duration_minutes),
     contactUrl: row.contact_url?.trim() ?? "",
+    externalUrl: row.external_url?.trim() ?? "",
     isPublic: Boolean(row.is_public),
     displayName: row.display_name.trim(),
     login: row.login,
@@ -453,6 +507,21 @@ export async function saveTeacherProfile(
         value.lessonDurationMinutes,
         value.joinMotivation || null,
       ]);
+      await connection.execute(
+        `UPDATE teacher_profiles
+         SET photo_url = ?, about_text = ?, approach = ?, program = ?,
+             reviews_json = ?, external_url = ?
+         WHERE user_id = ?`,
+        [
+          value.photoUrl || null,
+          value.about || null,
+          value.approach || null,
+          value.program || null,
+          value.reviews.length > 0 ? JSON.stringify(value.reviews) : null,
+          value.externalUrl || null,
+          userId,
+        ],
+      );
     } catch (error) {
       const errno =
         error && typeof error === "object" && "errno" in error
@@ -531,6 +600,37 @@ export async function submitTeacherProfileForModeration(
       throw new TeacherProfileError("serverError");
     }
 
+    return mapProfile(updated);
+  } finally {
+    connection.release();
+  }
+}
+
+/** Teacher publishes or hides the public card. Publishing also marks it approved. */
+export async function setTeacherPagePublished(
+  userId: number,
+  role: UserRole,
+  published: boolean,
+  deps: StoreDeps = { getConnection: loadDefaultConnection },
+): Promise<TeacherProfile> {
+  if (!canEditTeacherProfile(role)) {
+    throw new TeacherProfileError("forbidden");
+  }
+  await withSchema(deps);
+  const connection = await deps.getConnection();
+  try {
+    const sql = published
+      ? `UPDATE teacher_profiles
+         SET is_public = 1, moderation_status = 'approved'
+         WHERE user_id = ?`
+      : `UPDATE teacher_profiles SET is_public = 0 WHERE user_id = ?`;
+    const result = await connection.execute(sql, [userId]);
+    if (result.affectedRows !== 1) {
+      throw new TeacherProfileError("notFound");
+    }
+    const rows = await connection.query<TeacherProfileRow>(SQL_GET_OWN, [userId]);
+    const updated = rows[0];
+    if (!updated) throw new TeacherProfileError("serverError");
     return mapProfile(updated);
   } finally {
     connection.release();

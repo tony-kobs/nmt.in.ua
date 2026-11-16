@@ -18,6 +18,17 @@ export const TEACHER_PROFILE_TEACHING_LANGUAGES_MAX = 8;
 export const TEACHER_PROFILE_JOIN_MOTIVATION_MAX = 2000;
 export const TEACHER_PROFILE_LESSON_PRICE_MAX = 100000;
 export const TEACHER_PROFILE_LESSON_DURATION_MAX = 300;
+export const TEACHER_PROFILE_ABOUT_MAX = 4000;
+export const TEACHER_PROFILE_APPROACH_MAX = 4000;
+export const TEACHER_PROFILE_PROGRAM_MAX = 4000;
+export const TEACHER_REVIEW_LIMIT = 3;
+export const TEACHER_REVIEW_NAME_MAX = 80;
+export const TEACHER_REVIEW_TEXT_MAX = 500;
+
+export type TeacherReview = {
+  name: string;
+  text: string;
+};
 
 export const TEACHER_LEVELS = [
   "grades_5_9",
@@ -47,6 +58,11 @@ export type TeacherProfile = {
   slug: string;
   headline: string;
   bio: string;
+  photoUrl: string;
+  about: string;
+  approach: string;
+  program: string;
+  reviews: TeacherReview[];
   experience: string;
   publications: string;
   city: string;
@@ -55,6 +71,7 @@ export type TeacherProfile = {
   teachingLevels: TeacherLevel[];
   teachingLanguages: TeachingLanguage[];
   contactUrl: string;
+  externalUrl: string;
   phone: string;
   lessonPrice: number | null;
   lessonCurrency: LessonCurrency | "";
@@ -84,6 +101,12 @@ export type PublicTeacherCard = {
   lessonCurrency: LessonCurrency | "";
   lessonDurationMinutes: number | null;
   contactUrl: string;
+  externalUrl: string;
+  photoUrl: string;
+  about: string;
+  approach: string;
+  program: string;
+  reviews: TeacherReview[];
   isPublic: boolean;
   displayName: string;
   login: string;
@@ -110,6 +133,17 @@ export type TeacherProfileInput = {
   teachingLevels: string[];
   teachingLanguages: string[];
   contactUrl: string;
+  externalUrl: string;
+  photoUrl: string;
+  about: string;
+  approach: string;
+  program: string;
+  reviewName1: string;
+  reviewText1: string;
+  reviewName2: string;
+  reviewText2: string;
+  reviewName3: string;
+  reviewText3: string;
   phone: string;
   lessonPrice: string;
   lessonCurrency: string;
@@ -134,6 +168,12 @@ export type TeacherProfileFieldError =
   | "cityTooLong"
   | "invalidSubjects"
   | "invalidContactUrl"
+  | "invalidExternalUrl"
+  | "invalidPhotoUrl"
+  | "aboutTooLong"
+  | "approachTooLong"
+  | "programTooLong"
+  | "invalidReviews"
   | "countryTooLong"
   | "invalidTeachingLevels"
   | "invalidTeachingLanguages"
@@ -159,6 +199,11 @@ export function emptyTeacherProfile(userId: number): TeacherProfile {
     slug: "",
     headline: "",
     bio: "",
+    photoUrl: "",
+    about: "",
+    approach: "",
+    program: "",
+    reviews: [],
     experience: "",
     publications: "",
     city: "",
@@ -167,6 +212,7 @@ export function emptyTeacherProfile(userId: number): TeacherProfile {
     teachingLevels: [],
     teachingLanguages: [],
     contactUrl: "",
+    externalUrl: "",
     phone: "",
     lessonPrice: null,
     lessonCurrency: "",
