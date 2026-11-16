@@ -456,8 +456,7 @@ test("lists and teacher refs stay inside the caller's role", async () => {
   assert.equal(await resolveTeacherRef("8", deps), null);
   assert.equal(parseKyivDateTimeLocal(""), null);
   assert.equal(parseKyivDateTimeLocal("nope"), "invalid");
-  assert.equal(
-    parseKyivDateTimeLocal("2026-01-15T10:00")?.toISOString(),
-    "2026-01-15T08:00:00.000Z",
-  );
+  const kyivMorning = parseKyivDateTimeLocal("2026-01-15T10:00");
+  assert.ok(kyivMorning instanceof Date);
+  assert.equal(kyivMorning.toISOString(), "2026-01-15T08:00:00.000Z");
 });
