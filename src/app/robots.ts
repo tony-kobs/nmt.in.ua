@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { absoluteUrl } from "@/constants/seo";
+import { ROBOTS_DISALLOW, absoluteUrl } from "@/constants/seo";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/session/"],
+        disallow: [...ROBOTS_DISALLOW],
       },
     ],
     sitemap: absoluteUrl("/sitemap.xml"),

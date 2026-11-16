@@ -3,6 +3,7 @@ import { JsonLd } from "@/components/seo";
 import { SkipLink } from "@/components/ui/SkipLink";
 import {
   buildOrganizationJsonLd,
+  buildPrepCourseJsonLd,
   buildWebApplicationJsonLd,
   buildWebsiteJsonLd,
 } from "@/constants/seo";
@@ -22,6 +23,7 @@ const structuredData = [
   buildWebsiteJsonLd(),
   buildOrganizationJsonLd(),
   buildWebApplicationJsonLd(),
+  buildPrepCourseJsonLd(),
 ];
 
 export async function WelcomeLanding() {

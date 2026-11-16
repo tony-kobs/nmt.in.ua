@@ -2298,10 +2298,24 @@
       "server": "Speichern ist nicht gelungen. Versuch es erneut."
     }
   },
+  "Seo": {
+    "breadcrumb": "Brotkrumen",
+    "home": "Start",
+    "diagnostic": "Einstufungstest",
+    "marathon": "Marathon"
+  },
   "Metadata": {
     "welcome": {
       "title": "NMT-Vorbereitung in Mathematik",
       "description": "Online-Lernbereich für den NMT: Thementests, Ergebnisse, Empfehlungen und Prüfungssimulator."
+    },
+    "welcomePage": {
+      "title": "Willkommensseite",
+      "description": "Die LevelUP-Willkommensseite: so bereitest du dich auf den NMT in Mathematik vor."
+    },
+    "intern": {
+      "title": "Oleksandra Dubrovina",
+      "description": "Seite von Oleksandra Dubrovina: ein Multiplikationsrechner, der Code und eine Live-Demo."
     },
     "home": {
       "title": "Heute",
@@ -2336,8 +2350,8 @@
       "description": "Interaktiver Trainer mit Testaufgaben zum Thema."
     },
     "diagnostic": {
-      "title": "Einstufungstest",
-      "description": "Ein kurzer Test über mehrere Themen. Die Schwierigkeit folgt deinen Antworten."
+      "title": "Einstufungstest Mathematik",
+      "description": "Ein kurzer Test über mehrere Mathethemen. Die Schwierigkeit folgt deinen Antworten."
     },
     "diagnosticSession": {
       "title": "Einstufungstest",

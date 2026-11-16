@@ -13,6 +13,8 @@ type TeacherPublicCardViewProps = {
   showCta?: boolean;
   /** Page layout adds the landing sections and the sign-up link. */
   layout?: "card" | "page";
+  /** `h1` only on the public teacher page, so lists keep a single page heading. */
+  heading?: "h1" | "p";
   ctaLabel?: string;
   onCtaClick?: () => void;
   extraContent?: ReactNode;
@@ -22,6 +24,7 @@ export function TeacherPublicCardView({
   card,
   showCta = true,
   layout = "card",
+  heading = "p",
   ctaLabel,
   onCtaClick,
   extraContent,
@@ -98,9 +101,15 @@ export function TeacherPublicCardView({
                 : t("kicker")}
             </p>
 
-            <p id={`teacher-public-name-${card.userId}`} className={css.name}>
-              {card.displayName}
-            </p>
+            {layout === "page" && heading === "h1" ? (
+              <h1 id={`teacher-public-name-${card.userId}`} className={css.name}>
+                {card.displayName}
+              </h1>
+            ) : (
+              <p id={`teacher-public-name-${card.userId}`} className={css.name}>
+                {card.displayName}
+              </p>
+            )}
 
             {card.city || card.country ? (
               <p className={css.location}>
