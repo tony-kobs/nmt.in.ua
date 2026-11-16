@@ -4,6 +4,7 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import type { RegisterRole } from "@/components/auth/RegisterRolePicker/RegisterRolePicker";
 import { createPageMetadata } from "@/constants/seo";
 import { safeInternalPath } from "@/lib/safeInternalPath";
+import { describeSignupAttribution } from "@/modules/promo/attribution";
 
 export async function generateMetadata() {
   const t = await getTranslations("Metadata.register");
@@ -21,6 +22,8 @@ type RegisterPageProps = {
     next?: string | string[];
     from?: string | string[];
     role?: string | string[];
+    promo?: string | string[];
+    ref?: string | string[];
   }>;
 };
 
@@ -35,6 +38,15 @@ function pickRole(raw: string | undefined): RegisterRole {
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   const params = await searchParams;
   const from = first(params.from) === "diagnostic" ? "diagnostic" : undefined;
+  let attribution = null;
+  try {
+    attribution = await describeSignupAttribution({
+      promo: first(params.promo) ?? null,
+      ref: first(params.ref) ?? null,
+    });
+  } catch (error) {
+    console.error("register: attribution preview failed", error);
+  }
 
   return (
     <AuthShell>
@@ -43,6 +55,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
         nextPath={safeInternalPath(first(params.next))}
         initialRole={pickRole(first(params.role))}
         from={from}
+        attribution={attribution}
       />
     </AuthShell>
   );

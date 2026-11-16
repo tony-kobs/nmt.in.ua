@@ -33,6 +33,12 @@ type ListRow = {
   lesson_currency: string | null;
   lesson_duration_minutes: number | string | null;
   contact_url: string | null;
+  external_url: string | null;
+  photo_url: string | null;
+  about_text: string | null;
+  approach: string | null;
+  program: string | null;
+  reviews_json: string | null;
   is_public: number | boolean;
   display_name: string;
   login: string;
@@ -48,7 +54,7 @@ const SQL_LIST_PUBLIC = `
          p.city, p.country, p.subjects,
 p.teaching_levels, p.teaching_languages,
 p.lesson_price, p.lesson_currency, p.lesson_duration_minutes,
-p.contact_url, p.is_public,
+p.contact_url, p.external_url, p.photo_url, p.about_text, p.approach, p.program, p.reviews_json, p.is_public,
          u.display_name, u.login, u.role,
          UNIX_TIMESTAMP(a.updated_at) AS avatar_rev,
          stats.avg_rating,
@@ -149,6 +155,22 @@ function asCount(value: unknown): number {
   return numeric;
 }
 
+function parseLandingReviews(raw: string | null): { name: string; text: string }[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const name = "name" in item ? String(item.name).trim() : "";
+      const text = "text" in item ? String(item.text).trim() : "";
+      return name && text ? [{ name, text }] : [];
+    });
+  } catch {
+    return [];
+  }
+}
+
 function mapRow(row: ListRow): TeacherCarouselItem {
   const card: TeacherCarouselItem = {
     userId: row.user_id,
@@ -166,6 +188,12 @@ function mapRow(row: ListRow): TeacherCarouselItem {
     lessonCurrency: parseLessonCurrency(row.lesson_currency),
     lessonDurationMinutes: asNullableInt(row.lesson_duration_minutes),
     contactUrl: row.contact_url?.trim() ?? "",
+    externalUrl: row.external_url?.trim() ?? "",
+    photoUrl: row.photo_url?.trim() ?? "",
+    about: row.about_text?.trim() ?? "",
+    approach: row.approach?.trim() ?? "",
+    program: row.program?.trim() ?? "",
+    reviews: parseLandingReviews(row.reviews_json),
     isPublic: Boolean(row.is_public),
     displayName: row.display_name.trim(),
     login: row.login,

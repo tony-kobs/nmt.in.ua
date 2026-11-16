@@ -45,7 +45,7 @@ export function TeacherPublicCard({
   return (
     <>
       <JsonLd data={personLd} />
-      <TeacherPublicCardView card={card} showCta={showCta} />
+      <TeacherPublicCardView card={card} showCta={showCta} layout="page" />
     </>
   );
 }

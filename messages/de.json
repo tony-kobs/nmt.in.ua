@@ -137,7 +137,8 @@
       "marathon": "Marathon",
       "support": "Anfragen",
       "parent": "Kinder",
-      "account": "Konto"
+      "account": "Konto",
+      "promo": "Aktionscodes"
     }
   },
   "RecentResults": {
@@ -218,6 +219,26 @@
     "unlinkPending": "Wird getrennt…",
     "unlinkConfirm": "{name} trennen? Der Zugriff auf den Fortschritt verschwindet sofort.",
     "unlinkError": "Trennen ist nicht gelungen. Versuch es erneut.",
+    "promoTitle": "Aktionscode",
+    "promoLead": "Ein Code vom Tag der offenen Tür oder von einer Lehrkraft gibt nur kostenlosen Zugang für einige Tage.",
+    "promoLabel": "Code",
+    "promoSubmit": "Anwenden",
+    "promoPending": "Wir prüfen…",
+    "promoAccessUntil": "Der kostenlose Zugang gilt bis {date}.",
+    "promoNoAccess": "Gerade gibt es keinen kostenlosen Zugang über einen Code.",
+    "promoLinked": "Du bist mit {name} verbunden.",
+    "promoSaved": "Code angewendet. Der Zugang gilt bis {date}.",
+    "promoSavedTeacher": "Code angewendet. Der Zugang gilt bis {date}. Du bist mit {name} verbunden.",
+    "promoErrors": {
+      "invalid": "Dieser Code passt nicht. Prüfe Buchstaben und Ziffern.",
+      "unknown": "Diesen Code gibt es nicht.",
+      "inactive": "Dieser Code ist ausgeschaltet.",
+      "expired": "Die Frist dieses Codes ist abgelaufen.",
+      "exhausted": "Dieser Code wurde schon so oft verwendet, wie erlaubt.",
+      "already": "Du hast diesen Code schon verwendet.",
+      "not_student": "Der Code gibt Zugang nur einer Schülerin oder einem Schüler.",
+      "server": "Der Code ließ sich nicht anwenden. Versuch es erneut."
+    },
     "errors": {
       "requiredFields": "Bitte alle Felder ausfüllen.",
       "passwordTooShort": "Das neue Passwort ist zu kurz.",
@@ -281,6 +302,21 @@
     "save": "Karte speichern",
     "saving": "Wird gespeichert…",
     "saved": "Karte gespeichert.",
+    "photoUrl": "Foto",
+    "photoUrlHint": "Eine https-Adresse oder ein Pfad auf der Seite, zum Beispiel /landing/…. Leer lässt den Avatar.",
+    "about": "Über mich",
+    "approach": "Ansatz",
+    "program": "Programm",
+    "externalUrl": "Link zur eigenen Website",
+    "externalUrlHint": "Nur https. Auf der Karte erscheint ein Button, die Seite auf nmt.in.ua bleibt.",
+    "reviewTitle": "Stimmen",
+    "reviewName": "Name",
+    "reviewText": "Text",
+    "publish": "Veröffentlichen",
+    "unpublish": "Veröffentlichung aufheben",
+    "landingOrderTitle": "Willst du eine eigene Landingpage?",
+    "landingOrderLead": "Du kannst ein Layout nur für dich bestellen.",
+    "landingOrderCta": "Layout bestellen",
     "copyLink": "Link kopieren",
     "copied": "Kopiert",
     "requiredHint": "* Pflichtfelder für die Einreichung zur Moderation",
@@ -296,6 +332,12 @@
       "cityTooLong": "Der Stadtname ist zu lang.",
       "invalidSubjects": "Zu viele Fächer oder ein Eintrag ist zu lang.",
       "invalidContactUrl": "Der Link muss mit http:// oder https:// beginnen.",
+      "invalidExternalUrl": "Der Link zur eigenen Website muss https sein.",
+      "invalidPhotoUrl": "Das Foto muss https sein oder ein Pfad auf dieser Seite.",
+      "aboutTooLong": "Der Text „Über mich“ ist zu lang.",
+      "approachTooLong": "Der Ansatz ist zu lang.",
+      "programTooLong": "Das Programm ist zu lang.",
+      "invalidReviews": "Eine Stimme braucht Namen und Text.",
       "countryTooLong": "Der Ländername ist zu lang.",
       "invalidTeachingLevels": "Wählen Sie gültige Lernstufen aus.",
       "invalidTeachingLanguages": "Wählen Sie gültige Unterrichtssprachen aus.",
@@ -336,6 +378,11 @@
     "publications": "Publikationen und berufliche Tätigkeit",
     "professionalLink": "Berufliches Profil",
     "ctaPlaceholder": "Unterricht buchen",
+    "signup": "Anmelden",
+    "ownSite": "Zur eigenen Website",
+    "approach": "Ansatz",
+    "program": "Programm",
+    "reviews": "Stimmen",
     "levels": {
       "grades_5_9": "Klassen 5–9",
       "grades_10_11": "Klassen 10–11",
@@ -2023,7 +2070,11 @@
     "roleTeacher": "Lehrkraft",
     "titleTeacher": "Lehrer-Konto erstellen",
     "leadTeacher": "Registriere dich als Lehrkraft, um Schüler zu begleiten, Fortschritt zu sehen und Übungen zuzuweisen. Bezahlte Extras kommen später.",
-    "submitTeacher": "Als Lehrkraft registrieren"
+    "submitTeacher": "Als Lehrkraft registrieren",
+    "promoBanner": "Der Aktionscode {code} gibt dir nach der Registrierung als Schüler kostenlosen Zugang für {days} Tage.",
+    "promoBannerPlain": "Der Aktionscode {code} wird nach der Registrierung als Schüler angewendet.",
+    "promoBannerInvalid": "Der Code {code} gilt gerade nicht. Ein Konto kannst du trotzdem anlegen.",
+    "refBanner": "Nach der Registrierung als Schüler wirst du mit {name} verbunden."
   },
   "TeacherRegister": {
     "kicker": "Für Lehrkräfte",
@@ -2203,6 +2254,50 @@
       "post_test": "Nach dem Test"
     }
   },
+  "PromoAdmin": {
+    "kicker": "Zugang",
+    "title": "Aktionscodes",
+    "lead": "Ein Code gibt einer Schülerin oder einem Schüler nur kostenlosen Zugang für die angegebene Zahl von Tagen. Ist eine Lehrkraft gesetzt, kommt die Verknüpfung dazu.",
+    "leadTeacher": "Dein Code verknüpft die Schülerin oder den Schüler mit dir und gibt nur kostenlosen Zugang für einige Tage.",
+    "code": "Code",
+    "codeHint": "Lateinische Buchstaben, Ziffern und Bindestrich, mindestens 4 Zeichen. Großschreibung spielt keine Rolle.",
+    "days": "Tage Zugang",
+    "maxUses": "Nutzungslimit",
+    "maxUsesHint": "Leer lassen heißt ohne Limit.",
+    "expires": "Gilt bis, Kiewer Zeit",
+    "teacher": "Lehrkraft",
+    "teacherHint": "Optional. Kennung oder Adresse der Karte.",
+    "create": "Code anlegen",
+    "creating": "Wir legen an…",
+    "created": "Code angelegt.",
+    "saved": "Gespeichert.",
+    "empty": "Noch keine Codes.",
+    "active": "Aktiv",
+    "inactive": "Aus",
+    "deactivate": "Ausschalten",
+    "activate": "Einschalten",
+    "usesCapped": "{used} von {max}",
+    "usesOpen": "{used}, ohne Limit",
+    "daysLine": "{days} Tage Zugang",
+    "expiresLine": "bis {when}",
+    "noExpiry": "ohne Enddatum",
+    "teacherLine": "Lehrkraft: {name}",
+    "noTeacher": "Ohne Verknüpfung zu einer Lehrkraft",
+    "redeemers": "Verwendet von: {names}",
+    "refHint": "Ein Link für Schüler hängt ?ref= und ?promo=CODE an die Registrierung. Das Cookie lebt etwa 30 Tage.",
+    "example": "Dein Beispiel: {url}",
+    "errors": {
+      "invalid_code": "4 bis 32 lateinische Buchstaben, Ziffern und Bindestriche.",
+      "code_taken": "Diesen Code gibt es schon.",
+      "invalid_days": "Gib eine Zahl von Tagen von 1 bis 3660 an.",
+      "invalid_uses": "Das Limit ist eine ganze Zahl ab 1 oder leer.",
+      "invalid_expiry": "Gib Datum und Uhrzeit an.",
+      "teacher_not_found": "Zu dieser Kennung oder Adresse gibt es keine Lehrkraft.",
+      "forbidden": "Das darfst du nicht.",
+      "not_found": "Code nicht gefunden.",
+      "server": "Speichern ist nicht gelungen. Versuch es erneut."
+    }
+  },
   "Metadata": {
     "welcome": {
       "title": "NMT-Vorbereitung in Mathematik",
@@ -2276,6 +2371,10 @@
     "account": {
       "title": "Persönliches Konto",
       "description": "Profilfoto, Passwortänderung, letzte Ergebnisse und Abmeldung."
+    },
+    "promo": {
+      "title": "Aktionscodes",
+      "description": "Codes für kostenlosen Zugang: anlegen, ausschalten und sehen, wer sie verwendet hat."
     },
     "teacherPublic": {
       "title": "Lehrkraft",

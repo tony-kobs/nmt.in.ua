@@ -29,15 +29,24 @@ const REGISTER_ERROR_FIELD: Record<string, string> = {
 
 const INITIAL: RegisterActionState = { status: "idle" };
 
+export type RegisterAttribution = {
+  promo: string | null;
+  promoStatus: "absent" | "usable" | "unusable" | "unknown";
+  promoDays: number | null;
+  ref: string | null;
+  teacherName: string | null;
+};
+
 type RegisterFormProps = {
   nextPath: string;
   role: RegisterRole;
   /** Set when arriving via `/register?from=diagnostic` — lets `registerAction`
    * claim the guest's diagnostic progress after a successful signup. */
   from?: "diagnostic";
+  attribution?: RegisterAttribution | null;
 };
 
-export function RegisterForm({ nextPath, role, from }: RegisterFormProps) {
+export function RegisterForm({ nextPath, role, from, attribution }: RegisterFormProps) {
   const t = useTranslations("RegisterForm");
   const [state, formAction, pending] = useActionState(registerAction, INITIAL);
   const isTeacher = role === "teacher";
@@ -84,10 +93,33 @@ export function RegisterForm({ nextPath, role, from }: RegisterFormProps) {
         </p>
       </header>
 
+      {!isTeacher && attribution?.promo && attribution.promoStatus === "usable" ? (
+        <p className={clsx(css.alert, css.alertNotice)} role="status">
+          {t("promoBanner", { code: attribution.promo, days: attribution.promoDays ?? 0 })}
+        </p>
+      ) : null}
+      {!isTeacher && attribution?.promo && attribution.promoStatus === "unknown" ? (
+        <p className={clsx(css.alert, css.alertNotice)} role="status">
+          {t("promoBannerPlain", { code: attribution.promo })}
+        </p>
+      ) : null}
+      {!isTeacher && attribution?.promo && attribution.promoStatus === "unusable" ? (
+        <p className={clsx(css.alert, css.alertNotice)} role="status">
+          {t("promoBannerInvalid", { code: attribution.promo })}
+        </p>
+      ) : null}
+      {!isTeacher && attribution?.teacherName ? (
+        <p className={clsx(css.alert, css.alertNotice)} role="status">
+          {t("refBanner", { name: attribution.teacherName })}
+        </p>
+      ) : null}
+
       <form ref={formRef} className={css.form} action={formAction} onSubmit={onSubmit}>
         <input type="hidden" name="next" value={nextPath} />
         <input type="hidden" name="from" value={from ?? ""} />
         <input type="hidden" name="role" value={role} />
+        {attribution?.promo ? <input type="hidden" name="promo" value={attribution.promo} /> : null}
+        {attribution?.ref ? <input type="hidden" name="ref" value={attribution.ref} /> : null}
 
         <label className={css.field}>
           <span className={css.label}>{t("displayName")}</span>

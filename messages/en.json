@@ -137,7 +137,8 @@
       "marathon": "Marathon",
       "support": "Messages",
       "parent": "Children",
-      "account": "Account"
+      "account": "Account",
+      "promo": "Promo codes"
     }
   },
   "RecentResults": {
@@ -218,6 +219,26 @@
     "unlinkPending": "Unlinking…",
     "unlinkConfirm": "Unlink {name}? They will lose access to your progress immediately.",
     "unlinkError": "Could not unlink. Try again.",
+    "promoTitle": "Promo code",
+    "promoLead": "A code from an open day or a teacher gives only free access for a few days.",
+    "promoLabel": "Code",
+    "promoSubmit": "Apply",
+    "promoPending": "Checking…",
+    "promoAccessUntil": "Free access lasts until {date}.",
+    "promoNoAccess": "There is no free promo access right now.",
+    "promoLinked": "You are linked to {name}.",
+    "promoSaved": "Code applied. Access lasts until {date}.",
+    "promoSavedTeacher": "Code applied. Access lasts until {date}. You are linked to {name}.",
+    "promoErrors": {
+      "invalid": "This code does not fit. Check the letters and digits.",
+      "unknown": "There is no such code.",
+      "inactive": "This code is turned off.",
+      "expired": "This code has expired.",
+      "exhausted": "This code has already been used the maximum number of times.",
+      "already": "You have already used this code.",
+      "not_student": "The code grants access only to a student.",
+      "server": "Could not apply the code. Try again."
+    },
     "errors": {
       "requiredFields": "Fill in all fields.",
       "passwordTooShort": "The new password is too short.",
@@ -281,6 +302,21 @@
     "save": "Save card",
     "saving": "Saving…",
     "saved": "Card saved.",
+    "photoUrl": "Photo",
+    "photoUrlHint": "An https address or a site path such as /landing/…. Empty keeps the avatar.",
+    "about": "About me",
+    "approach": "Approach",
+    "program": "Programme",
+    "externalUrl": "Link to your own site",
+    "externalUrlHint": "https only. The card gets a button, and the page on nmt.in.ua stays.",
+    "reviewTitle": "Reviews",
+    "reviewName": "Name",
+    "reviewText": "Text",
+    "publish": "Publish",
+    "unpublish": "Unpublish",
+    "landingOrderTitle": "Want your own landing page?",
+    "landingOrderLead": "You can order a layout made for you.",
+    "landingOrderCta": "Order the layout",
     "copyLink": "Copy link",
     "copied": "Copied",
     "requiredHint": "* Required fields for submission for moderation",
@@ -317,6 +353,12 @@
       "invalidModerationStatus": "This profile cannot currently be submitted for moderation.",
       "invalidSubjects": "Too many subjects, or one item is too long.",
       "invalidContactUrl": "The link must start with http:// or https://.",
+      "invalidExternalUrl": "Your own site link must be https.",
+      "invalidPhotoUrl": "The photo must be https or a path on this site.",
+      "aboutTooLong": "The about text is too long.",
+      "approachTooLong": "The approach text is too long.",
+      "programTooLong": "The programme text is too long.",
+      "invalidReviews": "A review needs both a name and a text.",
       "forbidden": "Only a teacher or admin can edit the card.",
       "serverError": "Could not save the card. Try again."
     }
@@ -336,6 +378,11 @@
     "publications": "Publications and professional activity",
     "professionalLink": "Professional profile",
     "ctaPlaceholder": "Book a lesson",
+    "signup": "Sign up",
+    "ownSite": "My own site",
+    "approach": "Approach",
+    "program": "Programme",
+    "reviews": "Reviews",
     "levels": {
       "grades_5_9": "Grades 5–9",
       "grades_10_11": "Grades 10–11",
@@ -2023,7 +2070,11 @@
     "roleTeacher": "Teacher",
     "titleTeacher": "Create a teacher account",
     "leadTeacher": "Sign up as a teacher to guide students, see progress, and assign practice. Paid extras will come later.",
-    "submitTeacher": "Sign up as a teacher"
+    "submitTeacher": "Sign up as a teacher",
+    "promoBanner": "Promo code {code} gives you free access for {days} days after you register as a student.",
+    "promoBannerPlain": "Promo code {code} will be applied after you register as a student.",
+    "promoBannerInvalid": "Code {code} is not active right now. You can still create an account.",
+    "refBanner": "After you register as a student you will be linked to {name}."
   },
   "TeacherRegister": {
     "kicker": "For teachers",
@@ -2203,6 +2254,50 @@
       "post_test": "After a test"
     }
   },
+  "PromoAdmin": {
+    "kicker": "Access",
+    "title": "Promo codes",
+    "lead": "A code gives a student only free access for the number of days you set. If a teacher is set, the student is linked to them as well.",
+    "leadTeacher": "Your code links the student to you and gives only free access for a few days.",
+    "code": "Code",
+    "codeHint": "Latin letters, digits and a hyphen, at least 4 characters. Case does not matter.",
+    "days": "Days of access",
+    "maxUses": "Use limit",
+    "maxUsesHint": "Leave empty for no limit.",
+    "expires": "Valid until, Kyiv time",
+    "teacher": "Teacher",
+    "teacherHint": "Optional. An id or the card address.",
+    "create": "Create code",
+    "creating": "Creating…",
+    "created": "Code created.",
+    "saved": "Saved.",
+    "empty": "There are no codes yet.",
+    "active": "Active",
+    "inactive": "Off",
+    "deactivate": "Turn off",
+    "activate": "Turn on",
+    "usesCapped": "{used} of {max}",
+    "usesOpen": "{used}, no limit",
+    "daysLine": "{days} days of access",
+    "expiresLine": "until {when}",
+    "noExpiry": "no end date",
+    "teacherLine": "Teacher: {name}",
+    "noTeacher": "Not linked to a teacher",
+    "redeemers": "Redeemed by: {names}",
+    "refHint": "A link for a student adds ?ref= and ?promo=CODE to registration. The cookie lasts about 30 days.",
+    "example": "Your example: {url}",
+    "errors": {
+      "invalid_code": "Use 4 to 32 Latin letters, digits and hyphens.",
+      "code_taken": "This code already exists.",
+      "invalid_days": "Enter a number of days from 1 to 3660.",
+      "invalid_uses": "The limit must be a whole number from 1, or empty.",
+      "invalid_expiry": "Enter a date and time.",
+      "teacher_not_found": "No teacher was found for that id or address.",
+      "forbidden": "You cannot do this.",
+      "not_found": "Code not found.",
+      "server": "Could not save. Try again."
+    }
+  },
   "Metadata": {
     "welcome": {
       "title": "NMT math preparation",
@@ -2276,6 +2371,10 @@
     "account": {
       "title": "Personal account",
       "description": "Profile photo, password change, recent results, and sign out."
+    },
+    "promo": {
+      "title": "Promo codes",
+      "description": "Free-access codes for students: create, turn off, and see who redeemed them."
     },
     "teacherPublic": {
       "title": "Teacher",

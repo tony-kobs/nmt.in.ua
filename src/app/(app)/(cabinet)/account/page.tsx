@@ -13,6 +13,7 @@ import {
   canEditTeacherProfile,
   getOwnTeacherProfile,
 } from "@/modules/teachers";
+import { getStudentAccess } from "@/modules/promo/store";
 
 export async function generateMetadata() {
   const t = await getTranslations("Metadata.account");
@@ -64,8 +65,17 @@ export default async function AccountPage() {
     console.error("account: getUserChannelPreferences failed", error);
   }
 
+  let promoAccessUntil: string | null = null;
+  let promoTeachers: string[] = [];
   let linkedParents: Awaited<ReturnType<typeof listLinkedParents>> = [];
   if (user.role === "student" && (user.realRole ?? user.role) === "student") {
+    try {
+      const access = await getStudentAccess(user.id);
+      promoAccessUntil = access.accessUntil;
+      promoTeachers = access.teachers;
+    } catch (error) {
+      console.error("account: getStudentAccess failed", error);
+    }
     try {
       linkedParents = await listLinkedParents();
     } catch (error) {
@@ -87,6 +97,8 @@ export default async function AccountPage() {
         telegramUsername={telegramUsername}
         notificationPreferences={notificationPreferences}
         linkedParents={linkedParents}
+        promoAccessUntil={promoAccessUntil}
+        promoTeachers={promoTeachers}
       />
     </PageFrame>
   );
