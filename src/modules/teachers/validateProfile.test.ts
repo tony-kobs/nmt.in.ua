@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import type { TeacherProfileInput } from "./types";
 import {
   isReservedTeacherSlug,
   normalizeSlug,
@@ -9,9 +10,7 @@ import {
   validateTeacherProfileSubmission,
 } from "./validateProfile";
 
-function validInput(
-  overrides: Partial<Parameters<typeof validateTeacherProfileInput>[0]> = {},
-) {
+function validInput(overrides: Partial<TeacherProfileInput> = {}): TeacherProfileInput {
   return {
     slug: "igor-petrenko",
     headline: "Репетитор з математики",
@@ -24,6 +23,17 @@ function validInput(
     teachingLevels: ["grades_10_11", "nmt"],
     teachingLanguages: ["uk"],
     contactUrl: "https://example.com/igor",
+    externalUrl: "",
+    photoUrl: "",
+    about: "",
+    approach: "",
+    program: "",
+    reviewName1: "",
+    reviewText1: "",
+    reviewName2: "",
+    reviewText2: "",
+    reviewName3: "",
+    reviewText3: "",
     phone: "+380 67 123 45 67",
     lessonPrice: "500",
     lessonCurrency: "UAH",
