@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireUser } from "@/modules/auth/getCurrentUser";
 import { findUserById } from "@/modules/auth/users";
 import { canReviewConsultationRequests } from "@/modules/auth/types";
 import {
   getOwnTeacherProfile,
   saveTeacherProfile,
+  setTeacherPagePublished,
   submitTeacherProfileForModeration,
   TeacherProfileError,
 } from "./store";
@@ -37,6 +39,17 @@ function parseTeacherProfileFormData(formData: FormData) {
     teachingLevels: formData.getAll("teachingLevels").map(String),
     teachingLanguages: formData.getAll("teachingLanguages").map(String),
     contactUrl: String(formData.get("contactUrl") ?? ""),
+    externalUrl: String(formData.get("externalUrl") ?? ""),
+    photoUrl: String(formData.get("photoUrl") ?? ""),
+    about: String(formData.get("about") ?? ""),
+    approach: String(formData.get("approach") ?? ""),
+    program: String(formData.get("program") ?? ""),
+    reviewName1: String(formData.get("reviewName1") ?? ""),
+    reviewText1: String(formData.get("reviewText1") ?? ""),
+    reviewName2: String(formData.get("reviewName2") ?? ""),
+    reviewText2: String(formData.get("reviewText2") ?? ""),
+    reviewName3: String(formData.get("reviewName3") ?? ""),
+    reviewText3: String(formData.get("reviewText3") ?? ""),
     phone: String(formData.get("phone") ?? ""),
     lessonPrice: String(formData.get("lessonPrice") ?? ""),
     lessonCurrency: String(formData.get("lessonCurrency") ?? ""),
@@ -253,4 +266,22 @@ export async function rateTeacherAction(
     console.error("rateTeacherAction failed", error);
     return { ok: false, code: "generic" };
   }
+}
+
+export async function setTeacherPagePublishedAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const role = user.realRole ?? user.role;
+  if (!canEditTeacherProfile(role)) redirect("/account");
+  try {
+    const saved = await setTeacherPagePublished(
+      user.id,
+      role,
+      String(formData.get("published") ?? "") === "1",
+    );
+    revalidatePath("/account");
+    revalidatePath(teacherPublicPath(saved.slug));
+  } catch (error) {
+    console.error("setTeacherPagePublishedAction failed", error);
+  }
+  redirect("/account");
 }

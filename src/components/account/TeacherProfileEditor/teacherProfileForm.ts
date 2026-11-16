@@ -16,6 +16,17 @@ export type TeacherProfileFormValues = {
   teachingLevels: string[];
   teachingLanguages: string[];
   contactUrl: string;
+  externalUrl: string;
+  photoUrl: string;
+  about: string;
+  approach: string;
+  program: string;
+  reviewName1: string;
+  reviewText1: string;
+  reviewName2: string;
+  reviewText2: string;
+  reviewName3: string;
+  reviewText3: string;
   phone: string;
   lessonPrice: string;
   lessonCurrency: string;
@@ -41,6 +52,17 @@ export function getTeacherProfileDefaultValues(
     teachingLevels: profile.teachingLevels,
     teachingLanguages: profile.teachingLanguages,
     contactUrl: profile.contactUrl,
+    externalUrl: profile.externalUrl,
+    photoUrl: profile.photoUrl,
+    about: profile.about,
+    approach: profile.approach,
+    program: profile.program,
+    reviewName1: profile.reviews[0]?.name ?? "",
+    reviewText1: profile.reviews[0]?.text ?? "",
+    reviewName2: profile.reviews[1]?.name ?? "",
+    reviewText2: profile.reviews[1]?.text ?? "",
+    reviewName3: profile.reviews[2]?.name ?? "",
+    reviewText3: profile.reviews[2]?.text ?? "",
     phone: profile.phone,
     lessonPrice: profile.lessonPrice?.toString() ?? "",
     lessonCurrency: profile.lessonCurrency,
@@ -71,6 +93,17 @@ export function teacherProfileToFormData(
   );
 
   formData.set("contactUrl", values.contactUrl);
+  formData.set("externalUrl", values.externalUrl);
+  formData.set("photoUrl", values.photoUrl);
+  formData.set("about", values.about);
+  formData.set("approach", values.approach);
+  formData.set("program", values.program);
+  formData.set("reviewName1", values.reviewName1);
+  formData.set("reviewText1", values.reviewText1);
+  formData.set("reviewName2", values.reviewName2);
+  formData.set("reviewText2", values.reviewText2);
+  formData.set("reviewName3", values.reviewName3);
+  formData.set("reviewText3", values.reviewText3);
   formData.set("phone", values.phone);
   formData.set("lessonPrice", values.lessonPrice);
   formData.set("lessonCurrency", values.lessonCurrency);

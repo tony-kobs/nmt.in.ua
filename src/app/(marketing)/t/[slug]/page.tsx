@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: TeacherPublicPageProps) {
     title: card.headline
       ? t("titleWithHeadline", { name: card.displayName, headline: card.headline })
       : t("titleNamed", { name: card.displayName }),
-    description: card.bio || t("descriptionNamed", { name: card.displayName }),
+    description: card.about || card.bio || t("descriptionNamed", { name: card.displayName }),
     path: teacherPublicPath(card.slug),
   });
 }
