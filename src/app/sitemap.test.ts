@@ -3,7 +3,7 @@ import test from "node:test";
 import { DASHBOARD_NAV } from "@/constants/navigation";
 import { PUBLIC_PAGE_PATHS } from "@/constants/publicRoutes";
 import { isNoIndexPath } from "@/constants/seo";
-import sitemap from "./sitemap";
+import sitemap, { teacherSitemapPaths } from "./sitemap";
 
 const REDIRECTS = ["/materials", "/practice/interactive", "/register/teacher"];
 
@@ -42,4 +42,27 @@ test("sitemap lists public pages and only live marathon or teacher cards beyond 
   assert.equal(publicPaths.has("/register"), false);
   assert.equal(publicPaths.has("/promo"), false);
   assert.equal(publicPaths.has("/parent"), false);
+});
+
+test("teacher sitemap keeps real cards and drops demo, seed and numeric slugs", () => {
+  assert.deepEqual(
+    teacherSitemapPaths([
+      "mikhail",
+      "demo-teacher",
+      "Demo-Teacher",
+      "local-teacher",
+      "angryteacher",
+      "32132132112312",
+      "000",
+      "mykhailo",
+      "angry-teacher",
+      "123abc",
+      "demo",
+      " mikhail ",
+      "",
+      "bad slug",
+      "a/b",
+    ]),
+    ["/t/mikhail", "/t/mykhailo", "/t/angry-teacher", "/t/123abc", "/t/demo"],
+  );
 });

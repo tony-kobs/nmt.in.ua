@@ -1,5 +1,10 @@
 import type { MetadataRoute } from "next";
-import { absoluteUrl, SEO_CONTENT_UPDATED, sitemapStaticPaths } from "@/constants/seo";
+import {
+  absoluteUrl,
+  isExcludedTeacherSlug,
+  SEO_CONTENT_UPDATED,
+  sitemapStaticPaths,
+} from "@/constants/seo";
 import { isDatabaseUnavailable } from "@/lib/db/unavailable";
 import { SITEMAP_DAILY_STATUSES } from "@/modules/marathons/daily/publicPage";
 
@@ -32,6 +37,25 @@ function staticEntries(): MetadataRoute.Sitemap {
 }
 
 /**
+ * Published teacher cards for sitemap.xml.
+ * Drops the denylist, the local seed slug, and digits-only slugs.
+ * Keeps a real card such as `/t/mikhail`.
+ */
+export function teacherSitemapPaths(slugs: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const paths: string[] = [];
+  for (const raw of slugs) {
+    const slug = raw.trim().toLowerCase();
+    if (!slug || seen.has(slug) || isExcludedTeacherSlug(slug)) continue;
+    const path = `/t/${slug}`;
+    if (!PUBLIC_SLUG.test(path)) continue;
+    seen.add(slug);
+    paths.push(path);
+  }
+  return paths;
+}
+
+/**
  * Shareable daily marathons and published teacher cards.
  * The textbook is behind login, so its topic URLs are not listed.
  */
@@ -49,16 +73,20 @@ export async function loadSitemapDynamicPaths(): Promise<DatedPath[]> {
       `SELECT slug, updated_at FROM teacher_profiles
        WHERE is_public = 1 AND slug <> '' ORDER BY slug ASC`,
     );
+    const teacherPaths = new Set(teacherSitemapPaths(teachers.map((row) => row.slug)));
+    const seenTeachers = new Set<string>();
     const cards: DatedPath[] = [
       ...marathons.map((row) => ({
         path: `/marathon/${row.slug}`,
         lastModified: asDate(row.created_at),
       })),
-      ...teachers.map((row) => ({
-        path: `/t/${row.slug}`,
-        lastModified: asDate(row.updated_at),
-      })),
     ];
+    for (const row of teachers) {
+      const path = `/t/${row.slug.trim().toLowerCase()}`;
+      if (!teacherPaths.has(path) || seenTeachers.has(path)) continue;
+      seenTeachers.add(path);
+      cards.push({ path, lastModified: asDate(row.updated_at) });
+    }
     return cards.filter((entry) => PUBLIC_SLUG.test(entry.path));
   } finally {
     connection.release();

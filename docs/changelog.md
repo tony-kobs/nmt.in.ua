@@ -3,6 +3,17 @@
 Опис pull request — єдине місце, де це пишуть. Після мерджу в `dev` запис з’являється тут. Рядки для учня і викладача збираються в новини, коли реліз потрапляє в `main`. Посилання на скрінкаст з’являється лише після галочки «схвалено показувати». Гід для новачка — [онбординг](./onboarding.md) і [як робити задачу](./contributing.md); цей журнал туди не копіюється.
 
 <!-- changelog:entries -->
+### 2026-11-17 — SEO: прибрати демо-візитки викладачів із sitemap (#352)
+
+- Для команди: Публічний `sitemap.xml` більше не віддає демо- і тестові візитки `/t/{slug}`. Сторінки лишаються робочими і віддають `robots: noindex`. У `teacher_profiles` і `app_users` немає прапорця демо чи тесту (є лише `is_public`, `moderation_status`, `is_banned`). Міграцію не додавав. Правило одне, в `EXCLUDED_TEACHER_SITEMAP_SLUGS` і `isExcludedTeacherSlug`: - точний slug зі списку: `angryteacher`, `demo-teacher` (стара публічна візитка), `local-teacher` (seed у `scripts/seed-local.mjs`); - slug лише з цифр, наприклад `32132132112312`. `/t/mikhail` і будь-який інший нечисловий slug поза списком лишаються в sitemap і в індексі. Префікси на кшталт `demo` чи `test` не ріжуть справжнього викладача. Те саме правило ставить `noindex` через `createPageMetadata` / `isNoIndexPath`, тож Google не бере ці URL з посилань. `robots.txt` їх не ховає: інакше краулер не побачить `noindex`.
+- Для людей: Відкрити демо-візитку як і раніше можна. У пошуку вона більше не пропонується. Справжня картка викладача лишається.
+- Скрінкаст: не потрібен
+- Запис: верстки немає
+- Схвалено: ні
+- Автор: tony-kobs
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/352
+<!-- released: no -->
+
 ### 2026-11-16 — SEO: метадані, sitemap, robots і JSON-LD (#350)
 
 - Для команди: Публічні сторінки мають унікальний український title (≤60) і description (≤155), canonical на `https://nmt.in.ua` і картку Open Graph / Twitter через `next/og`. Мови uk/en/de ділять один URL, тому hreflang нема: лишаються canonical і `lang` на `<html>`. Кабінет, адмінка, вхід, реєстрація (разом із `?role=`, `?promo=`, `?ref=`), батьки, промо і сесії — `noindex`. Їх нема в sitemap. `robots.txt` їх закриває і вказує sitemap. Підручник лишився за входом, тому його теж прибрано з sitemap. Sitemap лишає `/`, `/welcome` (canonical на `/`), `/diagnostic`, `/interns/sasha-dubrovina28`, живі денні марафони і опубліковані `/t/{slug}`, з `lastModified`. JSON-LD: Organization, WebSite, WebApplication і Course на головній; FAQPage у блоці питань; ProfilePage + Person на `/t/{slug}`; Course і BreadcrumbList на вступному тесті, марафоні і вкладених публічних сторінках. На візитці викладача імʼя тепер єдиний h1. Невідомий шлях, зокрема `/assign/promo`, віддає HTTP 404. Сторінки, які кличуть `notFound()`, стоять поза `loading.tsx`, щоб статус не ставав 200. `/register/teacher` тепер 308 на `/register?role=teacher`. ### Google Search Console 1. У Search Console обери власність `https://nmt.in.ua` і спосіб «Тег HTML». 2. Скопіюй лише значення `content`, без самого тега. 3. Допиши рядок у store на хості `/home/levelhst/nmt.in.ua/.env.production` (не в git): `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION=токен` 4. Перезапусти процес у панелі. Код читає змінну в рантаймі, тому нова збірка не потрібна. 5. Поки змінної немає, мета-тег не рендериться.

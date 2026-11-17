@@ -18,6 +18,8 @@ import {
   fitMetaDescription,
   fitMetaTitle,
   googleSiteVerification,
+  EXCLUDED_TEACHER_SITEMAP_SLUGS,
+  isExcludedTeacherSlug,
   isNoIndexPath,
   metadataGroupSuffix,
   siteIcons,
@@ -201,6 +203,12 @@ test("private routes are noindex even when the caller forgets the flag", () => {
     "/session/4",
     "/marathon/demo/map",
     "/diagnostic/session/9",
+    "/t/demo-teacher",
+    "/t/Demo-Teacher",
+    "/t/local-teacher",
+    "/t/angryteacher",
+    "/t/32132132112312",
+    "/t/000",
   ]) {
     assert.equal(isNoIndexPath(path), true, path);
     const meta = createPageMetadata({
@@ -215,9 +223,37 @@ test("private routes are noindex even when the caller forgets the flag", () => {
     }
   }
 
-  for (const path of ["/", "/welcome", "/diagnostic", "/t/local-teacher", "/marathon/onemath", "/interns/sasha-dubrovina28"]) {
+  for (const path of [
+    "/",
+    "/welcome",
+    "/diagnostic",
+    "/t/mikhail",
+    "/t/mykhailo",
+    "/t/angry-teacher",
+    "/t/123abc",
+    "/marathon/onemath",
+    "/interns/sasha-dubrovina28",
+  ]) {
     assert.equal(isNoIndexPath(path), false, path);
+    const meta = createPageMetadata({
+      title: "Публічна",
+      description: "Публічна сторінка.",
+      path,
+    });
+    const robots = meta.robots;
+    assert.ok(robots && typeof robots === "object" && !Array.isArray(robots));
+    if (robots && typeof robots === "object" && !Array.isArray(robots)) {
+      assert.equal(robots.index, true, path);
+    }
   }
+  assert.deepEqual(
+    [...EXCLUDED_TEACHER_SITEMAP_SLUGS],
+    ["angryteacher", "demo-teacher", "local-teacher"],
+  );
+  assert.equal(isExcludedTeacherSlug("  DEMO-TEACHER "), true);
+  assert.equal(isExcludedTeacherSlug("32132132112312"), true);
+  assert.equal(isExcludedTeacherSlug("mikhail"), false);
+  assert.equal(isExcludedTeacherSlug("demo"), false);
   assert.deepEqual(sitemapStaticPaths(), [
     "/",
     "/welcome",
