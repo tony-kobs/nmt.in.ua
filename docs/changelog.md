@@ -12,7 +12,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/352
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-16 — SEO: метадані, sitemap, robots і JSON-LD (#350)
 
@@ -920,6 +920,10 @@
 ## Новини для сайту
 
 <!-- changelog:news -->
+### 2026-11-17 — [реліз #353](https://github.com/tony-kobs/nmt.in.ua/pull/353)
+
+- [SEO: прибрати демо-візитки викладачів із sitemap](https://github.com/tony-kobs/nmt.in.ua/pull/352) — Відкрити демо-візитку як і раніше можна. У пошуку вона більше не пропонується. Справжня картка викладача лишається.
+
 ### 2026-11-16 — [реліз #351](https://github.com/tony-kobs/nmt.in.ua/pull/351)
 
 - [SEO: метадані, sitemap, robots і JSON-LD](https://github.com/tony-kobs/nmt.in.ua/pull/350) — На візитці викладача, вступному тесті і публічній сторінці марафону зʼявилась стежка «Головна / …». Решта текстів сторінок не змінювалась.
