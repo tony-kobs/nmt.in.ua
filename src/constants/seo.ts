@@ -148,9 +148,41 @@ function hasPrivatePrefix(pathname: string): boolean {
 }
 
 /**
+ * Published cards that stay off the sitemap and out of the index.
+ * `teacher_profiles` and `app_users` have no demo or test flag.
+ * Exact slugs only: the old public seed, the local seed, and one throwaway card.
+ * A digits-only slug is excluded separately. Real cards such as `/t/mikhail` stay.
+ */
+export const EXCLUDED_TEACHER_SITEMAP_SLUGS = [
+  "angryteacher",
+  "demo-teacher",
+  "local-teacher",
+] as const;
+
+const EXCLUDED_TEACHER_SITEMAP_SLUG_SET = new Set<string>(EXCLUDED_TEACHER_SITEMAP_SLUGS);
+const NUMERIC_TEACHER_SLUG = /^[0-9]+$/;
+
+function teacherSlugKey(slug: string): string {
+  const trimmed = slug.trim().toLowerCase();
+  if (!trimmed) return "";
+  try {
+    return decodeURIComponent(trimmed).trim().toLowerCase();
+  } catch {
+    return trimmed;
+  }
+}
+
+/** Demo seed, denylist, or a slug made only of digits. */
+export function isExcludedTeacherSlug(slug: string): boolean {
+  const key = teacherSlugKey(slug);
+  if (!key) return false;
+  return EXCLUDED_TEACHER_SITEMAP_SLUG_SET.has(key) || NUMERIC_TEACHER_SLUG.test(key);
+}
+
+/**
  * Cabinet, admin, auth, parent, promo and in-progress attempts stay out of
  * the index. A public marathon is exactly `/marathon/{slug}`. A published
- * teacher card is exactly `/t/{slug}`.
+ * teacher card is exactly `/t/{slug}`, except demo and test profiles.
  */
 export function isNoIndexPath(path: string): boolean {
   const pathname = pagePathname(path);
@@ -159,6 +191,8 @@ export function isNoIndexPath(path: string): boolean {
     return pathname !== "/diagnostic";
   }
   if (pathname === "/marathon" || /^\/marathon\/[^/]+\/.+/.test(pathname)) return true;
+  const teacher = /^\/t\/([^/]+)$/.exec(pathname);
+  if (teacher?.[1] && isExcludedTeacherSlug(teacher[1])) return true;
   return false;
 }
 
