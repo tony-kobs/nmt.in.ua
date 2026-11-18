@@ -3,6 +3,17 @@
 Опис pull request — єдине місце, де це пишуть. Після мерджу в `dev` запис з’являється тут. Рядки для учня і викладача збираються в новини, коли реліз потрапляє в `main`. Посилання на скрінкаст з’являється лише після галочки «схвалено показувати». Гід для новачка — [онбординг](./onboarding.md) і [як робити задачу](./contributing.md); цей журнал туди не копіюється.
 
 <!-- changelog:entries -->
+### 2026-11-18 — feat: integrate multiplication into cabinet (#356)
+
+- Для команди: Додано новий розділ "Тренувальні вправи" та тренажер множення в розділ /practice/multiplication/. Видалено сторінку по шляху src/app/(marketing)/interns/sasha-dubrovina28/ і посилання на неї (футер, sitemap, переклади).
+- Для людей: Новий розділ "Тренувальні вправи", де зберігаються "Додавання дробів", "Інтерактивні формати" і нова вправа "Множення".
+- Скрінкаст: потрібен
+- Запис: https://github.com/user-attachments/assets/68d04be1-0cfd-4b5f-a2fb-b8cfb2b0e60e
+- Схвалено: ні
+- Автор: sasha-dubrovina28
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/356
+<!-- released: no -->
+
 ### 2026-11-17 — SEO: прибрати демо-візитки викладачів із sitemap (#352)
 
 - Для команди: Публічний `sitemap.xml` більше не віддає демо- і тестові візитки `/t/{slug}`. Сторінки лишаються робочими і віддають `robots: noindex`. У `teacher_profiles` і `app_users` немає прапорця демо чи тесту (є лише `is_public`, `moderation_status`, `is_banned`). Міграцію не додавав. Правило одне, в `EXCLUDED_TEACHER_SITEMAP_SLUGS` і `isExcludedTeacherSlug`: - точний slug зі списку: `angryteacher`, `demo-teacher` (стара публічна візитка), `local-teacher` (seed у `scripts/seed-local.mjs`); - slug лише з цифр, наприклад `32132132112312`. `/t/mikhail` і будь-який інший нечисловий slug поза списком лишаються в sitemap і в індексі. Префікси на кшталт `demo` чи `test` не ріжуть справжнього викладача. Те саме правило ставить `noindex` через `createPageMetadata` / `isNoIndexPath`, тож Google не бере ці URL з посилань. `robots.txt` їх не ховає: інакше краулер не побачить `noindex`.
