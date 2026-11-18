@@ -22,6 +22,19 @@ export const DASHBOARD_NAV: NavItem[] = [
     status: "ready",
   },
   {
+    href: "/simulator",
+    label: "Симулятор НМТ",
+    description: "Повний варіант НМТ у форматі УЦОЯО з таймером і балами.",
+    status: "ready",
+  },
+    {
+    href: "/practice",
+    label: "Тренувальні вправи",
+    description:
+      "Короткі вправи на швидкість: дроби, множення та інтерактивні формати.",
+    status: "ready",
+  },
+  {
     href: "/results",
     label: "Результати за темами",
     description:
@@ -51,12 +64,6 @@ export const DASHBOARD_NAV: NavItem[] = [
     href: "/profiles",
     label: "Профілі",
     description: "Усі облікові записи: фільтр за роллю, бан і видалення.",
-    status: "ready",
-  },
-  {
-    href: "/simulator",
-    label: "Симулятор НМТ",
-    description: "Повний варіант НМТ у форматі УЦОЯО з таймером і балами.",
     status: "ready",
   },
   {

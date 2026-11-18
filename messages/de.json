@@ -138,7 +138,11 @@
       "support": "Anfragen",
       "parent": "Kinder",
       "account": "Konto",
-      "promo": "Aktionscodes"
+      "promo": "Aktionscodes",
+      "practice": "Übungen"
+    },
+    "groups": {
+      "tests": "Tests"
     }
   },
   "RecentResults": {
@@ -1783,8 +1787,7 @@
       "faq": "Fragen",
       "login": "Anmelden",
       "register": "Konto erstellen",
-      "cabinet": "Arbeitsbereich",
-      "internMy": "Oleksandras Seite"
+      "cabinet": "Arbeitsbereich"
     },
     "hero": {
       "titleStart": "Bereite dich auf die NMT in Mathematik",
@@ -3173,10 +3176,81 @@
     "taskTitle": "Aufgabe",
     "taskImageAlt": "Bild zur Aufgabe"
   },
-  "InternMyPage": {
-    "name": "Oleksandra Dubrovina",
-    "task1": "Multiplikationsrechner: Multiplikation zweier Zahlen implementiert",
-    "codeLink": "Repository",
-    "liveLink": "Live-Demo"
+  "PracticeMultiplication": {
+    "kicker": "Übungen",
+    "title": "Einmaleins",
+    "lead": "Wähle eine Zahl und übe: 10 Aufgaben auf Zeit.",
+    "metaTitle": "Einmaleins — Übungen",
+    "metaDescription": "Einmaleins-Trainer für die Zahlen 2 bis 9: 10 Aufgaben auf Zeit mit Punkten.",
+    "chooseTable": "Wähle eine Reihe",
+    "range": "von 2 bis 9",
+    "tableLink": "Einmaleins mit {n}",
+    "trainerTitle": "Einmaleins mit {n}",
+    "time": "Zeit: {time}",
+    "taskCounter": "Aufgabe {current} / {total}",
+    "tabsLabel": "Bereiche der Übung",
+    "tabExercises": "Übungen",
+    "tabInstruction": "Anleitung",
+    "taskNumber": "Aufgabe Nr. {n}",
+    "tableTag": "Reihe {n}",
+    "intro": "Kennst du das Einmaleins mit {n} schon? Aufgaben lösen ist der beste Weg, dich zu testen und das Gelernte zu festigen.",
+    "calculate": "Rechne:",
+    "done": "Fertig!",
+    "exercisesProgress": "Aufgaben: {current} von {total}",
+    "scoreNow": "Ergebnis: {score, plural, one {# Punkt} other {# Punkte}}",
+    "lastCorrect": "Richtig: {a} · {b} = {answer}",
+    "lastWrong": "Falsch: {a} · {b} = {answer}",
+    "start": "Starten",
+    "next": "Nächste Aufgabe",
+    "finish": "Beenden",
+    "retry": "Noch einmal versuchen",
+    "backToTables": "Zurück zur Auswahl",
+    "backspace": "Löschen",
+    "finalScore": "Dein Ergebnis: {score} von {max} Punkten",
+    "feedback": {
+      "excellent": "Ausgezeichnet!",
+      "good": "Gut!",
+      "ok": "Nicht schlecht, aber es geht noch besser.",
+      "tryAgain": "Du musst noch üben."
+    },
+    "answerCorrect": "{n}) Richtig (+{points})",
+    "answerWrong": "{n}) Falsch",
+    "answerLine": "{a} · {b} = {user}",
+    "answerLineWrong": "{a} · {b} = {user} (richtig: {correct})",
+    "instruction": {
+      "title": "Anleitung zum Einmaleins mit {n}",
+      "tag": "Anleitung",
+      "step1": "Die Übung besteht aus {count} Aufgaben.",
+      "step2": "Zum Starten drücke <btn>Starten</btn>.",
+      "step3": "Zum Eingeben der Antwort nutze die Bildschirmtastatur",
+      "step3b": "oder die Zifferntasten deiner Computertastatur.",
+      "step4": "Gib die Antwort ein und drücke <btn>Nächste Aufgabe</btn> (oder die Eingabetaste).",
+      "warning": "<b>Achtung!</b> Wenn du zur nächsten Aufgabe gehst, kannst du die vorherige Antwort nicht mehr ändern.",
+      "step5": "Die nächste Aufgabe erscheint. Neben der Tastatur siehst du, ob die vorherige richtig war, und deine Punkte.",
+      "step6": "Für eine richtige Antwort bekommst du:",
+      "points10": "10 Punkte — Antwort in weniger als 10 Sekunden (grüne Anzeige)",
+      "points9": "9 Punkte — 10 bis 15 Sekunden (gelbe Anzeige)",
+      "points8": "8 Punkte — 15 bis 20 Sekunden (orange Anzeige)",
+      "points7": "7 Punkte — mehr als 20 Sekunden (rote Anzeige)",
+      "step7": "Nach {count} Aufgaben siehst du dein Ergebnis.",
+      "step8": "Willst du dein Ergebnis verbessern? Drücke <btn>Noch einmal versuchen</btn>."
+    }
+  },
+  "PracticeCatalog": {
+    "kicker": "Übung",
+    "title": "Übungsaufgaben",
+    "lead": "Wähle eine Übung, trainiere und überprüfe dein Wissen.",
+    "fractions": {
+      "title": "Brüche addieren",
+      "description": "Übe das Addieren von Brüchen, durchlaufe Schwierigkeitsstufen und überprüfe deine Antworten."
+    },
+    "interactive": {
+      "title": "Interaktive Formate",
+      "description": "Bearbeite interaktive Aufgaben und überprüfe dein Wissen."
+    },
+    "multiplication": {
+      "title": "Multiplikation",
+      "description": "Einmaleins auf Zeit: 10 Aufgaben und deine Punktzahl."
+    }
   }
 }

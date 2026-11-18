@@ -138,7 +138,11 @@
       "support": "Messages",
       "parent": "Children",
       "account": "Account",
-      "promo": "Promo codes"
+      "promo": "Promo codes",
+      "practice": "Practice exercises"
+     },
+    "groups": {
+      "tests": "Tests"
     }
   },
   "RecentResults": {
@@ -1783,8 +1787,7 @@
       "faq": "FAQ",
       "login": "Log in",
       "register": "Create account",
-      "cabinet": "Workspace",
-      "internMy": "Oleksandra's page"
+      "cabinet": "Workspace"
     },
     "hero": {
       "titleStart": "Prepare for the NMT in maths",
@@ -3173,10 +3176,81 @@
     "taskTitle": "Task",
     "taskImageAlt": "Picture for the task"
   },
-  "InternMyPage": {
-    "name": "Oleksandra Dubrovina",
-    "task1": "Multiplication calculator: implemented multiplication of two numbers",
-    "codeLink": "Repository",
-    "liveLink": "Live demo"
+  "PracticeMultiplication": {
+    "kicker": "Practice exercises",
+    "title": "Multiplication table",
+    "lead": "Pick a number and practice: 10 examples against the clock.",
+    "metaTitle": "Multiplication table — practice exercises",
+    "metaDescription": "Multiplication table trainer for 2 to 9: 10 examples against the clock with a score.",
+    "chooseTable": "Choose a table",
+    "range": "from 2 to 9",
+    "tableLink": "Multiplication table of {n}",
+    "trainerTitle": "Multiplication table of {n}",
+    "time": "Time: {time}",
+    "taskCounter": "Task {current} / {total}",
+    "tabsLabel": "Exercise sections",
+    "tabExercises": "Exercises",
+    "tabInstruction": "Instructions",
+    "taskNumber": "Task #{n}",
+    "tableTag": "Table of {n}",
+    "intro": "Do you already know the multiplication table of {n}? Solving examples is the best way to test yourself and lock in what you have learned.",
+    "calculate": "Calculate:",
+    "done": "Done!",
+    "exercisesProgress": "Exercises: {current} of {total}",
+    "scoreNow": "Score: {score, plural, one {# point} other {# points}}",
+    "lastCorrect": "Correct: {a} · {b} = {answer}",
+    "lastWrong": "Wrong: {a} · {b} = {answer}",
+    "start": "Start",
+    "next": "Next example",
+    "finish": "Finish",
+    "retry": "Try again",
+    "backToTables": "Back to table selection",
+    "backspace": "Delete",
+    "finalScore": "Your result: {score} out of {max} points",
+    "feedback": {
+      "excellent": "Excellent!",
+      "good": "Good!",
+      "ok": "Not bad, but you can do better.",
+      "tryAgain": "You need more practice."
+    },
+    "answerCorrect": "{n}) Correct (+{points})",
+    "answerWrong": "{n}) Wrong",
+    "answerLine": "{a} · {b} = {user}",
+    "answerLineWrong": "{a} · {b} = {user} (correct: {correct})",
+    "instruction": {
+      "title": "Instructions for the multiplication table of {n}",
+      "tag": "Instructions",
+      "step1": "The task consists of {count} examples.",
+      "step2": "To start, press <btn>Start</btn>.",
+      "step3": "To enter an answer, use the on-screen keypad",
+      "step3b": "or the number keys on your computer keyboard.",
+      "step4": "Enter your answer and press <btn>Next example</btn> (or the Enter key).",
+      "warning": "<b>Attention!</b> Once you move on to the next task, you cannot go back and change your previous answer.",
+      "step5": "The next example will appear. Next to the keypad you will see whether the previous one was correct, and your points.",
+      "step6": "For a correct answer you get:",
+      "points10": "10 points — answered in under 10 seconds (green indicator)",
+      "points9": "9 points — 10 to 15 seconds (yellow indicator)",
+      "points8": "8 points — 15 to 20 seconds (orange indicator)",
+      "points7": "7 points — more than 20 seconds (red indicator)",
+      "step7": "After {count} tasks you will see your result.",
+      "step8": "Want to improve your result? Press <btn>Try again</btn>."
+    }
+  },
+  "PracticeCatalog": {
+    "kicker": "Practice",
+    "title": "Practice exercises",
+    "lead": "Choose an exercise, practise and test your knowledge.",
+    "fractions": {
+      "title": "Adding fractions",
+      "description": "Practise adding fractions, progress through difficulty levels and check your answers."
+    },
+    "interactive": {
+      "title": "Interactive formats",
+      "description": "Complete interactive tasks and test your knowledge."
+    },
+    "multiplication": {
+      "title": "Multiplication",
+      "description": "Multiplication tables against the clock: 10 questions and a score."
+    }
   }
 }
