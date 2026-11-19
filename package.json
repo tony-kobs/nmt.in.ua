@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/write-deploy-revision.mjs",
     "build": "next build --webpack",
     "start": "node server.js",
     "lint": "eslint",

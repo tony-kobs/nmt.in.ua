@@ -3,15 +3,18 @@ import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import { sampleRandomIds } from "@/lib/sampleRandomIds";
+import { DAY_BLOCK_MAX, DAY_HAS_ANSWERS_SQL } from "./dayRemoval";
 
 /**
  * The topic bank is `themes` + `quiz_tasks`. Those tables have no subject
- * column: they are the mathematics catalog. A marathon shows the picker only
- * when its subject is `math`. Manual tasks stay available for every subject.
+ * column: they are the mathematics catalog. The day editor searches that
+ * catalog and saves the exact ids the admin picked, in that order.
+ * `pickBankIds` remains for older callers; the admin UI does not use it.
  * No new table and no migration.
  */
 export const QUIZ_BANK_SUBJECT = "math";
 export const BANK_SAMPLE_MAX = 20;
+export const BANK_SEARCH_LIMIT = 40;
 const EXCLUDE_CAP = 200;
 
 export function quizBankMatchesSubject(subject: string): boolean {
@@ -33,6 +36,31 @@ export function sanitizeIds(ids: readonly number[]): number[] {
     if (clean.length >= EXCLUDE_CAP) break;
   }
   return clean;
+}
+
+/** Same ids, ignoring order. Duplicates are not a match. */
+export function sameQuestionSet(left: readonly number[], right: readonly number[]): boolean {
+  if (left.length !== right.length) return false;
+  const seen = new Set<number>();
+  for (const id of left) {
+    if (!Number.isInteger(id) || seen.has(id)) return false;
+    seen.add(id);
+  }
+  return right.every((id) => seen.has(id));
+}
+
+export function cleanBlockIds(
+  ids: readonly number[],
+): { ok: true; ids: number[] } | { ok: false; reason: "invalid" | "too_many" } {
+  if (ids.length > DAY_BLOCK_MAX) return { ok: false, reason: "too_many" };
+  const seen = new Set<number>();
+  const clean: number[] = [];
+  for (const id of ids) {
+    if (!Number.isInteger(id) || id <= 0 || seen.has(id)) return { ok: false, reason: "invalid" };
+    seen.add(id);
+    clean.push(id);
+  }
+  return { ok: true, ids: clean };
 }
 
 /** Random distinct ids from the topic, skipping ones already chosen. */
@@ -98,6 +126,26 @@ export function toBankPreview(row: PreviewRow): BankPreview {
     .filter((item) => item.length > 0);
   return { id: Number(row.id), prompt, options };
 }
+
+/** Stable search. No RAND, and the answer key stays out of the select list. */
+export const BANK_SEARCH_SQL = `
+  SELECT q.id, q.name, q.task_text, q.answer_1, q.answer_2, q.answer_3, q.answer_4,
+         t.name AS theme_name
+  FROM quiz_tasks q
+  INNER JOIN themes t ON t.id = q.theme_id
+  WHERE ${publishedQuizTaskSql("q")}
+    AND (? = 0 OR q.theme_id = ?)
+    AND (
+      ? = ''
+      OR CAST(q.id AS CHAR) = ?
+      OR q.name LIKE ? ESCAPE '\\\\'
+      OR q.task_text LIKE ? ESCAPE '\\\\'
+    )
+  ORDER BY t.ord ASC, q.id ASC
+  LIMIT ${BANK_SEARCH_LIMIT}
+`;
+
+export type BankHit = BankPreview & { themeName: string };
 
 type Conn = () => Promise<SqlConnection>;
 
@@ -326,5 +374,122 @@ export async function reshuffleDayTaskOrder(
       await connection.rollback();
       throw error;
     }
+  }, getConnection);
+}
+
+export type SaveBlockResult =
+  | { ok: true; count: number }
+  | { ok: false; reason: "locked" | "missing" | "too_many" | "invalid" };
+
+type TaskOrderRow = { id: number; sort_order: number; question_id: number | null };
+
+/**
+ * The day's bank tasks become exactly `questionIds`, in that order.
+ * Handwritten tasks stay after the block. If students already answered,
+ * only a reorder of the same ids is allowed: row ids stay, so saved answers
+ * still point at the same task.
+ */
+export async function replaceDayTaskBlock(
+  dayId: number,
+  questionIds: readonly number[],
+  getConnection: Conn = loadDefaultConnection,
+): Promise<SaveBlockResult> {
+  const cleaned = cleanBlockIds(questionIds);
+  if (!cleaned.ok) return cleaned;
+  const ids = cleaned.ids;
+  await ensureDays(getConnection);
+  return withSql(async (connection) => {
+    await connection.beginTransaction();
+    try {
+      const existing = await connection.query<TaskOrderRow>(
+        `SELECT id, sort_order, question_id
+         FROM marathon_day_tasks WHERE day_id = ? ORDER BY sort_order ASC, id ASC`,
+        [dayId],
+      );
+      const answered = await connection.query<{ n: number | string }>(
+        `SELECT COUNT(*) AS n FROM marathon_day_progress
+         WHERE day_id = ? AND ${DAY_HAS_ANSWERS_SQL}`,
+        [dayId],
+      );
+      const answers = Number(answered[0]?.n ?? 0);
+      const bank = existing.filter((row) => row.question_id != null);
+      const currentIds = bank.map((row) => Number(row.question_id));
+      if (answers > 0 && !sameQuestionSet(currentIds, ids)) {
+        await connection.rollback();
+        return { ok: false, reason: "locked" };
+      }
+      if (ids.length > 0) {
+        const found = await connection.query<{ id: number }>(
+          `SELECT id FROM quiz_tasks
+           WHERE id IN (${ids.map(() => "?").join(", ")}) AND ${publishedQuizTaskSql()}`,
+          ids,
+        );
+        if (found.length !== ids.length) {
+          await connection.rollback();
+          return { ok: false, reason: "missing" };
+        }
+      }
+      await connection.execute(
+        `UPDATE marathon_day_tasks SET sort_order = -id WHERE day_id = ?`,
+        [dayId],
+      );
+      if (answers > 0) {
+        const byQuestion = new Map(bank.map((row) => [Number(row.question_id), Number(row.id)]));
+        for (let index = 0; index < ids.length; index += 1) {
+          await connection.execute(
+            `UPDATE marathon_day_tasks SET sort_order = ? WHERE id = ? AND day_id = ?`,
+            [index + 1, byQuestion.get(ids[index] ?? 0), dayId],
+          );
+        }
+      } else if (bank.length > 0 || ids.length > 0) {
+        await connection.execute(
+          `DELETE FROM marathon_day_tasks WHERE day_id = ? AND question_id IS NOT NULL`,
+          [dayId],
+        );
+        for (let index = 0; index < ids.length; index += 1) {
+          await connection.execute(
+            `INSERT INTO marathon_day_tasks
+              (day_id, sort_order, question_id, inline_prompt, inline_options, inline_correct, inline_explanation)
+             VALUES (?, ?, ?, NULL, NULL, NULL, NULL)`,
+            [dayId, index + 1, ids[index]],
+          );
+        }
+      }
+      const inline = existing.filter((row) => row.question_id == null);
+      for (let index = 0; index < inline.length; index += 1) {
+        await connection.execute(
+          `UPDATE marathon_day_tasks SET sort_order = ? WHERE id = ? AND day_id = ?`,
+          [ids.length + index + 1, inline[index]?.id, dayId],
+        );
+      }
+      await connection.commit();
+      return { ok: true, count: ids.length };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    }
+  }, getConnection);
+}
+
+export async function searchBankTasks(
+  input: { subject: string; themeId: number | null; query: string },
+  getConnection?: Conn,
+): Promise<BankHit[]> {
+  if (!quizBankMatchesSubject(input.subject)) return [];
+  const themeId = input.themeId != null && Number.isInteger(input.themeId) && input.themeId > 0
+    ? input.themeId
+    : 0;
+  const term = input.query.trim().slice(0, 80);
+  if (themeId === 0 && term.length === 0) return [];
+  const like = `%${term.replace(/[\\%_]/g, "\\$&")}%`;
+  return withSql(async (connection) => {
+    const rows = await connection.query<PreviewRow & { theme_name: string | null }>(
+      BANK_SEARCH_SQL,
+      [themeId, themeId, term, term, like, like],
+    );
+    return rows.map((row) => ({
+      ...toBankPreview(row),
+      themeName: (row.theme_name ?? "").trim(),
+    }));
   }, getConnection);
 }
