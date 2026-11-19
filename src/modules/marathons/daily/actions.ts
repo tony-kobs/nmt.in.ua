@@ -91,8 +91,9 @@ import {
   searchBankTasks,
   type BankHit,
 } from "./taskBank";
-import { applyMarathonCsv, checkMarathonCsv, type CsvPreview } from "./marathonCsvStore";
-import type { CsvIssue } from "./marathonCsv";
+import { applyMarathonCsv, applyMarathonImport, checkMarathonCsv, checkMarathonImport, type CsvPreview } from "./marathonCsvStore";
+import type { CsvIssue, CsvParseResult } from "./marathonCsv";
+import { parseMarathonJson } from "./marathonJson";
 import { openRiddleSession, writeRiddleSession } from "./riddleSession";
 import {
   buildMessageTimeline,
@@ -630,6 +631,55 @@ export async function applyMarathonCsvAction(
   revalidatePath("/admin/marathons");
   revalidatePath(adminPath(applied.id));
   redirect(savedPath(applied.id));
+}
+
+async function previewParsed(
+  parsed: CsvParseResult,
+): Promise<{ ok: true; preview: CsvPreview } | { ok: false; errors: CsvIssue[] }> {
+  await requireManager();
+  try {
+    const checked = await checkMarathonImport(parsed);
+    if (!checked.ok) return checked;
+    return { ok: true, preview: checked.preview };
+  } catch (error) {
+    console.error("previewParsed", error);
+    return { ok: false, errors: [{ row: 0, message: "Не вдалося перевірити файл." }] };
+  }
+}
+
+async function applyParsed(
+  parsed: CsvParseResult,
+): Promise<{ ok: false; errors: CsvIssue[] } | undefined> {
+  await requireManager();
+  let applied: Awaited<ReturnType<typeof applyMarathonImport>>;
+  try {
+    applied = await applyMarathonImport(parsed);
+  } catch (error) {
+    console.error("applyParsed", error);
+    return { ok: false, errors: [{ row: 0, message: "Не вдалося записати файл. Нічого не змінено." }] };
+  }
+  if (!applied.ok) return applied;
+  revalidatePath("/admin/marathons");
+  revalidatePath(adminPath(applied.id));
+  redirect(savedPath(applied.id));
+}
+
+export async function previewMarathonJsonAction(
+  text: string,
+): Promise<{ ok: true; preview: CsvPreview } | { ok: false; errors: CsvIssue[] }> {
+  if (typeof text !== "string") {
+    return { ok: false, errors: [{ row: 0, message: "Файл не прочитано." }] };
+  }
+  return previewParsed(parseMarathonJson(text));
+}
+
+export async function applyMarathonJsonAction(
+  text: string,
+): Promise<{ ok: false; errors: CsvIssue[] } | undefined> {
+  if (typeof text !== "string") {
+    return { ok: false, errors: [{ row: 0, message: "Файл не прочитано." }] };
+  }
+  return applyParsed(parseMarathonJson(text));
 }
 
 async function openMarathon(slug: string) {
