@@ -40,39 +40,41 @@ if [ -n "$(git tag --points-at "$sha")" ]; then
   exit 0
 fi
 
+# One lookup per pull request number written in a commit subject since the
+# last tag. A commit with no PR, an empty API body, or a rate limit is a
+# warning: the release still happens. The per-commit pulls endpoint is not used.
+MAX_PR_LOOKUPS=20
+
 collect_release_labels() {
-  local commit number tmp subjects
+  local tmp subjects number count labels err
+  if [ -z "$(latest_semver_tag)" ]; then
+    echo "No semver tag yet; pull request labels are not read." >&2
+    return 0
+  fi
   tmp="$(mktemp)"
-
-  while IFS= read -r commit; do
-    [ -z "$commit" ] && continue
-    if ! gh api --paginate \
-      -H "Accept: application/vnd.github+json" \
-      "repos/${GITHUB_REPOSITORY}/commits/${commit}/pulls" \
-      --jq '.[] | .labels[].name' >> "$tmp"; then
-      rm -f "$tmp"
-      echo "::error::Could not read pull requests for ${commit}." >&2
-      return 1
-    fi
-  done < <(commits_since_latest_tag "$sha")
-
   subjects="$(subjects_since_latest_tag "$sha")"
+  count=0
   while IFS= read -r number; do
     [ -z "$number" ] && continue
-    if ! gh pr view "$number" --repo "$GITHUB_REPOSITORY" --json labels \
-      --jq '.labels[].name' >> "$tmp"; then
-      rm -f "$tmp"
-      echo "::error::Could not read labels for pull request #${number}." >&2
-      return 1
+    count=$((count + 1))
+    if [ "$count" -gt "$MAX_PR_LOOKUPS" ]; then
+      echo "::warning::More than ${MAX_PR_LOOKUPS} pull requests since the last tag; extra labels were not read." >&2
+      break
     fi
+    err="$(mktemp)"
+    if labels="$(gh pr view "$number" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name' 2>"$err")"; then
+      printf '%s\n' "$labels" >> "$tmp"
+    else
+      echo "::warning::Could not read labels for pull request #${number}; the release continues." >&2
+    fi
+    rm -f "$err"
   done < <(
     printf '%s\n' "$subjects" \
-      | grep -oE 'Merge pull request #[0-9]+|\(#[0-9]+\)' \
-      | grep -oE '[0-9]+' \
-      | sort -u \
+      | grep -oE '#[0-9]+' \
+      | tr -d '#' \
+      | awk '!seen[$0]++' \
       || true
   )
-
   sort -u "$tmp"
   rm -f "$tmp"
 }
