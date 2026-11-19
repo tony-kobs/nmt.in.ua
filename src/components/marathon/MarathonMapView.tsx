@@ -4,9 +4,20 @@ import { getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { joinMarathonAction } from "@/modules/marathons/daily/actions";
 import { formatKyivWhen } from "@/modules/marathons/daily/calendar";
-import { durationLocale, formatMarathonDurationOrDash, totalKnownSeconds } from "@/modules/marathons/daily/durationText";
-import { loomEmbedSrc, youtubeEmbedSrc } from "@/modules/marathons/daily/richText";
-import type { DailyMarathon, DayProgress, Participant } from "@/modules/marathons/daily/store";
+import {
+  durationLocale,
+  formatMarathonDurationOrDash,
+  totalKnownSeconds,
+} from "@/modules/marathons/daily/durationText";
+import {
+  loomEmbedSrc,
+  youtubeEmbedSrc,
+} from "@/modules/marathons/daily/richText";
+import type {
+  DailyMarathon,
+  DayProgress,
+  Participant,
+} from "@/modules/marathons/daily/store";
 import { DeliveryToggles } from "./DeliveryToggles";
 import { SavedToast } from "./SavedToast";
 import { marathonErrorText } from "./errors";
@@ -52,10 +63,15 @@ export async function MarathonMapView({
   const t = await getTranslations("Marathon");
   const uiLocale = durationLocale(locale);
   const finished = days.filter((day) => day.progress?.completedAt != null);
-  const totalSeconds = totalKnownSeconds(finished.map((day) => day.progress?.durationSeconds ?? null));
-  const totalLabel = finished.length === 0
-    ? null
-    : t("totalTime", { time: formatMarathonDurationOrDash(totalSeconds, uiLocale) });
+  const totalSeconds = totalKnownSeconds(
+    finished.map((day) => day.progress?.durationSeconds ?? null)
+  );
+  const totalLabel =
+    finished.length === 0
+      ? null
+      : t("totalTime", {
+          time: formatMarathonDurationOrDash(totalSeconds, uiLocale),
+        });
   const message = marathonErrorText(t, error);
   const video = marathon.introVideoUrl;
   const src = video ? youtubeEmbedSrc(video) ?? loomEmbedSrc(video) : null;
@@ -68,11 +84,22 @@ export async function MarathonMapView({
         lead={t("mapLead", { days: marathon.daysCount })}
       >
         <div className={css.stack}>
-          {message ? <p className={css.alert} role="alert">{message}</p> : null}
+          {message ? (
+            <p className={css.alert} role="alert">
+              {message}
+            </p>
+          ) : null}
           <section className={css.card} aria-labelledby="marathon-rules">
             <h2 id="marathon-rules">{t("rulesTitle")}</h2>
             {introImageUrl ? (
-              <Image className={css.shot} src={introImageUrl} alt={marathon.title} width={1200} height={800} unoptimized />
+              <Image
+                className={css.shot}
+                src={introImageUrl}
+                alt={marathon.title}
+                width={1200}
+                height={800}
+                unoptimized
+              />
             ) : null}
             {src ? (
               <div className={css.embed}>
@@ -85,11 +112,13 @@ export async function MarathonMapView({
                 />
               </div>
             ) : null}
-            <div className={css.prose} dangerouslySetInnerHTML={{ __html: rulesHtml }} />
+            <div
+              className={css.prose}
+              dangerouslySetInnerHTML={{ __html: rulesHtml }}
+            />
           </section>
           {participant ? (
             <>
-              <p className={css.meta}>{t("streak", { count: participant.streak })}</p>
               <section className={css.card} aria-labelledby="marathon-where">
                 <h2 id="marathon-where">{t("whereTitle")}</h2>
                 <DeliveryToggles
@@ -97,7 +126,9 @@ export async function MarathonMapView({
                   prompt={channelPrompt}
                   emailOn={participant.notifyEmail}
                   telegramOn={participant.notifyBot}
-                  telegramLinked={telegramLinked || Boolean(participant.telegramChatId)}
+                  telegramLinked={
+                    telegramLinked || Boolean(participant.telegramChatId)
+                  }
                   telegramUsername={telegramUsername}
                   botReady={botReady}
                 />
@@ -106,7 +137,9 @@ export async function MarathonMapView({
           ) : marathon.status === "active" ? (
             <form action={joinMarathonAction} className={css.actions}>
               <input type="hidden" name="slug" value={marathon.slug} />
-              <button type="submit" className={css.button}>{t("cardJoin")}</button>
+              <button type="submit" className={css.button}>
+                {t("cardJoin")}
+              </button>
             </form>
           ) : (
             <p className={css.lead}>{t("finishedNote")}</p>
@@ -117,7 +150,9 @@ export async function MarathonMapView({
               {days.map((day) => {
                 const body = (
                   <>
-                    <span className={css.kicker}>{t("dayLabel", { n: day.dayNumber })}</span>
+                    <span className={css.kicker}>
+                      {t("dayLabel", { n: day.dayNumber })}
+                    </span>
                     <strong>{day.topic}</strong>
                     <span className={css.meta}>
                       {day.progress?.completedAt != null
@@ -125,21 +160,29 @@ export async function MarathonMapView({
                           ? t("markPassed", { score: day.progress.score ?? 0 })
                           : t("markFailed", { score: day.progress.score ?? 0 })
                         : day.open
-                          ? t("open")
-                          : t("opensAt", {
-                              when: day.unlockAt ? formatKyivWhen(day.unlockAt, locale) : "",
-                            })}
+                        ? t("open")
+                        : t("opensAt", {
+                            when: day.unlockAt
+                              ? formatKyivWhen(day.unlockAt, locale)
+                              : "",
+                          })}
                       {day.progress?.completedAt != null
                         ? ` · ${t("dayTime", {
-                          time: formatMarathonDurationOrDash(day.progress.durationSeconds, uiLocale),
-                        })}`
+                            time: formatMarathonDurationOrDash(
+                              day.progress.durationSeconds,
+                              uiLocale
+                            ),
+                          })}`
                         : ""}
                     </span>
                   </>
                 );
                 if (!day.open || !participant) {
                   return (
-                    <li key={day.dayNumber} className={`${css.day} ${css.locked}`}>
+                    <li
+                      key={day.dayNumber}
+                      className={`${css.day} ${css.locked}`}
+                    >
                       {body}
                     </li>
                   );
@@ -148,7 +191,9 @@ export async function MarathonMapView({
                   <li key={day.dayNumber}>
                     <Link
                       href={`/marathon/${marathon.slug}/day/${day.dayNumber}`}
-                      className={`${css.day} ${day.progress?.passed ? css.passed : ""}`}
+                      className={`${css.day} ${
+                        day.progress?.passed ? css.passed : ""
+                      }`}
                     >
                       {body}
                     </Link>
@@ -160,7 +205,10 @@ export async function MarathonMapView({
           </section>
           {participant ? (
             <p>
-              <Link href={`/marathon/${marathon.slug}/final`} className={css.buttonQuiet}>
+              <Link
+                href={`/marathon/${marathon.slug}/final`}
+                className={css.buttonQuiet}
+              >
                 {t("toFinal")}
               </Link>
             </p>
