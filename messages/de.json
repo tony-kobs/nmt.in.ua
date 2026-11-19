@@ -1246,6 +1246,7 @@
     "csvTemplate": "CSV-Vorlage",
     "csvExport": "Struktur exportieren",
     "csvFile": "CSV-Datei",
+    "importHint": "Anleitung und Beispiel dürfen in der Datei bleiben: der Import überspringt sie. Danach prüfen und übernehmen.",
     "csvPreview": "Prüfen",
     "csvApply": "Übernehmen",
     "csvNeedFile": "Wähle zuerst eine Datei.",

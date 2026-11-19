@@ -169,6 +169,7 @@ function JsonCard({ marathonId }: { marathonId?: number }) {
         />
       </div>
       {fileName ? <p className={css.meta}>{fileName}</p> : null}
+      <p className={css.meta}>{t("importHint")}</p>
       <div className={css.actions}>
         <button type="button" className={css.buttonQuiet} disabled={pending !== null} onClick={() => void previewFile()}>
           {pending === "preview" ? t("working") : t("csvPreview")}
@@ -262,6 +263,7 @@ function XlsxCard({ marathonId }: { marathonId?: number }) {
         />
       </div>
       {file ? <p className={css.meta}>{file.name}</p> : null}
+      <p className={css.meta}>{t("importHint")}</p>
       <div className={css.actions}>
         <button type="button" className={css.buttonQuiet} disabled={pending !== null} onClick={() => void send("preview")}>
           {pending === "preview" ? t("working") : t("csvPreview")}

@@ -79,10 +79,12 @@ function document(): MarathonCsvDocument {
 test("the template has the header and an example row, and import rejects the sample slug", () => {
   const raw = marathonCsvTemplate();
   assert.equal(raw.charCodeAt(0), 0xfeff);
+  assert.match(raw, /^#|^\uFEFF#/u);
+  assert.match(raw, /# Як заповнити файл марафону/);
   const csv = raw.replace(/^\uFEFF/, "");
-  const [header, example] = csv.split(/\r?\n/);
+  const header = csv.split(/\r?\n/).find((line) => line.startsWith("row_type;"));
   assert.equal(header, MARATHON_CSV_COLUMNS.join(";"));
-  assert.match(example ?? "", new RegExp(`^marathon;${CSV_SAMPLE_SLUG};`));
+  assert.match(csv, new RegExp(`marathon;${CSV_SAMPLE_SLUG};`));
   const parsed = parseMarathonCsv(marathonCsvTemplate());
   assert.equal(parsed.ok, false);
   if (!parsed.ok) {
@@ -199,6 +201,23 @@ test("a comma-separated file is rejected and a decimal comma stays in the cell",
   assert.equal(again.ok, true);
   if (!again.ok) return;
   assert.equal(again.document.marathon.description, "поріг 0,5 і ще 1,25");
+});
+
+test("instructions and the sample slug stay out of the imported document", () => {
+  const source = document();
+  const csv = documentToCsv(source);
+  assert.match(csv, /# 10\. У адмінці/);
+  assert.match(csv, new RegExp(`marathon;${CSV_SAMPLE_SLUG};`));
+  const parsed = parseMarathonCsv(csv);
+  assert.equal(parsed.ok, true);
+  if (!parsed.ok) return;
+  assert.equal(parsed.document.marathon.slug, "drobi");
+  assert.equal(parsed.document.days.length, 1);
+  assert.equal(parsed.document.riddles.length, 1);
+  const blob = JSON.stringify(parsed.document);
+  assert.equal(blob.includes(CSV_SAMPLE_SLUG), false);
+  assert.equal(blob.includes("Як заповнити файл"), false);
+  assert.equal(blob.includes("Приклад марафону"), false);
 });
 
 test("missing published question ids are reported on their own rows", () => {

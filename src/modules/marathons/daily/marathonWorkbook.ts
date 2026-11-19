@@ -1,11 +1,14 @@
 import ExcelJS from "exceljs";
 import { CSV_SAMPLE_SLUG, parseMarathonRecords, type CsvParseResult, type MarathonCsvColumn, type MarathonCsvDocument } from "./marathonCsv";
+import { MARATHON_IMPORT_STEPS } from "./marathonImportGuide";
 
 export const SHEET_MARATHON = "Марафон";
 export const SHEET_DAYS = "Дні";
 export const SHEET_MATERIALS = "Матеріали";
 export const SHEET_TASKS = "Завдання";
 export const SHEET_RIDDLES = "Загадки";
+export const SHEET_GUIDE = "Інструкція";
+export const SHEET_EXAMPLE = "Приклад";
 
 const MAX_BYTES = 2_000_000;
 const MAX_ROWS = 500;
@@ -62,6 +65,45 @@ const RIDDLE_COLUMNS: Array<[string, MarathonCsvColumn]> = [
   ["варіанти", "riddle_options"],
   ["правильна", "riddle_correct"],
 ];
+
+const COLUMN_NOTES: Partial<Record<MarathonCsvColumn, string>> = {
+  slug: "Адреса латиницею, цифри і дефіс. pryklad — лише приклад, імпорт його пропускає.",
+  title: "Назва, щонайменше 2 символи.",
+  subject: "Предмет. Порожнє стає math.",
+  description: "Опис до 2000 символів.",
+  status: "draft, active, finished або archived. Новий курс усе одно стане чернеткою.",
+  start_date: "Дата старту: РРРР-ММ-ДД.",
+  unlock_hour: "Година відкриття, ГГ:ХХ.",
+  reminder_hour: "Година нагадування, ГГ:ХХ.",
+  nudge_from: "Година від 0 до 23. Має бути раніше за «пропуск до».",
+  nudge_until: "Година від 0 до 23.",
+  days_count: "Ціле від 1 до 14.",
+  pass_threshold: "Ціле від 0 до 100.",
+  final_cta_text: "Текст фінальної кнопки, обовʼязковий.",
+  final_cta_url: "Посилання https або шлях від /.",
+  intro_video_url: "YouTube або Loom. Можна порожньо.",
+  invite_audience: "none, students або all.",
+  landing_riddle_count: "Скільки загадок на сторінці, від 1 до 12.",
+  public_chat_url: "Посилання чату, https або шлях. Можна порожньо.",
+  day_number: "Номер дня від 1 до кількості днів марафону.",
+  topic: "Тема дня, від 2 до 255 символів.",
+  intro_text: "Вступ дня. Можна порожньо.",
+  material_order: "Порядок матеріалу, від 1 до 50.",
+  material_type: "text, youtube або loom.",
+  material_body: "Текст або посилання матеріалу.",
+  task_order: "Порядок завдання, від 1 до 50.",
+  question_id: "Номер опублікованого завдання з банку. Порожньо, якщо своє формулювання.",
+  inline_prompt: "Своє формулювання. Порожньо, якщо вказано id завдання.",
+  inline_options: "2–4 варіанти через |.",
+  inline_correct: "Номер правильного варіанта, з 1.",
+  inline_explanation: "Пояснення. Можна порожньо.",
+  riddle_subject: "Предмет загадки.",
+  riddle_title: "Назва загадки.",
+  riddle_body: "Текст загадки.",
+  riddle_hint: "Підказка. Можна порожньо.",
+  riddle_options: "2–6 варіантів через |.",
+  riddle_correct: "Номер правильної відповіді, з 1.",
+};
 
 const SHEETS: Array<{ name: string; kind: string; columns: Array<[string, MarathonCsvColumn]> }> = [
   { name: SHEET_MARATHON, kind: "marathon", columns: MARATHON_COLUMNS },
@@ -144,6 +186,7 @@ export async function parseMarathonWorkbook(bytes: Uint8Array): Promise<CsvParse
   const records: Array<{ row: number; cells: Partial<Record<MarathonCsvColumn, string>> }> = [];
   let slug = "";
   let recordRow = 0;
+  let sawSample = false;
   for (const spec of SHEETS) {
     const sheet = workbook.getWorksheet(spec.name);
     if (!sheet) {
@@ -163,6 +206,15 @@ export async function parseMarathonWorkbook(bytes: Uint8Array): Promise<CsvParse
         cells[column] = value;
       }
       if (!any) continue;
+      if (spec.kind === "marathon" && (cells.slug ?? "").toLowerCase() === CSV_SAMPLE_SLUG) {
+        sawSample = true;
+        continue;
+      }
+      if (spec.kind !== "marathon" && slug.toLowerCase() === CSV_SAMPLE_SLUG) {
+        sawSample = true;
+        continue;
+      }
+      if (spec.kind !== "marathon" && slug === "") continue;
       count += 1;
       if (count > MAX_ROWS) {
         return { ok: false, errors: [{ row: 0, message: `Аркуш «${spec.name}» має більше ${MAX_ROWS} рядків.` }] };
@@ -174,6 +226,15 @@ export async function parseMarathonWorkbook(bytes: Uint8Array): Promise<CsvParse
       where.set(recordRow, `Аркуш «${spec.name}», рядок ${rowNumber}`);
       records.push({ row: recordRow, cells });
     }
+  }
+  if (!records.some((record) => record.cells.row_type === "marathon") && sawSample) {
+    return {
+      ok: false,
+      errors: [{
+        row: 2,
+        message: "Це зразок із шаблону. Замініть адресу pryklad і рядки зразка своїми даними.",
+      }],
+    };
   }
   const parsed = parseMarathonRecords(records);
   if (parsed.ok) return parsed;
@@ -193,12 +254,75 @@ function addSheet(
   rows: Array<Partial<Record<MarathonCsvColumn, string>>>,
 ) {
   const sheet = workbook.addWorksheet(name);
-  sheet.addRow(columns.map(([label]) => label));
-  for (const row of rows) sheet.addRow(columns.map(([, column]) => row[column] ?? ""));
-  sheet.getRow(1).font = { bold: true };
-  columns.forEach((_, index) => {
+  const header = sheet.addRow(columns.map(([label]) => label));
+  header.font = { bold: true };
+  columns.forEach(([, column], index) => {
+    const note = COLUMN_NOTES[column];
+    if (note) header.getCell(index + 1).note = note;
     sheet.getColumn(index + 1).width = 22;
   });
+  for (const row of rows) sheet.addRow(columns.map(([, column]) => row[column] ?? ""));
+}
+
+function addInstructionSheet(workbook: ExcelJS.Workbook) {
+  const sheet = workbook.addWorksheet(SHEET_GUIDE);
+  sheet.getColumn(1).width = 96;
+  const title = sheet.addRow(["Інструкція"]);
+  title.font = { bold: true };
+  for (const step of MARATHON_IMPORT_STEPS) sheet.addRow([step]);
+  sheet.addRow([]);
+  sheet.addRow(["Аркуш «Приклад» і рядки з адресою pryklad імпорт пропускає."]);
+}
+
+function addExampleSheet(workbook: ExcelJS.Workbook) {
+  const sheet = workbook.addWorksheet(SHEET_EXAMPLE);
+  sheet.getColumn(1).width = 28;
+  const title = sheet.addRow(["Цей аркуш не імпортується. Нижче зразок заповнення."]);
+  title.font = { bold: true };
+  sheet.addRow([]);
+  const blocks: Array<[string, Array<[string, MarathonCsvColumn]>, Array<Partial<Record<MarathonCsvColumn, string>>>]> = [
+    [SHEET_MARATHON, MARATHON_COLUMNS, [{
+      slug: CSV_SAMPLE_SLUG,
+      title: "Приклад марафону",
+      subject: "math",
+      description: "Короткий опис для картки",
+      status: "draft",
+      start_date: "2026-11-20",
+      unlock_hour: "09:00",
+      reminder_hour: "19:00",
+      nudge_from: "10",
+      nudge_until: "21",
+      days_count: "5",
+      pass_threshold: "60",
+      final_cta_text: "Продовжити навчання",
+      final_cta_url: "https://nmt.in.ua",
+      invite_audience: "none",
+      landing_riddle_count: "3",
+    }]],
+    [SHEET_DAYS, DAY_COLUMNS, [{ day_number: "1", topic: "Дроби", intro_text: "Короткий вступ дня" }]],
+    [SHEET_MATERIALS, MATERIAL_COLUMNS, [{
+      day_number: "1",
+      material_order: "1",
+      material_type: "text",
+      material_body: "Прочитай правило.",
+    }]],
+    [SHEET_TASKS, TASK_COLUMNS, [{ day_number: "1", task_order: "1", question_id: "123456" }]],
+    [SHEET_RIDDLES, RIDDLE_COLUMNS, [{
+      riddle_subject: "math",
+      riddle_title: "Скільки буде 2+2?",
+      riddle_body: "Обери відповідь.",
+      riddle_hint: "Порахуй ще раз.",
+      riddle_options: "3 | 4 | 5",
+      riddle_correct: "2",
+    }]],
+  ];
+  for (const [name, columns, rows] of blocks) {
+    const heading = sheet.addRow([name]);
+    heading.font = { bold: true };
+    sheet.addRow(columns.map(([label]) => label));
+    for (const row of rows) sheet.addRow(columns.map(([, column]) => row[column] ?? ""));
+    sheet.addRow([]);
+  }
 }
 
 async function workbookBytes(workbook: ExcelJS.Workbook): Promise<Uint8Array> {
@@ -209,6 +333,7 @@ async function workbookBytes(workbook: ExcelJS.Workbook): Promise<Uint8Array> {
 export async function documentToWorkbook(document: MarathonCsvDocument): Promise<Uint8Array> {
   const meta = document.marathon;
   const workbook = new ExcelJS.Workbook();
+  addInstructionSheet(workbook);
   addSheet(workbook, SHEET_MARATHON, MARATHON_COLUMNS, [{
     slug: meta.slug,
     title: meta.title,
@@ -257,11 +382,13 @@ export async function documentToWorkbook(document: MarathonCsvDocument): Promise
     riddle_options: riddle.options.join(" | "),
     riddle_correct: String(riddle.correct),
   })));
+  addExampleSheet(workbook);
   return workbookBytes(workbook);
 }
 
 export async function marathonWorkbookTemplate(): Promise<Uint8Array> {
   const workbook = new ExcelJS.Workbook();
+  addInstructionSheet(workbook);
   addSheet(workbook, SHEET_MARATHON, MARATHON_COLUMNS, [{
     slug: CSV_SAMPLE_SLUG,
     title: "Приклад марафону",
@@ -304,5 +431,6 @@ export async function marathonWorkbookTemplate(): Promise<Uint8Array> {
     riddle_options: "3 | 4 | 5",
     riddle_correct: "2",
   }]);
+  addExampleSheet(workbook);
   return workbookBytes(workbook);
 }

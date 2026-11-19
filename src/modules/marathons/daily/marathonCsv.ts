@@ -2,6 +2,7 @@ import { parseUnlockHour } from "./calendar";
 import { isDailyStatus, isSlug } from "./forms";
 import { isInviteAudience, type InviteAudience } from "./invite";
 import { loomEmbedSrc, youtubeEmbedSrc } from "./richText";
+import { MARATHON_IMPORT_STEPS } from "./marathonImportGuide";
 import { normalizeCtaUrl, toCsv } from "./utm";
 
 /** Sample rows use this slug so uploading the template unchanged does nothing. */
@@ -138,9 +139,52 @@ function unescapeFormula(value: string): string {
   return text;
 }
 
+/** Drop whole lines that start with `#`. Quoted line breaks inside a cell stay. */
+export function stripHashComments(text: string): string {
+  const source = text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  let quoted = false;
+  let lineStart = true;
+  let skipping = false;
+  let out = "";
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index] ?? "";
+    if (quoted) {
+      out += char;
+      if (char === '"') {
+        if (source[index + 1] === '"') {
+          out += source[index + 1];
+          index += 1;
+        } else {
+          quoted = false;
+        }
+      }
+      continue;
+    }
+    if (lineStart) {
+      if (char === " " || char === "\t") continue;
+      if (char === "#") {
+        skipping = true;
+        lineStart = false;
+        continue;
+      }
+      lineStart = false;
+    }
+    if (char === "\n") {
+      if (!skipping) out += char;
+      skipping = false;
+      lineStart = true;
+      continue;
+    }
+    if (skipping) continue;
+    if (char === '"') quoted = true;
+    out += char;
+  }
+  return out;
+}
+
 /** RFC 4180-ish. The only delimiter is `;`. A comma inside a cell (0,5) is data. */
 export function parseCsvRecords(text: string): { ok: true; rows: string[][] } | { ok: false; error: string } {
-  const source = text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const source = stripHashComments(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   if (!source.trim()) return { ok: false, error: "Файл порожній." };
   const rows: string[][] = [];
   let row: string[] = [];
@@ -240,7 +284,20 @@ function readRows(text: string): { ok: true; rows: RawRow[] } | { ok: false; err
     });
     rows.push({ row: rowNumber, cells });
   }
-  return { ok: true, rows };
+  const sampleRows = rows.filter((row) => row.cells.slug.toLowerCase() === CSV_SAMPLE_SLUG);
+  const dataRows = rows.filter((row) => row.cells.slug.toLowerCase() !== CSV_SAMPLE_SLUG);
+  if (!dataRows.some((row) => row.cells.row_type === "marathon")) {
+    if (sampleRows.length > 0) {
+      return {
+        ok: false,
+        errors: [{
+          row: sampleRows[0]?.row ?? 2,
+          message: "Це зразок із шаблону. Замініть адресу pryklad і рядки зразка своїми даними.",
+        }],
+      };
+    }
+  }
+  return { ok: true, rows: dataRows };
 }
 
 function splitList(value: string): string[] {
@@ -699,13 +756,20 @@ export function documentToCsv(document: MarathonCsvDocument): string {
       riddle_correct: String(riddle.correct),
     }));
   }
-  return toCsv(rows, ";");
+  rows.push(...sampleCsvRows());
+  return withImportComments(toCsv(rows, ";"));
 }
 
-/** Header plus one example of each row type. The sample slug is rejected on import. */
-export function marathonCsvTemplate(): string {
-  return toCsv([
-    [...MARATHON_CSV_COLUMNS],
+function withImportComments(csv: string): string {
+  const notes = [
+    ...MARATHON_IMPORT_STEPS.map((step) => `# ${step}`),
+    "# Приклад. Рядки з адресою pryklad не імпортуються.",
+  ].join("\r\n");
+  return `\uFEFF${notes}\r\n${csv.replace(/^\uFEFF/, "")}`;
+}
+
+function sampleCsvRows(): string[][] {
+  return [
     columnRow({
       row_type: "marathon",
       slug: CSV_SAMPLE_SLUG,
@@ -752,5 +816,10 @@ export function marathonCsvTemplate(): string {
       riddle_options: "3 | 4 | 5",
       riddle_correct: "2",
     }),
-  ], ";");
+  ];
+}
+
+/** Header plus one example of each row type. The sample slug is skipped on import. */
+export function marathonCsvTemplate(): string {
+  return withImportComments(toCsv([[...MARATHON_CSV_COLUMNS], ...sampleCsvRows()], ";"));
 }
