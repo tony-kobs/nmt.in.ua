@@ -118,6 +118,7 @@ export function MarathonCsvPanel({ marathonId }: { marathonId?: number }) {
         />
       </div>
       {fileName ? <p className={css.meta}>{fileName}</p> : null}
+      <p className={css.meta}>{t("importHint")}</p>
       <div className={css.actions}>
         <button
           type="button"

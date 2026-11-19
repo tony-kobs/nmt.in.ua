@@ -1,3 +1,4 @@
+import { MARATHON_IMPORT_STEPS } from "./marathonImportGuide";
 import {
   CSV_SAMPLE_SLUG,
   parseMarathonRecords,
@@ -20,12 +21,40 @@ function list(value: unknown): string {
   return cellText(value);
 }
 
-/** Nested file. `format` and `version` let a later reader reject unknown shapes. */
+function fileGuide() {
+  return {
+    _instructions: [...MARATHON_IMPORT_STEPS],
+    _example: {
+      note: "Цей приклад не імпортується. Заповніть marathon, days і riddles своїми даними. Адресу pryklad замініть.",
+      marathon: {
+        slug: CSV_SAMPLE_SLUG,
+        title: "Приклад марафону",
+        subject: "math",
+        description: "Короткий опис для картки",
+        status: "draft",
+        startDate: "2026-11-20",
+        daysCount: 5,
+      },
+      days: [{
+        dayNumber: 1,
+        topic: "Дроби",
+        materials: [{ order: 1, type: "text", body: "Прочитай правило." }],
+        tasks: [{ order: 1, questionId: 123456 }],
+      }],
+      riddles: [{
+        title: "Скільки буде 2+2?",
+        options: ["3", "4", "5"],
+        correct: 2,
+      }],
+    },
+  };
+}
 export function documentToJson(document: MarathonCsvDocument): string {
   const meta = document.marathon;
   return `${JSON.stringify({
     format: MARATHON_JSON_FORMAT,
     version: MARATHON_JSON_VERSION,
+    ...fileGuide(),
     marathon: {
       slug: meta.slug,
       title: meta.title,
@@ -82,6 +111,7 @@ export function marathonJsonTemplate(): string {
   return `${JSON.stringify({
     format: MARATHON_JSON_FORMAT,
     version: MARATHON_JSON_VERSION,
+    ...fileGuide(),
     marathon: {
       slug: CSV_SAMPLE_SLUG,
       title: "Приклад марафону",
@@ -134,6 +164,9 @@ export function parseMarathonJson(text: string): CsvParseResult {
     return { ok: false, errors: [{ row: 0, message: "JSON має бути об’єктом." }] };
   }
   const root = parsed as Record<string, unknown>;
+  for (const key of Object.keys(root)) {
+    if (key.startsWith("_")) delete root[key];
+  }
   if (root.format !== MARATHON_JSON_FORMAT) {
     return { ok: false, errors: [{ row: 0, message: "У файлі має бути format: nmt-marathon." }] };
   }

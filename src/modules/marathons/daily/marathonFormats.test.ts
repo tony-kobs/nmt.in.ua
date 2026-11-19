@@ -94,6 +94,11 @@ test("json round-trips the nested marathon and rejects an unknown version", () =
   assert.equal(parsed.document.days[0]?.materials[0]?.body, "Прочитай правило.");
   assert.equal(parsed.document.days[0]?.tasks[0]?.questionId, 41);
   assert.equal(parsed.document.riddles[0]?.correct, 2);
+  const raw = JSON.parse(documentToJson(document())) as { _instructions?: string[]; _example?: { marathon?: { slug?: string } } };
+  assert.ok((raw._instructions ?? []).length >= 5);
+  assert.equal(raw._example?.marathon?.slug, "pryklad");
+  assert.equal(JSON.stringify(parsed.document).includes("pryklad"), false);
+  assert.equal(JSON.stringify(parsed.document).includes("Як заповнити файл"), false);
 
   const newer = documentToJson(document()).replace(`"version": ${MARATHON_JSON_VERSION}`, '"version": 2');
   const rejected = parseMarathonJson(newer);
@@ -116,14 +121,12 @@ test("json rejects a task that has both a bank id and a prompt", () => {
   assert.match(parsed.errors.map((item) => item.message).join(" "), /не обидва/);
 });
 
-test("xlsx template has the five sheets and the sample slug is rejected", async () => {
+test("xlsx template has the guide, the example sheet and the sample slug is rejected", async () => {
   const bytes = await marathonWorkbookTemplate();
   const book = new ExcelJS.Workbook();
   await book.xlsx.load(Buffer.from(bytes) as unknown as ExcelJS.Buffer);
-  assert.deepEqual(
-    book.worksheets.map((sheet) => sheet.name),
-    ["Марафон", "Дні", "Матеріали", "Завдання", "Загадки"],
-  );
+  assert.equal(book.worksheets[0]?.name, "Інструкція");
+  assert.ok(book.getWorksheet("Приклад"));
   assert.equal(book.getWorksheet(SHEET_MARATHON)?.getRow(2).getCell(1).value, "pryklad");
   const parsed = await parseMarathonWorkbook(bytes);
   assert.equal(parsed.ok, false);
@@ -138,6 +141,14 @@ test("xlsx round-trips a decimal comma and names the sheet when a task is both b
   assert.equal(parsed.document.marathon.description, "поріг 0,5");
   assert.equal(parsed.document.days[0]?.tasks[0]?.questionId, 41);
   assert.equal(parsed.document.riddles[0]?.options[1], "4");
+  const again = await documentToWorkbook(document());
+  const bookCheck = new ExcelJS.Workbook();
+  await bookCheck.xlsx.load(Buffer.from(again) as unknown as ExcelJS.Buffer);
+  assert.equal(bookCheck.worksheets[0]?.name, "Інструкція");
+  assert.equal(bookCheck.getWorksheet("Приклад")?.getRow(1).getCell(1).value?.toString().includes("не імпортується"), true);
+  const written = JSON.stringify(parsed.document);
+  assert.equal(written.includes("pryklad"), false);
+  assert.equal(written.includes("Як заповнити файл"), false);
 
   const book = new ExcelJS.Workbook();
   await book.xlsx.load(Buffer.from(await documentToWorkbook(document())) as unknown as ExcelJS.Buffer);
