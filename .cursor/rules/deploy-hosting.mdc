@@ -18,6 +18,18 @@ alwaysApply: true
 7. Після `mv` панель перезапускає сайт: `POST https://adm.tools/action/hosting/account/nodejs/reload/` з числовим `host_id`. Секрети GitHub Actions: `ADM_TOOLS_TOKEN`, `ADM_TOOLS_HOST_ID`. Панель сама виконує `npm run start` (`node server.js`) і кладе адресу в `HOST` / `PORT`.
 8. Healthcheck: `GET http://127.1.10.37:3000/health` → 200 і тіло містить `BUILD_ID` цього релізу. Інакше rollback і ще один reload. Свій `nohup` не піднімати.
 
+## Версія і Discord
+
+Версія релізу — тег `vX.Y.Z`, не `package.json`. Після push у `main` workflow `Release` чекає, поки `GET https://nmt.in.ua/api/version` віддасть SHA цього коміту (кожні 15 с, до 20 хв), тоді `gh release create --generate-notes` і повідомлення в Discord. `deployment_status` від Vercel не використовується: прод зараз піднімає хостинг з того самого push, а статус Vercel може прийти раніше, ніж процес відповість.
+
+На Vercel SHA береться з `VERCEL_GIT_COMMIT_SHA`. Збірка (`prebuild`) ще пише `src/generated/deploy-revision.json`, щоб хостинг без змінних Vercel віддав той самий коміт. Файл у git не комітиться.
+
+Реліз, створений `GITHUB_TOKEN`, не запускає інші workflow. Тому Discord шле сам `Release`. Окремий `Release Discord` спрацьовує на ручний `release: published` і на `workflow_dispatch` з полем `tag`.
+
+Секрет репозиторію `DISCORD_WEBHOOK` — URL вебхука Discord (https). Без нього крок пише попередження і не падає. URL у логи не друкується. `DISCORD_DRY_RUN=1` для `scripts/discord-release.sh` друкує JSON і не відправляє.
+
+Мітки PR `release:minor` і `release:major` керують стрибком версії. Інакше minor, якщо в діапазоні є коміт `feat:` або `feat(scope):`, інакше patch. Коміт, на якому вже є тег, пропускається.
+
 ## Залізно не робити
 
 - `npm run build` на хостингу (старий glibc).
