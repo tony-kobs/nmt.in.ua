@@ -138,7 +138,7 @@ function unescapeFormula(value: string): string {
   return text;
 }
 
-/** RFC 4180-ish. Record numbers start at 1 for the header. */
+/** RFC 4180-ish. The only delimiter is `;`. A comma inside a cell (0,5) is data. */
 export function parseCsvRecords(text: string): { ok: true; rows: string[][] } | { ok: false; error: string } {
   const source = text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   if (!source.trim()) return { ok: false, error: "Файл порожній." };
@@ -166,7 +166,7 @@ export function parseCsvRecords(text: string): { ok: true; rows: string[][] } | 
       quoted = true;
       continue;
     }
-    if (char === ",") {
+    if (char === ";") {
       row.push(cell);
       cell = "";
       continue;
@@ -199,6 +199,9 @@ function readRows(text: string): { ok: true; rows: RawRow[] } | { ok: false; err
   }
   const parsed = parseCsvRecords(text);
   if (!parsed.ok) return { ok: false, errors: [{ row: 0, message: parsed.error }] };
+  if ((parsed.rows[0]?.length ?? 0) <= 1) {
+    return { ok: false, errors: [{ row: 1, message: "Роздільник має бути ;" }] };
+  }
   if (parsed.rows.length < 2) {
     return { ok: false, errors: [{ row: 1, message: "Потрібен рядок заголовка і хоча б один рядок даних." }] };
   }
@@ -289,11 +292,30 @@ const RIDDLE_FIELDS = [
   "riddle_correct",
 ] as const;
 
+function fullCells(
+  cells: Partial<Record<MarathonCsvColumn, string>>,
+): Record<MarathonCsvColumn, string> {
+  const filled = {} as Record<MarathonCsvColumn, string>;
+  for (const column of MARATHON_CSV_COLUMNS) filled[column] = (cells[column] ?? "").trim();
+  return filled;
+}
+
+/** Same checks as CSV, for rows already split by JSON or a spreadsheet. */
+export function parseMarathonRecords(
+  records: Array<{ row: number; cells: Partial<Record<MarathonCsvColumn, string>> }>,
+): CsvParseResult {
+  return parseRawRows(records.map((record) => ({ row: record.row, cells: fullCells(record.cells) })));
+}
+
 export function parseMarathonCsv(text: string): CsvParseResult {
   const read = readRows(text);
   if (!read.ok) return read;
+  return parseRawRows(read.rows);
+}
+
+function parseRawRows(rows: RawRow[]): CsvParseResult {
   const errors: CsvIssue[] = [];
-  const marathonRows = read.rows.filter((row) => row.cells.row_type === "marathon");
+  const marathonRows = rows.filter((row) => row.cells.row_type === "marathon");
   if (marathonRows.length !== 1) {
     issue(
       errors,
@@ -367,7 +389,7 @@ export function parseMarathonCsv(text: string): CsvParseResult {
   const days = new Map<number, MarathonCsvDay>();
   const riddles: MarathonCsvRiddle[] = [];
 
-  for (const record of read.rows) {
+  for (const record of rows) {
     if (record === source) continue;
     const kind = record.cells.row_type;
     if (record.cells.slug.toLowerCase() !== slug) {
@@ -677,7 +699,7 @@ export function documentToCsv(document: MarathonCsvDocument): string {
       riddle_correct: String(riddle.correct),
     }));
   }
-  return toCsv(rows);
+  return toCsv(rows, ";");
 }
 
 /** Header plus one example of each row type. The sample slug is rejected on import. */
@@ -730,5 +752,5 @@ export function marathonCsvTemplate(): string {
       riddle_options: "3 | 4 | 5",
       riddle_correct: "2",
     }),
-  ]);
+  ], ";");
 }

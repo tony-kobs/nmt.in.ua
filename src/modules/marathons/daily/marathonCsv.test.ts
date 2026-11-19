@@ -77,10 +77,12 @@ function document(): MarathonCsvDocument {
 }
 
 test("the template has the header and an example row, and import rejects the sample slug", () => {
-  const csv = marathonCsvTemplate().replace(/^\uFEFF/, "");
+  const raw = marathonCsvTemplate();
+  assert.equal(raw.charCodeAt(0), 0xfeff);
+  const csv = raw.replace(/^\uFEFF/, "");
   const [header, example] = csv.split(/\r?\n/);
-  assert.equal(header, MARATHON_CSV_COLUMNS.join(","));
-  assert.match(example ?? "", new RegExp(`^marathon,${CSV_SAMPLE_SLUG},`));
+  assert.equal(header, MARATHON_CSV_COLUMNS.join(";"));
+  assert.match(example ?? "", new RegExp(`^marathon;${CSV_SAMPLE_SLUG};`));
   const parsed = parseMarathonCsv(marathonCsvTemplate());
   assert.equal(parsed.ok, false);
   if (!parsed.ok) {
@@ -89,15 +91,18 @@ test("the template has the header and an example row, and import rejects the sam
   }
 });
 
-test("a quoted comma and a formula prefix round-trip through the parser", () => {
+test("a semicolon, a decimal comma and a formula prefix round-trip through the parser", () => {
   const source = document();
-  source.marathon.title = "=Дроби, частина 1";
-  source.days[0]!.introText = "Рядок\nдругий";
-  const parsed = parseMarathonCsv(documentToCsv(source));
+  source.marathon.title = "=Дроби; частина 1";
+  source.days[0]!.introText = "Поріг 0,5\nдругий";
+  const csv = documentToCsv(source);
+  assert.equal(csv.charCodeAt(0), 0xfeff);
+  assert.match(csv, /0,5/);
+  const parsed = parseMarathonCsv(csv);
   assert.equal(parsed.ok, true);
   if (!parsed.ok) return;
-  assert.equal(parsed.document.marathon.title, "=Дроби, частина 1");
-  assert.equal(parsed.document.days[0]?.introText, "Рядок\nдругий");
+  assert.equal(parsed.document.marathon.title, "=Дроби; частина 1");
+  assert.equal(parsed.document.days[0]?.introText, "Поріг 0,5\nдругий");
   assert.deepEqual(
     parsed.document.days[0]?.tasks.map((task) => task.questionId ?? task.prompt),
     [41, "Скільки буде 1/2+1/2?"],
@@ -121,8 +126,8 @@ test("a task cannot be both a bank id and a handwritten prompt", () => {
   const source = document();
   const csv = documentToCsv(source);
   const mixed = csv.replace(
-    /,1,41,,,,,/ ,
-    ",1,41,Своє формулювання,1 | 2,1,,",
+    /;1;41;;;;;/,
+    ";1;41;Своє формулювання;1 | 2;1;;",
   );
   const parsed = parseMarathonCsv(mixed);
   assert.equal(parsed.ok, false);
@@ -132,9 +137,9 @@ test("a task cannot be both a bank id and a handwritten prompt", () => {
 
 test("a material for a missing day and a duplicate day are separate row errors", () => {
   const cell = (values: Partial<Record<(typeof MARATHON_CSV_COLUMNS)[number], string>>) =>
-    MARATHON_CSV_COLUMNS.map((column) => values[column] ?? "").join(",");
+    MARATHON_CSV_COLUMNS.map((column) => values[column] ?? "").join(";");
   const csv = [
-    MARATHON_CSV_COLUMNS.join(","),
+    MARATHON_CSV_COLUMNS.join(";"),
     cell({
       row_type: "marathon",
       slug: "drobi",
@@ -179,6 +184,21 @@ test("a riddle with the correct index outside the options is rejected", () => {
   assert.equal(parsed.ok, false);
   if (parsed.ok) return;
   assert.match(parsed.errors.map((item) => item.message).join(" "), /загадки/);
+});
+
+test("a comma-separated file is rejected and a decimal comma stays in the cell", () => {
+  const comma = marathonCsvTemplate().replace(/^\uFEFF/, "").replaceAll(";", ",");
+  const parsed = parseMarathonCsv(comma);
+  assert.equal(parsed.ok, false);
+  if (parsed.ok) return;
+  assert.equal(parsed.errors[0]?.message, "Роздільник має бути ;");
+
+  const source = document();
+  source.marathon.description = "поріг 0,5 і ще 1,25";
+  const again = parseMarathonCsv(documentToCsv(source));
+  assert.equal(again.ok, true);
+  if (!again.ok) return;
+  assert.equal(again.document.marathon.description, "поріг 0,5 і ще 1,25");
 });
 
 test("missing published question ids are reported on their own rows", () => {

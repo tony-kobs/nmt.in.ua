@@ -11,6 +11,7 @@ import {
   parseMarathonCsv,
   questionIdsOf,
   type CsvIssue,
+  type CsvParseResult,
   type MarathonCsvDocument,
 } from "./marathonCsv";
 import { deleteOrphanTaggedRiddles } from "./riddleStore";
@@ -58,8 +59,10 @@ async function answerCount(connection: SqlConnection, marathonId: number): Promi
   return Number(rows[0]?.n ?? 0);
 }
 
-export async function checkMarathonCsv(text: string, getConnection?: Conn): Promise<CsvCheck> {
-  const parsed = parseMarathonCsv(text);
+export async function checkMarathonImport(
+  parsed: CsvParseResult,
+  getConnection?: Conn,
+): Promise<CsvCheck> {
   if (!parsed.ok) return parsed;
   return withConn(async (connection) => {
     const document = parsed.document;
@@ -182,11 +185,18 @@ async function writeStructure(
   }
 }
 
-export async function applyMarathonCsv(
+export async function checkMarathonCsv(
   text: string,
   getConnection?: Conn,
+): Promise<CsvCheck> {
+  return checkMarathonImport(parseMarathonCsv(text), getConnection);
+}
+
+export async function applyMarathonImport(
+  parsed: CsvParseResult,
+  getConnection?: Conn,
 ): Promise<{ ok: true; id: number } | { ok: false; errors: CsvIssue[] }> {
-  const checked = await checkMarathonCsv(text, getConnection);
+  const checked = await checkMarathonImport(parsed, getConnection);
   if (!checked.ok) return checked;
   const { document } = checked;
   const meta = document.marathon;
@@ -318,8 +328,17 @@ function parseStoredOptions(raw: string | null): string[] {
   }
 }
 
-export async function exportMarathonCsv(marathonId: number, getConnection?: Conn): Promise<string | null> {
-  const { documentToCsv } = await import("./marathonCsv");
+export async function applyMarathonCsv(
+  text: string,
+  getConnection?: Conn,
+): Promise<{ ok: true; id: number } | { ok: false; errors: CsvIssue[] }> {
+  return applyMarathonImport(parseMarathonCsv(text), getConnection);
+}
+
+export async function loadMarathonDocument(
+  marathonId: number,
+  getConnection?: Conn,
+): Promise<MarathonCsvDocument | null> {
   return withConn(async (connection) => {
     const rows = await connection.query<Parameters<typeof mapMarathon>[0]>(
       `SELECT ${MARATHON_SELECT} FROM marathons WHERE id = ? AND kind = 'daily' LIMIT 1`,
@@ -474,6 +493,12 @@ export async function exportMarathonCsv(marathonId: number, getConnection?: Conn
         }];
       }),
     };
-    return documentToCsv(document);
+    return document;
   }, getConnection);
+}
+
+export async function exportMarathonCsv(marathonId: number, getConnection?: Conn): Promise<string | null> {
+  const { documentToCsv } = await import("./marathonCsv");
+  const document = await loadMarathonDocument(marathonId, getConnection);
+  return document ? documentToCsv(document) : null;
 }
