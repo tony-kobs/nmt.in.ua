@@ -12,7 +12,7 @@
 - Схвалено: ні
 - Автор: sasha-dubrovina28
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/356
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-19 — Марафон: JSON, Excel і CSV через крапку з комою (#361)
 
@@ -23,7 +23,7 @@
 - Схвалено: ні
 - Автор: groteskzp
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/361
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-19 — Fixed the issue where the slogan was cut off in AppHeader (#355)
 
@@ -34,7 +34,7 @@
 - Схвалено: так
 - Автор: Yulia2123
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/355
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-19 — Перший реліз v1.0.0 без обходу історії (#360)
 
@@ -45,7 +45,7 @@
 - Схвалено: ні
 - Автор: groteskzp
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/360
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-19 — Реліз vX.Y.Z і сповіщення в Discord (#358)
 
@@ -986,6 +986,13 @@
 ## Новини для сайту
 
 <!-- changelog:news -->
+### 2026-11-19 — [реліз #362](https://github.com/tony-kobs/nmt.in.ua/pull/362)
+
+- [feat: integrate multiplication into cabinet](https://github.com/tony-kobs/nmt.in.ua/pull/356) — Новий розділ "Тренувальні вправи", де зберігаються "Додавання дробів", "Інтерактивні формати" і нова вправа "Множення".
+- [Марафон: JSON, Excel і CSV через крапку з комою](https://github.com/tony-kobs/nmt.in.ua/pull/361) — На сторінках учня нічого не змінюється. Це лише файли в адмінці марафону.
+- [Fixed the issue where the slogan was cut off in AppHeader](https://github.com/tony-kobs/nmt.in.ua/pull/355) — Виправила відображення слогана в шапці кабінету, тепер "Прокачай свої знання" видно повністю. Прибрала зайвий напис із номером серії над блоком "Де проходити" на сторінці марафону.
+- [Перший реліз v1.0.0 без обходу історії](https://github.com/tony-kobs/nmt.in.ua/pull/360) — Поведінка сайту та сама. Номер у футері з’явиться після наступного деплою, коли збірка вже побачить тег.
+
 ### 2026-11-19 — [реліз #359](https://github.com/tony-kobs/nmt.in.ua/pull/359)
 
 - [Реліз vX.Y.Z і сповіщення в Discord](https://github.com/tony-kobs/nmt.in.ua/pull/358) — У підвалі сайту може з’явитися дрібний номер релізу `vX.Y.Z`, коли збірка його знає. Інших змін на сторінках немає.
