@@ -35,9 +35,11 @@ export {
 } from "./store/marathons";
 
 export {
+  dayAnswerCount,
   deleteDay,
   insertDay,
   listContentDayNumbers,
+  listDaySubmissionCounts,
   listDayTaskCounts,
   listDays,
   updateDay,
