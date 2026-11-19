@@ -31,6 +31,7 @@ export const CORE_CLIENT_NAMESPACES = [
   "nmtTrainer",
   "Feedback",
   "FractionPractice",
+  "PracticeMultiplication",
   "Stage2",
   "TeacherProfile",
   "TeacherPublicCard",

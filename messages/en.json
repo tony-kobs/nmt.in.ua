@@ -138,7 +138,11 @@
       "support": "Messages",
       "parent": "Children",
       "account": "Account",
-      "promo": "Promo codes"
+      "promo": "Promo codes",
+      "practice": "Practice exercises"
+     },
+    "groups": {
+      "tests": "Tests"
     }
   },
   "RecentResults": {
@@ -1238,7 +1242,7 @@
     "participantsCsv": "Participants CSV",
     "csvTitle": "Marathon file",
     "csvLead": "Export and import the structure: meta, days, materials, chosen tasks and this marathon's riddles. Participants and scores are not in this file.",
-    "csvHelp": "Columns: row_type (marathon, day, material, task, riddle), slug, title, subject, description, status, start_date, unlock_hour, reminder_hour, nudge_from, nudge_until, days_count, pass_threshold, final_cta_text, final_cta_url, intro_video_url, invite_audience, landing_riddle_count, public_chat_url, day_number, topic, intro_text, material_order, material_type, material_body, task_order, question_id, inline_prompt, inline_options, inline_correct, inline_explanation, riddle_scope, riddle_subject, riddle_title, riddle_body, riddle_hint, riddle_options, riddle_correct. question_id is a published bank task, task_order is its place in the day. Separate your own options and riddle options with |. riddle_scope must be marathon. Photos are not in the file. Rows with slug pryklad are the sample and import stops on them. A new course is created as a draft. If the course already has answers, the file is not written.",
+    "csvHelp": "Columns: row_type (marathon, day, material, task, riddle), slug, title, subject, description, status, start_date, unlock_hour, reminder_hour, nudge_from, nudge_until, days_count, pass_threshold, final_cta_text, final_cta_url, intro_video_url, invite_audience, landing_riddle_count, public_chat_url, day_number, topic, intro_text, material_order, material_type, material_body, task_order, question_id, inline_prompt, inline_options, inline_correct, inline_explanation, riddle_scope, riddle_subject, riddle_title, riddle_body, riddle_hint, riddle_options, riddle_correct. question_id is a published bank task, task_order is its place in the day. Separate your own options and riddle options with |. riddle_scope must be marathon. Photos are not in the file. Rows with slug pryklad are the sample and import stops on them. A new course is created as a draft. If the course already has answers, the file is not written. Columns are separated by semicolons, and the file is UTF-8 with a leading mark so Excel shows separate columns and Cyrillic. A comma inside a value, such as 0,5, stays in the cell. A comma-separated file is rejected.",
     "csvTemplate": "CSV template",
     "csvExport": "Export structure",
     "csvFile": "CSV file",
@@ -1249,6 +1253,22 @@
     "csvCreate": "This will create “{title}” ({slug}).",
     "csvUpdate": "This will update “{title}” ({slug}).",
     "csvCounts": "Days: {days}. Tasks: {tasks}. Materials: {materials}. Riddles: {riddles}.",
+    "jsonTitle": "Marathon JSON",
+    "jsonLead": "The same marathon as a nested file: marathon, days with materials and tasks, riddles.",
+    "jsonHelp": "Download the template and fill marathon, days (each day has materials and tasks) and riddles. The file needs format “nmt-marathon” and version 1. Then check and apply. Replace the sample slug pryklad. A new course is created as a draft. If the course already has answers, the file is not written.",
+    "jsonTemplate": "JSON template",
+    "jsonExport": "Export JSON",
+    "jsonFile": "JSON file",
+    "jsonNeedFile": "Choose a JSON file first.",
+    "jsonTooBig": "The file is too large. Limit: 500 KB.",
+    "xlsxTitle": "Excel workbook",
+    "xlsxLead": "Five sheets: Marathon, Days, Materials, Tasks, Riddles. Each sheet has only its own columns.",
+    "xlsxHelp": "Download the .xlsx template, fill the sheets and choose the file here. Then check and apply. Each sheet has its own Ukrainian headers. Replace the sample slug pryklad. A new course is created as a draft. If the course already has answers, the file is not written.",
+    "xlsxTemplate": "Excel template",
+    "xlsxExport": "Export Excel",
+    "xlsxFile": ".xlsx file",
+    "xlsxNeedFile": "Choose an .xlsx file first.",
+    "xlsxTooBig": "The file is too large. Limit: 2 MB.",
     "streakLabel": "Streak",
     "saved": "Saved",
     "saving": "Saving…",
@@ -1806,8 +1826,7 @@
       "faq": "FAQ",
       "login": "Log in",
       "register": "Create account",
-      "cabinet": "Workspace",
-      "internMy": "Oleksandra's page"
+      "cabinet": "Workspace"
     },
     "hero": {
       "titleStart": "Prepare for the NMT in maths",
@@ -3196,10 +3215,81 @@
     "taskTitle": "Task",
     "taskImageAlt": "Picture for the task"
   },
-  "InternMyPage": {
-    "name": "Oleksandra Dubrovina",
-    "task1": "Multiplication calculator: implemented multiplication of two numbers",
-    "codeLink": "Repository",
-    "liveLink": "Live demo"
+  "PracticeMultiplication": {
+    "kicker": "Practice exercises",
+    "title": "Multiplication table",
+    "lead": "Pick a number and practice: 10 examples against the clock.",
+    "metaTitle": "Multiplication table — practice exercises",
+    "metaDescription": "Multiplication table trainer for 2 to 9: 10 examples against the clock with a score.",
+    "chooseTable": "Choose a table",
+    "range": "from 2 to 9",
+    "tableLink": "Multiplication table of {n}",
+    "trainerTitle": "Multiplication table of {n}",
+    "time": "Time: {time}",
+    "taskCounter": "Task {current} / {total}",
+    "tabsLabel": "Exercise sections",
+    "tabExercises": "Exercises",
+    "tabInstruction": "Instructions",
+    "taskNumber": "Task #{n}",
+    "tableTag": "Table of {n}",
+    "intro": "Do you already know the multiplication table of {n}? Solving examples is the best way to test yourself and lock in what you have learned.",
+    "calculate": "Calculate:",
+    "done": "Done!",
+    "exercisesProgress": "Exercises: {current} of {total}",
+    "scoreNow": "Score: {score, plural, one {# point} other {# points}}",
+    "lastCorrect": "Correct: {a} · {b} = {answer}",
+    "lastWrong": "Wrong: {a} · {b} = {answer}",
+    "start": "Start",
+    "next": "Next example",
+    "finish": "Finish",
+    "retry": "Try again",
+    "backToTables": "Back to table selection",
+    "backspace": "Delete",
+    "finalScore": "Your result: {score} out of {max} points",
+    "feedback": {
+      "excellent": "Excellent!",
+      "good": "Good!",
+      "ok": "Not bad, but you can do better.",
+      "tryAgain": "You need more practice."
+    },
+    "answerCorrect": "{n}) Correct (+{points})",
+    "answerWrong": "{n}) Wrong",
+    "answerLine": "{a} · {b} = {user}",
+    "answerLineWrong": "{a} · {b} = {user} (correct: {correct})",
+    "instruction": {
+      "title": "Instructions for the multiplication table of {n}",
+      "tag": "Instructions",
+      "step1": "The task consists of {count} examples.",
+      "step2": "To start, press <btn>Start</btn>.",
+      "step3": "To enter an answer, use the on-screen keypad",
+      "step3b": "or the number keys on your computer keyboard.",
+      "step4": "Enter your answer and press <btn>Next example</btn> (or the Enter key).",
+      "warning": "<b>Attention!</b> Once you move on to the next task, you cannot go back and change your previous answer.",
+      "step5": "The next example will appear. Next to the keypad you will see whether the previous one was correct, and your points.",
+      "step6": "For a correct answer you get:",
+      "points10": "10 points — answered in under 10 seconds (green indicator)",
+      "points9": "9 points — 10 to 15 seconds (yellow indicator)",
+      "points8": "8 points — 15 to 20 seconds (orange indicator)",
+      "points7": "7 points — more than 20 seconds (red indicator)",
+      "step7": "After {count} tasks you will see your result.",
+      "step8": "Want to improve your result? Press <btn>Try again</btn>."
+    }
+  },
+  "PracticeCatalog": {
+    "kicker": "Practice",
+    "title": "Practice exercises",
+    "lead": "Choose an exercise, practise and test your knowledge.",
+    "fractions": {
+      "title": "Adding fractions",
+      "description": "Practise adding fractions, progress through difficulty levels and check your answers."
+    },
+    "interactive": {
+      "title": "Interactive formats",
+      "description": "Complete interactive tasks and test your knowledge."
+    },
+    "multiplication": {
+      "title": "Multiplication",
+      "description": "Multiplication tables against the clock: 10 questions and a score."
+    }
   }
 }

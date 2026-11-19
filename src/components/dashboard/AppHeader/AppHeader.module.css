@@ -35,9 +35,7 @@
   background: color-mix(in srgb, var(--sheet) 78%, transparent);
   color: var(--ink);
   cursor: pointer;
-  transition:
-    transform var(--t) var(--ease),
-    background var(--t) var(--ease),
+  transition: transform var(--t) var(--ease), background var(--t) var(--ease),
     border-color var(--t) var(--ease);
 }
 
@@ -66,9 +64,7 @@
   height: 2px;
   border-radius: var(--radius-pill);
   background: currentColor;
-  transition:
-    transform var(--t) var(--ease),
-    width var(--t) var(--ease),
+  transition: transform var(--t) var(--ease), width var(--t) var(--ease),
     opacity var(--t) var(--ease);
 }
 
@@ -99,7 +95,7 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .logo {
@@ -112,6 +108,7 @@
 .brandCopy {
   display: grid;
   min-width: 0;
+  overflow: visible;
 }
 
 .brandText {
@@ -131,6 +128,9 @@
   font-size: var(--fs-kicker);
   font-weight: 600;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: visible;
+  padding-right: 2px;
 }
 
 .actions {
@@ -164,10 +164,8 @@
   background: color-mix(in srgb, var(--sheet) 78%, transparent);
   color: inherit;
   cursor: pointer;
-  transition:
-    border-color var(--t) var(--ease),
-    background-color var(--t) var(--ease),
-    color var(--t) var(--ease);
+  transition: border-color var(--t) var(--ease),
+    background-color var(--t) var(--ease), color var(--t) var(--ease);
 }
 
 .profile:hover,
@@ -313,7 +311,6 @@
   .brandSub {
     display: block;
   }
-
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -327,4 +324,3 @@
     transform: none;
   }
 }
-

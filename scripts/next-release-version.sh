@@ -8,8 +8,10 @@
 # is set. Major wins over minor and over feat.
 #
 # package.json version is not used.
-# RELEASE_LABELS is newline- or comma-separated. Unset and empty both mean
-# no labels. Stdout is only the version; the reason goes to stderr.
+# When no vX.Y.Z tag exists yet, the result is v1.0.0. Commit subjects and
+# labels are not read: that range would be the whole history.
+# After a tag exists, RELEASE_LABELS is newline- or comma-separated.
+# Unset and empty both mean no labels. Stdout is only the version.
 
 set -euo pipefail
 
@@ -36,7 +38,16 @@ has_label() {
 }
 
 latest="$(latest_semver_tag)"
-current="${latest:-v0.0.0}"
+# The site is already in production. The first numbered release is v1.0.0.
+# Do not walk commit subjects or pull requests: there is no previous tag, so
+# that range is the whole history.
+if [ -z "$latest" ]; then
+  echo "No semver tag yet. First release is v1.0.0; history is not scanned." >&2
+  printf '%s\n' "v1.0.0"
+  exit 0
+fi
+
+current="$latest"
 rest="${current#v}"
 IFS=. read -r major minor patch <<< "$rest"
 

@@ -50,19 +50,14 @@ async function nextVersion(cwd, sha, labels = "") {
 
 const cases = [
   {
-    name: "no tags and a fix commit is a patch from 0.0.0",
-    commits: [{ message: "fix: typo" }],
-    expected: "v0.0.1",
+    name: "no tags is v1.0.0 even when history contains feat commits",
+    commits: [{ message: "feat: ancient" }, { message: "fix: typo" }, { message: "feat(api): later" }],
+    expected: "v1.0.0",
   },
   {
-    name: "no tags and a feat commit is 0.1.0",
-    commits: [{ message: "feat: first" }],
-    expected: "v0.1.0",
-  },
-  {
-    name: "no tags and release:major is 1.0.0",
+    name: "no tags ignores release labels and stays v1.0.0",
     commits: [{ message: "fix: typo" }],
-    labels: "release:major",
+    labels: "release:minor",
     expected: "v1.0.0",
   },
   {
@@ -170,6 +165,73 @@ test("create script skips a commit that already has a tag and does not call gh",
     assert.equal(result.code, 0, result.stderr);
     assert.match(result.stdout, /already tagged/);
     assert.equal(await readFile(output, "utf8"), "skip=true\n");
+  } finally {
+    await rm(cwd, { recursive: true, force: true });
+  }
+});
+
+test("first release dry-run is v1.0.0 and does not call gh", async () => {
+  const cwd = await initRepo();
+  try {
+    const sha = await commitAll(cwd, [
+      { message: "feat: one" },
+      { message: "fix: two (#4)" },
+      { message: "feat(api): three" },
+    ]);
+    const bin = path.join(cwd, "bin");
+    await mkdir(bin);
+    const gh = path.join(bin, "gh");
+    await writeFile(gh, "#!/bin/sh\necho 'gh should not run' >&2\nexit 99\n", "utf8");
+    await chmod(gh, 0o755);
+    const result = await run("bash", [createScript], {
+      cwd,
+      env: {
+        ...process.env,
+        PATH: `${bin}:${process.env.PATH}`,
+        GITHUB_SHA: sha,
+        GITHUB_REPOSITORY: "tony-kobs/nmt.in.ua",
+        DRY_RUN: "1",
+      },
+    });
+    assert.equal(result.code, 0, result.stderr);
+    assert.equal(result.stdout.trim(), "v1.0.0");
+    assert.match(result.stderr, /not read|not scanned|v1\.0\.0/);
+  } finally {
+    await rm(cwd, { recursive: true, force: true });
+  }
+});
+
+test("a failed pull request lookup does not stop the release", async () => {
+  const cwd = await initRepo();
+  try {
+    const sha = await commitAll(cwd, [
+      { message: "init", tags: ["v1.0.0"] },
+      { message: "feat: add (#12)" },
+      { message: "fix: typo without a pull request" },
+    ]);
+    const bin = path.join(cwd, "bin");
+    await mkdir(bin);
+    const gh = path.join(bin, "gh");
+    await writeFile(
+      gh,
+      "#!/bin/sh\necho 'unexpected end of JSON input' >&2\nexit 1\n",
+      "utf8",
+    );
+    await chmod(gh, 0o755);
+    const result = await run("bash", [createScript], {
+      cwd,
+      env: {
+        ...process.env,
+        PATH: `${bin}:${process.env.PATH}`,
+        GITHUB_SHA: sha,
+        GITHUB_REPOSITORY: "tony-kobs/nmt.in.ua",
+        DRY_RUN: "1",
+      },
+    });
+    assert.equal(result.code, 0, result.stderr);
+    assert.equal(result.stdout.trim(), "v1.1.0");
+    assert.match(result.stderr, /#12/);
+    assert.match(result.stderr, /continues/);
   } finally {
     await rm(cwd, { recursive: true, force: true });
   }

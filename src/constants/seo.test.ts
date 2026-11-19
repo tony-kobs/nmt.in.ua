@@ -232,7 +232,6 @@ test("private routes are noindex even when the caller forgets the flag", () => {
     "/t/angry-teacher",
     "/t/123abc",
     "/marathon/onemath",
-    "/interns/sasha-dubrovina28",
   ]) {
     assert.equal(isNoIndexPath(path), false, path);
     const meta = createPageMetadata({
@@ -258,7 +257,6 @@ test("private routes are noindex even when the caller forgets the flag", () => {
     "/",
     "/welcome",
     "/diagnostic",
-    "/interns/sasha-dubrovina28",
   ]);
 });
 
