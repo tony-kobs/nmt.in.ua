@@ -1,0 +1,105 @@
+# After a push to main, wait until production is serving that commit, then
+# publish a GitHub release and post it to Discord.
+#
+# Trigger is push to main, not deployment_status. The live site is started by
+# Deploy hosting on the same push. Vercel deployment_status is a different
+# signal: it can arrive before the new process answers, and it does not fire
+# for the hosting deploy. GET /api/version is the check that matters. On
+# Vercel the SHA is VERCEL_GIT_COMMIT_SHA; the hosting build writes the same
+# commit into src/generated/deploy-revision.json.
+#
+# A release created with the default GITHUB_TOKEN does not trigger
+# release-discord.yml. This job posts the embed itself.
+# DISCORD_WEBHOOK is a repository secret. Never print it.
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Повний SHA коміту для релізу. Порожньо — коміт цієї гілки."
+        required: false
+        type: string
+      skip_poll:
+        description: "Не чекати /api/version. Лише якщо деплой цього коміту вже підтверджено."
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: release-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Fetch tags
+        run: git fetch --tags --force origin
+
+      - name: Resolve release commit
+        id: target
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_SHA: ${{ inputs.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ -n "${INPUT_SHA:-}" ]; then
+            sha="$INPUT_SHA"
+          else
+            sha="${GITHUB_SHA}"
+          fi
+          sha="$(git rev-parse --verify "${sha}^{commit}")"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+          echo "Release target ${sha}."
+
+      - name: Wait for production deploy
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_poll != true }}
+        shell: bash
+        env:
+          VERSION_URL: https://nmt.in.ua/api/version
+          EXPECTED_SHA: ${{ steps.target.outputs.sha }}
+          POLL_INTERVAL_SECONDS: 15
+          POLL_TIMEOUT_SECONDS: 1200
+        run: bash scripts/poll-deployed-sha.sh
+
+      - name: Create GitHub release
+        id: release
+        shell: bash
+        env:
+          GITHUB_SHA: ${{ steps.target.outputs.sha }}
+        run: bash scripts/create-github-release.sh
+
+      - name: Post release to Discord
+        if: ${{ success() && steps.release.outputs.skip != 'true' }}
+        shell: bash
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DISCORD_WEBHOOK:-}" ]; then
+            echo "::warning::DISCORD_WEBHOOK is empty; release ${{ steps.release.outputs.tag }} was created, Discord notification skipped."
+            exit 0
+          fi
+          bash scripts/discord-release.sh "${{ steps.release.outputs.release_json }}"

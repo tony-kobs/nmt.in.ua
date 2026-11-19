@@ -11,13 +11,10 @@ import { formatKyivWhen, kyivDateIso } from "@/modules/marathons/daily/calendar"
 import { activationBlockers, marathonIsReady } from "@/modules/marathons/daily/readiness";
 import { loadMarathonBoard, loadMarathonCopy } from "@/modules/marathons/daily/store";
 import {
-  deleteDayAction,
   deleteMarathonAction,
   deleteMaterialAction,
   deleteRiddleAction,
   deleteTaskAction,
-  replaceTaskAction,
-  reshuffleTasksAction,
   seedMarathonAction,
   setMarathonStatusAction,
 } from "@/modules/marathons/daily/actions";
@@ -48,6 +45,8 @@ import {
 } from "./admin/MarathonAdminForms";
 import { CopyEditor } from "./admin/CopyEditor";
 import { DayTaskBank } from "./admin/DayTaskBank";
+import { DeleteDayButton } from "./admin/DeleteDayButton";
+import { MarathonCsvPanel } from "./admin/MarathonCsvPanel";
 import { MarathonFunnelStrip } from "./admin/MarathonFunnelStrip";
 import { MarathonPublicLink } from "./admin/MarathonPublicLink";
 import { marathonErrorText } from "./errors";
@@ -391,6 +390,7 @@ export async function MarathonAdminList({
         error={message}
       >
         {cronBadge(t, cron)}
+        <MarathonCsvPanel />
         <form action={seedMarathonAction}>
           <SubmitButton className={css.buttonQuiet} pendingLabel={t("working")}>
             {t("seed")}
@@ -432,6 +432,7 @@ export async function MarathonAdminList({
 type EditorDay = MarathonDay & {
   materials: Material[];
   tasks: Array<{ id: number; order: number; prompt: string; options: string[]; questionId: number | null }>;
+  submissions: number;
 };
 
 export async function MarathonAdminEditor({
@@ -443,6 +444,7 @@ export async function MarathonAdminEditor({
   themes,
   questions,
   error,
+  noticeCount,
   savedToken,
   introImageUrl,
 }: {
@@ -454,11 +456,16 @@ export async function MarathonAdminEditor({
   themes: BankTheme[];
   questions: Array<{ id: number; label: string }>;
   error?: string;
+  noticeCount?: number;
   savedToken?: string;
   introImageUrl?: string | null;
 }) {
   const t = await getTranslations("Marathon");
-  const message = marathonErrorText(t, error);
+  const message = error === "day_submissions"
+    ? t("errors.day_submissions", { count: noticeCount ?? 0 })
+    : error === "tasks_locked"
+      ? t("errors.tasks_locked")
+      : marathonErrorText(t, error);
   const blockers = activationBlockers({
     daysCount: marathon.daysCount,
     days: days.map((day) => ({ dayNumber: day.dayNumber, taskCount: day.tasks.length })),
@@ -500,6 +507,7 @@ export async function MarathonAdminEditor({
           />
           <MarathonFunnelStrip funnel={funnel} />
         </div>
+        <MarathonCsvPanel marathonId={marathon.id} />
         {notReady ? (
           <div className={css.alert} role="alert">
             <p>{t("notReady")}</p>
@@ -667,17 +675,13 @@ export async function MarathonAdminEditor({
                 introText={day.introText ?? ""}
                 imageUrl={day.imageUrl}
               />
-              <form action={deleteDayAction}>
-                <input type="hidden" name="marathonId" value={marathon.id} />
-                <input type="hidden" name="dayId" value={day.id} />
-                <ConfirmSubmit
-                  message={t("deleteConfirm")}
-                  pendingLabel={t("deleting")}
-                  className={css.buttonQuiet}
-                >
-                  {t("delete")}
-                </ConfirmSubmit>
-              </form>
+              <DeleteDayButton
+                marathonId={marathon.id}
+                dayId={day.id}
+                slug={marathon.slug}
+                dayNumber={day.dayNumber}
+                submissions={day.submissions}
+              />
               <div className={css.stack}>
                 {day.materials.map((material) => (
                   <div key={material.id}>
@@ -706,15 +710,6 @@ export async function MarathonAdminEditor({
                 nextOrder={day.materials.length + 1}
               />
               <h3 className={css.dayTasksTitle}>{t("dayTasksTitle")}</h3>
-              {day.tasks.length > 1 ? (
-                <form action={reshuffleTasksAction}>
-                  <input type="hidden" name="marathonId" value={marathon.id} />
-                  <input type="hidden" name="dayId" value={day.id} />
-                  <SubmitButton className={css.buttonQuiet} pendingLabel={t("working")}>
-                    {t("reshuffleOrder")}
-                  </SubmitButton>
-                </form>
-              ) : null}
               <ul className={css.taskList}>
                 {day.tasks.map((task) => (
                   <li key={task.id} className={css.taskRow}>
@@ -733,24 +728,16 @@ export async function MarathonAdminEditor({
                       </ol>
                     ) : null}
                     <div className={css.actions}>
-                      {task.questionId ? (
-                        <form action={replaceTaskAction}>
+                      {day.submissions > 0 ? null : (
+                        <form action={deleteTaskAction}>
                           <input type="hidden" name="marathonId" value={marathon.id} />
                           <input type="hidden" name="dayId" value={day.id} />
                           <input type="hidden" name="taskId" value={task.id} />
-                          <SubmitButton className={css.buttonQuiet} pendingLabel={t("working")}>
-                            {t("replaceQuestion")}
+                          <SubmitButton className={css.buttonQuiet} pendingLabel={t("deleting")}>
+                            {t("delete")}
                           </SubmitButton>
                         </form>
-                      ) : null}
-                      <form action={deleteTaskAction}>
-                        <input type="hidden" name="marathonId" value={marathon.id} />
-                        <input type="hidden" name="dayId" value={day.id} />
-                        <input type="hidden" name="taskId" value={task.id} />
-                        <SubmitButton className={css.buttonQuiet} pendingLabel={t("deleting")}>
-                          {t("delete")}
-                        </SubmitButton>
-                      </form>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -758,9 +745,13 @@ export async function MarathonAdminEditor({
               <DayTaskBank
                 marathonId={marathon.id}
                 dayId={day.id}
+                subject={marathon.subject}
                 themes={themes}
-                savedQuestionIds={day.tasks.flatMap((task) =>
-                  task.questionId ? [task.questionId] : [],
+                submissions={day.submissions}
+                saved={day.tasks.flatMap((task) =>
+                  task.questionId
+                    ? [{ id: task.questionId, prompt: task.prompt, options: task.options }]
+                    : [],
                 )}
               />
               <details className={css.manualTask} {...(questions.length > 0 ? { open: true } : {})}>
@@ -786,7 +777,7 @@ export async function MarathonAdminEditor({
         <section className={css.card} aria-labelledby="people">
           <h2 id="people">{t("participants")}</h2>
           <a className={css.buttonQuiet} href={`/api/admin/marathons/${marathon.id}/export`}>
-            CSV
+            {t("participantsCsv")}
           </a>
           <div className={css.tableWrap}>
             <table className={css.table}>
