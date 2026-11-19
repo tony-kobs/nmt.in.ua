@@ -1042,6 +1042,13 @@ button.footerLink {
   margin: 0;
 }
 
+.footerVersion {
+  margin: 0;
+  color: var(--subtle);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---------------------------------------------------------------------------
    375 — mobile reference
    --------------------------------------------------------------------------- */
