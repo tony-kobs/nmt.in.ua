@@ -2,14 +2,28 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { SqlConnection } from "@/lib/db/mysql";
 import {
+  BANK_SEARCH_SQL,
   BANK_THEMES_SQL,
   bankPreviewSql,
   listBankThemes,
   pickBankIds,
   quizBankMatchesSubject,
+  sameQuestionSet,
   sampleThemePreviews,
   toBankPreview,
 } from "./taskBank";
+
+test("the admin search is ordered and does not read the answer key", () => {
+  assert.doesNotMatch(BANK_SEARCH_SQL, /RAND/i);
+  assert.doesNotMatch(BANK_SEARCH_SQL, /right_answer_n/);
+  assert.match(BANK_SEARCH_SQL, /ORDER BY t\.ord ASC, q\.id ASC/);
+});
+
+test("sameQuestionSet ignores order and rejects duplicates", () => {
+  assert.equal(sameQuestionSet([3, 1, 2], [1, 2, 3]), true);
+  assert.equal(sameQuestionSet([1, 2], [1, 2, 3]), false);
+  assert.equal(sameQuestionSet([1, 1], [1, 1]), false);
+});
 
 test("quiz bank is the math catalog only", () => {
   assert.equal(quizBankMatchesSubject("math"), true);
