@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { isTable, type Table } from "@/components/practice/multiplication/constants";
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: PageProps) {
 export default async function MultiplicationTablePage({ params }: PageProps) {
   const { table } = await params;
   const n = parseTable(table);
-  if (n === null) notFound();
+  if (n === null) redirect("/practice/multiplication");
 
   const t = await getTranslations("PracticeMultiplication");
 
