@@ -3,6 +3,17 @@
 Опис pull request — єдине місце, де це пишуть. Після мерджу в `dev` запис з’являється тут. Рядки для учня і викладача збираються в новини, коли реліз потрапляє в `main`. Посилання на скрінкаст з’являється лише після галочки «схвалено показувати». Гід для новачка — [онбординг](./onboarding.md) і [як робити задачу](./contributing.md); цей журнал туди не копіюється.
 
 <!-- changelog:entries -->
+### 2026-11-19 — Реліз vX.Y.Z і сповіщення в Discord (#358)
+
+- Для команди: Після push у `main` workflow `Release` чекає, поки прод віддасть SHA цього коміту на `GET /api/version`, створює GitHub release `vX.Y.Z` і пише в Discord. Тригер — push у `main`, не `deployment_status`. Прод зараз піднімає хостинг з того самого push. Статус деплою Vercel може прийти раніше, ніж процес відповість, і для хостингу він узагалі не приходить. Перевірка — живий `/api/version`: кожні 15 секунд, до 20 хвилин. На Vercel SHA береться з `VERCEL_GIT_COMMIT_SHA`. Збірка ще пише `src/generated/deploy-revision.json`, щоб хостинг без змінних Vercel віддав той самий коміт. Версія — тег `vX.Y.Z`, не `package.json`. Нотатки — `gh release create --generate-notes`. За замовчуванням patch. Minor, якщо в діапазоні є коміт `feat:` / `feat(scope):` або в PR мітка `release:minor`. Major лише з міткою `release:major`. Якщо на коміті вже є тег, реліз пропускається. Реліз, створений `GITHUB_TOKEN`, не запускає інші workflow. Тому Discord шле сам `Release`. Окремий `Release Discord` лишається для ручного релізу (`release: published`) і для повторної відправки (`workflow_dispatch`, поле `tag`). У футері, якщо збірка знає тег, дрібним текстом стоїть `vX.Y.Z`. Немає тега — рядка немає. Нової міграції немає.
+- Для людей: У підвалі сайту може з’явитися дрібний номер релізу `vX.Y.Z`, коли збірка його знає. Інших змін на сторінках немає.
+- Скрінкаст: не потрібен
+- Запис: —
+- Схвалено: ні
+- Автор: groteskzp
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/358
+<!-- released: no -->
+
 ### 2026-11-17 — SEO: прибрати демо-візитки викладачів із sitemap (#352)
 
 - Для команди: Публічний `sitemap.xml` більше не віддає демо- і тестові візитки `/t/{slug}`. Сторінки лишаються робочими і віддають `robots: noindex`. У `teacher_profiles` і `app_users` немає прапорця демо чи тесту (є лише `is_public`, `moderation_status`, `is_banned`). Міграцію не додавав. Правило одне, в `EXCLUDED_TEACHER_SITEMAP_SLUGS` і `isExcludedTeacherSlug`: - точний slug зі списку: `angryteacher`, `demo-teacher` (стара публічна візитка), `local-teacher` (seed у `scripts/seed-local.mjs`); - slug лише з цифр, наприклад `32132132112312`. `/t/mikhail` і будь-який інший нечисловий slug поза списком лишаються в sitemap і в індексі. Префікси на кшталт `demo` чи `test` не ріжуть справжнього викладача. Те саме правило ставить `noindex` через `createPageMetadata` / `isNoIndexPath`, тож Google не бере ці URL з посилань. `robots.txt` їх не ховає: інакше краулер не побачить `noindex`.
