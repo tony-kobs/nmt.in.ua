@@ -1663,7 +1663,8 @@
       "login": "Anmelden",
       "register": "Konto erstellen",
       "cabinet": "Arbeitsbereich",
-      "internMy": "Oleksandras Seite"
+      "internMy": "Oleksandras Seite",
+      "MyCard": "Dmytros Seite"
     },
     "hero": {
       "titleStart": "Bereite dich auf die NMT in Mathematik",
@@ -2988,6 +2989,12 @@
   "InternMyPage": {
     "name": "Oleksandra Dubrovina",
     "task1": "Multiplikationsrechner: Multiplikation zweier Zahlen implementiert",
+    "codeLink": "Repository",
+    "liveLink": "Live-Demo"
+  },
+  "MyCard": {
+    "name": "Dmitriy But",
+    "task1": "Divisionsrechner: Division zweier Zahlen implementiert",
     "codeLink": "Repository",
     "liveLink": "Live-Demo"
   }

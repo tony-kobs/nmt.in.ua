@@ -1663,7 +1663,8 @@
       "login": "Log in",
       "register": "Create account",
       "cabinet": "Workspace",
-      "internMy": "Oleksandra's page"
+      "internMy": "Oleksandra's page",
+      "MyCard": "Dmytro's Page"
     },
     "hero": {
       "titleStart": "Prepare for the NMT in maths",
@@ -2988,6 +2989,12 @@
   "InternMyPage": {
     "name": "Oleksandra Dubrovina",
     "task1": "Multiplication calculator: implemented multiplication of two numbers",
+    "codeLink": "Repository",
+    "liveLink": "Live demo"
+  },
+  "MyCard": {
+    "name": "Dmitriy But",
+    "task1": "Division calculator: division of two numbers has been implemented",
     "codeLink": "Repository",
     "liveLink": "Live demo"
   }

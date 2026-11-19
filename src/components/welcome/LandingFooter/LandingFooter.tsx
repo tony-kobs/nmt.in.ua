@@ -49,6 +49,9 @@ export async function LandingFooter({
                 {nav(item.key)}
               </a>
             ))}
+            <Link href="/interns/BUT39" className={css.footerLink}>
+              {nav("MyCard")}
+            </Link>
             <Link href="/interns/sasha-dubrovina28" className={css.footerLink}>
               {nav("internMy")}
             </Link>
