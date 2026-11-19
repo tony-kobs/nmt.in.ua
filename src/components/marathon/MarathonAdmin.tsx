@@ -47,6 +47,7 @@ import { CopyEditor } from "./admin/CopyEditor";
 import { DayTaskBank } from "./admin/DayTaskBank";
 import { DeleteDayButton } from "./admin/DeleteDayButton";
 import { MarathonCsvPanel } from "./admin/MarathonCsvPanel";
+import { MarathonFormatsPanel } from "./admin/MarathonFormatsPanel";
 import { MarathonFunnelStrip } from "./admin/MarathonFunnelStrip";
 import { MarathonPublicLink } from "./admin/MarathonPublicLink";
 import { marathonErrorText } from "./errors";
@@ -391,6 +392,7 @@ export async function MarathonAdminList({
       >
         {cronBadge(t, cron)}
         <MarathonCsvPanel />
+        <MarathonFormatsPanel />
         <form action={seedMarathonAction}>
           <SubmitButton className={css.buttonQuiet} pendingLabel={t("working")}>
             {t("seed")}
@@ -508,6 +510,7 @@ export async function MarathonAdminEditor({
           <MarathonFunnelStrip funnel={funnel} />
         </div>
         <MarathonCsvPanel marathonId={marathon.id} />
+        <MarathonFormatsPanel marathonId={marathon.id} />
         {notReady ? (
           <div className={css.alert} role="alert">
             <p>{t("notReady")}</p>
