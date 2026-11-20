@@ -15,6 +15,8 @@ import {
   deleteMaterialAction,
   deleteRiddleAction,
   deleteTaskAction,
+  moveDayTaskAction,
+  saveDayTaskEditAction,
   seedMarathonAction,
   setMarathonStatusAction,
 } from "@/modules/marathons/daily/actions";
@@ -431,7 +433,15 @@ export async function MarathonAdminList({
 
 type EditorDay = MarathonDay & {
   materials: Material[];
-  tasks: Array<{ id: number; order: number; prompt: string; options: string[]; questionId: number | null }>;
+  tasks: Array<{
+    id: number;
+    order: number;
+    prompt: string;
+    options: string[];
+    questionId: number | null;
+    correct: number;
+    explanation: string | null;
+  }>;
   submissions: number;
 };
 
@@ -728,6 +738,24 @@ export async function MarathonAdminEditor({
                       </ol>
                     ) : null}
                     <div className={css.actions}>
+                      <form action={moveDayTaskAction}>
+                        <input type="hidden" name="marathonId" value={marathon.id} />
+                        <input type="hidden" name="dayId" value={day.id} />
+                        <input type="hidden" name="taskId" value={task.id} />
+                        <input type="hidden" name="direction" value="up" />
+                        <SubmitButton className={css.buttonQuiet} pendingLabel={t("working")}>
+                          {t("bankUp")}
+                        </SubmitButton>
+                      </form>
+                      <form action={moveDayTaskAction}>
+                        <input type="hidden" name="marathonId" value={marathon.id} />
+                        <input type="hidden" name="dayId" value={day.id} />
+                        <input type="hidden" name="taskId" value={task.id} />
+                        <input type="hidden" name="direction" value="down" />
+                        <SubmitButton className={css.buttonQuiet} pendingLabel={t("working")}>
+                          {t("bankDown")}
+                        </SubmitButton>
+                      </form>
                       {day.submissions > 0 ? null : (
                         <form action={deleteTaskAction}>
                           <input type="hidden" name="marathonId" value={marathon.id} />
@@ -739,6 +767,38 @@ export async function MarathonAdminEditor({
                         </form>
                       )}
                     </div>
+                    {day.submissions > 0 ? null : (
+                      <details className={css.manualTask}>
+                        <summary className={css.manualSummary}>{t("bankEdit")}</summary>
+                        <p className={css.meta}>{t("bankCopyNote")}</p>
+                        <form action={saveDayTaskEditAction} className={css.stack}>
+                          <input type="hidden" name="marathonId" value={marathon.id} />
+                          <input type="hidden" name="dayId" value={day.id} />
+                          <input type="hidden" name="taskId" value={task.id} />
+                          <label className={css.field}>
+                            <span className={css.fieldLabel}>{t("fields.prompt")}</span>
+                            <textarea className={css.input} name="prompt" defaultValue={task.prompt} rows={3} />
+                          </label>
+                          {[0, 1, 2, 3].map((index) => (
+                            <label key={index} className={css.field}>
+                              <span className={css.fieldLabel}>{t("fields.options")} {index + 1}</span>
+                              <input className={css.input} name={`option${index + 1}`} defaultValue={task.options[index] ?? ""} />
+                            </label>
+                          ))}
+                          <label className={css.field}>
+                            <span className={css.fieldLabel}>{t("fields.correct")}</span>
+                            <input className={css.input} name="correct" type="number" min={1} max={4} defaultValue={task.correct || 1} />
+                          </label>
+                          <label className={css.field}>
+                            <span className={css.fieldLabel}>{t("fields.explanation")}</span>
+                            <textarea className={css.input} name="explanation" defaultValue={task.explanation ?? ""} rows={2} />
+                          </label>
+                          <SubmitButton className={css.button} pendingLabel={t("saving")}>
+                            {t("save")}
+                          </SubmitButton>
+                        </form>
+                      </details>
+                    )}
                   </li>
                 ))}
               </ul>
