@@ -11,7 +11,7 @@
 - Запис: —
 - Схвалено: ні
 - Автор: groteskzp
-- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/0
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/366
 <!-- released: no -->
 
 ### 2026-11-20 — Марафон: перемикач Excel, JSON і CSV (#364)
