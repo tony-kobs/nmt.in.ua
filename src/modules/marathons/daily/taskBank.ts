@@ -130,7 +130,13 @@ export function toBankPreview(row: PreviewRow): BankPreview {
 /** Stable search. No RAND, and the answer key stays out of the select list. */
 export const BANK_SEARCH_SQL = `
   SELECT q.id, q.name, q.task_text, q.answer_1, q.answer_2, q.answer_3, q.answer_4,
-         t.name AS theme_name
+         q.difficulty, t.name AS theme_name,
+         (
+           SELECT GROUP_CONCAT(d.day_number ORDER BY d.day_number SEPARATOR ',')
+           FROM marathon_day_tasks ot
+           INNER JOIN marathon_days d ON d.id = ot.day_id
+           WHERE ot.question_id = q.id AND d.marathon_id = ? AND ot.day_id <> ?
+         ) AS other_days
   FROM quiz_tasks q
   INNER JOIN themes t ON t.id = q.theme_id
   WHERE ${publishedQuizTaskSql("q")}
@@ -141,11 +147,21 @@ export const BANK_SEARCH_SQL = `
       OR q.name LIKE ? ESCAPE '\\\\'
       OR q.task_text LIKE ? ESCAPE '\\\\'
     )
+    AND (? = 0 OR q.difficulty = ?)
+    AND (
+      ? = 0
+      OR (? = 2 AND (q.answer_3 IS NULL OR q.answer_3 = '') AND (q.answer_4 IS NULL OR q.answer_4 = ''))
+      OR (? = 4 AND q.answer_3 <> '' AND q.answer_4 <> '')
+    )
   ORDER BY t.ord ASC, q.id ASC
   LIMIT ${BANK_SEARCH_LIMIT}
 `;
 
-export type BankHit = BankPreview & { themeName: string };
+export type BankHit = BankPreview & {
+  themeName: string;
+  difficulty: number;
+  otherDays: number[];
+};
 
 type Conn = () => Promise<SqlConnection>;
 
@@ -471,8 +487,205 @@ export async function replaceDayTaskBlock(
   }, getConnection);
 }
 
+export const COPY_DAY_TASK_SQL = `
+  UPDATE marathon_day_tasks
+  SET question_id = NULL,
+      inline_prompt = ?,
+      inline_options = ?,
+      inline_correct = ?,
+      inline_explanation = ?
+  WHERE id = ? AND day_id = ?
+`;
+
+/** What adding these bank ids would do. The bank row itself is never updated. */
+export function planBankAdd(
+  onThisDay: readonly number[],
+  incoming: readonly number[],
+  otherDays: ReadonlyMap<number, readonly number[]>,
+): { add: number[]; duplicateHere: number[]; elsewhere: Array<{ id: number; days: number[] }> } {
+  const here = new Set(onThisDay);
+  const add: number[] = [];
+  const duplicateHere: number[] = [];
+  const elsewhere: Array<{ id: number; days: number[] }> = [];
+  const seen = new Set<number>();
+  for (const id of incoming) {
+    if (!Number.isInteger(id) || id <= 0 || seen.has(id)) continue;
+    seen.add(id);
+    if (here.has(id)) {
+      duplicateHere.push(id);
+      continue;
+    }
+    add.push(id);
+    const days = otherDays.get(id) ?? [];
+    if (days.length > 0) elsewhere.push({ id, days: [...days] });
+  }
+  return { add, duplicateHere, elsewhere };
+}
+
+export function validateInlineEdit(input: {
+  prompt: string;
+  options: readonly string[];
+  correct: number;
+  explanation: string;
+}): { ok: true; prompt: string; options: string[]; correct: number; explanation: string | null } | { ok: false; message: string } {
+  const prompt = input.prompt.trim();
+  const options = input.options.map((item) => item.trim()).filter((item) => item.length > 0);
+  if (prompt.length < 2) return { ok: false, message: "Своє формулювання закоротке." };
+  if (options.length < 2 || options.length > 4) {
+    return { ok: false, message: "Свої варіанти — від 2 до 4." };
+  }
+  if (new Set(options).size !== options.length) {
+    return { ok: false, message: "Варіанти відповіді не мають повторюватися." };
+  }
+  if (!Number.isInteger(input.correct) || input.correct < 1 || input.correct > options.length) {
+    return { ok: false, message: "Номер правильної відповіді не входить у список варіантів." };
+  }
+  const explanation = input.explanation.trim();
+  if (explanation.length > 4000) return { ok: false, message: "Пояснення довше за 4000 символів." };
+  return { ok: true, prompt, options, correct: input.correct, explanation: explanation || null };
+}
+
+export async function addPublishedTasks(
+  input: { marathonId: number; dayId: number; questionIds: readonly number[] },
+  getConnection: Conn = loadDefaultConnection,
+): Promise<
+  | { ok: true; added: number; duplicateHere: number[]; elsewhere: Array<{ id: number; days: number[] }> }
+  | { ok: false; reason: "locked" | "missing" }
+> {
+  const incoming = sanitizeIds(input.questionIds);
+  await ensureDays(getConnection);
+  return withSql(async (connection) => {
+    const answered = await connection.query<{ n: number | string }>(
+      `SELECT COUNT(*) AS n FROM marathon_day_progress
+       WHERE day_id = ? AND ${DAY_HAS_ANSWERS_SQL}`,
+      [input.dayId],
+    );
+    if (Number(answered[0]?.n ?? 0) > 0) return { ok: false, reason: "locked" };
+    const hereRows = await connection.query<{ question_id: number }>(
+      `SELECT question_id FROM marathon_day_tasks
+       WHERE day_id = ? AND question_id IS NOT NULL`,
+      [input.dayId],
+    );
+    const otherRows = incoming.length === 0
+      ? []
+      : await connection.query<{ question_id: number; day_number: number }>(
+        `SELECT ot.question_id, d.day_number
+         FROM marathon_day_tasks ot
+         INNER JOIN marathon_days d ON d.id = ot.day_id
+         WHERE d.marathon_id = ? AND ot.day_id <> ? AND ot.question_id IN (${incoming.map(() => "?").join(", ")})`,
+        [input.marathonId, input.dayId, ...incoming],
+      );
+    const otherDays = new Map<number, number[]>();
+    for (const row of otherRows) {
+      const id = Number(row.question_id);
+      const days = otherDays.get(id) ?? [];
+      days.push(Number(row.day_number));
+      otherDays.set(id, days);
+    }
+    const plan = planBankAdd(
+      hereRows.map((row) => Number(row.question_id)),
+      incoming,
+      otherDays,
+    );
+    if (plan.add.length === 0) return { ok: true, added: 0, ...plan };
+    const found = await connection.query<{ id: number }>(
+      `SELECT id FROM quiz_tasks
+       WHERE id IN (${plan.add.map(() => "?").join(", ")}) AND ${publishedQuizTaskSql()}`,
+      plan.add,
+    );
+    if (found.length !== plan.add.length) return { ok: false, reason: "missing" };
+    const maxRows = await connection.query<{ max_order: number | null }>(
+      `SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM marathon_day_tasks WHERE day_id = ?`,
+      [input.dayId],
+    );
+    let order = Number(maxRows[0]?.max_order ?? 0);
+    for (const questionId of plan.add) {
+      order += 1;
+      await connection.execute(
+        `INSERT INTO marathon_day_tasks
+          (day_id, sort_order, question_id, inline_prompt, inline_options, inline_correct, inline_explanation)
+         VALUES (?, ?, ?, NULL, NULL, NULL, NULL)`,
+        [input.dayId, order, questionId],
+      );
+    }
+    return { ok: true, added: plan.add.length, duplicateHere: plan.duplicateHere, elsewhere: plan.elsewhere };
+  }, getConnection);
+}
+
+export async function moveDayTask(
+  dayId: number,
+  taskId: number,
+  direction: -1 | 1,
+  getConnection: Conn = loadDefaultConnection,
+): Promise<boolean> {
+  await ensureDays(getConnection);
+  return withSql(async (connection) => {
+    const rows = await connection.query<{ id: number; sort_order: number }>(
+      `SELECT id, sort_order FROM marathon_day_tasks
+       WHERE day_id = ? ORDER BY sort_order ASC, id ASC`,
+      [dayId],
+    );
+    const index = rows.findIndex((row) => Number(row.id) === taskId);
+    const target = index + direction;
+    const current = rows[index];
+    const neighbor = rows[target];
+    if (!current || !neighbor) return false;
+    await connection.execute(
+      `UPDATE marathon_day_tasks SET sort_order = ? WHERE id = ? AND day_id = ?`,
+      [-1, current.id, dayId],
+    );
+    await connection.execute(
+      `UPDATE marathon_day_tasks SET sort_order = ? WHERE id = ? AND day_id = ?`,
+      [current.sort_order, neighbor.id, dayId],
+    );
+    await connection.execute(
+      `UPDATE marathon_day_tasks SET sort_order = ? WHERE id = ? AND day_id = ?`,
+      [neighbor.sort_order, current.id, dayId],
+    );
+    return true;
+  }, getConnection);
+}
+
+export async function saveTaskCopy(
+  dayId: number,
+  taskId: number,
+  fields: { prompt: string; options: string[]; correct: number; explanation: string | null },
+  getConnection: Conn = loadDefaultConnection,
+): Promise<"saved" | "missing" | "locked"> {
+  await ensureDays(getConnection);
+  return withSql(async (connection) => {
+    const answered = await connection.query<{ n: number | string }>(
+      `SELECT COUNT(*) AS n FROM marathon_day_progress
+       WHERE day_id = ? AND ${DAY_HAS_ANSWERS_SQL}`,
+      [dayId],
+    );
+    if (Number(answered[0]?.n ?? 0) > 0) return "locked";
+    const found = await connection.query<{ id: number }>(
+      `SELECT id FROM marathon_day_tasks WHERE id = ? AND day_id = ? LIMIT 1`,
+      [taskId, dayId],
+    );
+    if (!found[0]) return "missing";
+    await connection.execute(COPY_DAY_TASK_SQL, [
+      fields.prompt,
+      JSON.stringify(fields.options),
+      fields.correct,
+      fields.explanation,
+      taskId,
+      dayId,
+    ]);
+    return "saved";
+  }, getConnection);
+}
 export async function searchBankTasks(
-  input: { subject: string; themeId: number | null; query: string },
+  input: {
+    subject: string;
+    themeId: number | null;
+    query: string;
+    difficulty?: number | null;
+    optionCount?: 0 | 2 | 4;
+    marathonId?: number;
+    dayId?: number;
+  },
   getConnection?: Conn,
 ): Promise<BankHit[]> {
   if (!quizBankMatchesSubject(input.subject)) return [];
@@ -480,16 +693,43 @@ export async function searchBankTasks(
     ? input.themeId
     : 0;
   const term = input.query.trim().slice(0, 80);
-  if (themeId === 0 && term.length === 0) return [];
+  const difficulty = input.difficulty != null && Number.isInteger(input.difficulty) && input.difficulty > 0
+    ? input.difficulty
+    : 0;
+  const optionCount = input.optionCount === 2 || input.optionCount === 4 ? input.optionCount : 0;
+  if (themeId === 0 && term.length === 0 && difficulty === 0 && optionCount === 0) return [];
   const like = `%${term.replace(/[\\%_]/g, "\\$&")}%`;
+  const marathonId = input.marathonId != null && Number.isInteger(input.marathonId) ? input.marathonId : 0;
+  const dayId = input.dayId != null && Number.isInteger(input.dayId) ? input.dayId : 0;
   return withSql(async (connection) => {
-    const rows = await connection.query<PreviewRow & { theme_name: string | null }>(
+    const rows = await connection.query<
+      PreviewRow & { theme_name: string | null; difficulty: number | null; other_days: string | null }
+    >(
       BANK_SEARCH_SQL,
-      [themeId, themeId, term, term, like, like],
+      [
+        marathonId,
+        dayId,
+        themeId,
+        themeId,
+        term,
+        term,
+        like,
+        like,
+        difficulty,
+        difficulty,
+        optionCount,
+        optionCount,
+        optionCount,
+      ],
     );
     return rows.map((row) => ({
       ...toBankPreview(row),
       themeName: (row.theme_name ?? "").trim(),
+      difficulty: Number(row.difficulty ?? 0),
+      otherDays: (row.other_days ?? "")
+        .split(",")
+        .map((item) => Number(item))
+        .filter((item) => Number.isInteger(item) && item > 0),
     }));
   }, getConnection);
 }

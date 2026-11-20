@@ -4,19 +4,51 @@ import type { SqlConnection } from "@/lib/db/mysql";
 import {
   BANK_SEARCH_SQL,
   BANK_THEMES_SQL,
+  COPY_DAY_TASK_SQL,
   bankPreviewSql,
   listBankThemes,
   pickBankIds,
+  planBankAdd,
   quizBankMatchesSubject,
   sameQuestionSet,
   sampleThemePreviews,
   toBankPreview,
+  validateInlineEdit,
 } from "./taskBank";
+
+test("a day copy validates like import and never updates the question bank", () => {
+  assert.match(COPY_DAY_TASK_SQL, /UPDATE marathon_day_tasks/);
+  assert.match(COPY_DAY_TASK_SQL, /question_id = NULL/);
+  assert.doesNotMatch(COPY_DAY_TASK_SQL, /quiz_tasks/);
+  const ok = validateInlineEdit({
+    prompt: "Скільки буде 2+2?",
+    options: ["3", "4", ""],
+    correct: 2,
+    explanation: "",
+  });
+  assert.equal(ok.ok, true);
+  if (!ok.ok) return;
+  assert.deepEqual(ok.options, ["3", "4"]);
+  assert.equal(validateInlineEdit({
+    prompt: "x",
+    options: ["1", "1"],
+    correct: 3,
+    explanation: "",
+  }).ok, false);
+});
+
+test("adding bank tasks skips duplicates on this day and reports other days", () => {
+  const plan = planBankAdd([5], [5, 5, 8, 9], new Map([[9, [2]]]));
+  assert.deepEqual(plan.add, [8, 9]);
+  assert.deepEqual(plan.duplicateHere, [5]);
+  assert.deepEqual(plan.elsewhere, [{ id: 9, days: [2] }]);
+});
 
 test("the admin search is ordered and does not read the answer key", () => {
   assert.doesNotMatch(BANK_SEARCH_SQL, /RAND/i);
   assert.doesNotMatch(BANK_SEARCH_SQL, /right_answer_n/);
   assert.match(BANK_SEARCH_SQL, /ORDER BY t\.ord ASC, q\.id ASC/);
+  assert.match(BANK_SEARCH_SQL, /q\.difficulty/);
 });
 
 test("sameQuestionSet ignores order and rejects duplicates", () => {
