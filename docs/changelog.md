@@ -12,7 +12,7 @@
 - Схвалено: ні
 - Автор: groteskzp
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/364
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-19 — Марафон: інструкція і приклад у файлі імпорту (#363)
 
@@ -23,7 +23,7 @@
 - Схвалено: ні
 - Автор: groteskzp
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/363
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-19 — feat: integrate multiplication into cabinet (#356)
 
