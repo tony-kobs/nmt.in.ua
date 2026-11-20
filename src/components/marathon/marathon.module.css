@@ -1615,6 +1615,31 @@
   }
 }
 
+.pickerDialog {
+  width: min(40rem, calc(100vw - 2rem));
+  max-height: min(40rem, calc(100dvh - 2rem));
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  padding: var(--space-md);
+}
+
+.pickerDialog::backdrop {
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
+}
+
+.pickerDialog select.input {
+  min-height: 44px;
+  width: 100%;
+}
+
+.pickerDialog input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
 .formatTabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
