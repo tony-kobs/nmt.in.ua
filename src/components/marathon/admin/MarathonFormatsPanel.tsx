@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
 import { useTranslations } from "next-intl";
+import { MarathonCsvPanel } from "./MarathonCsvPanel";
 import {
   applyMarathonJsonAction,
   previewMarathonJsonAction,
@@ -69,12 +70,108 @@ function ErrorList({ errors, prefix }: { errors: CsvIssue[]; prefix: (issue: Csv
   );
 }
 
+const FORMAT_KEY = "nmt-marathon-import-format";
+const FORMATS = ["xlsx", "json", "csv"] as const;
+type ImportFormat = (typeof FORMATS)[number];
+
+const formatListeners = new Set<() => void>();
+
+function storedFormat(): ImportFormat {
+  const value = window.localStorage.getItem(FORMAT_KEY);
+  return value === "json" || value === "csv" || value === "xlsx" ? value : "xlsx";
+}
+
+function subscribeFormat(listener: () => void) {
+  formatListeners.add(listener);
+  return () => formatListeners.delete(listener);
+}
+
+function rememberFormat(next: ImportFormat) {
+  window.localStorage.setItem(FORMAT_KEY, next);
+  for (const listener of formatListeners) listener();
+}
+
 export function MarathonFormatsPanel({ marathonId }: { marathonId?: number }) {
+  const t = useTranslations("Marathon");
+  const format = useSyncExternalStore(subscribeFormat, storedFormat, () => "xlsx" as const);
+  const tabs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  function choose(next: ImportFormat) {
+    rememberFormat(next);
+  }
+
+  function moveTo(index: number) {
+    const next = FORMATS[index];
+    if (!next) return;
+    choose(next);
+    tabs.current[index]?.focus();
+  }
+
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const current = FORMATS.indexOf(format);
+    const last = FORMATS.length - 1;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      event.preventDefault();
+      moveTo(current >= last ? 0 : current + 1);
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      event.preventDefault();
+      moveTo(current <= 0 ? last : current - 1);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      moveTo(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      moveTo(last);
+    }
+  }
+
+  const labels: Record<ImportFormat, string> = {
+    xlsx: t("formatExcel"),
+    json: t("formatJson"),
+    csv: t("formatCsv"),
+  };
+
   return (
-    <>
-      <JsonCard marathonId={marathonId} />
-      <XlsxCard marathonId={marathonId} />
-    </>
+    <section className={css.card} aria-labelledby="marathon-import-title">
+      <h2 id="marathon-import-title">{t("csvTitle")}</h2>
+      <div
+        className={css.formatTabs}
+        role="tablist"
+        aria-label={t("importFormats")}
+        onKeyDown={onKeyDown}
+      >
+        {FORMATS.map((item, index) => {
+          const selected = format === item;
+          return (
+            <button
+              key={item}
+              ref={(node) => {
+                tabs.current[index] = node;
+              }}
+              type="button"
+              role="tab"
+              id={`marathon-import-${item}`}
+              aria-selected={selected}
+              aria-controls={`marathon-import-panel-${item}`}
+              tabIndex={selected ? 0 : -1}
+              className={selected ? css.formatTabOn : css.formatTab}
+              onClick={() => choose(item)}
+            >
+              {labels[item]}
+            </button>
+          );
+        })}
+      </div>
+      <div
+        role="tabpanel"
+        id={`marathon-import-panel-${format}`}
+        aria-labelledby={`marathon-import-${format}`}
+      >
+        {format === "xlsx" ? <XlsxCard marathonId={marathonId} /> : null}
+        {format === "json" ? <JsonCard marathonId={marathonId} /> : null}
+        {format === "csv" ? <MarathonCsvPanel marathonId={marathonId} /> : null}
+      </div>
+    </section>
   );
 }
 
@@ -142,8 +239,7 @@ function JsonCard({ marathonId }: { marathonId?: number }) {
   }
 
   return (
-    <section className={css.card} aria-labelledby="marathon-json">
-      <h2 id="marathon-json">{t("jsonTitle")}</h2>
+    <>
       <p className={css.meta}>{t("jsonLead")}</p>
       <p className={css.meta}>{t("jsonHelp")}</p>
       <div className={css.actions}>
@@ -183,7 +279,7 @@ function JsonCard({ marathonId }: { marathonId?: number }) {
         errors={errors}
         prefix={(issue) => (issue.row > 0 ? `Елемент ${issue.row}: ${issue.message}` : issue.message)}
       />
-    </section>
+    </>
   );
 }
 
@@ -236,8 +332,7 @@ function XlsxCard({ marathonId }: { marathonId?: number }) {
   }
 
   return (
-    <section className={css.card} aria-labelledby="marathon-xlsx">
-      <h2 id="marathon-xlsx">{t("xlsxTitle")}</h2>
+    <>
       <p className={css.meta}>{t("xlsxLead")}</p>
       <p className={css.meta}>{t("xlsxHelp")}</p>
       <div className={css.actions}>
@@ -274,6 +369,6 @@ function XlsxCard({ marathonId }: { marathonId?: number }) {
       </div>
       {preview ? <PreviewBlock preview={preview} t={t} /> : null}
       <ErrorList errors={errors} prefix={(issue) => issue.message} />
-    </section>
+    </>
   );
 }

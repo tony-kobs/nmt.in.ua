@@ -1615,6 +1615,56 @@
   }
 }
 
+.formatTabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+}
+
+.formatTab,
+.formatTabOn {
+  min-height: 44px;
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--sheet) 78%, transparent);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.formatTabOn {
+  border-color: transparent;
+  background: var(--grad-brand);
+  color: var(--on-accent);
+}
+
+.formatTab:hover {
+  border-color: var(--green);
+}
+
+.formatTabOn:hover {
+  background: var(--grad-brand-hover);
+}
+
+.formatTab:active,
+.formatTabOn:active {
+  background: var(--grad-brand-active);
+  color: var(--on-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .formatTab,
+  .formatTabOn {
+    transition: none;
+  }
+}
+
+
 @media (min-width: 1240px) {
   .days {
     grid-template-columns: repeat(3, minmax(0, 1fr));
