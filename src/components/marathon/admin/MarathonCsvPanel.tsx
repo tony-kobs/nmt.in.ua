@@ -91,8 +91,7 @@ export function MarathonCsvPanel({ marathonId }: { marathonId?: number }) {
   }
 
   return (
-    <section className={css.card} aria-labelledby="marathon-csv">
-      <h2 id="marathon-csv">{t("csvTitle")}</h2>
+    <>
       <p className={css.meta}>{t("csvLead")}</p>
       <p className={css.meta}>{t("csvHelp")}</p>
       <div className={css.actions}>
@@ -118,6 +117,7 @@ export function MarathonCsvPanel({ marathonId }: { marathonId?: number }) {
         />
       </div>
       {fileName ? <p className={css.meta}>{fileName}</p> : null}
+      <p className={css.meta}>{t("importHint")}</p>
       <div className={css.actions}>
         <button
           type="button"
@@ -167,6 +167,6 @@ export function MarathonCsvPanel({ marathonId }: { marathonId?: number }) {
           </ul>
         </div>
       ) : null}
-    </section>
+    </>
   );
 }
