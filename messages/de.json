@@ -3337,5 +3337,8 @@
       "title": "Multiplikation",
       "description": "Einmaleins auf Zeit: 10 Aufgaben und deine Punktzahl."
     }
+  },
+  "Warmup": {
+    "dima-dev1": "Erste Aufwärmzeile"
   }
 }

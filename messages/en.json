@@ -3337,5 +3337,8 @@
       "title": "Multiplication",
       "description": "Multiplication tables against the clock: 10 questions and a score."
     }
+  },
+  "Warmup": {
+    "dima-dev1": "First warm-up line"
   }
 }
