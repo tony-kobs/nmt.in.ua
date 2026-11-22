@@ -1135,6 +1135,7 @@
     "seed": "Add the sample: 5 days of math",
     "create": "New marathon",
     "delete": "Delete",
+    "deleteDay": "Delete day",
     "deleteConfirm": "Delete permanently?",
     "settings": "Settings",
     "activate": "Activate",

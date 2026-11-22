@@ -1135,6 +1135,7 @@
     "seed": "Beispiel anlegen: 5 Tage Mathematik",
     "create": "Neuer Marathon",
     "delete": "Löschen",
+    "deleteDay": "Tag löschen",
     "deleteConfirm": "Unwiderruflich löschen?",
     "settings": "Einstellungen",
     "activate": "Aktivieren",
