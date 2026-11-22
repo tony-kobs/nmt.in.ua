@@ -83,7 +83,6 @@ import {
   updateMaterial,
   updateRiddle,
 } from "./store";
-import { normalizeBankSearchText } from "./bankSearchText";
 import { answerRiddle, type AttemptResult } from "./riddleQuiz";
 import {
   addPublishedTasks,
@@ -553,7 +552,7 @@ export async function searchDayBankAction(input: {
   page?: number;
 }): Promise<
   | { ok: true; tasks: BankHit[]; total: number; page: number; pageSize: number }
-  | { ok: false; error: "invalid" | "empty" | "subject" | "narrow" }
+  | { ok: false; error: "invalid" | "empty" | "subject" | "search" }
 > {
   await requireManager();
   const marathonId = positiveId(input?.marathonId);
@@ -569,14 +568,6 @@ export async function searchDayBankAction(input: {
   if (!(await dayBelongsToMarathon(marathonId, dayId))) return { ok: false, error: "invalid" };
   const subject = typeof input?.subject === "string" ? input.subject : marathon.subject;
   if (!quizBankMatchesSubject(subject)) return { ok: false, error: "subject" };
-  if (
-    themeId == null &&
-    normalizeBankSearchText(query).length === 0 &&
-    difficulty == null &&
-    optionCount === 0
-  ) {
-    return { ok: false, error: "narrow" };
-  }
   try {
     const found: BankSearchPage = await searchBankTasks({
       subject,
@@ -592,7 +583,7 @@ export async function searchDayBankAction(input: {
     return { ok: true, ...found };
   } catch (error) {
     console.error("searchDayBankAction", error);
-    return { ok: false, error: "invalid" };
+    return { ok: false, error: "search" };
   }
 }
 

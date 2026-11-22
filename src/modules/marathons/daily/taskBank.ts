@@ -5,11 +5,8 @@ import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import { sampleRandomIds } from "@/lib/sampleRandomIds";
 import {
   BANK_PAGE_SIZE,
-  bankNormalizedSql,
-  bankSearchId,
-  bankSearchLike,
   bankSearchPages,
-  normalizeBankSearchText,
+  matchesBankQuery,
 } from "./bankSearchText";
 import { DAY_BLOCK_MAX, DAY_HAS_ANSWERS_SQL } from "./dayRemoval";
 
@@ -135,16 +132,14 @@ export function toBankPreview(row: PreviewRow): BankPreview {
   return { id: Number(row.id), prompt, options };
 }
 
-/** Stable search. No RAND, and the answer key stays out of the select list. */
+/**
+ * Filters only. The words, apostrophes and formulas are matched in JS
+ * (`matchesBankQuery`), so this statement stays valid on MySQL 8 and MariaDB.
+ * No nested REPLACE and no REGEXP.
+ */
 const BANK_SEARCH_WHERE = `
   WHERE ${publishedQuizTaskSql("q")}
     AND (? = 0 OR q.theme_id = ?)
-    AND (
-      ? = ''
-      OR (? <> '' AND CAST(q.id AS CHAR) = ?)
-      OR ${bankNormalizedSql("q.name")} LIKE ? ESCAPE '\\\\'
-      OR ${bankNormalizedSql("q.task_text")} LIKE ? ESCAPE '\\\\'
-    )
     AND (? = 0 OR q.difficulty = ?)
     AND (
       ? = 0
@@ -152,6 +147,8 @@ const BANK_SEARCH_WHERE = `
       OR (? = 4 AND q.answer_3 <> '' AND q.answer_4 <> '')
     )
 `;
+
+export const BANK_SEARCH_SCAN_MAX = 5000;
 
 export const BANK_SEARCH_SQL = `
   SELECT q.id, q.name, q.task_text, q.answer_1, q.answer_2, q.answer_3, q.answer_4,
@@ -166,14 +163,7 @@ export const BANK_SEARCH_SQL = `
   INNER JOIN themes t ON t.id = q.theme_id
   ${BANK_SEARCH_WHERE}
   ORDER BY t.ord ASC, q.id ASC
-  LIMIT ? OFFSET ?
-`;
-
-export const BANK_SEARCH_COUNT_SQL = `
-  SELECT COUNT(*) AS n
-  FROM quiz_tasks q
-  INNER JOIN themes t ON t.id = q.theme_id
-  ${BANK_SEARCH_WHERE}
+  LIMIT ${BANK_SEARCH_SCAN_MAX}
 `;
 
 export type BankHit = BankPreview & {
@@ -704,21 +694,12 @@ export async function saveTaskCopy(
 }
 function bankWhereParams(input: {
   themeId: number;
-  query: string;
   difficulty: number;
   optionCount: number;
 }): unknown[] {
-  const normalized = normalizeBankSearchText(input.query).slice(0, 80);
-  const id = bankSearchId(input.query);
-  const like = bankSearchLike(input.query);
   return [
     input.themeId,
     input.themeId,
-    normalized,
-    id,
-    id,
-    like,
-    like,
     input.difficulty,
     input.difficulty,
     input.optionCount,
@@ -749,39 +730,40 @@ export async function searchBankTasks(
     ? input.difficulty
     : 0;
   const optionCount = input.optionCount === 2 || input.optionCount === 4 ? input.optionCount : 0;
-  const normalized = normalizeBankSearchText(input.query);
-  if (themeId === 0 && normalized.length === 0 && difficulty === 0 && optionCount === 0) return empty;
-  const where = bankWhereParams({ themeId, query: input.query, difficulty, optionCount });
+  const where = bankWhereParams({ themeId, difficulty, optionCount });
   const marathonId = input.marathonId != null && Number.isInteger(input.marathonId) ? input.marathonId : 0;
   const dayId = input.dayId != null && Number.isInteger(input.dayId) ? input.dayId : 0;
   const requested = Number.isInteger(input.page) && (input.page ?? 0) > 0 ? Number(input.page) : 1;
   return withSql(async (connection) => {
-    const counted = await connection.query<{ n: number | string }>(BANK_SEARCH_COUNT_SQL, where);
-    const total = Number(counted[0]?.n ?? 0);
-    const pages = bankSearchPages(total);
-    const page = Math.min(requested, pages);
     const rows = await connection.query<
-      PreviewRow & { theme_name: string | null; difficulty: number | null; other_days: string | null }
-    >(BANK_SEARCH_SQL, [
-      marathonId,
-      dayId,
-      ...where,
-      BANK_PAGE_SIZE,
-      (page - 1) * BANK_PAGE_SIZE,
-    ]);
-    return {
-      total,
-      page,
-      pageSize: BANK_PAGE_SIZE,
-      tasks: rows.map((row) => ({
-        ...toBankPreview(row),
+      PreviewRow & { name: string | null; theme_name: string | null; difficulty: number | null; other_days: string | null }
+    >(BANK_SEARCH_SQL, [marathonId, dayId, ...where]);
+    const matched = rows.flatMap((row) => {
+      const preview = toBankPreview(row);
+      if (!matchesBankQuery({
+        id: preview.id,
+        name: row.name ?? "",
+        prompt: preview.prompt,
+        query: input.query,
+      })) return [];
+      return [{
+        ...preview,
         themeName: (row.theme_name ?? "").trim(),
         difficulty: Number(row.difficulty ?? 0),
         otherDays: (row.other_days ?? "")
           .split(",")
           .map((item) => Number(item))
           .filter((item) => Number.isInteger(item) && item > 0),
-      })),
+      }];
+    });
+    const pages = bankSearchPages(matched.length);
+    const page = Math.min(requested, pages);
+    const start = (page - 1) * BANK_PAGE_SIZE;
+    return {
+      total: matched.length,
+      page,
+      pageSize: BANK_PAGE_SIZE,
+      tasks: matched.slice(start, start + BANK_PAGE_SIZE),
     };
   }, getConnection);
 }

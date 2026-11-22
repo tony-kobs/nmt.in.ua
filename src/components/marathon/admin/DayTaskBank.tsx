@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useRef, useState } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Select } from "@/components/ui/Select/Select";
 import { MathText } from "@/components/ui/MathText";
@@ -10,7 +10,6 @@ import {
   bankSearchPages,
   beginBankSearch,
   isLatestBankRequest,
-  normalizeBankSearchText,
   type BankSearchState,
 } from "@/modules/marathons/daily/bankSearchText";
 import { DAY_BLOCK_MAX } from "@/modules/marathons/daily/dayRemoval";
@@ -76,7 +75,15 @@ export function DayTaskBank({
   const [pageSize, setPageSize] = useState(20);
   const [pending, setPending] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [searchFailed, setSearchFailed] = useState(false);
+  const [opened, setOpened] = useState(false);
   const [picked, setPicked] = useState<Map<number, Hit>>(() => new Map());
+
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog || !opened) return;
+    if (!dialog.open) dialog.showModal();
+  }, [opened, search, hits, pending, note, searchFailed, picked]);
 
   const subjectOptions = useMemo(() => {
     const values = ["math"];
@@ -108,21 +115,9 @@ export function DayTaskBank({
     if (timerRef.current) clearTimeout(timerRef.current);
     const issued = next.request;
     const fire = () => {
-      const ready =
-        next.themeId !== "" ||
-        next.difficulty !== "0" ||
-        next.optionCount !== 0 ||
-        normalizeBankSearchText(next.query).length > 0;
-      if (!ready) {
-        if (!isLatestBankRequest(latestRef.current, issued)) return;
-        setHits([]);
-        setTotal(0);
-        setPending(false);
-        setNote(t("bankHint"));
-        return;
-      }
       setPending(true);
       setNote(null);
+      setSearchFailed(false);
       void searchDayBankAction({
         marathonId,
         dayId,
@@ -139,9 +134,11 @@ export function DayTaskBank({
             setHits([]);
             setTotal(0);
             if (result.error === "subject") setNote(t("bankSubjectEmpty"));
-            else if (result.error === "narrow") setNote(t("bankHint"));
             else if (result.error === "empty") setNote(t("bankEmptySearch"));
-            else setNote(t("errors.server"));
+            else {
+              setSearchFailed(true);
+              setNote(t("bankSearchError"));
+            }
             return;
           }
           setHits(result.tasks);
@@ -157,7 +154,8 @@ export function DayTaskBank({
           if (!isLatestBankRequest(latestRef.current, issued)) return;
           setHits([]);
           setTotal(0);
-          setNote(t("errors.server"));
+          setSearchFailed(true);
+          setNote(t("bankSearchError"));
         })
         .finally(() => {
           if (isLatestBankRequest(latestRef.current, issued)) setPending(false);
@@ -195,8 +193,8 @@ export function DayTaskBank({
           type="button"
           className={css.button}
           onClick={() => {
-            dialogRef.current?.showModal();
-            searchRef.current?.focus();
+            setOpened(true);
+            change({}, 0);
           }}
         >
           {t("bankAddButton")}
@@ -207,8 +205,15 @@ export function DayTaskBank({
         className={css.pickerDialog}
         aria-labelledby={titleId}
         aria-busy={pending || undefined}
-        onClose={() => openerRef.current?.focus()}
+        onCancel={(event) => {
+          if (dialogRef.current?.querySelector("[role='listbox']")) event.preventDefault();
+        }}
+        onClose={() => {
+          setOpened(false);
+          openerRef.current?.focus();
+        }}
       >
+        <div className={css.pickerBody}>
         <h3 id={titleId}>{t("bankAddButton")}</h3>
         <p className={css.meta}>{t("bankSubjectMath")}</p>
         <div className={css.row2}>
@@ -282,9 +287,14 @@ export function DayTaskBank({
           {pending ? t("bankSearching") : t("bankSelected", { count: picked.size })}
         </p>
         {note ? (
-          <p id={`${searchId}-note`} className={css.fieldError} role="alert">
+          <p id={`${searchId}-note`} className={searchFailed ? css.fieldError : css.meta} role="alert">
             {note}
           </p>
+        ) : null}
+        {searchFailed ? (
+          <button type="button" className={css.buttonQuiet} onClick={() => change({}, 0)}>
+            {t("bankRetry")}
+          </button>
         ) : null}
         {hits.length > 0 ? (
           <ul className={css.taskList}>
@@ -354,6 +364,7 @@ export function DayTaskBank({
             </button>
           </div>
         </form>
+        </div>
       </dialog>
     </div>
   );

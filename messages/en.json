@@ -1238,6 +1238,8 @@
     "bankPage": "Page {page} of {pages}",
     "bankPrev": "Previous",
     "bankNext": "Next",
+    "bankSearchError": "Could not load the tasks.",
+    "bankRetry": "Try again",
     "bankChosen": "Chosen tasks",
     "bankChosenEmpty": "Nothing chosen yet. Without a bank block the day stays empty until you save tasks or add your own prompt.",
     "bankSave": "Save block",

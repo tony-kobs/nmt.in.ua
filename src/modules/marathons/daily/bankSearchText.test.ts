@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  bankNormalizedSql,
   bankSearchLike,
   bankSearchPages,
   beginBankSearch,
   isLatestBankRequest,
+  matchesBankQuery,
   normalizeBankSearchText,
   type BankSearchState,
 } from "./bankSearchText";
@@ -31,13 +31,31 @@ test("bank search ignores case, spaces, apostrophes and formula markup", () => {
   assert.equal(bankSearchLike("x^2"), "%x2%");
 });
 
-test("the SQL reading strips the same marks as the query", () => {
-  const sql = bankNormalizedSql("q.task_text");
-  assert.match(sql, /LOWER\(/);
-  assert.match(sql, /REPLACE\(/);
-  assert.match(sql, /ʼ/);
-  assert.match(sql, /' ', ''\)$/);
-  assert.doesNotMatch(sql, /right_answer_n/);
+test("a short query matches the whole bank text, not a raw page", () => {
+  assert.equal(matchesBankQuery({
+    id: 1,
+    name: "Степінь",
+    prompt: "Сума двох чисел: $x^{2}$.",
+    query: "у",
+  }), true);
+  assert.equal(matchesBankQuery({
+    id: 4,
+    name: "n",
+    prompt: "$x^{2}$",
+    query: "X^2",
+  }), true);
+  assert.equal(matchesBankQuery({
+    id: 12,
+    name: "",
+    prompt: "інше",
+    query: "12",
+  }), true);
+  assert.equal(matchesBankQuery({
+    id: 1,
+    name: "порожньо",
+    prompt: "текст",
+    query: "   ",
+  }), true);
 });
 
 test("a new query or filter returns to the first page and ignores a stale reply", () => {

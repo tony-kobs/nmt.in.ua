@@ -1,8 +1,8 @@
 /**
  * One reading of a bank prompt for search.
- * The SQL expression from `bankNormalizedSql` applies the same replacements,
- * then drops spaces, so the LIKE looks through the whole table rather than
- * the raw page of rows.
+ * The database only filters theme, difficulty and option count.
+ * Words, spaces, apostrophes and formulas are compared here, so MySQL and
+ * MariaDB never have to run a nested REPLACE.
  */
 const REPLACEMENTS: ReadonlyArray<readonly [string, string]> = [
   ["’", "'"],
@@ -42,17 +42,18 @@ export function bankSearchLike(query: string): string {
   return `%${escaped}%`;
 }
 
-function sqlString(value: string): string {
-  return `'${value.replace(/\\/g, "\\\\").replace(/'/g, "''")}'`;
-}
-
-/** Nested REPLACE + LOWER + spaces removed. Same steps as `normalizeBankSearchText`. */
-export function bankNormalizedSql(column: string): string {
-  let expr = column;
-  for (const [from, to] of REPLACEMENTS) {
-    expr = `REPLACE(${expr}, ${sqlString(from)}, ${sqlString(to)})`;
-  }
-  return `REPLACE(LOWER(${expr}), ' ', '')`;
+/** Text match runs in JS so MySQL and MariaDB never see nested REPLACE. */
+export function matchesBankQuery(input: {
+  id: number;
+  name: string;
+  prompt: string;
+  query: string;
+}): boolean {
+  const needle = normalizeBankSearchText(input.query);
+  if (!needle) return true;
+  const id = bankSearchId(input.query);
+  if (id && String(input.id) === id) return true;
+  return normalizeBankSearchText(`${input.name} ${input.prompt}`).includes(needle);
 }
 
 export type BankSearchState = {

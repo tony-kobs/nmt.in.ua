@@ -1238,6 +1238,8 @@
     "bankPage": "Seite {page} von {pages}",
     "bankPrev": "Zurück",
     "bankNext": "Weiter",
+    "bankSearchError": "Aufgaben konnten nicht geladen werden.",
+    "bankRetry": "Erneut versuchen",
     "bankChosen": "Gewählte Aufgaben",
     "bankChosenEmpty": "Noch nichts gewählt. Ohne Bankblock bleibt der Tag leer, bis du Aufgaben speicherst oder eine eigene Formulierung hinzufügst.",
     "bankSave": "Block speichern",
