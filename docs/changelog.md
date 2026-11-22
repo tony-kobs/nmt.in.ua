@@ -3,6 +3,17 @@
 Опис pull request — єдине місце, де це пишуть. Після мерджу в `dev` запис з’являється тут. Рядки для учня і викладача збираються в новини, коли реліз потрапляє в `main`. Посилання на скрінкаст з’являється лише після галочки «схвалено показувати». Гід для новачка — [онбординг](./onboarding.md) і [як робити задачу](./contributing.md); цей журнал туди не копіюється.
 
 <!-- changelog:entries -->
+### 2026-11-22 — Панель банку марафону: пошук і межі вікна (#370)
+
+- Для команди: Панель банку марафону: пошук і межі вікна
+- Для людей: —
+- Скрінкаст: не потрібен
+- Запис: —
+- Схвалено: ні
+- Автор: groteskzp
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/370
+<!-- released: no -->
+
 ### 2026-11-22 — SEO: 404 без canonical, /welcome поза sitemap, 301 з www (#369)
 
 - Для команди: Корінь layout більше не ставить canonical на `https://nmt.in.ua`. Next зливає метадані layout у кожен маршрут, тож цей canonical потрапляв на 404 і на будь-яку сторінку без власного. Сторінки, які мають бути в індексі, і далі задають свій через `createPageMetadata`. `null` у `alternates.canonical` затирає успадкований тег. `/welcome` для гостя рендерить той самий `WelcomeLanding`, що й `/`. У коді canonical навмисно лишається на `/` (дубль, не окремий лендінг). Sitemap більше його не містить: у карті лише канонічні URL. Сторінка лишається `index, follow`, щоб Google зводив сигнали на головну. `www.nmt.in.ua` віддає **301** на `https://nmt.in.ua` зі шляхом і query. У `next.config` це `statusCode: 301` (прапор `permanent` у Next — це 308) і збіг за заголовком `Host`. Прод іде через `server.js` за проксі, де `Host` може лишитись `127.1.10.37`, а публічний хост сидить у `X-Forwarded-Host`. Той самий 301 стоїть у `server.js` і дивиться на обидва заголовки. http→https не додавав: це вже робить хостинг. ### До / після | URL | Було | Стало | | --- | --- | --- | | `/about`, `/pricing`, `/teacher` (404) | canonical `https://nmt.in.ua`, robots `noindex` | canonical немає, robots `noindex` (`noindex, nofollow, nocache`, як і раніше в `createPageMetadata`) | | `/welcome` | у sitemap, canonical `https://nmt.in.ua`, `index, follow` | **немає в sitemap**, canonical `https://nmt.in.ua`, `index, follow` | | `/` | canonical `https://nmt.in.ua`, `index, follow` | те саме, свій canonical задає сторінка `/` | | `/diagnostic` | canonical `https://nmt.in.ua/diagnostic`, `index, follow` | те саме | | `/t/mikhail` | canonical `https://nmt.in.ua/t/mikhail`, `index, follow` для опублікованої картки | те саме. Немає картки або база недоступна — як і раніше `noindex`, canonical лишається на `/t/mikhail` | | `https://www.nmt.in.ua/about?x=1` | 200 | **301** `https://nmt.in.ua/about?x=1` | | `https://www.nmt.in.ua/teacher?ref=mikhail` | 200 | **301** `https://nmt.in.ua/teacher?ref=mikhail` | Статичні URL sitemap (`/`, `/diagnostic`) і динамічні (`/t/{slug}`, `/marathon/{slug}`) без `canonicalPath` мають self-canonical і `index, follow`. Перевірено локально на зібраному `server.js`: 404 без `<link rel="canonical">`, `/welcome` і `/` з canonical на дім, `/diagnostic` і `/t/mikhail` зі своїм, sitemap без `/welcome`, 301 з `Host: www.nmt.in.ua` і з `X-Forwarded-Host` при `Host: 127.1.10.37`. Apex і `/health` на loopback не редіректяться. `npm run lint`, `npm test` (2015 pass), `tsc --noEmit`, `next build` зелені. Прод-БД, env, деплой, переклади й auth не чіпав.

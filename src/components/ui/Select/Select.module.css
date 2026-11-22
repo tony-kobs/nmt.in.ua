@@ -87,7 +87,10 @@
 .menu {
   z-index: 60;
   box-sizing: border-box;
+  inset: auto;
   margin: 0;
+  height: auto;
+  max-width: calc(100vw - 16px);
   padding: 6px;
   overflow-x: hidden;
   overflow-y: auto;
@@ -135,6 +138,7 @@
   font-size: var(--fs-small);
   font-weight: 600;
   cursor: pointer;
+  overflow-wrap: anywhere;
 }
 
 .optionActive {
