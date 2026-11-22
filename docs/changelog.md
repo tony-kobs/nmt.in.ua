@@ -11,7 +11,7 @@
 - Запис: —
 - Схвалено: ні
 - Автор: groteskzp
-- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/0
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/370
 <!-- released: no -->
 
 ### 2026-11-20 — Марафон: ручний вибір завдань і копія для дня (#366)
