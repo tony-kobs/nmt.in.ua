@@ -36,6 +36,7 @@ import { Select } from "@/components/ui/Select";
 import { MathText } from "@/components/ui/MathText";
 import { ThemeLevelsPanel } from "./ThemeLevelsPanel";
 import { ThemeParamsPanel } from "./ThemeParamsPanel";
+import { TopicTaskExchange } from "./TopicTaskExchange";
 import css from "./AdminContentEditor.module.css";
 
 const DELETE_INITIAL: DeleteQuizTaskActionState = { status: "idle" };
@@ -454,6 +455,7 @@ export function AdminContentEditor({
             </button>
           )}
         </div>
+        {themeId ? <TopicTaskExchange themeId={themeId} /> : null}
 
         {themeId ? (
           <>
