@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import clsx from "clsx";
 import { useIsClient } from "@/lib/useIsClient";
 import { findTypeaheadIndex, isTypeaheadChar } from "./findTypeaheadIndex";
+import { placeMenu } from "./placeMenu";
 import css from "./Select.module.css";
 
 export type SelectOption = {
@@ -47,37 +48,48 @@ type SelectProps = {
 };
 
 const TYPEAHEAD_MS = 500;
-const MENU_GAP = 6;
-const MENU_PAD = 8;
 
 function enabledIndexes(options: readonly SelectOption[]): number[] {
   return options.flatMap((option, index) => (option.disabled ? [] : [index]));
 }
 
+function menuHost(trigger: HTMLElement): HTMLElement {
+  return trigger.closest("dialog") ?? document.body;
+}
+
 function measureMenu(
   trigger: HTMLElement,
   variant: "field" | "compact",
+  host: HTMLElement,
 ): MenuBox {
   const rect = trigger.getBoundingClientRect();
-  const width = Math.max(
-    rect.width,
-    variant === "compact" ? 8.5 * 16 : rect.width,
-  );
-  const left = Math.min(
-    Math.max(MENU_PAD, rect.left),
-    Math.max(MENU_PAD, window.innerWidth - width - MENU_PAD),
-  );
-  const below = window.innerHeight - rect.bottom - MENU_GAP - MENU_PAD;
-  const above = rect.top - MENU_GAP - MENU_PAD;
-  const placeBelow = below >= 8.5 * 16 || below >= above;
-  const maxHeight = Math.min(
-    16 * 16,
-    Math.max(44, placeBelow ? below : above),
-  );
-  const top = placeBelow
-    ? rect.bottom + MENU_GAP
-    : Math.max(MENU_PAD, rect.top - MENU_GAP - maxHeight);
-  return { top, left, width, maxHeight };
+  const placed = placeMenu({
+    top: rect.top,
+    left: rect.left,
+    bottom: rect.bottom,
+    width: rect.width,
+    minWidth: variant === "compact" ? 8.5 * 16 : rect.width,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+  });
+  if (host === document.body) return placed;
+  const layer = host.getBoundingClientRect();
+  return {
+    top: placed.top - layer.top + host.scrollTop,
+    left: placed.left - layer.left + host.scrollLeft,
+    width: placed.width,
+    maxHeight: placed.maxHeight,
+  };
+}
+
+function showMenuLayer(node: HTMLElement) {
+  const layer = node as HTMLElement & { showPopover?: () => void };
+  if (typeof layer.showPopover !== "function") return;
+  try {
+    if (!node.matches(":popover-open")) layer.showPopover();
+  } catch {
+    // The menu is already in the top layer.
+  }
 }
 
 export function Select({
@@ -110,6 +122,7 @@ export function Select({
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const [box, setBox] = useState<MenuBox | null>(null);
+  const [host, setHost] = useState<HTMLElement | null>(null);
   const portalReady = useIsClient();
   const isOpen = open && !cannotOpen;
 
@@ -131,7 +144,9 @@ export function Select({
   const updateBox = useCallback(() => {
     const trigger = triggerRef.current;
     if (!trigger) return;
-    setBox(measureMenu(trigger, variant));
+    const nextHost = menuHost(trigger);
+    setHost(nextHost);
+    setBox(measureMenu(trigger, variant, nextHost));
   }, [variant]);
 
   const openMenu = useCallback(
@@ -144,7 +159,11 @@ export function Select({
           : (enabled[0] ?? 0);
       setHighlight(nextHighlight ?? fallback);
       const trigger = triggerRef.current;
-      if (trigger) setBox(measureMenu(trigger, variant));
+      if (trigger) {
+        const nextHost = menuHost(trigger);
+        setHost(nextHost);
+        setBox(measureMenu(trigger, variant, nextHost));
+      }
       setOpen(true);
     },
     [cannotOpen, options, selectedIndex, variant],
@@ -152,24 +171,33 @@ export function Select({
 
   useEffect(() => {
     if (!isOpen) return;
+    const node = menuRef.current;
+    if (node && host === document.body) showMenuLayer(node);
     updateBox();
     const onPointer = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (triggerRef.current?.contains(target) || menuRef.current?.contains(target)) {
-        return;
-      }
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (triggerRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      close();
+    };
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
       close();
     };
     const onReposition = () => updateBox();
     document.addEventListener("mousedown", onPointer);
+    window.addEventListener("keydown", onKey, true);
     window.addEventListener("resize", onReposition);
     window.addEventListener("scroll", onReposition, true);
     return () => {
       document.removeEventListener("mousedown", onPointer);
+      window.removeEventListener("keydown", onKey, true);
       window.removeEventListener("resize", onReposition);
       window.removeEventListener("scroll", onReposition, true);
     };
-  }, [isOpen, close, updateBox]);
+  }, [isOpen, close, updateBox, host]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -252,6 +280,7 @@ export function Select({
     if (event.key === "Escape") {
       if (!isOpen) return;
       event.preventDefault();
+      event.stopPropagation();
       close();
       return;
     }
@@ -328,20 +357,26 @@ export function Select({
           />
         </svg>
       </button>
-      {portalReady && isOpen && box
+      {portalReady && isOpen && box && host
         ? createPortal(
             <div
                   ref={menuRef}
                   id={listId}
                   className={css.menu}
                   role="listbox"
+                  popover={host === document.body ? "manual" : undefined}
                   aria-labelledby={triggerId}
                   style={{
-                    position: "fixed",
+                    position: host === document.body ? "fixed" : "absolute",
                     top: box.top,
                     left: box.left,
+                    right: "auto",
+                    bottom: "auto",
                     width: box.width,
+                    height: "auto",
                     maxHeight: box.maxHeight,
+                    margin: 0,
+                    zIndex: 80,
                   }}
                 >
                   {options.map((option, index) => {
@@ -362,8 +397,12 @@ export function Select({
                         onMouseEnter={() => {
                           if (!option.disabled) setHighlight(index);
                         }}
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => pick(index)}
+                        onPointerDown={(event) => {
+                          if (option.disabled) return;
+                          event.preventDefault();
+                          event.stopPropagation();
+                          pick(index);
+                        }}
                       >
                         <span>{option.label}</span>
                         {isSelected ? (
@@ -388,7 +427,7 @@ export function Select({
                     );
                   })}
                 </div>,
-            document.body,
+            host,
           )
         : null}
     </div>

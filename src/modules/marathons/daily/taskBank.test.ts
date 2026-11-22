@@ -12,6 +12,7 @@ import {
   quizBankMatchesSubject,
   sameQuestionSet,
   sampleThemePreviews,
+  searchBankTasks,
   toBankPreview,
   validateInlineEdit,
 } from "./taskBank";
@@ -49,6 +50,9 @@ test("the admin search is ordered and does not read the answer key", () => {
   assert.doesNotMatch(BANK_SEARCH_SQL, /right_answer_n/);
   assert.match(BANK_SEARCH_SQL, /ORDER BY t\.ord ASC, q\.id ASC/);
   assert.match(BANK_SEARCH_SQL, /q\.difficulty/);
+  assert.doesNotMatch(BANK_SEARCH_SQL, /REPLACE\(/);
+  assert.doesNotMatch(BANK_SEARCH_SQL, /REGEXP/i);
+  assert.doesNotMatch(BANK_SEARCH_SQL, /OFFSET/);
 });
 
 test("sameQuestionSet ignores order and rejects duplicates", () => {
@@ -102,6 +106,65 @@ test("toBankPreview keeps prompt and options and drops a key if one was selected
     options: ["3", "4"],
   });
   assert.equal("right_answer_n" in preview, false);
+});
+
+test("search reads every filtered row and pages the normalized matches", async () => {
+  const rows = [
+    {
+      id: 9,
+      name: "степінь",
+      task_text: "Обчисліть $x^{2}$.",
+      answer_1: "1",
+      answer_2: "2",
+      answer_3: null,
+      answer_4: null,
+      theme_name: "Степені",
+      difficulty: 2,
+      other_days: "3",
+    },
+    {
+      id: 10,
+      name: "сума",
+      task_text: "Скільки буде 2 + 2?",
+      answer_1: "3",
+      answer_2: "4",
+      answer_3: null,
+      answer_4: null,
+      theme_name: "Арифметика",
+      difficulty: 1,
+      other_days: null,
+    },
+  ];
+  const connection: SqlConnection = {
+    beginTransaction: async () => undefined,
+    commit: async () => undefined,
+    rollback: async () => undefined,
+    release: () => undefined,
+    execute: async () => ({ affectedRows: 0, insertId: 0 }),
+    query: async <T,>(sql: string) => {
+      assert.doesNotMatch(sql, /REPLACE\(/);
+      assert.doesNotMatch(sql, /OFFSET/);
+      return rows as T[];
+    },
+  };
+  const browse = await searchBankTasks(
+    { subject: "math", themeId: null, query: "", page: 1 },
+    async () => connection,
+  );
+  assert.equal(browse.total, 2);
+  assert.equal(browse.page, 1);
+  const found = await searchBankTasks(
+    { subject: "math", themeId: null, query: "  X^{2}  ", page: 1 },
+    async () => connection,
+  );
+  assert.equal(found.total, 1);
+  assert.equal(found.tasks[0]?.id, 9);
+  const letter = await searchBankTasks(
+    { subject: "math", themeId: null, query: "у", page: 1 },
+    async () => connection,
+  );
+  assert.equal(letter.total, 1);
+  assert.equal(letter.tasks[0]?.id, 10);
 });
 
 test("a non-math subject does not query the bank", async () => {
