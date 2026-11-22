@@ -116,6 +116,8 @@ function isMarketingPath(pathname: string): boolean {
     pathname.startsWith("/reset-password/") ||
     pathname === "/diagnostic" ||
     pathname.startsWith("/diagnostic/") ||
+    pathname === "/nmt/temy" ||
+    pathname.startsWith("/nmt/temy/") ||
     pathname === "/t" ||
     pathname.startsWith("/t/") ||
     /^\/marathon\/[^/]+$/.test(pathname) ||

@@ -1841,6 +1841,7 @@
       "steps": "How it works",
       "teachers": "Teacher",
       "faq": "FAQ",
+      "topics": "NMT topics",
       "login": "Log in",
       "register": "Create account",
       "cabinet": "Workspace"
@@ -2361,7 +2362,24 @@
     "breadcrumb": "Breadcrumb",
     "home": "Home",
     "diagnostic": "Diagnostic test",
-    "marathon": "Marathon"
+    "marathon": "Marathon",
+    "topics": "NMT topics"
+  },
+  "NmtTopics": {
+    "indexKicker": "Syllabus",
+    "indexTitle": "NMT math topics",
+    "indexLead": "Pick a topic, see what the NMT asks, and practice the tasks in your workspace.",
+    "topicKicker": "NMT topic",
+    "samplesTitle": "Examples from official papers",
+    "samplesEmpty": "Official examples for this topic are not linked yet.",
+    "source": "Source: {label}",
+    "cta": "Practice in your workspace",
+    "openNote": "You type the short answer in your workspace.",
+    "taskCount": "{count, plural, one {# task} other {# tasks}}",
+    "taskTitle": "Task {n}",
+    "countLead": "The topic “{name}” has {count, plural, one {# task} other {# tasks}} in the bank.",
+    "countLeadUnknown": "A short description of “{name}” is still being prepared.",
+    "levels": "Levels: {levels}."
   },
   "Metadata": {
     "welcome": {
@@ -2371,6 +2389,12 @@
     "welcomePage": {
       "title": "Welcome page",
       "description": "The LevelUP welcome: how you prepare for the NMT in maths, with tests, a simulator and a textbook."
+    },
+    "nmtTopics": {
+      "indexTitle": "NMT math topics",
+      "indexDescription": "NMT math syllabus topics: a short description and examples from official UCEQA papers.",
+      "topicTitle": "{name} — NMT",
+      "topicDescription": "{name}: what this NMT math topic covers and how to practice it in your workspace."
     },
     "intern": {
       "title": "Oleksandra Dubrovina",
