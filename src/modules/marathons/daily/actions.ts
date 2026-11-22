@@ -86,6 +86,7 @@ import {
 import { answerRiddle, type AttemptResult } from "./riddleQuiz";
 import {
   addPublishedTasks,
+  createDayTask,
   dayBelongsToMarathon,
   moveDayTask,
   quizBankMatchesSubject,
@@ -94,6 +95,7 @@ import {
   searchBankTasks,
   validateInlineEdit,
   type BankHit,
+  type BankSearchPage,
 } from "./taskBank";
 import { applyMarathonCsv, applyMarathonImport, checkMarathonCsv, checkMarathonImport, type CsvPreview } from "./marathonCsvStore";
 import type { CsvIssue, CsvParseResult } from "./marathonCsv";
@@ -548,7 +550,11 @@ export async function searchDayBankAction(input: {
   query: string;
   difficulty?: number | null;
   optionCount?: 0 | 2 | 4;
-}): Promise<{ ok: true; tasks: BankHit[] } | { ok: false; error: "invalid" | "empty" | "subject" | "narrow" }> {
+  page?: number;
+}): Promise<
+  | { ok: true; tasks: BankHit[]; total: number; page: number; pageSize: number }
+  | { ok: false; error: "invalid" | "empty" | "subject" | "search" }
+> {
   await requireManager();
   const marathonId = positiveId(input?.marathonId);
   const dayId = positiveId(input?.dayId);
@@ -556,17 +562,15 @@ export async function searchDayBankAction(input: {
   const query = typeof input?.query === "string" ? input.query : "";
   const difficulty = positiveId(input?.difficulty);
   const optionCount = input?.optionCount === 2 || input?.optionCount === 4 ? input.optionCount : 0;
+  const page = Number.isInteger(input?.page) && (input?.page ?? 0) > 0 ? Number(input.page) : 1;
   if (!marathonId || !dayId) return { ok: false, error: "invalid" };
   const marathon = await getDailyById(marathonId);
   if (!marathon) return { ok: false, error: "invalid" };
   if (!(await dayBelongsToMarathon(marathonId, dayId))) return { ok: false, error: "invalid" };
   const subject = typeof input?.subject === "string" ? input.subject : marathon.subject;
   if (!quizBankMatchesSubject(subject)) return { ok: false, error: "subject" };
-  if (themeId == null && query.trim().length === 0 && difficulty == null && optionCount === 0) {
-    return { ok: false, error: "narrow" };
-  }
   try {
-    const tasks = await searchBankTasks({
+    const found: BankSearchPage = await searchBankTasks({
       subject,
       themeId,
       query,
@@ -574,12 +578,13 @@ export async function searchDayBankAction(input: {
       optionCount,
       marathonId,
       dayId,
+      page,
     });
-    if (tasks.length === 0) return { ok: false, error: "empty" };
-    return { ok: true, tasks };
+    if (found.total === 0) return { ok: false, error: "empty" };
+    return { ok: true, ...found };
   } catch (error) {
     console.error("searchDayBankAction", error);
-    return { ok: false, error: "invalid" };
+    return { ok: false, error: "search" };
   }
 }
 
@@ -671,6 +676,36 @@ export async function saveDayTaskEditAction(formData: FormData): Promise<void> {
   if (saved === "missing") redirect(`${adminPath(id)}?error=invalid`);
   revalidatePath(adminPath(id));
   redirect(`${savedPath(id)}&taskCopy=1`);
+}
+
+export async function createDayTaskAction(formData: FormData): Promise<void> {
+  await requireManager();
+  const id = readInt(formData.get("marathonId"));
+  const dayId = readInt(formData.get("dayId"));
+  if (!id || !dayId) redirect(`${adminPath(id ?? undefined)}?error=invalid`);
+  if (!(await dayBelongsToMarathon(id, dayId))) redirect(`${adminPath(id)}?error=invalid`);
+  const marathon = await getDailyById(id);
+  if (!marathon) redirect(`${adminPath(id)}?error=invalid`);
+  try {
+    const saved = await createDayTask({
+      dayId,
+      prompt: String(formData.get("prompt") ?? ""),
+      options: [1, 2, 3, 4].map((index) => String(formData.get(`option${index}`) ?? "")),
+      correct: Number(formData.get("correct")),
+      explanation: String(formData.get("explanation") ?? ""),
+      saveToBank: formData.get("saveToBank") === "1",
+      themeId: readInt(formData.get("themeId")),
+      difficulty: readInt(formData.get("difficulty")),
+    });
+    if (!saved.ok) redirect(`${adminPath(id)}?error=${saved.reason === "locked" ? "tasks_locked" : saved.reason}`);
+    revalidatePath(adminPath(id));
+    revalidatePath(`/marathon/${marathon.slug}`);
+    redirect(savedPath(id));
+  } catch (error) {
+    if (String((error as { digest?: unknown }).digest).startsWith("NEXT_REDIRECT")) throw error;
+    console.error("createDayTaskAction", error);
+    redirect(`${adminPath(id)}?error=server`);
+  }
 }
 
 export async function previewMarathonCsvAction(

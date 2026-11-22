@@ -3,6 +3,12 @@ import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import { sampleRandomIds } from "@/lib/sampleRandomIds";
+import { deriveTaskName } from "@/modules/admin-content/validate";
+import {
+  BANK_PAGE_SIZE,
+  bankSearchPages,
+  matchesBankQuery,
+} from "./bankSearchText";
 import { DAY_BLOCK_MAX, DAY_HAS_ANSWERS_SQL } from "./dayRemoval";
 
 /**
@@ -14,7 +20,7 @@ import { DAY_BLOCK_MAX, DAY_HAS_ANSWERS_SQL } from "./dayRemoval";
  */
 export const QUIZ_BANK_SUBJECT = "math";
 export const BANK_SAMPLE_MAX = 20;
-export const BANK_SEARCH_LIMIT = 40;
+export const BANK_SEARCH_LIMIT = BANK_PAGE_SIZE;
 const EXCLUDE_CAP = 200;
 
 export function quizBankMatchesSubject(subject: string): boolean {
@@ -127,7 +133,24 @@ export function toBankPreview(row: PreviewRow): BankPreview {
   return { id: Number(row.id), prompt, options };
 }
 
-/** Stable search. No RAND, and the answer key stays out of the select list. */
+/**
+ * Filters only. The words, apostrophes and formulas are matched in JS
+ * (`matchesBankQuery`), so this statement stays valid on MySQL 8 and MariaDB.
+ * No nested REPLACE and no REGEXP.
+ */
+const BANK_SEARCH_WHERE = `
+  WHERE ${publishedQuizTaskSql("q")}
+    AND (? = 0 OR q.theme_id = ?)
+    AND (? = 0 OR q.difficulty = ?)
+    AND (
+      ? = 0
+      OR (? = 2 AND (q.answer_3 IS NULL OR q.answer_3 = '') AND (q.answer_4 IS NULL OR q.answer_4 = ''))
+      OR (? = 4 AND q.answer_3 <> '' AND q.answer_4 <> '')
+    )
+`;
+
+export const BANK_SEARCH_SCAN_MAX = 5000;
+
 export const BANK_SEARCH_SQL = `
   SELECT q.id, q.name, q.task_text, q.answer_1, q.answer_2, q.answer_3, q.answer_4,
          q.difficulty, t.name AS theme_name,
@@ -139,28 +162,22 @@ export const BANK_SEARCH_SQL = `
          ) AS other_days
   FROM quiz_tasks q
   INNER JOIN themes t ON t.id = q.theme_id
-  WHERE ${publishedQuizTaskSql("q")}
-    AND (? = 0 OR q.theme_id = ?)
-    AND (
-      ? = ''
-      OR CAST(q.id AS CHAR) = ?
-      OR q.name LIKE ? ESCAPE '\\\\'
-      OR q.task_text LIKE ? ESCAPE '\\\\'
-    )
-    AND (? = 0 OR q.difficulty = ?)
-    AND (
-      ? = 0
-      OR (? = 2 AND (q.answer_3 IS NULL OR q.answer_3 = '') AND (q.answer_4 IS NULL OR q.answer_4 = ''))
-      OR (? = 4 AND q.answer_3 <> '' AND q.answer_4 <> '')
-    )
+  ${BANK_SEARCH_WHERE}
   ORDER BY t.ord ASC, q.id ASC
-  LIMIT ${BANK_SEARCH_LIMIT}
+  LIMIT ${BANK_SEARCH_SCAN_MAX}
 `;
 
 export type BankHit = BankPreview & {
   themeName: string;
   difficulty: number;
   otherDays: number[];
+};
+
+export type BankSearchPage = {
+  tasks: BankHit[];
+  total: number;
+  page: number;
+  pageSize: number;
 };
 
 type Conn = () => Promise<SqlConnection>;
@@ -545,6 +562,163 @@ export function validateInlineEdit(input: {
   return { ok: true, prompt, options, correct: input.correct, explanation: explanation || null };
 }
 
+export function planDayTaskCreate(input: {
+  prompt: string;
+  options: readonly string[];
+  correct: number;
+  explanation: string;
+  saveToBank: boolean;
+  themeId: number | null;
+  difficulty: number | null;
+}):
+  | { ok: false; reason: "invalid" | "bank_fields" }
+  | {
+      ok: true;
+      mode: "day";
+      prompt: string;
+      options: string[];
+      correct: number;
+      explanation: string | null;
+    }
+  | {
+      ok: true;
+      mode: "bank";
+      prompt: string;
+      options: [string, string, string, string];
+      correct: number;
+      explanation: string | null;
+      themeId: number;
+      difficulty: number;
+    } {
+  const edited = validateInlineEdit(input);
+  if (!edited.ok) return { ok: false, reason: "invalid" };
+  if (!input.saveToBank) return { ...edited, mode: "day" };
+  if (edited.options.length !== 4 || edited.options.some((item) => item.length > 255)) {
+    return { ok: false, reason: "bank_fields" };
+  }
+  if (input.themeId == null || !Number.isInteger(input.themeId) || input.themeId <= 0) {
+    return { ok: false, reason: "bank_fields" };
+  }
+  if (input.difficulty == null || !Number.isInteger(input.difficulty) || input.difficulty < 1) {
+    return { ok: false, reason: "bank_fields" };
+  }
+  return {
+    ok: true,
+    mode: "bank",
+    prompt: edited.prompt,
+    options: [edited.options[0]!, edited.options[1]!, edited.options[2]!, edited.options[3]!],
+    correct: edited.correct,
+    explanation: edited.explanation,
+    themeId: input.themeId,
+    difficulty: input.difficulty,
+  };
+}
+
+export async function createDayTask(
+  input: {
+    dayId: number;
+    prompt: string;
+    options: readonly string[];
+    correct: number;
+    explanation: string;
+    saveToBank: boolean;
+    themeId: number | null;
+    difficulty: number | null;
+  },
+  getConnection: Conn = loadDefaultConnection,
+): Promise<{ ok: true; mode: "day" | "bank"; questionId: number | null } | { ok: false; reason: "invalid" | "bank_fields" | "locked" | "duplicate" }> {
+  const plan = planDayTaskCreate(input);
+  if (!plan.ok) return plan;
+  await ensureDays(getConnection);
+  return withSql(async (connection) => {
+    await connection.beginTransaction();
+    try {
+      const answered = await connection.query<{ n: number | string }>(
+        `SELECT COUNT(*) AS n FROM marathon_day_progress
+         WHERE day_id = ? AND ${DAY_HAS_ANSWERS_SQL}`,
+        [input.dayId],
+      );
+      if (Number(answered[0]?.n ?? 0) > 0) {
+        await connection.rollback();
+        return { ok: false, reason: "locked" };
+      }
+      const same = await connection.query<{ id: number }>(
+        `SELECT t.id
+         FROM marathon_day_tasks t
+         LEFT JOIN quiz_tasks q ON q.id = t.question_id
+         WHERE t.day_id = ? AND (t.inline_prompt = ? OR q.task_text = ?)
+         LIMIT 1`,
+        [input.dayId, plan.prompt, plan.prompt],
+      );
+      if (same[0]) {
+        await connection.rollback();
+        return { ok: false, reason: "duplicate" };
+      }
+      const maxRows = await connection.query<{ max_order: number | null }>(
+        `SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM marathon_day_tasks WHERE day_id = ?`,
+        [input.dayId],
+      );
+      const order = Number(maxRows[0]?.max_order ?? 0) + 1;
+      if (plan.mode === "day") {
+        await connection.execute(
+          `INSERT INTO marathon_day_tasks
+            (day_id, sort_order, question_id, inline_prompt, inline_options, inline_correct, inline_explanation)
+           VALUES (?, ?, NULL, ?, ?, ?, ?)`,
+          [input.dayId, order, plan.prompt, JSON.stringify(plan.options), plan.correct, plan.explanation],
+        );
+        await connection.commit();
+        return { ok: true, mode: "day", questionId: null };
+      }
+      const nextRows = await connection.query<{ next_id: number | string }>(
+        `SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM quiz_tasks`,
+      );
+      const questionId = Number(nextRows[0]?.next_id);
+      if (!Number.isInteger(questionId) || questionId <= 0) {
+        await connection.rollback();
+        return { ok: false, reason: "invalid" };
+      }
+      const theme = await connection.query<{ id: number }>(
+        `SELECT id FROM themes WHERE id = ? LIMIT 1`,
+        [plan.themeId],
+      );
+      if (!theme[0]) {
+        await connection.rollback();
+        return { ok: false, reason: "bank_fields" };
+      }
+      await connection.execute(
+        `INSERT INTO quiz_tasks
+          (id, name, task_text, theme_id, answer_1, answer_2, answer_3, answer_4,
+           right_answer_n, comments, difficulty, hint_short, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'published')`,
+        [
+          questionId,
+          deriveTaskName(plan.prompt),
+          plan.prompt,
+          plan.themeId,
+          plan.options[0],
+          plan.options[1],
+          plan.options[2],
+          plan.options[3],
+          plan.correct,
+          plan.explanation ?? "",
+          plan.difficulty,
+        ],
+      );
+      await connection.execute(
+        `INSERT INTO marathon_day_tasks
+          (day_id, sort_order, question_id, inline_prompt, inline_options, inline_correct, inline_explanation)
+         VALUES (?, ?, ?, NULL, NULL, NULL, NULL)`,
+        [input.dayId, order, questionId],
+      );
+      await connection.commit();
+      return { ok: true, mode: "bank", questionId };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    }
+  }, getConnection);
+}
+
 export async function addPublishedTasks(
   input: { marathonId: number; dayId: number; questionIds: readonly number[] },
   getConnection: Conn = loadDefaultConnection,
@@ -676,6 +850,22 @@ export async function saveTaskCopy(
     return "saved";
   }, getConnection);
 }
+function bankWhereParams(input: {
+  themeId: number;
+  difficulty: number;
+  optionCount: number;
+}): unknown[] {
+  return [
+    input.themeId,
+    input.themeId,
+    input.difficulty,
+    input.difficulty,
+    input.optionCount,
+    input.optionCount,
+    input.optionCount,
+  ];
+}
+
 export async function searchBankTasks(
   input: {
     subject: string;
@@ -685,51 +875,53 @@ export async function searchBankTasks(
     optionCount?: 0 | 2 | 4;
     marathonId?: number;
     dayId?: number;
+    page?: number;
   },
   getConnection?: Conn,
-): Promise<BankHit[]> {
-  if (!quizBankMatchesSubject(input.subject)) return [];
+): Promise<BankSearchPage> {
+  const empty = { tasks: [], total: 0, page: 1, pageSize: BANK_PAGE_SIZE };
+  if (!quizBankMatchesSubject(input.subject)) return empty;
   const themeId = input.themeId != null && Number.isInteger(input.themeId) && input.themeId > 0
     ? input.themeId
     : 0;
-  const term = input.query.trim().slice(0, 80);
   const difficulty = input.difficulty != null && Number.isInteger(input.difficulty) && input.difficulty > 0
     ? input.difficulty
     : 0;
   const optionCount = input.optionCount === 2 || input.optionCount === 4 ? input.optionCount : 0;
-  if (themeId === 0 && term.length === 0 && difficulty === 0 && optionCount === 0) return [];
-  const like = `%${term.replace(/[\\%_]/g, "\\$&")}%`;
+  const where = bankWhereParams({ themeId, difficulty, optionCount });
   const marathonId = input.marathonId != null && Number.isInteger(input.marathonId) ? input.marathonId : 0;
   const dayId = input.dayId != null && Number.isInteger(input.dayId) ? input.dayId : 0;
+  const requested = Number.isInteger(input.page) && (input.page ?? 0) > 0 ? Number(input.page) : 1;
   return withSql(async (connection) => {
     const rows = await connection.query<
-      PreviewRow & { theme_name: string | null; difficulty: number | null; other_days: string | null }
-    >(
-      BANK_SEARCH_SQL,
-      [
-        marathonId,
-        dayId,
-        themeId,
-        themeId,
-        term,
-        term,
-        like,
-        like,
-        difficulty,
-        difficulty,
-        optionCount,
-        optionCount,
-        optionCount,
-      ],
-    );
-    return rows.map((row) => ({
-      ...toBankPreview(row),
-      themeName: (row.theme_name ?? "").trim(),
-      difficulty: Number(row.difficulty ?? 0),
-      otherDays: (row.other_days ?? "")
-        .split(",")
-        .map((item) => Number(item))
-        .filter((item) => Number.isInteger(item) && item > 0),
-    }));
+      PreviewRow & { name: string | null; theme_name: string | null; difficulty: number | null; other_days: string | null }
+    >(BANK_SEARCH_SQL, [marathonId, dayId, ...where]);
+    const matched = rows.flatMap((row) => {
+      const preview = toBankPreview(row);
+      if (!matchesBankQuery({
+        id: preview.id,
+        name: row.name ?? "",
+        prompt: preview.prompt,
+        query: input.query,
+      })) return [];
+      return [{
+        ...preview,
+        themeName: (row.theme_name ?? "").trim(),
+        difficulty: Number(row.difficulty ?? 0),
+        otherDays: (row.other_days ?? "")
+          .split(",")
+          .map((item) => Number(item))
+          .filter((item) => Number.isInteger(item) && item > 0),
+      }];
+    });
+    const pages = bankSearchPages(matched.length);
+    const page = Math.min(requested, pages);
+    const start = (page - 1) * BANK_PAGE_SIZE;
+    return {
+      total: matched.length,
+      page,
+      pageSize: BANK_PAGE_SIZE,
+      tasks: matched.slice(start, start + BANK_PAGE_SIZE),
+    };
   }, getConnection);
 }
