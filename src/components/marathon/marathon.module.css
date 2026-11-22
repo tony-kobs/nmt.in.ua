@@ -1235,6 +1235,15 @@
   font-size: var(--fs-h4);
 }
 
+.toolSlot {
+  display: contents;
+}
+
+.createTaskForm {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
 .manualTask summary,
 .manualSummary {
   display: inline-flex;

@@ -8,6 +8,7 @@ const KNOWN = [
   "server",
   "seed_exists",
   "question",
+  "bank_fields",
   "no_alternate",
   "locked",
   "missing",

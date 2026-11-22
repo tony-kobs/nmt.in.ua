@@ -186,7 +186,7 @@ export function DayTaskBank({
   }
 
   return (
-    <div>
+    <div className={css.toolSlot}>
       {submissions > 0 ? <p className={css.meta}>{t("bankLocked")}</p> : (
         <button
           ref={openerRef}
