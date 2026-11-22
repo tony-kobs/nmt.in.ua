@@ -5,6 +5,14 @@ import { useTranslations } from "next-intl";
 import { Select } from "@/components/ui/Select/Select";
 import { MathText } from "@/components/ui/MathText";
 import { addDayBankTasksAction, searchDayBankAction } from "@/modules/marathons/daily/actions";
+import {
+  BANK_SEARCH_DEBOUNCE_MS,
+  bankSearchPages,
+  beginBankSearch,
+  isLatestBankRequest,
+  normalizeBankSearchText,
+  type BankSearchState,
+} from "@/modules/marathons/daily/bankSearchText";
 import { DAY_BLOCK_MAX } from "@/modules/marathons/daily/dayRemoval";
 import { SubmitButton } from "../ConfirmSubmit";
 import css from "../marathon.module.css";
@@ -22,6 +30,8 @@ export type BankChoice = {
   options: string[];
   themeName?: string;
 };
+
+type Hit = BankChoice & { difficulty?: number; otherDays?: number[] };
 
 export function DayTaskBank({
   marathonId,
@@ -43,18 +53,30 @@ export function DayTaskBank({
   const searchId = useId();
   const subjectLabel = useId();
   const themeLabel = useId();
-  const [filterSubject, setFilterSubject] = useState(
-    subject.trim().toLowerCase() === "math" ? "math" : subject.trim() || "math",
-  );
-  const [themeId, setThemeId] = useState("");
-  const [query, setQuery] = useState("");
-  const [hits, setHits] = useState<Array<BankChoice & { difficulty?: number; otherDays?: number[] }>>([]);
+  const difficultyLabel = useId();
+  const typeLabel = useId();
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const openerRef = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestRef = useRef(0);
+  const initialSearch: BankSearchState = {
+    query: "",
+    page: 1,
+    themeId: "",
+    difficulty: "0",
+    optionCount: 0,
+    subject: subject.trim().toLowerCase() === "math" ? "math" : subject.trim() || "math",
+    request: 0,
+  };
+  const stateRef = useRef(initialSearch);
+  const [search, setSearch] = useState(initialSearch);
+  const [hits, setHits] = useState<Hit[]>([]);
+  const [total, setTotal] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
   const [pending, setPending] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  const [difficulty, setDifficulty] = useState("0");
-  const [optionCount, setOptionCount] = useState<0 | 2 | 4>(0);
-  const [checked, setChecked] = useState<number[]>([]);
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [picked, setPicked] = useState<Map<number, Hit>>(() => new Map());
 
   const subjectOptions = useMemo(() => {
     const values = ["math"];
@@ -75,154 +97,262 @@ export function DayTaskBank({
   );
 
   const onDay = useMemo(() => new Set(saved.map((item) => item.id)), [saved]);
+  const room = Math.max(0, DAY_BLOCK_MAX - saved.length);
+  const chosen = [...picked.values()].filter((item) => !onDay.has(item.id)).slice(0, room);
+  const pages = bankSearchPages(total, pageSize);
 
-  async function search() {
-    setPending(true);
-    setNote(null);
-    try {
-      const result = await searchDayBankAction({
-        marathonId,
-        dayId,
-        subject: filterSubject,
-        themeId: themeId ? Number(themeId) : null,
-        query,
-        difficulty: Number(difficulty) || null,
-        optionCount,
-      });
-      if (!result.ok) {
+  function apply(next: BankSearchState, delay: number) {
+    stateRef.current = next;
+    latestRef.current = next.request;
+    setSearch(next);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const issued = next.request;
+    const fire = () => {
+      const ready =
+        next.themeId !== "" ||
+        next.difficulty !== "0" ||
+        next.optionCount !== 0 ||
+        normalizeBankSearchText(next.query).length > 0;
+      if (!ready) {
+        if (!isLatestBankRequest(latestRef.current, issued)) return;
         setHits([]);
-        if (result.error === "subject") setNote(t("bankSubjectEmpty"));
-        else if (result.error === "narrow") setNote(t("bankNarrow"));
-        else if (result.error === "empty") setNote(t("bankEmptySearch"));
-        else setNote(t("errors.server"));
+        setTotal(0);
+        setPending(false);
+        setNote(t("bankHint"));
         return;
       }
-      setHits(result.tasks);
-    } catch {
-      setNote(t("errors.server"));
-    } finally {
-      setPending(false);
-    }
+      setPending(true);
+      setNote(null);
+      void searchDayBankAction({
+        marathonId,
+        dayId,
+        subject: next.subject,
+        themeId: next.themeId ? Number(next.themeId) : null,
+        query: next.query,
+        difficulty: Number(next.difficulty) || null,
+        optionCount: next.optionCount,
+        page: next.page,
+      })
+        .then((result) => {
+          if (!isLatestBankRequest(latestRef.current, issued)) return;
+          if (!result.ok) {
+            setHits([]);
+            setTotal(0);
+            if (result.error === "subject") setNote(t("bankSubjectEmpty"));
+            else if (result.error === "narrow") setNote(t("bankHint"));
+            else if (result.error === "empty") setNote(t("bankEmptySearch"));
+            else setNote(t("errors.server"));
+            return;
+          }
+          setHits(result.tasks);
+          setTotal(result.total);
+          setPageSize(result.pageSize);
+          if (result.page !== next.page) {
+            const synced = { ...stateRef.current, page: result.page };
+            stateRef.current = synced;
+            setSearch(synced);
+          }
+        })
+        .catch(() => {
+          if (!isLatestBankRequest(latestRef.current, issued)) return;
+          setHits([]);
+          setTotal(0);
+          setNote(t("errors.server"));
+        })
+        .finally(() => {
+          if (isLatestBankRequest(latestRef.current, issued)) setPending(false);
+        });
+    };
+    if (delay <= 0) fire();
+    else timerRef.current = setTimeout(fire, delay);
   }
 
-  const selected = hits.filter((hit) => checked.includes(hit.id) && !onDay.has(hit.id));
-  const room = Math.max(0, DAY_BLOCK_MAX - saved.length);
+  function change(patch: Partial<Omit<BankSearchState, "request">>, delay: number) {
+    apply(beginBankSearch(stateRef.current, patch), delay);
+  }
+
+  function toggle(hit: Hit) {
+    if (picked.has(hit.id)) {
+      const next = new Map(picked);
+      next.delete(hit.id);
+      setPicked(next);
+      return;
+    }
+    if (picked.size >= room) {
+      setNote(t("bankLimit", { max: DAY_BLOCK_MAX }));
+      return;
+    }
+    const next = new Map(picked);
+    next.set(hit.id, hit);
+    setPicked(next);
+  }
 
   return (
     <div>
       {submissions > 0 ? <p className={css.meta}>{t("bankLocked")}</p> : (
         <button
+          ref={openerRef}
           type="button"
           className={css.button}
-          onClick={() => dialogRef.current?.showModal()}
+          onClick={() => {
+            dialogRef.current?.showModal();
+            searchRef.current?.focus();
+          }}
         >
           {t("bankAddButton")}
         </button>
       )}
-      <dialog ref={dialogRef} className={css.pickerDialog} aria-labelledby={titleId}>
+      <dialog
+        ref={dialogRef}
+        className={css.pickerDialog}
+        aria-labelledby={titleId}
+        aria-busy={pending || undefined}
+        onClose={() => openerRef.current?.focus()}
+      >
         <h3 id={titleId}>{t("bankAddButton")}</h3>
         <p className={css.meta}>{t("bankSubjectMath")}</p>
         <div className={css.row2}>
           <div className={css.field}>
             <span className={css.fieldLabel} id={subjectLabel}>{t("bankSubject")}</span>
-            <Select aria-labelledby={subjectLabel} options={subjectOptions} value={filterSubject} onChange={setFilterSubject} />
+            <Select
+              aria-labelledby={subjectLabel}
+              options={subjectOptions}
+              value={search.subject}
+              onChange={(value) => change({ subject: value }, 0)}
+            />
           </div>
           <div className={css.field}>
             <span className={css.fieldLabel} id={themeLabel}>{t("bankTheme")}</span>
-            <Select aria-labelledby={themeLabel} options={themeOptions} value={themeId} onChange={setThemeId} placeholder={t("bankAllThemes")} />
+            <Select
+              aria-labelledby={themeLabel}
+              options={themeOptions}
+              value={search.themeId}
+              onChange={(value) => change({ themeId: value }, 0)}
+              placeholder={t("bankAllThemes")}
+            />
           </div>
         </div>
         <div className={css.row2}>
           <div className={css.field}>
-            <label className={css.fieldLabel} htmlFor={`${searchId}-difficulty`}>{t("bankDifficulty")}</label>
-            <select
-              id={`${searchId}-difficulty`}
-              className={css.input}
-              value={difficulty}
-              onChange={(event) => setDifficulty(event.target.value)}
-            >
-              <option value="0">{t("bankDifficultyAll")}</option>
-              {[1, 2, 3, 4, 5].map((level) => (
-                <option key={level} value={level}>{level}</option>
-              ))}
-            </select>
+            <span className={css.fieldLabel} id={difficultyLabel}>{t("bankDifficulty")}</span>
+            <Select
+              aria-labelledby={difficultyLabel}
+              options={[
+                { value: "0", label: t("bankDifficultyAll") },
+                ...[1, 2, 3, 4, 5].map((level) => ({ value: String(level), label: String(level) })),
+              ]}
+              value={search.difficulty}
+              onChange={(value) => change({ difficulty: value }, 0)}
+            />
           </div>
           <div className={css.field}>
-            <label className={css.fieldLabel} htmlFor={`${searchId}-type`}>{t("bankType")}</label>
-            <select
-              id={`${searchId}-type`}
-              className={css.input}
-              value={String(optionCount)}
-              onChange={(event) => setOptionCount(Number(event.target.value) as 0 | 2 | 4)}
-            >
-              <option value="0">{t("bankTypeAll")}</option>
-              <option value="2">{t("bankTypeTwo")}</option>
-              <option value="4">{t("bankTypeFour")}</option>
-            </select>
+            <span className={css.fieldLabel} id={typeLabel}>{t("bankType")}</span>
+            <Select
+              aria-labelledby={typeLabel}
+              options={[
+                { value: "0", label: t("bankTypeAll") },
+                { value: "2", label: t("bankTypeTwo") },
+                { value: "4", label: t("bankTypeFour") },
+              ]}
+              value={String(search.optionCount)}
+              onChange={(value) => change({ optionCount: Number(value) as 0 | 2 | 4 }, 0)}
+            />
           </div>
         </div>
         <div className={css.field}>
           <label className={css.fieldLabel} htmlFor={searchId}>{t("bankSearch")}</label>
           <input
+            ref={searchRef}
             id={searchId}
             className={css.input}
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            value={search.query}
+            onChange={(event) => change({ query: event.target.value }, BANK_SEARCH_DEBOUNCE_MS)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                change({ query: event.currentTarget.value, page: 1 }, 0);
+              }
+            }}
             autoComplete="off"
+            enterKeyHint="search"
+            aria-describedby={note ? `${searchId}-note` : undefined}
           />
         </div>
-        <div className={css.actions}>
-          <button type="button" className={css.button} disabled={pending} onClick={() => void search()}>
-            {pending ? t("working") : t("bankFind")}
-          </button>
-          <button type="button" className={css.buttonQuiet} onClick={() => dialogRef.current?.close()}>
-            {t("bankClose")}
-          </button>
-        </div>
-        {note ? <p className={css.fieldError} role="alert">{note}</p> : null}
+        <p className={css.pickerStatus} aria-live="polite">
+          {pending ? t("bankSearching") : t("bankSelected", { count: picked.size })}
+        </p>
+        {note ? (
+          <p id={`${searchId}-note`} className={css.fieldError} role="alert">
+            {note}
+          </p>
+        ) : null}
         {hits.length > 0 ? (
           <ul className={css.taskList}>
             {hits.map((hit) => {
               const added = onDay.has(hit.id);
-              const on = checked.includes(hit.id);
+              const on = picked.has(hit.id);
               return (
                 <li key={hit.id} className={css.taskRow}>
-                  <label className={css.meta}>
+                  <label className={css.pickerCheck}>
                     <input
                       type="checkbox"
                       checked={on}
                       disabled={added}
-                      onChange={() => {
-                        setChecked((current) => (
-                          current.includes(hit.id)
-                            ? current.filter((id) => id !== hit.id)
-                            : [...current, hit.id]
-                        ));
-                      }}
+                      onChange={() => toggle(hit)}
                     />
-                    {" "}#{hit.id}
-                    {hit.themeName ? ` · ${hit.themeName}` : ""}
-                    {hit.difficulty ? ` · ${t("bankDifficulty")} ${hit.difficulty}` : ""}
-                    {added ? ` · ${t("bankPicked")}` : ""}
+                    <span>
+                      #{hit.id}
+                      {hit.themeName ? ` · ${hit.themeName}` : ""}
+                      {hit.difficulty ? ` · ${t("bankDifficulty")} ${hit.difficulty}` : ""}
+                      {added ? ` · ${t("bankPicked")}` : ""}
+                    </span>
                   </label>
                   {hit.otherDays && hit.otherDays.length > 0 ? (
                     <p className={css.fieldError}>{t("bankOtherDay", { days: hit.otherDays.join(", ") })}</p>
                   ) : null}
-                  <MathText text={hit.prompt} as="div" />
+                  <div className={css.pickerPrompt}>
+                    <MathText text={hit.prompt} as="div" />
+                  </div>
                 </li>
               );
             })}
           </ul>
         ) : null}
+        {total > pageSize ? (
+          <div className={css.actions}>
+            <button
+              type="button"
+              className={css.buttonQuiet}
+              disabled={search.page <= 1 || pending}
+              onClick={() => change({ page: search.page - 1 }, 0)}
+            >
+              {t("bankPrev")}
+            </button>
+            <p className={css.meta}>{t("bankPage", { page: search.page, pages })}</p>
+            <button
+              type="button"
+              className={css.buttonQuiet}
+              disabled={search.page >= pages || pending}
+              onClick={() => change({ page: search.page + 1 }, 0)}
+            >
+              {t("bankNext")}
+            </button>
+          </div>
+        ) : null}
         <form action={addDayBankTasksAction}>
           <input type="hidden" name="marathonId" value={marathonId} />
           <input type="hidden" name="dayId" value={dayId} />
-          {selected.slice(0, room).map((hit) => (
+          {chosen.map((hit) => (
             <input key={hit.id} type="hidden" name="questionId" value={hit.id} />
           ))}
-          <SubmitButton className={css.button} pendingLabel={t("saving")}>
-            {t("bankAddSelected")}
-          </SubmitButton>
+          <div className={css.actions}>
+            <SubmitButton className={css.button} pendingLabel={t("saving")} disabled={chosen.length === 0}>
+              {t("bankAddSelected")}
+            </SubmitButton>
+            <button type="button" className={css.buttonQuiet} onClick={() => dialogRef.current?.close()}>
+              {t("bankClose")}
+            </button>
+          </div>
         </form>
       </dialog>
     </div>

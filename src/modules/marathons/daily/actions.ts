@@ -83,6 +83,7 @@ import {
   updateMaterial,
   updateRiddle,
 } from "./store";
+import { normalizeBankSearchText } from "./bankSearchText";
 import { answerRiddle, type AttemptResult } from "./riddleQuiz";
 import {
   addPublishedTasks,
@@ -94,6 +95,7 @@ import {
   searchBankTasks,
   validateInlineEdit,
   type BankHit,
+  type BankSearchPage,
 } from "./taskBank";
 import { applyMarathonCsv, applyMarathonImport, checkMarathonCsv, checkMarathonImport, type CsvPreview } from "./marathonCsvStore";
 import type { CsvIssue, CsvParseResult } from "./marathonCsv";
@@ -548,7 +550,11 @@ export async function searchDayBankAction(input: {
   query: string;
   difficulty?: number | null;
   optionCount?: 0 | 2 | 4;
-}): Promise<{ ok: true; tasks: BankHit[] } | { ok: false; error: "invalid" | "empty" | "subject" | "narrow" }> {
+  page?: number;
+}): Promise<
+  | { ok: true; tasks: BankHit[]; total: number; page: number; pageSize: number }
+  | { ok: false; error: "invalid" | "empty" | "subject" | "narrow" }
+> {
   await requireManager();
   const marathonId = positiveId(input?.marathonId);
   const dayId = positiveId(input?.dayId);
@@ -556,17 +562,23 @@ export async function searchDayBankAction(input: {
   const query = typeof input?.query === "string" ? input.query : "";
   const difficulty = positiveId(input?.difficulty);
   const optionCount = input?.optionCount === 2 || input?.optionCount === 4 ? input.optionCount : 0;
+  const page = Number.isInteger(input?.page) && (input?.page ?? 0) > 0 ? Number(input.page) : 1;
   if (!marathonId || !dayId) return { ok: false, error: "invalid" };
   const marathon = await getDailyById(marathonId);
   if (!marathon) return { ok: false, error: "invalid" };
   if (!(await dayBelongsToMarathon(marathonId, dayId))) return { ok: false, error: "invalid" };
   const subject = typeof input?.subject === "string" ? input.subject : marathon.subject;
   if (!quizBankMatchesSubject(subject)) return { ok: false, error: "subject" };
-  if (themeId == null && query.trim().length === 0 && difficulty == null && optionCount === 0) {
+  if (
+    themeId == null &&
+    normalizeBankSearchText(query).length === 0 &&
+    difficulty == null &&
+    optionCount === 0
+  ) {
     return { ok: false, error: "narrow" };
   }
   try {
-    const tasks = await searchBankTasks({
+    const found: BankSearchPage = await searchBankTasks({
       subject,
       themeId,
       query,
@@ -574,9 +586,10 @@ export async function searchDayBankAction(input: {
       optionCount,
       marathonId,
       dayId,
+      page,
     });
-    if (tasks.length === 0) return { ok: false, error: "empty" };
-    return { ok: true, tasks };
+    if (found.total === 0) return { ok: false, error: "empty" };
+    return { ok: true, ...found };
   } catch (error) {
     console.error("searchDayBankAction", error);
     return { ok: false, error: "invalid" };

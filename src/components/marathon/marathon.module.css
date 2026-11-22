@@ -1616,9 +1616,13 @@
 }
 
 .pickerDialog {
-  width: min(40rem, calc(100vw - 2rem));
-  max-height: min(40rem, calc(100dvh - 2rem));
+  box-sizing: border-box;
+  width: min(40rem, calc(100% - 1rem));
+  max-width: calc(100% - 1rem);
+  max-height: calc(100dvh - 1rem);
+  margin: auto;
   overflow: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--paper);
@@ -1635,9 +1639,47 @@
   width: 100%;
 }
 
-.pickerDialog input[type="checkbox"] {
+.pickerDialog .row2,
+.pickerDialog .field,
+.pickerDialog .taskList,
+.pickerDialog .taskRow {
+  min-width: 0;
+}
+
+.pickerCheck {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.pickerCheck input {
   width: 1.25rem;
   height: 1.25rem;
+  flex: none;
+}
+
+.pickerPrompt {
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+.pickerStatus {
+  min-height: 44px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.pickerDialog .button:disabled,
+.pickerDialog .buttonQuiet:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .formatTabs {

@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import clsx from "clsx";
 import { useIsClient } from "@/lib/useIsClient";
 import { findTypeaheadIndex, isTypeaheadChar } from "./findTypeaheadIndex";
+import { placeMenu } from "./placeMenu";
 import css from "./Select.module.css";
 
 export type SelectOption = {
@@ -47,8 +48,6 @@ type SelectProps = {
 };
 
 const TYPEAHEAD_MS = 500;
-const MENU_GAP = 6;
-const MENU_PAD = 8;
 
 function enabledIndexes(options: readonly SelectOption[]): number[] {
   return options.flatMap((option, index) => (option.disabled ? [] : [index]));
@@ -59,25 +58,25 @@ function measureMenu(
   variant: "field" | "compact",
 ): MenuBox {
   const rect = trigger.getBoundingClientRect();
-  const width = Math.max(
-    rect.width,
-    variant === "compact" ? 8.5 * 16 : rect.width,
-  );
-  const left = Math.min(
-    Math.max(MENU_PAD, rect.left),
-    Math.max(MENU_PAD, window.innerWidth - width - MENU_PAD),
-  );
-  const below = window.innerHeight - rect.bottom - MENU_GAP - MENU_PAD;
-  const above = rect.top - MENU_GAP - MENU_PAD;
-  const placeBelow = below >= 8.5 * 16 || below >= above;
-  const maxHeight = Math.min(
-    16 * 16,
-    Math.max(44, placeBelow ? below : above),
-  );
-  const top = placeBelow
-    ? rect.bottom + MENU_GAP
-    : Math.max(MENU_PAD, rect.top - MENU_GAP - maxHeight);
-  return { top, left, width, maxHeight };
+  return placeMenu({
+    top: rect.top,
+    left: rect.left,
+    bottom: rect.bottom,
+    width: rect.width,
+    minWidth: variant === "compact" ? 8.5 * 16 : rect.width,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+  });
+}
+
+function showMenuLayer(node: HTMLElement) {
+  const layer = node as HTMLElement & { showPopover?: () => void };
+  if (typeof layer.showPopover !== "function") return;
+  try {
+    if (!node.matches(":popover-open")) layer.showPopover();
+  } catch {
+    // The menu is already in the top layer.
+  }
 }
 
 export function Select({
@@ -152,6 +151,8 @@ export function Select({
 
   useEffect(() => {
     if (!isOpen) return;
+    const node = menuRef.current;
+    if (node) showMenuLayer(node);
     updateBox();
     const onPointer = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -335,13 +336,18 @@ export function Select({
                   id={listId}
                   className={css.menu}
                   role="listbox"
+                  popover="manual"
                   aria-labelledby={triggerId}
                   style={{
                     position: "fixed",
                     top: box.top,
                     left: box.left,
+                    right: "auto",
+                    bottom: "auto",
                     width: box.width,
+                    height: "auto",
                     maxHeight: box.maxHeight,
+                    margin: 0,
                   }}
                 >
                   {options.map((option, index) => {

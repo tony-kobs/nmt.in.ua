@@ -3,6 +3,14 @@ import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import { sampleRandomIds } from "@/lib/sampleRandomIds";
+import {
+  BANK_PAGE_SIZE,
+  bankNormalizedSql,
+  bankSearchId,
+  bankSearchLike,
+  bankSearchPages,
+  normalizeBankSearchText,
+} from "./bankSearchText";
 import { DAY_BLOCK_MAX, DAY_HAS_ANSWERS_SQL } from "./dayRemoval";
 
 /**
@@ -14,7 +22,7 @@ import { DAY_BLOCK_MAX, DAY_HAS_ANSWERS_SQL } from "./dayRemoval";
  */
 export const QUIZ_BANK_SUBJECT = "math";
 export const BANK_SAMPLE_MAX = 20;
-export const BANK_SEARCH_LIMIT = 40;
+export const BANK_SEARCH_LIMIT = BANK_PAGE_SIZE;
 const EXCLUDE_CAP = 200;
 
 export function quizBankMatchesSubject(subject: string): boolean {
@@ -128,6 +136,23 @@ export function toBankPreview(row: PreviewRow): BankPreview {
 }
 
 /** Stable search. No RAND, and the answer key stays out of the select list. */
+const BANK_SEARCH_WHERE = `
+  WHERE ${publishedQuizTaskSql("q")}
+    AND (? = 0 OR q.theme_id = ?)
+    AND (
+      ? = ''
+      OR (? <> '' AND CAST(q.id AS CHAR) = ?)
+      OR ${bankNormalizedSql("q.name")} LIKE ? ESCAPE '\\\\'
+      OR ${bankNormalizedSql("q.task_text")} LIKE ? ESCAPE '\\\\'
+    )
+    AND (? = 0 OR q.difficulty = ?)
+    AND (
+      ? = 0
+      OR (? = 2 AND (q.answer_3 IS NULL OR q.answer_3 = '') AND (q.answer_4 IS NULL OR q.answer_4 = ''))
+      OR (? = 4 AND q.answer_3 <> '' AND q.answer_4 <> '')
+    )
+`;
+
 export const BANK_SEARCH_SQL = `
   SELECT q.id, q.name, q.task_text, q.answer_1, q.answer_2, q.answer_3, q.answer_4,
          q.difficulty, t.name AS theme_name,
@@ -139,28 +164,29 @@ export const BANK_SEARCH_SQL = `
          ) AS other_days
   FROM quiz_tasks q
   INNER JOIN themes t ON t.id = q.theme_id
-  WHERE ${publishedQuizTaskSql("q")}
-    AND (? = 0 OR q.theme_id = ?)
-    AND (
-      ? = ''
-      OR CAST(q.id AS CHAR) = ?
-      OR q.name LIKE ? ESCAPE '\\\\'
-      OR q.task_text LIKE ? ESCAPE '\\\\'
-    )
-    AND (? = 0 OR q.difficulty = ?)
-    AND (
-      ? = 0
-      OR (? = 2 AND (q.answer_3 IS NULL OR q.answer_3 = '') AND (q.answer_4 IS NULL OR q.answer_4 = ''))
-      OR (? = 4 AND q.answer_3 <> '' AND q.answer_4 <> '')
-    )
+  ${BANK_SEARCH_WHERE}
   ORDER BY t.ord ASC, q.id ASC
-  LIMIT ${BANK_SEARCH_LIMIT}
+  LIMIT ? OFFSET ?
+`;
+
+export const BANK_SEARCH_COUNT_SQL = `
+  SELECT COUNT(*) AS n
+  FROM quiz_tasks q
+  INNER JOIN themes t ON t.id = q.theme_id
+  ${BANK_SEARCH_WHERE}
 `;
 
 export type BankHit = BankPreview & {
   themeName: string;
   difficulty: number;
   otherDays: number[];
+};
+
+export type BankSearchPage = {
+  tasks: BankHit[];
+  total: number;
+  page: number;
+  pageSize: number;
 };
 
 type Conn = () => Promise<SqlConnection>;
@@ -676,6 +702,31 @@ export async function saveTaskCopy(
     return "saved";
   }, getConnection);
 }
+function bankWhereParams(input: {
+  themeId: number;
+  query: string;
+  difficulty: number;
+  optionCount: number;
+}): unknown[] {
+  const normalized = normalizeBankSearchText(input.query).slice(0, 80);
+  const id = bankSearchId(input.query);
+  const like = bankSearchLike(input.query);
+  return [
+    input.themeId,
+    input.themeId,
+    normalized,
+    id,
+    id,
+    like,
+    like,
+    input.difficulty,
+    input.difficulty,
+    input.optionCount,
+    input.optionCount,
+    input.optionCount,
+  ];
+}
+
 export async function searchBankTasks(
   input: {
     subject: string;
@@ -685,51 +736,52 @@ export async function searchBankTasks(
     optionCount?: 0 | 2 | 4;
     marathonId?: number;
     dayId?: number;
+    page?: number;
   },
   getConnection?: Conn,
-): Promise<BankHit[]> {
-  if (!quizBankMatchesSubject(input.subject)) return [];
+): Promise<BankSearchPage> {
+  const empty = { tasks: [], total: 0, page: 1, pageSize: BANK_PAGE_SIZE };
+  if (!quizBankMatchesSubject(input.subject)) return empty;
   const themeId = input.themeId != null && Number.isInteger(input.themeId) && input.themeId > 0
     ? input.themeId
     : 0;
-  const term = input.query.trim().slice(0, 80);
   const difficulty = input.difficulty != null && Number.isInteger(input.difficulty) && input.difficulty > 0
     ? input.difficulty
     : 0;
   const optionCount = input.optionCount === 2 || input.optionCount === 4 ? input.optionCount : 0;
-  if (themeId === 0 && term.length === 0 && difficulty === 0 && optionCount === 0) return [];
-  const like = `%${term.replace(/[\\%_]/g, "\\$&")}%`;
+  const normalized = normalizeBankSearchText(input.query);
+  if (themeId === 0 && normalized.length === 0 && difficulty === 0 && optionCount === 0) return empty;
+  const where = bankWhereParams({ themeId, query: input.query, difficulty, optionCount });
   const marathonId = input.marathonId != null && Number.isInteger(input.marathonId) ? input.marathonId : 0;
   const dayId = input.dayId != null && Number.isInteger(input.dayId) ? input.dayId : 0;
+  const requested = Number.isInteger(input.page) && (input.page ?? 0) > 0 ? Number(input.page) : 1;
   return withSql(async (connection) => {
+    const counted = await connection.query<{ n: number | string }>(BANK_SEARCH_COUNT_SQL, where);
+    const total = Number(counted[0]?.n ?? 0);
+    const pages = bankSearchPages(total);
+    const page = Math.min(requested, pages);
     const rows = await connection.query<
       PreviewRow & { theme_name: string | null; difficulty: number | null; other_days: string | null }
-    >(
-      BANK_SEARCH_SQL,
-      [
-        marathonId,
-        dayId,
-        themeId,
-        themeId,
-        term,
-        term,
-        like,
-        like,
-        difficulty,
-        difficulty,
-        optionCount,
-        optionCount,
-        optionCount,
-      ],
-    );
-    return rows.map((row) => ({
-      ...toBankPreview(row),
-      themeName: (row.theme_name ?? "").trim(),
-      difficulty: Number(row.difficulty ?? 0),
-      otherDays: (row.other_days ?? "")
-        .split(",")
-        .map((item) => Number(item))
-        .filter((item) => Number.isInteger(item) && item > 0),
-    }));
+    >(BANK_SEARCH_SQL, [
+      marathonId,
+      dayId,
+      ...where,
+      BANK_PAGE_SIZE,
+      (page - 1) * BANK_PAGE_SIZE,
+    ]);
+    return {
+      total,
+      page,
+      pageSize: BANK_PAGE_SIZE,
+      tasks: rows.map((row) => ({
+        ...toBankPreview(row),
+        themeName: (row.theme_name ?? "").trim(),
+        difficulty: Number(row.difficulty ?? 0),
+        otherDays: (row.other_days ?? "")
+          .split(",")
+          .map((item) => Number(item))
+          .filter((item) => Number.isInteger(item) && item > 0),
+      })),
+    };
   }, getConnection);
 }

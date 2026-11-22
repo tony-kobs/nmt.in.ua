@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { SqlConnection } from "@/lib/db/mysql";
 import {
+  BANK_SEARCH_COUNT_SQL,
   BANK_SEARCH_SQL,
   BANK_THEMES_SQL,
   COPY_DAY_TASK_SQL,
@@ -12,6 +13,7 @@ import {
   quizBankMatchesSubject,
   sameQuestionSet,
   sampleThemePreviews,
+  searchBankTasks,
   toBankPreview,
   validateInlineEdit,
 } from "./taskBank";
@@ -49,6 +51,10 @@ test("the admin search is ordered and does not read the answer key", () => {
   assert.doesNotMatch(BANK_SEARCH_SQL, /right_answer_n/);
   assert.match(BANK_SEARCH_SQL, /ORDER BY t\.ord ASC, q\.id ASC/);
   assert.match(BANK_SEARCH_SQL, /q\.difficulty/);
+  assert.match(BANK_SEARCH_SQL, /LOWER\(/);
+  assert.match(BANK_SEARCH_SQL, /LIMIT \? OFFSET \?/);
+  assert.match(BANK_SEARCH_COUNT_SQL, /COUNT\(\*\)/);
+  assert.doesNotMatch(BANK_SEARCH_COUNT_SQL, /LIMIT/);
 });
 
 test("sameQuestionSet ignores order and rejects duplicates", () => {
@@ -102,6 +108,48 @@ test("toBankPreview keeps prompt and options and drops a key if one was selected
     options: ["3", "4"],
   });
   assert.equal("right_answer_n" in preview, false);
+});
+
+test("search reads the whole bank and pages the normalized matches", async () => {
+  const calls: Array<{ sql: string; params: unknown[] }> = [];
+  const connection: SqlConnection = {
+    beginTransaction: async () => undefined,
+    commit: async () => undefined,
+    rollback: async () => undefined,
+    release: () => undefined,
+    execute: async () => ({ affectedRows: 0, insertId: 0 }),
+    query: async <T,>(sql: string, params?: unknown[]) => {
+      calls.push({ sql, params: params ?? [] });
+      if (sql.includes("COUNT(*)")) return [{ n: 41 }] as T[];
+      return [
+        {
+          id: 9,
+          name: "n",
+          task_text: "x^{2}",
+          answer_1: "1",
+          answer_2: "2",
+          answer_3: null,
+          answer_4: null,
+          theme_name: "Степені",
+          difficulty: 2,
+          other_days: "3",
+        },
+      ] as T[];
+    },
+  };
+  const page = await searchBankTasks(
+    { subject: "math", themeId: null, query: "  X^{2}  ", page: 2 },
+    async () => connection,
+  );
+  assert.equal(page.total, 41);
+  assert.equal(page.page, 2);
+  assert.equal(page.tasks[0]?.prompt, "x^{2}");
+  const listed = calls.find((call) => call.sql.includes("LIMIT"));
+  assert.ok(listed);
+  assert.equal(listed.params.at(-2), 20);
+  assert.equal(listed.params.at(-1), 20);
+  assert.ok(listed.params.includes("%x2%"));
+  assert.equal(calls[0]?.sql.includes("COUNT"), true);
 });
 
 test("a non-math subject does not query the bank", async () => {
