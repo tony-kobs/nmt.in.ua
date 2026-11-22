@@ -50,10 +50,14 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  // No canonical here. Next merges layout metadata into every route, so a
+  // homepage canonical on this object becomes the canonical of 404 and of any
+  // page that does not set its own. `/` sets it in `(home)/page.tsx`.
   ...createPageMetadata({
     title: `${SITE_NAME} — ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
     path: "/",
+    omitCanonical: true,
   }),
   metadataBase: new URL(absoluteUrl("/")),
   applicationName: SITE_NAME,

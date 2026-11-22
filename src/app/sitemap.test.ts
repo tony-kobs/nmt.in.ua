@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { DASHBOARD_NAV } from "@/constants/navigation";
-import { PUBLIC_PAGE_PATHS } from "@/constants/publicRoutes";
-import { isNoIndexPath } from "@/constants/seo";
+import { absoluteUrl, createPageMetadata, isNoIndexPath, sitemapStaticPaths } from "@/constants/seo";
 import sitemap, { teacherSitemapPaths } from "./sitemap";
 
 const REDIRECTS = ["/materials", "/practice/interactive", "/register/teacher"];
@@ -11,9 +10,9 @@ test("sitemap lists public pages and only live marathon or teacher cards beyond 
   const entries = await sitemap();
   const paths = entries.map((entry) => new URL(entry.url).pathname).sort();
 
-  const expected = new Set<string>(
-    PUBLIC_PAGE_PATHS.filter((path) => path !== "/t" && !isNoIndexPath(path)),
-  );
+  const expected = new Set<string>(sitemapStaticPaths());
+  assert.equal(expected.has("/welcome"), false);
+  assert.equal(isNoIndexPath("/welcome"), false);
 
   for (const path of expected) {
     assert.equal(paths.includes(path), true, `missing ${path}`);
@@ -21,12 +20,24 @@ test("sitemap lists public pages and only live marathon or teacher cards beyond 
   for (const entry of entries) {
     assert.ok(entry.lastModified instanceof Date);
     assert.equal(Number.isNaN(entry.lastModified.getTime()), false);
-  }
-  for (const path of paths) {
+    const path = new URL(entry.url).pathname;
     const dynamic = path.startsWith("/marathon/") || path.startsWith("/t/");
     assert.equal(expected.has(path) || dynamic, true, `unexpected sitemap path ${path}`);
     assert.equal(path.includes("?"), false, `query url ${path}`);
     assert.equal(isNoIndexPath(path), false, `private path ${path}`);
+    const meta = createPageMetadata({
+      title: "Сторінка",
+      description: "Публічна сторінка.",
+      path,
+    });
+    assert.equal(meta.alternates?.canonical, absoluteUrl(path), path);
+    assert.equal(meta.alternates?.canonical, entry.url, path);
+    const robots = meta.robots;
+    assert.ok(robots && typeof robots === "object" && !Array.isArray(robots));
+    if (robots && typeof robots === "object" && !Array.isArray(robots)) {
+      assert.equal(robots.index, true, path);
+      assert.equal(robots.follow, true, path);
+    }
   }
 
   const publicPaths = new Set<string>(paths);
