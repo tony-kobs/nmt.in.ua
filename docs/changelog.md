@@ -12,7 +12,7 @@
 - Схвалено: ні
 - Автор: groteskzp
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/373
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-22 — День марафону: створити завдання і за бажанням зберегти в банк (#372)
 
@@ -23,7 +23,7 @@
 - Схвалено: ні
 - Автор: groteskzp
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/372
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-22 — Панель банку марафону: пошук і межі вікна (#370)
 
@@ -34,7 +34,7 @@
 - Схвалено: ні
 - Автор: groteskzp
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/370
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-22 — SEO: 404 без canonical, /welcome поза sitemap, 301 з www (#369)
 
@@ -45,7 +45,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/369
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-20 — Марафон: ручний вибір завдань і копія для дня (#366)
 
@@ -1063,6 +1063,10 @@
 ## Новини для сайту
 
 <!-- changelog:news -->
+### 2026-11-22 — [реліз #374](https://github.com/tony-kobs/nmt.in.ua/pull/374)
+
+- [SEO: 404 без canonical, /welcome поза sitemap, 301 з www](https://github.com/tony-kobs/nmt.in.ua/pull/369) — Адреса з `www` відкриває той самий сайт без `www`. Неіснуюча сторінка лишається «Сторінку не знайдено».
+
 ### 2026-11-19 — [реліз #362](https://github.com/tony-kobs/nmt.in.ua/pull/362)
 
 - [feat: integrate multiplication into cabinet](https://github.com/tony-kobs/nmt.in.ua/pull/356) — Новий розділ "Тренувальні вправи", де зберігаються "Додавання дробів", "Інтерактивні формати" і нова вправа "Множення".
