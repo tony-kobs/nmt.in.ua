@@ -32,7 +32,7 @@ function staticEntries(): MetadataRoute.Sitemap {
     url: absoluteUrl(path),
     lastModified: SEO_CONTENT_UPDATED,
     changeFrequency: path === "/" ? "daily" : "weekly",
-    priority: path === "/" ? 1 : path === "/welcome" ? 0.9 : 0.6,
+    priority: path === "/" ? 1 : 0.6,
   }));
 }
 
