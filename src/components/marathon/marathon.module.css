@@ -218,7 +218,8 @@
 }
 
 .button,
-.buttonQuiet {
+.buttonQuiet,
+.buttonDanger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -243,6 +244,17 @@
   border-color: var(--line);
 }
 
+.buttonDanger {
+  background: var(--surface);
+  color: color-mix(in srgb, crimson 72%, var(--ink));
+  border-color: color-mix(in srgb, crimson 45%, var(--line));
+}
+
+.buttonDanger:hover:not(:disabled) {
+  background: color-mix(in srgb, crimson 8%, var(--surface));
+  border-color: color-mix(in srgb, crimson 62%, var(--line));
+}
+
 .narrow .buttonQuiet {
   background: var(--paper);
   border-color: var(--border);
@@ -258,6 +270,7 @@
 
 .button:focus-visible,
 .buttonQuiet:focus-visible,
+.buttonDanger:focus-visible,
 .input:focus-visible,
 .textarea:focus-visible,
 .select:focus-visible,
@@ -274,6 +287,10 @@
 .button:disabled,
 .buttonQuiet:disabled {
   opacity: 0.72;
+  cursor: progress;
+}
+
+.buttonDanger:disabled {
   cursor: progress;
 }
 
@@ -1233,6 +1250,15 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-h4);
+}
+
+.toolSlot {
+  display: contents;
+}
+
+.createTaskForm {
+  flex: 1 1 100%;
+  min-width: 0;
 }
 
 .manualTask summary,

@@ -9,6 +9,7 @@ import {
   listBankThemes,
   pickBankIds,
   planBankAdd,
+  planDayTaskCreate,
   quizBankMatchesSubject,
   sameQuestionSet,
   sampleThemePreviews,
@@ -16,6 +17,44 @@ import {
   toBankPreview,
   validateInlineEdit,
 } from "./taskBank";
+
+test("creating a day task stays on the day unless the bank checkbox asks for four options", () => {
+  const dayOnly = planDayTaskCreate({
+    prompt: "Скільки буде 2+2?",
+    options: ["3", "4"],
+    correct: 2,
+    explanation: "",
+    saveToBank: false,
+    themeId: null,
+    difficulty: null,
+  });
+  assert.equal(dayOnly.ok, true);
+  if (dayOnly.ok) assert.equal(dayOnly.mode, "day");
+  const shortBank = planDayTaskCreate({
+    prompt: "Скільки буде 2+2?",
+    options: ["3", "4"],
+    correct: 2,
+    explanation: "",
+    saveToBank: true,
+    themeId: 5,
+    difficulty: 1,
+  });
+  assert.deepEqual(shortBank, { ok: false, reason: "bank_fields" });
+  const bank = planDayTaskCreate({
+    prompt: "Скільки буде 2+2?",
+    options: ["3", "4", "5", "6"],
+    correct: 2,
+    explanation: "бо 4",
+    saveToBank: true,
+    themeId: 5,
+    difficulty: 1,
+  });
+  assert.equal(bank.ok, true);
+  if (bank.ok) {
+    assert.equal(bank.mode, "bank");
+    assert.equal(bank.themeId, 5);
+  }
+});
 
 test("a day copy validates like import and never updates the question bank", () => {
   assert.match(COPY_DAY_TASK_SQL, /UPDATE marathon_day_tasks/);
