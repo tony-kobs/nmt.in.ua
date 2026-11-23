@@ -1,0 +1,2009 @@
+{
+  "info": {
+    "_postman_id": "0537757e-8896-46e5-ad0c-ddd50d91aab0",
+    "name": "NMT.in.ua",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "57490085",
+    "_collection_link": "https://go.postman.co/collection/57490085-0537757e-8896-46e5-ad0c-ddd50d91aab0?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Presence - Valid Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 200 - запит успішний\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"Є ключове поле 'ok'\", function () {\r\n    const json = pm.response.json();\r\n    pm.expect(json).to.have.property(\"ok\");\r\n});\r\n\r\npm.test(\"Поле 'ок' має тип boolean та дорівнює true\", function () {\r\n    const json = pm.response.json();\r\n    pm.expect(json.ok).to.be.a(\"boolean\");\r\n    pm.expect(json.ok).to.eql(true);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "nmt_session={{sessionCookie}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/presence",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presence"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Presence - Without Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код неавторизований\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n\r\npm.test(\"Є ключове поле 'ok'\", function () {\r\n    const json = pm.response.json();\r\n    pm.expect(json).to.have.property(\"ok\");\r\n});\r\n\r\npm.test(\"Поле 'ok' має тип boolean та дорівнює false\", function () {\r\n    const json = pm.response.json();\r\n    pm.expect(json.ok).to.be.a(\"boolean\");\r\n    pm.expect(json.ok).to.eql(false);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});\r\n\r\npm.test(\"Content-Type - відповідь у форматі JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\"))\r\n        .to.include(\"application/json\");\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/presence",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presence"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Clear Session - Valid Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код перенаправлення\", function () {\r\n    pm.expect(pm.response.code).to.be.oneOf([301, 302, 303, 307, 308]);\r\n});\r\n\r\npm.test(\"Є заголовок Location\", function () {\r\n    pm.expect(pm.response.headers.has(\"Location\")).to.be.true;\r\n});\r\n\r\npm.test(\"Перенаправляє на сторінку login\", function () {\r\n    const location = pm.response.headers.get(\"Location\");\r\n    pm.expect(location).to.include(\"/login\");\r\n});\r\n\r\npm.test(\"Є заголовок Set-Cookie\", function () {\r\n    const setCookie = pm.response.headers.get(\"Set-Cookie\");\r\n    pm.expect(setCookie).to.include(\"nmt_session=\");\r\n});\r\n\r\npm.test(\"Сесійна cookie очищена\", function () {\r\n    const setCookie = pm.response.headers.get(\"Set-Cookie\");\r\n    pm.expect(setCookie).to.include(\"nmt_session=;\");\r\n    pm.expect(setCookie).to.include(\"Max-Age=0\");\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true,
+            "followRedirects": false
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "nmt_session={{sessionCookie}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/clear-session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "clear-session"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Clear Session - Without Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код перенаправлення\", function () {\r\n    pm.expect(pm.response.code).to.be.oneOf([301, 302, 303, 307, 308]);\r\n});\r\n\r\npm.test(\"Є заголовок Location\", function () {\r\n    pm.expect(pm.response.headers.has(\"Location\")).to.be.true;\r\n});\r\n\r\npm.test(\"Перенаправлення на сторінку login\", function () {\r\n    const location = pm.response.headers.get(\"Location\");\r\n    pm.expect(location).to.include(\"/login\");\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true,
+            "followRedirects": false
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/clear-session",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "clear-session"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify email - Valid Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код перенаправлення\", function () {\r\n    pm.expect(pm.response.code).to.be.oneOf([301, 302, 303, 307, 308]);\r\n});\r\n\r\npm.test(\"Є заголовок Location \", function () {\r\n    pm.expect(pm.response.headers.has(\"Location\")).to.be.true;\r\n});\r\n\r\npm.test(\"Перенаправляє на сторінку підтвердження\", function () {\r\n    const location = pm.response.headers.get(\"Location\");\r\n    pm.expect(location).to.include(\"/verify-email\");\r\n});\r\n\r\npm.test(\"Перенаправлення містить статус успіху\", function () {\r\n    const location = pm.response.headers.get(\"Location\");\r\n    pm.expect(location).to.include(\"status=success\");\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const runVerificationTest =\r\n    pm.environment.get(\"runOneTimeTokenTests\") === \"true\";\r\n\r\nif (!runVerificationTest) {\r\n    pm.execution.skipRequest();\r\n}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true,
+            "followRedirects": false
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-email?token={{verificationToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-email"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{verificationToken}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify email - Missing Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код перенаправлення\", function () {\r\n    pm.expect(pm.response.code).to.be.oneOf([301, 302, 303, 307, 308]);\r\n});\r\n\r\npm.test(\"Є заголовок Location \", function () {\r\n    pm.expect(pm.response.headers.has(\"Location\")).to.be.true;\r\n});\r\n\r\npm.test(\"Перенаправляє на сторінку підтвердження\", function () {\r\n    const location = pm.response.headers.get(\"Location\");\r\n    pm.expect(location).to.include(\"/verify-email\");\r\n});\r\n\r\npm.test(\"Перенаправлення містить помилку\", function () {\r\n    const location = pm.response.headers.get(\"Location\");\r\n    pm.expect(location).to.include(\"error=\");\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true,
+            "followRedirects": false
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-email",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-email"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify email - Invalid Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код перенаправлення\", function () {\r\n    pm.expect(pm.response.code).to.be.oneOf([301, 302, 303, 307, 308]);\r\n});\r\n\r\npm.test(\"Є заголовок Location \", function () {\r\n    pm.expect(pm.response.headers.has(\"Location\")).to.be.true;\r\n});\r\n\r\npm.test(\"Перенаправляє на сторінку з помилкою\", function () {\r\n    const location = pm.response.headers.get(\"Location\");\r\n    pm.expect(location).to.include(\"/verify-email?error=invalid\");\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": false,
+            "followRedirects": false
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-email?token=invalidToken",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-email"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "invalidToken"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Tests & Tasks",
+      "item": [
+        {
+          "name": "Avatar - Nonexistent User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 404, користувача не існує\", function () {\r\n    pm.response.to.have.status(404);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/avatar/12345",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "avatar",
+                "12345"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Avatar - Valid User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код успішний\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"Тіло відповіді не порожнє\", function () {\r\n    pm.expect(pm.response.size().body).to.be.above(0);\r\n});\r\n\r\npm.test(\"Тип аватара - зображення\", function () {\r\n    const contentType = pm.response.headers.get(\"Content-Type\");\r\n    pm.expect(contentType).to.match(/^image\\//);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});\r\n\r\npm.test(\"Content-Length — розмір файлу більше 0\", function () {\r\n    const contentLength = pm.response.headers.get(\"Content-Length\");\r\n    pm.expect(Number(contentLength)).to.be.above(0);\r\n});\r\n\r\npm.test(\"X-Content-Type-Options — не вгадувати тип вмісту (nosniff)\", function () {\r\n    pm.expect(pm.response.headers.get(\"X-Content-Type-Options\"))\r\n        .to.eql(\"nosniff\");\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/avatar/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "avatar",
+                "{{userId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Avatar - Invalid User ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 404, userId не є числом\", function () {\r\n    pm.response.to.have.status(404);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/avatar/abcd",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "avatar",
+                "abcd"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Textbook Media - Nonexistent Hash",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 404 - файл не знайдено\", function () {\r\n    pm.response.to.have.status(404);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/textbook-media/nonexistent-hash",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "textbook-media",
+                "nonexistent-hash"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Textbook Media - Valid Hash",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код успішний\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"Тіло відповіді не порожнє\", function () {\r\n    pm.expect(pm.response.size().body).to.be.above(0);\r\n});\r\n\r\npm.test(\"Тип файлу - зображення\", function () {\r\n    const contentType = pm.response.headers.get(\"Content-Type\");\r\n    pm.expect(contentType).to.match(/^image\\//);\r\n});\r\n\r\npm.test(\"Content-Length - розмір файлу більше 0\", function () {\r\n    const contentLength = pm.response.headers.get(\"Content-Length\");\r\n    pm.expect(Number(contentLength)).to.be.above(0);\r\n});\r\n\r\npm.test(\"X-Content-Type-Options - не вгадувати тип вмісту (nosniff)\", function () {\r\n    pm.expect(pm.response.headers.get(\"X-Content-Type-Options\"))\r\n        .to.eql(\"nosniff\");\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const runTextbookMediaTest =\r\n    pm.environment.get(\"runTextbookMediaTests\") === \"true\";\r\n\r\nif (!runTextbookMediaTest) {\r\n    pm.execution.skipRequest();\r\n}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/textbook-media/{{mediaHash}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "textbook-media",
+                "{{mediaHash}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Marathon",
+      "item": [
+        {
+          "name": "Marathon Stats - Valid Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 200 - статистику отримано\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"Content-Type - відповідь у форматі JSON\", function () {\r\n    const contentType = pm.response.headers.get(\"Content-Type\");\r\n    pm.expect(contentType).to.include(\"application/json\");\r\n});\r\n\r\nconst jsonData = pm.response.json();\r\n\r\npm.test(\"Slug - правильний марафон\", function () {\r\n    pm.expect(jsonData.slug).to.eql(pm.environment.get(\"marathonSlug\"));\r\n});\r\n\r\npm.test(\"Є статистика учасників\", function () {\r\n    pm.expect(jsonData).to.have.property(\"registered\");\r\n    pm.expect(jsonData).to.have.property(\"telegramLinked\");\r\n    pm.expect(jsonData).to.have.property(\"finished\");\r\n});\r\n\r\npm.test(\"Є статистика за днями марафону\", function () {\r\n    pm.expect(jsonData).to.have.property(\"days\");\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{marathonCronSecret}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/marathon/stats?marathon={{marathonSlug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "marathon",
+                "stats"
+              ],
+              "query": [
+                {
+                  "key": "marathon",
+                  "value": "{{marathonSlug}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marathon Stats - Invalid Slug",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 400 - некоректний slug\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{marathonCronSecret}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/marathon/stats?marathon=invalid_slug",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "marathon",
+                "stats"
+              ],
+              "query": [
+                {
+                  "key": "marathon",
+                  "value": "invalid_slug"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marathon Stats - Nonexistent Marathon",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 404 - марафон не знайдено\", function () {\r\n    pm.response.to.have.status(404);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{marathonCronSecret}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/marathon/stats?marathon=nonexistent-marathon-999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "marathon",
+                "stats"
+              ],
+              "query": [
+                {
+                  "key": "marathon",
+                  "value": "nonexistent-marathon-999"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marathon Stats - Missing Marathon",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 400 - відсутній параметр marathon\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{marathonCronSecret}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/marathon/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "marathon",
+                "stats"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marathon Stats - Without Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 401 - немає авторизації\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/marathon/stats?marathon={{marathonSlug}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "marathon",
+                "stats"
+              ],
+              "query": [
+                {
+                  "key": "marathon",
+                  "value": "{{marathonSlug}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marathon Media - Invalid Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 404 - фото не знайдено\", function () {\r\n    pm.response.to.have.status(404);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/marathon-media/invalid-token-123",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "marathon-media",
+                "invalid-token-123"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marathon Media - Valid Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 200 - фото отримано\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"Тіло відповіді не порожнє\", function () {\r\n    pm.expect(pm.response.size().body).to.be.above(0);\r\n});\r\n\r\npm.test(\"Content-Type - тип вмісту зображення\", function () {\r\n    const contentType = pm.response.headers.get(\"Content-Type\");\r\n    pm.expect(contentType).to.match(/^image\\//);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/marathon-media/{{marathonMediaToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "marathon-media",
+                "{{marathonMediaToken}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marathon Unsubscribe - Missing Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 400 - недійсне посилання\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\npm.test(\"Content-Type - відповідь у форматі HTML\", function () {\r\n    const contentType = pm.response.headers.get(\"Content-Type\");\r\n    pm.expect(contentType).to.include(\"text/html\");\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/marathon/unsubscribe?m={{marathonSlug}}&u=1&t",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "marathon",
+                "unsubscribe"
+              ],
+              "query": [
+                {
+                  "key": "m",
+                  "value": "{{marathonSlug}}"
+                },
+                {
+                  "key": "u",
+                  "value": "1"
+                },
+                {
+                  "key": "t",
+                  "value": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marathon Unsubscribe - Invalid Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 400 - недійсне посилання\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\npm.test(\"Content-Type - відповідь у форматі HTML\", function () {\r\n    const contentType = pm.response.headers.get(\"Content-Type\");\r\n    pm.expect(contentType).to.include(\"text/html\");\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/marathon/unsubscribe?m={{marathonSlug}}&u=1&t=invalid-token-123",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "marathon",
+                "unsubscribe"
+              ],
+              "query": [
+                {
+                  "key": "m",
+                  "value": "{{marathonSlug}}"
+                },
+                {
+                  "key": "u",
+                  "value": "1"
+                },
+                {
+                  "key": "t",
+                  "value": "invalid-token-123"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marathon Notifications Health - Valid Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\r\npm.test(\"Статус код 200 або 503 - стан розсилки\", function () {\r\n    pm.expect(pm.response.code).to.be.oneOf([200, 503]);\r\n});\r\n\r\npm.test(\"Content-Type - відповідь у форматі JSON\", function () {\r\n    const contentType = pm.response.headers.get(\"Content-Type\");\r\n    pm.expect(contentType).to.include(\"application/json\");\r\n});\r\n\r\nconst jsonData = pm.response.json();\r\n\r\npm.test(\"Поле ok - стан роботи розсилки\", function () {\r\n    pm.expect(jsonData.ok).to.be.a(\"boolean\");\r\n});\r\n\r\npm.test(\"Статус відповідає стану розсилки\", function () {\r\n    if (pm.response.code === 200) {\r\n        pm.expect(jsonData.ok).to.eql(true);\r\n    } else if (pm.response.code === 503) {\r\n        pm.expect(jsonData.ok).to.eql(false);\r\n    }\r\n});\r\n\r\npm.test(\"Є дані про останній запуск\", function () {\r\n    pm.expect(jsonData).to.have.property(\"lastRunAt\");\r\n    pm.expect(jsonData).to.have.property(\"ageMinutes\");\r\n    pm.expect(jsonData).to.have.property(\"lastCounts\");\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{marathonCronSecret}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/marathon/notifications/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "marathon",
+                "notifications",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marathon Notifications Health - Without Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 401 - немає авторизації\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n\r\npm.test(\"Тіло відповіді порожнє\", function () {\r\n    pm.expect(pm.response.text()).to.be.empty;\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/marathon/notifications/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "marathon",
+                "notifications",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marathon Notifications Process - Valid Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "\r\npm.test(\"Статус код 200 - обробка виконана\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"Content-Type - відповідь у форматі JSON\", function () {\r\n    const contentType = pm.response.headers.get(\"Content-Type\");\r\n    pm.expect(contentType).to.include(\"application/json\");\r\n});\r\n\r\npm.test(\"Тіло відповіді не порожнє\", function () {\r\n    pm.expect(pm.response.size().body).to.be.above(0);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{marathonCronSecret}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/marathon/notifications/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "marathon",
+                "notifications",
+                "process"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marathon Notifications Process - Without Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 401 - немає авторизації\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});\r\n"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/marathon/notifications/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "marathon",
+                "notifications",
+                "process"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marathon Export - Valid Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 200 - експорт успішний\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"Content-Type - відповідь у форматі CSV\", function () {\r\n    const contentType = pm.response.headers.get(\"Content-Type\");\r\n    pm.expect(contentType).to.include(\"text/csv\");\r\n});\r\n\r\npm.test(\"Content-Disposition - файл для завантаження\", function () {\r\n    const disposition = pm.response.headers.get(\"Content-Disposition\");\r\n    pm.expect(disposition).to.include(\"attachment\");\r\n    pm.expect(disposition).to.include(\".csv\");\r\n});\r\n\r\npm.test(\"CSV містить заголовки колонок\", function () {\r\n    const csvData = pm.response.text();\r\n    pm.expect(csvData).to.include(\"name,login,email\");\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});\r\n"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "nmt_session={{sessionCookie}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/marathons/{{marathonId}}/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "marathons",
+                "{{marathonId}}",
+                "export"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marathon Export - Without Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 401 - немає авторизації\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "nmt_session={{sessionCookie}}",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/marathons/{{marathonId}}/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "marathons",
+                "{{marathonId}}",
+                "export"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marathon Export - Nonexistent Marathon",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 404 - марафон не знайдено\", function () {\r\n    pm.response.to.have.status(404);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});\r\n"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "nmt_session={{sessionCookie}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/marathons/1234/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "marathons",
+                "1234",
+                "export"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Marathon Export - Student Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 401 - недостатньо прав доступу\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});\r\n"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "nmt_session={{studentSessionCookie}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/marathons/{{marathonId}}/export",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "marathons",
+                "{{marathonId}}",
+                "export"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Admin Sessions - Without Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 401 - немає авторизації\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});\r\n"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"userId\": 1,\r\n    \"themeId\": 1\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "sessions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin Sessions - Valid Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 200 або 201 - запит успішний\", function () {\r\n    pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r\n});\r\n\r\npm.test(\"Content-Type - відповідь у форматі JSON\", function () {\r\n    const contentType = pm.response.headers.get(\"Content-Type\");\r\n    pm.expect(contentType).to.include(\"application/json\");\r\n});\r\n\r\nconst jsonData = pm.response.json();\r\n\r\npm.test(\"Поле ok - операція успішна\", function () {\r\n    pm.expect(jsonData.ok).to.eql(true);\r\n});\r\n\r\npm.test(\"SessionId - ID навчальної сесії\", function () {\r\n    pm.expect(jsonData.sessionId).to.be.a(\"number\");\r\n    pm.expect(jsonData.sessionId).to.be.above(0);\r\n});\r\n\r\npm.test(\"Поле created відповідає статусу\", function () {\r\n    pm.expect(jsonData.created).to.be.a(\"boolean\");\r\n\r\n    if (pm.response.code === 201) {\r\n        pm.expect(jsonData.created).to.eql(true);\r\n    } else {\r\n        pm.expect(jsonData.created).to.eql(false);\r\n    }\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});\r\n"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminApiKey}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"userId\": {{userId}},\r\n    \"themeId\": {{themeId}}\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "sessions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin Sessions - Invalid Body",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 400 - некоректні дані\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});\r\n"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminApiKey}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"userId\": \"abc\",\r\n    \"themeId\": {{themeId}}\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "sessions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin Sessions - Nonexistent Theme",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 404 - тему не знайдено\", function () {\r\n    pm.response.to.have.status(404);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminApiKey}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"userId\": {{userId}},\r\n    \"themeId\": 1234\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/sessions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "sessions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Import - Without Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 401 - немає авторизації\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "import"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Import - Invalid Body",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 400 - некоректні дані імпорту\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{contentImportApiKey}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "format",
+                  "value": "json",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "import"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Telegram Notifications Process - Without Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 401 - немає авторизації\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/telegram/notifications/process",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "telegram",
+                "notifications",
+                "process"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Telegram Notifications Process - Invalid Parameter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 400 - некоректний параметр afterAccountId\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{telegramTriggerSecret}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/telegram/notifications/process?afterAccountId=abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "telegram",
+                "notifications",
+                "process"
+              ],
+              "query": [
+                {
+                  "key": "afterAccountId",
+                  "value": "abc"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Textbook Images - Without Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 401 - немає авторизованої сесії\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:3000"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/textbook-images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "textbook-images"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Textbook Images - Student Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 403 - недостатньо прав доступу\", function () {\r\n    pm.response.to.have.status(403);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "nmt_session={{studentSessionCookie}}"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:3000"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/textbook-images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "textbook-images"
+              ],
+              "query": [
+                {
+                  "key": "",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Textbook Images - Missing File",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 400 - файл не передано\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "nmt_session={{sessionCookie}}"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:3000"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "note",
+                  "value": "Text",
+                  "type": "text",
+                  "description": "test"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/textbook-images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "textbook-images"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Textbook Images - Without Origin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 403 - відсутній заголовок Origin\", function () {\r\n    pm.response.to.have.status(403);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "nmt_session={{sessionCookie}}"
+              },
+              {
+                "key": "",
+                "value": "",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "note",
+                  "value": "Text",
+                  "type": "text",
+                  "description": "test"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/textbook-images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "textbook-images"
+              ],
+              "query": [
+                {
+                  "key": "",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Textbook Import - Missing File",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 400 - відсутній файл або HTML\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "nmt_session={{sessionCookie}}"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:3000"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "note",
+                  "value": "Text",
+                  "type": "text",
+                  "description": "test"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/textbook-import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "textbook-import"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Textbook Import - Invalid File Type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 415 - непідтримуваний формат файлу\", function () {\r\n    pm.response.to.have.status(415);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "nmt_session={{sessionCookie}}"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:3000"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [
+                    "/D:/QA/nmt.in.ua/tests/postman/fixtures/test.txt"
+                  ]
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/textbook-import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "textbook-import"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Textbook Tasks - Valid Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 200 - запит успішний\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"Content-Type - відповідь у форматі JSON\", function () {\r\n    const contentType = pm.response.headers.get(\"Content-Type\");\r\n    pm.expect(contentType).to.include(\"application/json\");\r\n});\r\n\r\nconst jsonData = pm.response.json();\r\n\r\npm.test(\"Поле ok - операція успішна\", function () {\r\n    pm.expect(jsonData.ok).to.eql(true);\r\n});\r\n\r\npm.test(\"Поле hits - масив результатів пошуку\", function () {\r\n    pm.expect(jsonData.hits).to.be.an(\"array\");\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});\r\n"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "nmt_session={{sessionCookie}}"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:3000"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/textbook-tasks?q=тест",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "textbook-tasks"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "тест"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Textbook Tasks - Without Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 401 - немає авторизованої сесії\", function () {\r\n    pm.response.to.have.status(401);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Origin",
+                "value": "http://localhost:3000"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/textbook-tasks?q=тест",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "textbook-tasks"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "тест"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Textbook Tasks - Valid Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 200 - запит успішний\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"Content-Type - відповідь у форматі JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\"))\r\n        .to.include(\"application/json\");\r\n});\r\n\r\nconst jsonData = pm.response.json();\r\n\r\npm.test(\"Поле ok - операція успішна\", function () {\r\n    pm.expect(jsonData.ok).to.eql(true);\r\n});\r\n\r\npm.test(\"Поле tasks - порожній об'єкт завдань\", function () {\r\n    pm.expect(jsonData.tasks).to.be.an(\"object\");\r\n    pm.expect(jsonData.tasks).to.deep.equal({});\r\n});\r\n\r\npm.test(\"Поле missing - масив відсутніх завдань\", function () {\r\n    pm.expect(jsonData.missing).to.be.an(\"array\");\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});\r\n"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "nmt_session={{sessionCookie}}"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:3000"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"refs\": []\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/textbook-tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "textbook-tasks"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Textbook Tasks - Invalid Body",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Статус код 400 - некоректний JSON\", function () {\r\n    pm.response.to.have.status(400);\r\n});\r\n\r\npm.test(\"Час відповіді прийнятний\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(2000);\r\n});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "nmt_session={{sessionCookie}}"
+              },
+              {
+                "key": "Origin",
+                "value": "http://localhost:3000"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"refs\":",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/textbook-tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "textbook-tasks"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
