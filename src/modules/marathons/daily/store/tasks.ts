@@ -52,7 +52,7 @@ export async function listTaskReview(
 export async function listAdminTasks(
   dayId: number,
   getConnection?: Conn,
-): Promise<Array<PlayTask & { correct: number; questionId: number | null }>> {
+): Promise<Array<PlayTask & { correct: number; questionId: number | null; explanation: string | null }>> {
   return withConn(async (connection) => {
     const rows = await loadReviewRows(connection, dayId);
     return rows.flatMap((row) => {
@@ -65,6 +65,7 @@ export async function listAdminTasks(
           options: [],
           correct: Number(row.inline_correct ?? row.right_answer_n ?? 0),
           questionId: row.question_id ?? null,
+          explanation: row.inline_explanation ?? null,
         }];
       }
       return [{
@@ -74,6 +75,7 @@ export async function listAdminTasks(
         options: task.options,
         correct: task.correct,
         questionId: row.question_id ?? null,
+        explanation: task.explanation,
       }];
     });
   }, getConnection);

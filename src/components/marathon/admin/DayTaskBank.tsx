@@ -1,19 +1,18 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Select } from "@/components/ui/Select/Select";
 import { MathText } from "@/components/ui/MathText";
+import { addDayBankTasksAction, searchDayBankAction } from "@/modules/marathons/daily/actions";
 import {
-  addSampledTasksAction,
-  previewTopicSampleAction,
-} from "@/modules/marathons/daily/actions";
-
-type BankPreview = {
-  id: number;
-  prompt: string;
-  options: string[];
-};
+  BANK_SEARCH_DEBOUNCE_MS,
+  bankSearchPages,
+  beginBankSearch,
+  isLatestBankRequest,
+  type BankSearchState,
+} from "@/modules/marathons/daily/bankSearchText";
+import { DAY_BLOCK_MAX } from "@/modules/marathons/daily/dayRemoval";
 import { SubmitButton } from "../ConfirmSubmit";
 import css from "../marathon.module.css";
 
@@ -24,239 +23,349 @@ export type BankThemeOption = {
   count: number;
 };
 
+export type BankChoice = {
+  id: number;
+  prompt: string;
+  options: string[];
+  themeName?: string;
+};
+
+type Hit = BankChoice & { difficulty?: number; otherDays?: number[] };
+
 export function DayTaskBank({
   marathonId,
   dayId,
+  subject,
   themes,
-  savedQuestionIds,
-  initialPreview = [],
+  saved,
+  submissions,
 }: {
   marathonId: number;
   dayId: number;
+  subject: string;
   themes: BankThemeOption[];
-  savedQuestionIds: number[];
-  /** Already chosen questions, before they are saved on the day. */
-  initialPreview?: BankPreview[];
+  saved: BankChoice[];
+  submissions: number;
 }) {
   const t = useTranslations("Marathon");
   const titleId = useId();
   const searchId = useId();
-  const countId = useId();
+  const subjectLabel = useId();
   const themeLabel = useId();
-  const [query, setQuery] = useState("");
-  const [themeId, setThemeId] = useState("");
-  const [count, setCount] = useState(5);
-  const [preview, setPreview] = useState<BankPreview[]>(initialPreview);
+  const difficultyLabel = useId();
+  const typeLabel = useId();
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const openerRef = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestRef = useRef(0);
+  const initialSearch: BankSearchState = {
+    query: "",
+    page: 1,
+    themeId: "",
+    difficulty: "0",
+    optionCount: 0,
+    subject: subject.trim().toLowerCase() === "math" ? "math" : subject.trim() || "math",
+    request: 0,
+  };
+  const stateRef = useRef(initialSearch);
+  const [search, setSearch] = useState(initialSearch);
+  const [hits, setHits] = useState<Hit[]>([]);
+  const [total, setTotal] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
   const [pending, setPending] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [searchFailed, setSearchFailed] = useState(false);
+  const [opened, setOpened] = useState(false);
+  const [picked, setPicked] = useState<Map<number, Hit>>(() => new Map());
 
-  const needle = query.trim().toLowerCase();
-  const matchedThemes = useMemo(() => {
-    if (!needle) return themes;
-    return themes.filter(
-      (theme) =>
-        theme.name.toLowerCase().includes(needle) ||
-        theme.code.toLowerCase().includes(needle) ||
-        String(theme.id).includes(needle),
-    );
-  }, [needle, themes]);
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog || !opened) return;
+    if (!dialog.open) dialog.showModal();
+  }, [opened, search, hits, pending, note, searchFailed, picked]);
 
-  const options = useMemo(() => {
-    const matched = matchedThemes;
-    const selected = themes.find((theme) => String(theme.id) === themeId);
-    const visible =
-      selected && !matched.some((theme) => theme.id === selected.id)
-        ? [selected, ...matched]
-        : matched;
-    return visible.map((theme) => ({
-      value: String(theme.id),
-      label: t("bankThemeOption", { name: theme.name, count: theme.count }),
-    }));
-  }, [matchedThemes, themeId, themes, t]);
+  const subjectOptions = useMemo(() => {
+    const values = ["math"];
+    const own = subject.trim().toLowerCase();
+    if (own && own !== "math") values.unshift(own);
+    return values.map((value) => ({ value, label: value }));
+  }, [subject]);
 
-  async function loadSample(excludeIds: number[]): Promise<BankPreview[] | null> {
-    const theme = Number(themeId);
-    if (!Number.isInteger(theme) || theme <= 0) return null;
-    setPending(true);
-    setNote(null);
-    try {
-      const result = await previewTopicSampleAction({
+  const themeOptions = useMemo(
+    () => [
+      { value: "", label: t("bankAllThemes") },
+      ...themes.map((theme) => ({
+        value: String(theme.id),
+        label: t("bankThemeOption", { name: theme.name, count: theme.count }),
+      })),
+    ],
+    [themes, t],
+  );
+
+  const onDay = useMemo(() => new Set(saved.map((item) => item.id)), [saved]);
+  const room = Math.max(0, DAY_BLOCK_MAX - saved.length);
+  const chosen = [...picked.values()].filter((item) => !onDay.has(item.id)).slice(0, room);
+  const pages = bankSearchPages(total, pageSize);
+
+  function apply(next: BankSearchState, delay: number) {
+    stateRef.current = next;
+    latestRef.current = next.request;
+    setSearch(next);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const issued = next.request;
+    const fire = () => {
+      setPending(true);
+      setNote(null);
+      setSearchFailed(false);
+      void searchDayBankAction({
         marathonId,
         dayId,
-        themeId: theme,
-        count,
-        excludeIds,
-      });
-      if (!result.ok) {
-        setNote(result.error === "empty" ? t("bankEmptyDraw") : t("errors.invalid"));
-        return result.error === "empty" ? [] : null;
-      }
-      if (result.questions.length === 0) {
-        setNote(t("bankEmptyDraw"));
-        return [];
-      }
-      return result.questions;
-    } catch {
-      setNote(t("errors.server"));
-      return null;
-    } finally {
-      setPending(false);
+        subject: next.subject,
+        themeId: next.themeId ? Number(next.themeId) : null,
+        query: next.query,
+        difficulty: Number(next.difficulty) || null,
+        optionCount: next.optionCount,
+        page: next.page,
+      })
+        .then((result) => {
+          if (!isLatestBankRequest(latestRef.current, issued)) return;
+          if (!result.ok) {
+            setHits([]);
+            setTotal(0);
+            if (result.error === "subject") setNote(t("bankSubjectEmpty"));
+            else if (result.error === "empty") setNote(t("bankEmptySearch"));
+            else {
+              setSearchFailed(true);
+              setNote(t("bankSearchError"));
+            }
+            return;
+          }
+          setHits(result.tasks);
+          setTotal(result.total);
+          setPageSize(result.pageSize);
+          if (result.page !== next.page) {
+            const synced = { ...stateRef.current, page: result.page };
+            stateRef.current = synced;
+            setSearch(synced);
+          }
+        })
+        .catch(() => {
+          if (!isLatestBankRequest(latestRef.current, issued)) return;
+          setHits([]);
+          setTotal(0);
+          setSearchFailed(true);
+          setNote(t("bankSearchError"));
+        })
+        .finally(() => {
+          if (isLatestBankRequest(latestRef.current, issued)) setPending(false);
+        });
+    };
+    if (delay <= 0) fire();
+    else timerRef.current = setTimeout(fire, delay);
+  }
+
+  function change(patch: Partial<Omit<BankSearchState, "request">>, delay: number) {
+    apply(beginBankSearch(stateRef.current, patch), delay);
+  }
+
+  function toggle(hit: Hit) {
+    if (picked.has(hit.id)) {
+      const next = new Map(picked);
+      next.delete(hit.id);
+      setPicked(next);
+      return;
     }
-  }
-
-  async function draw() {
-    const questions = await loadSample(savedQuestionIds);
-    if (questions) setPreview(questions);
-  }
-
-  function remove(id: number) {
-    setPreview((current) => current.filter((item) => item.id !== id));
-  }
-
-  async function replaceOne(id: number) {
-    const questions = await loadSample([
-      ...savedQuestionIds,
-      ...preview.map((item) => item.id),
-    ]);
-    const next = questions?.[0];
-    if (!next) return;
-    setPreview((current) => current.map((item) => (item.id === id ? next : item)));
-  }
-
-  if (themes.length === 0) {
-    return (
-      <section className={css.bankPanel} aria-labelledby={titleId}>
-        <h3 id={titleId}>{t("bankTitle")}</h3>
-        <p className={css.meta}>{t("bankSubjectEmpty")}</p>
-      </section>
-    );
+    if (picked.size >= room) {
+      setNote(t("bankLimit", { max: DAY_BLOCK_MAX }));
+      return;
+    }
+    const next = new Map(picked);
+    next.set(hit.id, hit);
+    setPicked(next);
   }
 
   return (
-    <section className={css.bankPanel} aria-labelledby={titleId}>
-      <h3 id={titleId}>{t("bankTitle")}</h3>
-      <p className={css.meta}>{t("bankLead")}</p>
-      <div className={css.field}>
-        <label className={css.fieldLabel} htmlFor={searchId}>
-          {t("bankSearch")}
-        </label>
-        <input
-          id={searchId}
-          className={css.input}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={t("bankSearch")}
-          autoComplete="off"
-        />
-      </div>
-      <div className={css.row2}>
-        <div className={css.field}>
-          <span className={css.fieldLabel} id={themeLabel}>
-            {t("bankTheme")}
-          </span>
-          <Select
-            aria-labelledby={themeLabel}
-            options={options}
-            value={themeId}
-            onChange={setThemeId}
-            placeholder={t("bankThemePlaceholder")}
-          />
-        </div>
-        <div className={css.field}>
-          <label className={css.fieldLabel} htmlFor={countId}>
-            {t("bankCount")}
-          </label>
-          <input
-            id={countId}
-            className={css.input}
-            type="number"
-            min={1}
-            max={20}
-            value={count}
-            onChange={(event) => setCount(Number(event.target.value))}
-          />
-        </div>
-      </div>
-      {needle && matchedThemes.length === 0 ? (
-        <p className={css.meta}>{t("bankNoTheme")}</p>
-      ) : null}
-      <div className={css.actions}>
+    <div className={css.toolSlot}>
+      {submissions > 0 ? <p className={css.meta}>{t("bankLocked")}</p> : (
         <button
+          ref={openerRef}
           type="button"
           className={css.button}
-          disabled={!themeId || pending}
-          aria-busy={pending || undefined}
-          onClick={() => void draw()}
+          onClick={() => {
+            setOpened(true);
+            change({}, 0);
+          }}
         >
-          {pending ? t("working") : t("bankDraw")}
+          {t("bankAddButton")}
         </button>
-        {preview.length > 0 ? (
-          <button
-            type="button"
-            className={css.buttonQuiet}
-            disabled={pending}
-            onClick={() => void draw()}
-          >
-            {t("bankReshuffle")}
+      )}
+      <dialog
+        ref={dialogRef}
+        className={css.pickerDialog}
+        aria-labelledby={titleId}
+        aria-busy={pending || undefined}
+        onCancel={(event) => {
+          if (dialogRef.current?.querySelector("[role='listbox']")) event.preventDefault();
+        }}
+        onClose={() => {
+          setOpened(false);
+          openerRef.current?.focus();
+        }}
+      >
+        <div className={css.pickerBody}>
+        <h3 id={titleId}>{t("bankAddButton")}</h3>
+        <p className={css.meta}>{t("bankSubjectMath")}</p>
+        <div className={css.row2}>
+          <div className={css.field}>
+            <span className={css.fieldLabel} id={subjectLabel}>{t("bankSubject")}</span>
+            <Select
+              aria-labelledby={subjectLabel}
+              options={subjectOptions}
+              value={search.subject}
+              onChange={(value) => change({ subject: value }, 0)}
+            />
+          </div>
+          <div className={css.field}>
+            <span className={css.fieldLabel} id={themeLabel}>{t("bankTheme")}</span>
+            <Select
+              aria-labelledby={themeLabel}
+              options={themeOptions}
+              value={search.themeId}
+              onChange={(value) => change({ themeId: value }, 0)}
+              placeholder={t("bankAllThemes")}
+            />
+          </div>
+        </div>
+        <div className={css.row2}>
+          <div className={css.field}>
+            <span className={css.fieldLabel} id={difficultyLabel}>{t("bankDifficulty")}</span>
+            <Select
+              aria-labelledby={difficultyLabel}
+              options={[
+                { value: "0", label: t("bankDifficultyAll") },
+                ...[1, 2, 3, 4, 5].map((level) => ({ value: String(level), label: String(level) })),
+              ]}
+              value={search.difficulty}
+              onChange={(value) => change({ difficulty: value }, 0)}
+            />
+          </div>
+          <div className={css.field}>
+            <span className={css.fieldLabel} id={typeLabel}>{t("bankType")}</span>
+            <Select
+              aria-labelledby={typeLabel}
+              options={[
+                { value: "0", label: t("bankTypeAll") },
+                { value: "2", label: t("bankTypeTwo") },
+                { value: "4", label: t("bankTypeFour") },
+              ]}
+              value={String(search.optionCount)}
+              onChange={(value) => change({ optionCount: Number(value) as 0 | 2 | 4 }, 0)}
+            />
+          </div>
+        </div>
+        <div className={css.field}>
+          <label className={css.fieldLabel} htmlFor={searchId}>{t("bankSearch")}</label>
+          <input
+            ref={searchRef}
+            id={searchId}
+            className={css.input}
+            value={search.query}
+            onChange={(event) => change({ query: event.target.value }, BANK_SEARCH_DEBOUNCE_MS)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                change({ query: event.currentTarget.value, page: 1 }, 0);
+              }
+            }}
+            autoComplete="off"
+            enterKeyHint="search"
+            aria-describedby={note ? `${searchId}-note` : undefined}
+          />
+        </div>
+        <p className={css.pickerStatus} aria-live="polite">
+          {pending ? t("bankSearching") : t("bankSelected", { count: picked.size })}
+        </p>
+        {note ? (
+          <p id={`${searchId}-note`} className={searchFailed ? css.fieldError : css.meta} role="alert">
+            {note}
+          </p>
+        ) : null}
+        {searchFailed ? (
+          <button type="button" className={css.buttonQuiet} onClick={() => change({}, 0)}>
+            {t("bankRetry")}
           </button>
         ) : null}
-      </div>
-      {note ? (
-        <p className={css.fieldError} role="alert">
-          {note}
-        </p>
-      ) : null}
-      {preview.length > 0 ? (
-        <>
-          <p className={css.meta}>{t("bankPreview")}</p>
+        {hits.length > 0 ? (
           <ul className={css.taskList}>
-            {preview.map((question) => (
-              <li key={question.id} className={css.taskRow}>
-                <p className={css.meta}>#{question.id}</p>
-                <MathText text={question.prompt} as="div" />
-                {question.options.length > 0 ? (
-                  <ol className={css.taskOptions}>
-                    {question.options.map((option, index) => (
-                      <li key={`${question.id}-${index}`}>
-                        <MathText text={option} as="span" />
-                      </li>
-                    ))}
-                  </ol>
-                ) : null}
-                <div className={css.actions}>
-                  <button
-                    type="button"
-                    className={css.buttonQuiet}
-                    disabled={pending}
-                    onClick={() => remove(question.id)}
-                  >
-                    {t("bankRemove")}
-                  </button>
-                  <button
-                    type="button"
-                    className={css.buttonQuiet}
-                    disabled={pending}
-                    onClick={() => void replaceOne(question.id)}
-                  >
-                    {t("bankReplace")}
-                  </button>
-                </div>
-              </li>
-            ))}
+            {hits.map((hit) => {
+              const added = onDay.has(hit.id);
+              const on = picked.has(hit.id);
+              return (
+                <li key={hit.id} className={css.taskRow}>
+                  <label className={css.pickerCheck}>
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      disabled={added}
+                      onChange={() => toggle(hit)}
+                    />
+                    <span>
+                      #{hit.id}
+                      {hit.themeName ? ` · ${hit.themeName}` : ""}
+                      {hit.difficulty ? ` · ${t("bankDifficulty")} ${hit.difficulty}` : ""}
+                      {added ? ` · ${t("bankPicked")}` : ""}
+                    </span>
+                  </label>
+                  {hit.otherDays && hit.otherDays.length > 0 ? (
+                    <p className={css.fieldError}>{t("bankOtherDay", { days: hit.otherDays.join(", ") })}</p>
+                  ) : null}
+                  <div className={css.pickerPrompt}>
+                    <MathText text={hit.prompt} as="div" />
+                  </div>
+                </li>
+              );
+            })}
           </ul>
-          <form action={addSampledTasksAction}>
-            <input type="hidden" name="marathonId" value={marathonId} />
-            <input type="hidden" name="dayId" value={dayId} />
-            <input type="hidden" name="themeId" value={themeId} />
-            {preview.map((question) => (
-              <input key={question.id} type="hidden" name="questionId" value={question.id} />
-            ))}
-            <SubmitButton className={css.button} pendingLabel={t("saving")}>
-              {t("bankAdd")}
+        ) : null}
+        {total > pageSize ? (
+          <div className={css.actions}>
+            <button
+              type="button"
+              className={css.buttonQuiet}
+              disabled={search.page <= 1 || pending}
+              onClick={() => change({ page: search.page - 1 }, 0)}
+            >
+              {t("bankPrev")}
+            </button>
+            <p className={css.meta}>{t("bankPage", { page: search.page, pages })}</p>
+            <button
+              type="button"
+              className={css.buttonQuiet}
+              disabled={search.page >= pages || pending}
+              onClick={() => change({ page: search.page + 1 }, 0)}
+            >
+              {t("bankNext")}
+            </button>
+          </div>
+        ) : null}
+        <form action={addDayBankTasksAction}>
+          <input type="hidden" name="marathonId" value={marathonId} />
+          <input type="hidden" name="dayId" value={dayId} />
+          {chosen.map((hit) => (
+            <input key={hit.id} type="hidden" name="questionId" value={hit.id} />
+          ))}
+          <div className={css.actions}>
+            <SubmitButton className={css.button} pendingLabel={t("saving")} disabled={chosen.length === 0}>
+              {t("bankAddSelected")}
             </SubmitButton>
-          </form>
-        </>
-      ) : null}
-    </section>
+            <button type="button" className={css.buttonQuiet} onClick={() => dialogRef.current?.close()}>
+              {t("bankClose")}
+            </button>
+          </div>
+        </form>
+        </div>
+      </dialog>
+    </div>
   );
 }

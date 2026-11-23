@@ -10,6 +10,7 @@ export async function generateMetadata() {
     description: t("description"),
     path: "/",
     noIndex: true,
+    omitCanonical: true,
   });
 }
 

@@ -196,9 +196,17 @@ export function isNoIndexPath(path: string): boolean {
   return false;
 }
 
+/**
+ * Guest `/welcome` renders the same landing as `/`. Its canonical stays on `/`,
+ * so the sitemap lists only that URL.
+ */
+const SITEMAP_DUPLICATE_PATHS = new Set<string>(["/welcome"]);
+
 /** Paths a guest can open and that belong in the sitemap. */
 export function sitemapStaticPaths(): string[] {
-  return PUBLIC_PAGE_PATHS.filter((path) => path !== "/t" && !isNoIndexPath(path));
+  return PUBLIC_PAGE_PATHS.filter(
+    (path) => path !== "/t" && !SITEMAP_DUPLICATE_PATHS.has(path) && !isNoIndexPath(path),
+  );
 }
 
 /**
@@ -308,6 +316,7 @@ export function createPageMetadata({
   description,
   path = "/",
   canonicalPath,
+  omitCanonical = false,
   noIndex = false,
   ogImageAlt,
 }: {
@@ -316,6 +325,12 @@ export function createPageMetadata({
   path?: string;
   /** When the page duplicates another URL. `/welcome` points at `/`. */
   canonicalPath?: string;
+  /**
+   * Do not emit `<link rel="canonical">`.
+   * `null` clears a canonical inherited from the root layout (a 404 must not
+   * point at the homepage). Pages that should be indexed set their own.
+   */
+  omitCanonical?: boolean;
   noIndex?: boolean;
   ogImageAlt?: string;
 }): Metadata {
@@ -332,7 +347,7 @@ export function createPageMetadata({
     description: summary,
     keywords: SITE_KEYWORDS,
     alternates: {
-      canonical: url,
+      canonical: omitCanonical ? null : url,
     },
     category: "education",
     openGraph: {

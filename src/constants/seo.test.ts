@@ -72,6 +72,29 @@ test("createPageMetadata includes canonical, OG image, and twitter card", () => 
   });
   assert.equal(welcome.alternates?.canonical, absoluteUrl("/"));
 
+  const missing = createPageMetadata({
+    title: "Сторінку не знайдено",
+    description: "Такої сторінки немає.",
+    path: "/",
+    noIndex: true,
+    omitCanonical: true,
+  });
+  assert.equal(missing.alternates?.canonical, null);
+  const missingRobots = missing.robots;
+  assert.ok(missingRobots && typeof missingRobots === "object" && !Array.isArray(missingRobots));
+  if (missingRobots && typeof missingRobots === "object" && !Array.isArray(missingRobots)) {
+    assert.equal(missingRobots.index, false);
+    assert.equal(missingRobots.follow, false);
+  }
+
+  const layoutDefault = createPageMetadata({
+    title: "LevelUP — підготовка до НМТ з математики",
+    description: SITE_DESCRIPTION,
+    path: "/",
+    omitCanonical: true,
+  });
+  assert.equal(layoutDefault.alternates?.canonical, null);
+
   const og = meta.openGraph;
   assert.ok(og && typeof og === "object" && !Array.isArray(og));
   if (og && typeof og === "object" && !Array.isArray(og)) {
@@ -232,7 +255,6 @@ test("private routes are noindex even when the caller forgets the flag", () => {
     "/t/angry-teacher",
     "/t/123abc",
     "/marathon/onemath",
-    "/interns/sasha-dubrovina28",
   ]) {
     assert.equal(isNoIndexPath(path), false, path);
     const meta = createPageMetadata({
@@ -244,7 +266,9 @@ test("private routes are noindex even when the caller forgets the flag", () => {
     assert.ok(robots && typeof robots === "object" && !Array.isArray(robots));
     if (robots && typeof robots === "object" && !Array.isArray(robots)) {
       assert.equal(robots.index, true, path);
+      assert.equal(robots.follow, true, path);
     }
+    assert.equal(meta.alternates?.canonical, absoluteUrl(path), path);
   }
   assert.deepEqual(
     [...EXCLUDED_TEACHER_SITEMAP_SLUGS],
@@ -254,12 +278,22 @@ test("private routes are noindex even when the caller forgets the flag", () => {
   assert.equal(isExcludedTeacherSlug("32132132112312"), true);
   assert.equal(isExcludedTeacherSlug("mikhail"), false);
   assert.equal(isExcludedTeacherSlug("demo"), false);
-  assert.deepEqual(sitemapStaticPaths(), [
-    "/",
-    "/welcome",
-    "/diagnostic",
-    "/interns/sasha-dubrovina28",
-  ]);
+  assert.deepEqual(sitemapStaticPaths(), ["/", "/diagnostic"]);
+  assert.equal(isNoIndexPath("/welcome"), false);
+  for (const path of sitemapStaticPaths()) {
+    const meta = createPageMetadata({
+      title: "Сторінка",
+      description: "Публічна сторінка.",
+      path,
+    });
+    assert.equal(meta.alternates?.canonical, absoluteUrl(path), path);
+    const robots = meta.robots;
+    assert.ok(robots && typeof robots === "object" && !Array.isArray(robots));
+    if (robots && typeof robots === "object" && !Array.isArray(robots)) {
+      assert.equal(robots.index, true, path);
+      assert.equal(robots.follow, true, path);
+    }
+  }
 });
 
 test("structured data is valid JSON-LD", () => {
@@ -317,6 +351,19 @@ test("open graph font file is a TrueType face", () => {
   const font = readFileSync(path.join(root, "src/lib/seo/fonts/Manrope-SemiBold.ttf"));
   assert.equal(font.readUInt32BE(0), 0x00010000);
   assert.ok(font.length > 1000);
+});
+
+test("404 and the root layout clear canonical instead of pointing at home", () => {
+  const layout = readFileSync(path.join(root, "src/app/layout.tsx"), "utf8");
+  const notFound = readFileSync(path.join(root, "src/app/not-found.tsx"), "utf8");
+  const welcome = readFileSync(
+    path.join(root, "src/app/(marketing)/(flow)/welcome/page.tsx"),
+    "utf8",
+  );
+  assert.match(layout, /omitCanonical:\s*true/);
+  assert.match(notFound, /omitCanonical:\s*true/);
+  assert.match(notFound, /noIndex:\s*true/);
+  assert.match(welcome, /canonicalPath:\s*"\/"/);
 });
 
 test("createPageMetadata sets noIndex for private routes", () => {

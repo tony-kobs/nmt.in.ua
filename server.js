@@ -8,6 +8,7 @@ const {
   rejectOversizedBody,
 } = require("./lib/serverBodyLimit.cjs");
 const { healthBody, siteTmpDir } = require("./lib/siteHealth.cjs");
+const { wwwRedirectLocation } = require("./lib/wwwRedirect.cjs");
 
 if (!process.env.NODE_ENV) {
   process.env.NODE_ENV = "production";
@@ -56,6 +57,19 @@ function isHealthRequest(req) {
 
 app.prepare().then(() => {
   createServer((req, res) => {
+    // Hosting nginx already redirects http to https. www still reaches Node.
+    // Check both headers: the proxy may keep Host as 127.1.10.37.
+    const wwwLocation = wwwRedirectLocation(req.headers, req.url);
+    if (wwwLocation) {
+      res.writeHead(301, {
+        Location: wwwLocation,
+        "Cache-Control": "public, max-age=86400",
+        "X-Content-Type-Options": "nosniff",
+      });
+      res.end();
+      if (typeof req.resume === "function") req.resume();
+      return;
+    }
     if (isHealthRequest(req)) {
       const body = healthBody(dir);
       res.writeHead(200, {

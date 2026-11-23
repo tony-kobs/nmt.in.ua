@@ -1,7 +1,18 @@
 import "server-only";
 
+import { DAY_HAS_ANSWERS_SQL, planDayRemoval } from "../dayRemoval";
 import { withConn, type Conn } from "./db";
 import type { MarathonDay } from "./types";
+
+export type DeleteDayResult =
+  | { ok: true }
+  | { ok: false; reason: "missing" | "submissions"; submissions: number };
+
+const SCHEDULE_TABLES = [
+  "marathon_notifications",
+  "marathon_message_overrides",
+  "marathon_message_jobs",
+] as const;
 
 export async function listDayTaskCounts(
   marathonId: number,
@@ -95,27 +106,127 @@ export async function updateDay(
   }, getConnection);
 }
 
+export async function dayAnswerCount(dayId: number, getConnection?: Conn): Promise<number> {
+  return withConn(async (connection) => {
+    const rows = await connection.query<{ n: number | string }>(
+      `SELECT COUNT(*) AS n FROM marathon_day_progress
+       WHERE day_id = ? AND ${DAY_HAS_ANSWERS_SQL}`,
+      [dayId],
+    );
+    return Number(rows[0]?.n ?? 0);
+  }, getConnection);
+}
+
+export async function listDaySubmissionCounts(
+  marathonId: number,
+  getConnection?: Conn,
+): Promise<Map<number, number>> {
+  return withConn(async (connection) => {
+    const rows = await connection.query<{ day_id: number; n: number | string }>(
+      `SELECT day_id, COUNT(*) AS n
+       FROM marathon_day_progress
+       WHERE marathon_id = ? AND ${DAY_HAS_ANSWERS_SQL}
+       GROUP BY day_id`,
+      [marathonId],
+    );
+    return new Map(rows.map((row) => [Number(row.day_id), Number(row.n) || 0]));
+  }, getConnection);
+}
+
+/**
+ * Deletes a day that has no student answers, then renumbers the remaining days
+ * from 1 in their previous order and moves schedule rows with those days.
+ * A day that already has answers is left untouched.
+ */
 export async function deleteDay(
   marathonId: number,
   dayId: number,
   getConnection?: Conn,
-): Promise<void> {
-  await withConn(async (connection) => {
-    await connection.execute(
-      `DELETE FROM marathon_day_tasks WHERE day_id = ?`,
-      [dayId],
-    );
-    await connection.execute(
-      `DELETE FROM marathon_day_materials WHERE day_id = ?`,
-      [dayId],
-    );
-    await connection.execute(
-      `DELETE FROM marathon_day_progress WHERE day_id = ?`,
-      [dayId],
-    );
-    await connection.execute(
-      `DELETE FROM marathon_days WHERE id = ? AND marathon_id = ?`,
-      [dayId, marathonId],
-    );
+): Promise<DeleteDayResult> {
+  return withConn(async (connection) => {
+    await connection.beginTransaction();
+    try {
+      const current = await connection.query<{ day_number: number }>(
+        `SELECT day_number FROM marathon_days WHERE id = ? AND marathon_id = ? LIMIT 1`,
+        [dayId, marathonId],
+      );
+      const removed = Number(current[0]?.day_number);
+      if (!current[0] || !Number.isInteger(removed)) {
+        await connection.rollback();
+        return { ok: false, reason: "missing", submissions: 0 };
+      }
+      const answered = await connection.query<{ n: number | string }>(
+        `SELECT COUNT(*) AS n FROM marathon_day_progress
+         WHERE day_id = ? AND marathon_id = ? AND ${DAY_HAS_ANSWERS_SQL}`,
+        [dayId, marathonId],
+      );
+      const submissions = Number(answered[0]?.n ?? 0);
+      if (submissions > 0) {
+        await connection.rollback();
+        return { ok: false, reason: "submissions", submissions };
+      }
+      const siblings = await connection.query<{ day_number: number }>(
+        `SELECT day_number FROM marathon_days WHERE marathon_id = ? ORDER BY day_number`,
+        [marathonId],
+      );
+      const moves = planDayRemoval(
+        siblings.map((row) => Number(row.day_number)),
+        removed,
+      );
+      await connection.execute(
+        `DELETE FROM marathon_images WHERE marathon_id = ? AND day_id = ?`,
+        [marathonId, dayId],
+      );
+      await connection.execute(`DELETE FROM marathon_day_tasks WHERE day_id = ?`, [dayId]);
+      await connection.execute(`DELETE FROM marathon_day_materials WHERE day_id = ?`, [dayId]);
+      await connection.execute(`DELETE FROM marathon_day_progress WHERE day_id = ?`, [dayId]);
+      await connection.execute(
+        `DELETE FROM marathon_days WHERE id = ? AND marathon_id = ?`,
+        [dayId, marathonId],
+      );
+      if (moves.length > 0) {
+        await connection.execute(
+          `UPDATE marathon_days SET day_number = day_number + 100
+           WHERE marathon_id = ? AND day_number BETWEEN 1 AND 40`,
+          [marathonId],
+        );
+        for (const move of moves) {
+          await connection.execute(
+            `UPDATE marathon_days SET day_number = ? WHERE marathon_id = ? AND day_number = ?`,
+            [move.to, marathonId, move.from + 100],
+          );
+        }
+      }
+      for (const table of SCHEDULE_TABLES) {
+        await connection.execute(
+          `DELETE FROM ${table} WHERE marathon_id = ? AND day_number = ?`,
+          [marathonId, removed],
+        );
+        await connection.execute(
+          `UPDATE ${table} SET day_number = day_number + 100
+           WHERE marathon_id = ? AND day_number BETWEEN 1 AND 40`,
+          [marathonId],
+        );
+        for (const move of moves) {
+          await connection.execute(
+            `UPDATE ${table} SET day_number = ? WHERE marathon_id = ? AND day_number = ?`,
+            [move.to, marathonId, move.from + 100],
+          );
+        }
+        await connection.execute(
+          `DELETE FROM ${table} WHERE marathon_id = ? AND day_number >= 100`,
+          [marathonId],
+        );
+      }
+      await connection.execute(
+        `UPDATE marathons SET days_count = GREATEST(1, days_count - 1) WHERE id = ? AND kind = 'daily'`,
+        [marathonId],
+      );
+      await connection.commit();
+      return { ok: true };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    }
   }, getConnection);
 }

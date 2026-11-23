@@ -12,11 +12,14 @@ import {
   type UserRole,
 } from "@/modules/auth/types";
 
+export type SidebarGroup = "tests";
+
 export type SidebarLink = {
   href: string;
   labelKey: string;
   status: NavItemStatus;
   icon: NavIconName;
+  group?: SidebarGroup;
 };
 
 const ADMIN_NAV_SET = new Set<string>(ADMIN_NAV_HREFS);
@@ -41,6 +44,7 @@ const NAV_ICONS: Record<string, NavIconName> = {
   "/admin/support": "headset",
   "/promo": "ticket",
   "/admin/promos": "ticket",
+  "/practice": "spark",
 };
 
 const NAV_KEYS: Record<string, string> = {
@@ -63,6 +67,13 @@ const NAV_KEYS: Record<string, string> = {
   "/admin/support": "support",
   "/promo": "promo",
   "/admin/promos": "promo",
+  "/practice": "practice",
+};
+
+const NAV_GROUPS: Partial<Record<string, SidebarGroup>> = {
+  "/topic": "tests",
+  "/simulator": "tests",
+  "/practice": "tests",
 };
 
 const MARATHON_ICON: NavIconName = "flag";
@@ -142,6 +153,7 @@ export function visibleSidebar(input: {
     if (isPlatformStaff(input.role)) return ADMIN_NAV_SET.has(item.href);
     if (input.role === "teacher" && item.href === "/") return false;
     if (item.href === "/topic") return input.role === "student";
+    if (item.href === "/practice") return input.role === "student";
     if (item.href === "/assign") return canAssignMentorSessions(input.role);
     if (item.href === "/settings") return canImportContent(input.role);
     if (item.href === "/feedback") return canImportContent(input.role);
@@ -160,6 +172,7 @@ export function visibleSidebar(input: {
     labelKey: NAV_KEYS[item.href] ?? "home",
     status: item.status,
     icon: NAV_ICONS[item.href] ?? "spark",
+    group: NAV_GROUPS[item.href],
   }));
 
   if (input.role === "student") {
