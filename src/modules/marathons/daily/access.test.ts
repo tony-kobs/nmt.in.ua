@@ -54,6 +54,8 @@ test("a platform student sees the marathon shelf beside the usual sections", () 
   assert.ok(!hrefs.includes("/leaderboard"));
   assert.ok(!hrefs.includes("/admin/marathons"));
   assert.ok(!hrefs.includes("/admin/support"));
+  assert.ok(!hrefs.includes("/promo"));
+  assert.ok(!hrefs.includes("/admin/promos"));
   assert.ok(!hrefs.includes("/assign"));
 });
 
@@ -65,6 +67,8 @@ test("teachers and admins keep their menus when a marathon href is present", () 
   }).map((item) => item.href);
   assert.ok(teacher.includes("/assign"));
   assert.ok(teacher.includes("/students"));
+  assert.ok(teacher.includes("/promo"));
+  assert.ok(!teacher.includes("/admin/promos"));
   assert.ok(teacher.includes("/leaderboard"));
   assert.ok(!teacher.includes("/"));
   assert.ok(!teacher.includes("/marathon"));
@@ -90,6 +94,13 @@ test("teachers and admins keep their menus when a marathon href is present", () 
   assert.equal(isMarathonOnlyStudent("student", "marathon"), true);
 });
 
+test("a parent sidebar is only the cabinet and the account", () => {
+  const links = visibleSidebar({ role: "parent", cabinetScope: "full", marathonHref: null });
+  assert.deepEqual(links.map((item) => item.href), ["/parent", "/account"]);
+  assert.deepEqual(links.map((item) => item.labelKey), ["parent", "account"]);
+  assert.equal(new Set(links.map((item) => item.icon)).size, links.length);
+});
+
 test("marathon scope no longer redirects cabinet URLs", () => {
   assert.equal(marathonOnlyRedirectTarget("/results", MAP), null);
   assert.equal(marathonOnlyRedirectTarget("/", MAP), null);
@@ -102,7 +113,7 @@ test("marathon scope no longer redirects cabinet URLs", () => {
 });
 
 test("each role's sidebar icons are distinct", () => {
-  const roles: UserRole[] = ["student", "teacher", "admin", "dev"];
+  const roles: UserRole[] = ["student", "teacher", "admin", "dev", "parent"];
   for (const role of roles) {
     const icons = visibleSidebar({
       role,

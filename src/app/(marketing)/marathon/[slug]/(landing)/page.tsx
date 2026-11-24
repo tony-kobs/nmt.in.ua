@@ -1,11 +1,12 @@
-import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { DatabaseUnavailable } from "@/components/status/DatabaseUnavailable";
 import { DiagnosticShell } from "@/components/diagnostic/DiagnosticShell";
+import { JsonLd } from "@/components/seo";
+import { PublicBreadcrumbs } from "@/components/seo/PublicBreadcrumbs";
 import { isDatabaseUnavailable, rethrowNavigation } from "@/lib/db/unavailable";
 import { MarathonLanding } from "@/components/marathon/MarathonLanding";
 import { MarathonParking } from "@/components/marathon/MarathonParking";
-import { createPageMetadata } from "@/constants/seo";
+import { buildCourseJsonLd, createPageMetadata, getSiteUrl } from "@/constants/seo";
 import { getCurrentUser } from "@/modules/auth/getCurrentUser";
 import { readRiddleSession } from "@/modules/marathons/daily/riddleSession";
 import { loadIntroImagePath } from "@/modules/marathons/daily/imageStore";
@@ -57,6 +58,7 @@ export async function generateMetadata({ params }: PageProps) {
       title: t("title"),
       description: t("description"),
       path: `/marathon/${slug}`,
+      noIndex: true,
     });
   }
 }
@@ -74,7 +76,9 @@ export default async function MarathonLandingPage({ params, searchParams }: Page
     throw error;
   }
   const phase = publicMarathonPhase(marathon, now);
-  if (!marathon || phase === "hidden") notFound();
+  // The slug layout already answers 404 before this segment's loading state.
+  // A second miss from this page would stream status 200.
+  if (!marathon || phase === "hidden") return null;
   const utm = readUtm({
     utm_source: one(query.utm_source),
     utm_medium: one(query.utm_medium),
@@ -106,6 +110,7 @@ export default async function MarathonLandingPage({ params, searchParams }: Page
     }
     return (
       <DiagnosticShell>
+        <MarathonPublicHead marathon={marathon} />
         <MarathonParking
           marathon={marathon}
           opensAt={marathonOpensAt(marathon)}
@@ -141,6 +146,7 @@ export default async function MarathonLandingPage({ params, searchParams }: Page
   }
   return (
     <DiagnosticShell>
+      <MarathonPublicHead marathon={marathon} />
       <MarathonLanding
         marathon={marathon}
         riddles={riddles}
@@ -151,5 +157,35 @@ export default async function MarathonLandingPage({ params, searchParams }: Page
         utm={utm}
       />
     </DiagnosticShell>
+  );
+}
+
+async function MarathonPublicHead({
+  marathon,
+}: {
+  marathon: { slug: string; title: string; description: string };
+}) {
+  const seo = await getTranslations("Seo");
+  const path = `/marathon/${marathon.slug}`;
+  const name = marathon.title.trim() || seo("marathon");
+  return (
+    <>
+      <PublicBreadcrumbs
+        label={seo("breadcrumb")}
+        items={[
+          { name: seo("home"), path: "/" },
+          { name, path },
+        ]}
+      />
+      <JsonLd
+        data={buildCourseJsonLd({
+          id: `${getSiteUrl()}${path}#course`,
+          name,
+          description: marathon.description || name,
+          path,
+          teaches: "Математика НМТ",
+        })}
+      />
+    </>
   );
 }

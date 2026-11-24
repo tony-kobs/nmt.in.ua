@@ -42,7 +42,7 @@ git checkout -b feature/коротка-назва
 
 Групи маршрутів: `src/app/(home)/page.tsx` — `/`; `src/app/(marketing)/` — лендінг, вхід, діагностика, публічна візитка; `src/app/(app)/` — кабінет. Корінь — лише `html` / `body` і `globals.css`.
 
-`loading.tsx` не став поруч зі сторінкою, яка кличе `notFound()`: відповідь тоді їде зі статусом 200.
+`loading.tsx` не став поруч зі сторінкою, яка кличе `notFound()` або `redirect()`: відповідь тоді їде зі статусом 200.
 
 ### Журнал
 
@@ -62,6 +62,9 @@ Cursor і інші моделі дозволені. Перед здачею ти
 | `src/constants/publicRoutes.ts` | Шляхи без сесії |
 | `src/app/(app)/session/[id]/` | Тренажер однієї сесії |
 | `src/app/(app)/(cabinet)/` | Сторінки кабінету |
+| `src/app/(marketing)/(flow)/register/parent/page.tsx` | Реєстрація батьків за запрошенням. Якщо батьківський акаунт уже є, сторінка веде на `/parent/accept` |
+| `src/app/(app)/parent/` | Кабінет батьків: лише перегляд прогресу дитини. Поза `(cabinet)`, бо сторінка кличе `notFound()` |
+| `src/constants/seo.ts` | Title, description, canonical, robots, sitemap і JSON-LD |
 | `src/components/welcome/` | Секції лендінгу |
 | `src/components/dashboard/` | Шапка, меню, старт тесту |
 | `src/components/testing/` | TopicTrainer, NmtTrainer, підсумок |
@@ -99,6 +102,7 @@ Cursor і інші моделі дозволені. Перед здачею ти
 | Призначення | `src/modules/mentor-assignments` | `/assign` |
 | Сесії викладача | `src/modules/teacher-sessions` | список завдань до призначення |
 | Учні | `src/modules/teacher-students` | `/students`, `/join` |
+| Промокоди | `src/modules/promo` | `/promo`, `/admin/promos`, поле в `/account` |
 
 Ролі в `app_users.role`: `student`, `teacher`, `admin`, `dev`. Без перегляду розробник бачить той самий кабінет, що адмін. Адмін і розробник можуть тимчасово відкрити кабінет учня або викладача: у сесії стоїть `viewAs`, рядок у базі не змінюється. Перемикач у шапці кабінету. Призначити `dev`: `node scripts/promote-dev.mjs <login>` після міграції.
 
@@ -150,7 +154,8 @@ Stage 2: міграції `026`–`031` і банк `032_stage2_bank.sql`. Ді�
 | `/assign`, `/students` | Викладач і адмін |
 | `/results`, `/sessions` | Учень бачить своє, викладач — клас |
 | `/account` | Усі в кабінеті. Адмін без навчальних віджетів |
-| `/settings`, `/feedback`, `/profiles`, `/admin/textbook` | Адмін |
+| `/settings`, `/feedback`, `/profiles`, `/admin/textbook`, `/admin/promos` | Адмін |
+| `/promo` | Викладач: коди, привʼязані до себе |
 | `/marathon/[slug]` | Публічна сторінка курсу |
 
 Випадковий шлях без сесії веде на `/login`. Неіснуюча публічна сторінка на кшталт `/welcome/немає` — 404.
@@ -208,7 +213,7 @@ uk / en / de через next-intl. Мова в cookie, префікса `/en` в
 
 ## 8. Міграції
 
-Новий файл у `scripts/sql/` бери наступним вільним номером на свіжому `dev`. Зараз найбільший у дереві — `074_quiz_task_drafts.sql`. Номери `068`–`071` лишаються вільними: їх зарезервовано під інші задачі. Новий файл, якщо це не одна з тих задач, — `075_коротка_назва.sql`. Процедура, журнал `schema_migrations` і чому файл не перейменовують після продакшену — [`schema-migrations.md`](./schema-migrations.md).
+Новий файл у `scripts/sql/` бери наступним вільним номером на свіжому `dev`. Зараз найбільший у дереві — `077_teacher_landing.sql`. Номери `068`–`071` лишаються вільними: їх зарезервовано під інші задачі. Новий файл, якщо це не одна з тих задач, — `078_коротка_назва.sql`. Процедура, журнал `schema_migrations` і чому файл не перейменовують після продакшену — [`schema-migrations.md`](./schema-migrations.md).
 
 Перед відкриттям pull request ще раз підтягни `dev`. Якщо той самий номер уже зайняли, перебазуйся і перейменуй **лише свій** файл, якого ще немає в базі. Два студенти з однаковим номером не мерджаться в тиші: перевірка в CI падає на новому дублі.
 

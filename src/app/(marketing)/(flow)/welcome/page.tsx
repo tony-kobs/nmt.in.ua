@@ -3,7 +3,7 @@ import { WelcomeLanding } from "@/components/welcome/WelcomeLanding";
 import { createPageMetadata } from "@/constants/seo";
 
 export async function generateMetadata() {
-  const t = await getTranslations("Metadata.welcome");
+  const t = await getTranslations("Metadata.welcomePage");
   return createPageMetadata({
     title: t("title"),
     description: t("description"),

@@ -184,6 +184,43 @@ export async function migrateTeacherProfileFields(
     );
   }
 
+  if (!columns.has("photo_url")) {
+    await connection.execute(
+      `ALTER TABLE teacher_profiles ADD COLUMN photo_url VARCHAR(500) NULL AFTER bio`,
+      [],
+    );
+  }
+  if (!columns.has("about_text")) {
+    await connection.execute(
+      `ALTER TABLE teacher_profiles ADD COLUMN about_text TEXT NULL AFTER photo_url`,
+      [],
+    );
+  }
+  if (!columns.has("approach")) {
+    await connection.execute(
+      `ALTER TABLE teacher_profiles ADD COLUMN approach TEXT NULL AFTER about_text`,
+      [],
+    );
+  }
+  if (!columns.has("program")) {
+    await connection.execute(
+      `ALTER TABLE teacher_profiles ADD COLUMN program TEXT NULL AFTER approach`,
+      [],
+    );
+  }
+  if (!columns.has("reviews_json")) {
+    await connection.execute(
+      `ALTER TABLE teacher_profiles ADD COLUMN reviews_json TEXT NULL AFTER program`,
+      [],
+    );
+  }
+  if (!columns.has("external_url")) {
+    await connection.execute(
+      `ALTER TABLE teacher_profiles ADD COLUMN external_url VARCHAR(500) NULL AFTER contact_url`,
+      [],
+    );
+  }
+
   if (!columns.has("rejection_reason")) {
     await connection.execute(
       `ALTER TABLE teacher_profiles
@@ -199,7 +236,7 @@ export async function ensureTeacherProfileSchema(
 ): Promise<void> {
   await ensureSchemaOnce(
     "teacher_profiles",
-    ["018_teacher_profiles.sql", "025_teacher_profile_fields.sql"],
+    ["018_teacher_profiles.sql", "025_teacher_profile_fields.sql", "077_teacher_landing.sql"],
     getConnection,
     async (connection) => {
       await connection.execute(SQL_CREATE_TEACHER_PROFILES, []);

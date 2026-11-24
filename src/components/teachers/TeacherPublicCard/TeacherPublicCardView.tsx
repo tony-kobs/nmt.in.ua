@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { UserAvatar } from "@/components/account/UserAvatar";
 import type { PublicTeacherCard } from "@/modules/teachers";
@@ -10,6 +11,10 @@ import css from "./TeacherPublicCard.module.css";
 type TeacherPublicCardViewProps = {
   card: PublicTeacherCard;
   showCta?: boolean;
+  /** Page layout adds the landing sections and the sign-up link. */
+  layout?: "card" | "page";
+  /** `h1` only on the public teacher page, so lists keep a single page heading. */
+  heading?: "h1" | "p";
   ctaLabel?: string;
   onCtaClick?: () => void;
   extraContent?: ReactNode;
@@ -18,6 +23,8 @@ type TeacherPublicCardViewProps = {
 export function TeacherPublicCardView({
   card,
   showCta = true,
+  layout = "card",
+  heading = "p",
   ctaLabel,
   onCtaClick,
   extraContent,
@@ -61,6 +68,17 @@ export function TeacherPublicCardView({
       aria-labelledby={`teacher-public-name-${card.userId}`}
     >
       <div className={css.avatarColumn}>
+        {layout === "page" && card.photoUrl ? (
+          // A teacher can paste any https host. next/image would refuse it without a remote pattern.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            className={css.photo}
+            src={card.photoUrl}
+            alt={card.displayName}
+            width={640}
+            height={480}
+          />
+        ) : (
         <UserAvatar
           user={{
             id: card.userId,
@@ -71,6 +89,7 @@ export function TeacherPublicCardView({
           }}
           className={css.avatar}
         />
+        )}
       </div>
 
       <div className={css.content}>
@@ -82,9 +101,15 @@ export function TeacherPublicCardView({
                 : t("kicker")}
             </p>
 
-            <p id={`teacher-public-name-${card.userId}`} className={css.name}>
-              {card.displayName}
-            </p>
+            {layout === "page" && heading === "h1" ? (
+              <h1 id={`teacher-public-name-${card.userId}`} className={css.name}>
+                {card.displayName}
+              </h1>
+            ) : (
+              <p id={`teacher-public-name-${card.userId}`} className={css.name}>
+                {card.displayName}
+              </p>
+            )}
 
             {card.city || card.country ? (
               <p className={css.location}>
@@ -118,6 +143,37 @@ export function TeacherPublicCardView({
 
         {headline && !headlineIsBio ? <p className={css.headline}>{headline}</p> : null}
         {bio ? <p className={css.bio}>{bio}</p> : null}
+        {layout === "page" && card.about ? (
+          <section className={css.landingSection} aria-labelledby={`teacher-about-${card.userId}`}>
+            <h2 id={`teacher-about-${card.userId}`} className={css.detailTitle}>{t("about")}</h2>
+            <p className={css.detailText}>{card.about}</p>
+          </section>
+        ) : null}
+        {layout === "page" && card.approach ? (
+          <section className={css.landingSection} aria-labelledby={`teacher-approach-${card.userId}`}>
+            <h2 id={`teacher-approach-${card.userId}`} className={css.detailTitle}>{t("approach")}</h2>
+            <p className={css.detailText}>{card.approach}</p>
+          </section>
+        ) : null}
+        {layout === "page" && card.program ? (
+          <section className={css.landingSection} aria-labelledby={`teacher-program-${card.userId}`}>
+            <h2 id={`teacher-program-${card.userId}`} className={css.detailTitle}>{t("program")}</h2>
+            <p className={css.detailText}>{card.program}</p>
+          </section>
+        ) : null}
+        {layout === "page" && card.reviews.length > 0 ? (
+          <section className={css.landingSection} aria-labelledby={`teacher-reviews-${card.userId}`}>
+            <h2 id={`teacher-reviews-${card.userId}`} className={css.detailTitle}>{t("reviews")}</h2>
+            <ul className={css.reviews}>
+              {card.reviews.map((review) => (
+                <li key={`${review.name}-${review.text}`} className={css.review}>
+                  <p className={css.detailText}>{review.text}</p>
+                  <p className={css.reviewName}>{review.name}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         <div className={css.summary}>
           {card.teachingLanguages.length > 0 ? (
@@ -184,7 +240,17 @@ export function TeacherPublicCardView({
             </details>
           ) : null}
 
-          {showCta ? (
+          {layout === "page" && card.externalUrl ? (
+            <a className={css.ownSite} href={card.externalUrl} target="_blank" rel="noopener noreferrer">
+              {t("ownSite")}
+            </a>
+          ) : null}
+          {showCta && layout === "page" ? (
+            <Link className={css.cta} href={`/register?ref=${encodeURIComponent(card.slug)}`}>
+              {t("signup")}
+            </Link>
+          ) : null}
+          {showCta && layout !== "page" ? (
             <button className={css.cta} type="button" onClick={onCtaClick}>
               {ctaLabel ?? t("ctaPlaceholder")}
             </button>

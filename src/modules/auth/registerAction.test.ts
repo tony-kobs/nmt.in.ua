@@ -56,6 +56,22 @@ function registrationForm(role: "student" | "teacher", extra: Record<string, str
   });
 }
 
+test("public registration cannot create a parent through a submitted role", async () => {
+  let createdRole: AuthUser["role"] | undefined;
+  await assert.rejects(
+    registerAction(IDLE, registrationForm("student", { role: "parent" }), {
+      createUser: async (input) => {
+        createdRole = input.role;
+        return createdStudent;
+      },
+      sendVerificationMail: async () => ({ ok: true }),
+      redirectTo: (path) => { throw new Redirected(path); },
+    }),
+    (error: unknown) => error instanceof Redirected,
+  );
+  assert.equal(createdRole, "student");
+});
+
 test("registerAction sends the verification letter before leaving for check-email", async () => {
   for (const role of ["student", "teacher"] as const) {
     const events: string[] = [];

@@ -29,5 +29,6 @@ export function decideViewRole(realRole: UserRole, requested: unknown): ViewRole
 
 export function viewHomePath(role: UserRole): string {
   if (role === "teacher") return "/assign";
+  if (role === "parent") return "/parent";
   return "/";
 }

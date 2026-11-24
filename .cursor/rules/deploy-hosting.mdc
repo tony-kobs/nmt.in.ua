@@ -18,6 +18,22 @@ alwaysApply: true
 7. Після `mv` панель перезапускає сайт: `POST https://adm.tools/action/hosting/account/nodejs/reload/` з числовим `host_id`. Секрети GitHub Actions: `ADM_TOOLS_TOKEN`, `ADM_TOOLS_HOST_ID`. Панель сама виконує `npm run start` (`node server.js`) і кладе адресу в `HOST` / `PORT`.
 8. Healthcheck: `GET http://127.1.10.37:3000/health` → 200 і тіло містить `BUILD_ID` цього релізу. Інакше rollback і ще один reload. Свій `nohup` не піднімати.
 
+## Версія і Discord
+
+Версія релізу — тег `vX.Y.Z`, не `package.json`. Після push у `main` workflow `Release` чекає, поки `GET https://nmt.in.ua/api/version` віддасть SHA цього коміту (кожні 15 с, до 20 хв), тоді `gh release create --generate-notes` і повідомлення в Discord. `deployment_status` від Vercel не використовується: прод зараз піднімає хостинг з того самого push, а статус Vercel може прийти раніше, ніж процес відповість.
+
+На Vercel SHA береться з `VERCEL_GIT_COMMIT_SHA`. Збірка (`prebuild`) ще пише `src/generated/deploy-revision.json`, щоб хостинг без змінних Vercel віддав той самий коміт. Файл у git не комітиться.
+
+Реліз, створений `GITHUB_TOKEN`, не запускає інші workflow. Тому Discord шле сам `Release`. Окремий `Release Discord` спрацьовує на ручний `release: published` і на `workflow_dispatch` з полем `tag`.
+
+Секрет репозиторію `DISCORD_WEBHOOK` — URL вебхука Discord (https). Без нього крок пише попередження і не падає. URL у логи не друкується. `DISCORD_DRY_RUN=1` для `scripts/discord-release.sh` друкує JSON і не відправляє.
+
+Перший тег, коли `vX.Y.Z` ще немає, — `v1.0.0`. Історію комітів і PR для нього не читаємо. Далі minor, якщо з останнього тега є `feat:` / `feat(scope):` або мітка `release:minor`; major лише з `release:major`; інакше patch. Мітки беруться з номерів `#123` у темах комітів цього діапазону (не більше 20 запитів). Коміт без PR, порожня відповідь API або ліміт не зупиняють реліз. Коміт, на якому вже є тег, пропускається.
+
+`/api/version` після деплою часто має `version: null`: тег створюється вже після збірки. Якщо на GitHub вже є тег цього SHA, ендпоінт підставляє його (кеш процесу; промах пам’ятається хвилину). Футер лишається порожнім до наступної збірки, яка побачить тег.
+
+Повторити реліз уже задеплоєного коміту: Actions → Release → Run workflow на `main`, поле sha — повний хеш, `skip_poll` увімкнути. Повтор старого прогону бере скрипт з того коміту, не з `main`.
+
 ## Залізно не робити
 
 - `npm run build` на хостингу (старий glibc).

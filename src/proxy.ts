@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { isKnownPage } from "@/constants/appRoutes";
+import { isKnownPage, normalizePagePath } from "@/constants/appRoutes";
 import { PUBLIC_PAGE_PATHS } from "@/constants/publicRoutes";
 import { contentSecurityPolicy, createRequestNonce } from "@/lib/contentSecurityPolicy";
 import { hasPermission } from "@/modules/auth/permissions";
@@ -14,11 +14,18 @@ import {
 } from "@/lib/requestBudget";
 import { clientIp, isBlockedPath } from "@/lib/security";
 import { absoluteSiteUrl } from "@/lib/siteOrigin";
+import { parentMustLeave } from "@/modules/parent-students/parentCabinet";
 import { isPlatformStaff, type SessionPayload } from "@/modules/auth/types";
 import {
   SESSION_COOKIE_NAME,
   verifySessionToken,
 } from "@/modules/auth/sessionToken";
+import {
+  ATTRIBUTION_MAX_AGE_SEC,
+  PROMO_COOKIE,
+  REF_COOKIE,
+  attributionFromSearch,
+} from "@/modules/promo/values";
 
 function redirectOnSite(path: string): NextResponse {
   return NextResponse.redirect(absoluteSiteUrl(path));
@@ -45,8 +52,14 @@ function requiresAdmin(pathname: string): boolean {
     pathname === "/feedback" ||
     pathname.startsWith("/feedback/") ||
     pathname === "/tasks" ||
-    pathname.startsWith("/tasks/")
+    pathname.startsWith("/tasks/") ||
+    pathname === "/admin/promos" ||
+    pathname.startsWith("/admin/promos/")
   );
+}
+
+function requiresPromoDesk(pathname: string): boolean {
+  return pathname === "/promo" || pathname.startsWith("/promo/");
 }
 
 function requiresTeacherOrAdmin(pathname: string): boolean {
@@ -78,6 +91,10 @@ function authGuard(
 ): NextResponse | null {
   const { pathname } = request.nextUrl;
 
+  if (session?.role === "parent" && parentMustLeave(pathname)) {
+    return redirectOnSite("/parent");
+  }
+
   if (skipsAuth(pathname)) return null;
 
   if (!session) {
@@ -107,6 +124,14 @@ function authGuard(
     return redirectOnSite("/");
   }
 
+  if (
+    requiresPromoDesk(pathname) &&
+    session.role !== "teacher" &&
+    !isPlatformStaff(session.role)
+  ) {
+    return redirectOnSite("/");
+  }
+
   return null;
 }
 
@@ -115,6 +140,16 @@ export async function proxy(request: NextRequest) {
   const nonce = createRequestNonce();
   const csp = contentSecurityPolicy(nonce, process.env.NODE_ENV !== "production");
   const seal = (response: NextResponse) => {
+    const found = attributionFromSearch(request.nextUrl.searchParams);
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: "lax" as const,
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: ATTRIBUTION_MAX_AGE_SEC,
+    };
+    if (found.promo) response.cookies.set(PROMO_COOKIE, found.promo, cookieOptions);
+    if (found.ref) response.cookies.set(REF_COOKIE, found.ref, cookieOptions);
     response.headers.set("Content-Security-Policy", csp);
     return response;
   };
@@ -156,6 +191,23 @@ export async function proxy(request: NextRequest) {
         "X-Content-Type-Options": "nosniff",
       },
     }));
+  }
+
+  // A `loading.tsx` sibling turns `redirect()` into HTTP 200 plus a meta refresh.
+  const path = normalizePagePath(pathname);
+  if (path === "/register/teacher") {
+    return seal(NextResponse.redirect(absoluteSiteUrl("/register?role=teacher"), 308));
+  }
+  const verifyToken = path === "/verify-email"
+    ? request.nextUrl.searchParams.get("token")?.trim() ?? ""
+    : "";
+  if (verifyToken) {
+    return seal(
+      NextResponse.redirect(
+        absoluteSiteUrl(`/api/auth/verify-email?token=${encodeURIComponent(verifyToken)}`),
+        307,
+      ),
+    );
   }
 
   const authResponse = authGuard(request, session);

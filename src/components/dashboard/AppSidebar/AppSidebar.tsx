@@ -113,12 +113,18 @@ export function AppSidebar({
             {t("kicker")}
           </p>
           <ul className={css.list}>
-            {navItems.map((item) => {
+            {navItems.map((item, index) => {
               const active = sidebarLinkActive(item.href, pathname, role);
               const isSoon = item.status === "soon";
+              const group = item.group;
 
               return (
                 <li key={item.href}>
+                  {group !== undefined && group !== navItems[index - 1]?.group ? (
+                    <p className={clsx(css.groupLabel, css.drawerOnly)}>
+                      {t(`groups.${group}`)}
+                    </p>
+                  ) : null}
                   <Link
                     href={item.href}
                     className={clsx(

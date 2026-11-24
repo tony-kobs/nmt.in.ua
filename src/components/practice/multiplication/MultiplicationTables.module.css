@@ -1,0 +1,118 @@
+.card {
+    padding: var(--space-md);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--sheet);
+    box-shadow: var(--shadow-md);
+}
+
+.head {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-md);
+}
+
+.title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: var(--fs-body);
+    font-weight: 800;
+}
+
+.dots {
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: var(--space-2xs);
+}
+
+.dots i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--orange);
+}
+
+.dots i+i {
+    background: color-mix(in srgb, var(--orange) 40%, transparent);
+}
+
+.tag {
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-pill);
+    background: var(--green-bg);
+    color: var(--green-dark);
+    font-size: var(--fs-small);
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.link {
+    display: flex;
+    min-height: 44px;
+    flex-direction: column;
+    gap: var(--space-2xs);
+    padding: var(--space-md);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    color: var(--ink);
+}
+
+.link:hover {
+    border-color: var(--green-fill);
+    background: var(--surface-hover);
+}
+
+.num {
+    color: var(--green-dark);
+    font-size: var(--fs-h2);
+    font-weight: 800;
+}
+
+.label {
+    color: var(--muted);
+    font-size: var(--fs-small);
+    font-weight: 700;
+}
+
+@media (min-width: 768px) {
+    .card {
+        padding: var(--space-lg) var(--space-xl);
+    }
+
+    .head {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (min-width: 1440px) {
+    .card {
+        padding: var(--space-xl) var(--space-2xl);
+    }
+
+    .grid {
+        gap: var(--space-md);
+    }
+
+    .link {
+        padding: var(--space-lg);
+    }
+}

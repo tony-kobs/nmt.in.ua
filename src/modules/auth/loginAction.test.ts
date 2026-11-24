@@ -98,3 +98,35 @@ test("loginAction opens a session and redirects on success", async () => {
   assert.equal(state.message, "redirect:/topic");
   assert.equal(cookieUser, 7);
 });
+
+test("parent login opens its cabinet, and keeps an invite accept path", async () => {
+  const cases = [
+    [undefined, "/parent"],
+    ["/topic", "/parent"],
+    ["/assign", "/parent"],
+    ["//example.com", "/parent"],
+    ["/parent/accept?token=abc", "/parent/accept?token=abc"],
+  ] as const;
+  for (const [next, expected] of cases) {
+    let openedRole: AuthUser["role"] | undefined;
+    await assert.rejects(
+      loginAction(
+        IDLE,
+        form({
+          email: "olenka@example.com",
+          password: "correct-horse",
+          ...(next === undefined ? {} : { next }),
+        }),
+        {
+          findUserByEmail: async () => account({ role: "parent" }),
+          recordLoginPresence: async () => undefined,
+          cancelDeletion: async () => undefined,
+          setSessionCookie: async (user) => { openedRole = user.role; },
+          redirectTo: (path) => { throw new Error(`redirect:${path}`); },
+        },
+      ),
+      { message: `redirect:${expected}` },
+    );
+    assert.equal(openedRole, "parent");
+  }
+});

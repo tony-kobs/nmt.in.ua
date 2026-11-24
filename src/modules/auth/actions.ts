@@ -14,6 +14,7 @@ import {
   setSessionCookie,
 } from "./getCurrentUser";
 import { effectiveRole } from "./viewRole";
+import { parentAfterLoginPath } from "@/modules/parent-students/parentCabinet";
 import { changePassword, ChangePasswordError } from "./changePassword";
 import type { ChangePasswordErrorCode } from "./changePassword";
 import {
@@ -55,6 +56,8 @@ import {
   validateRegistrationInput,
   type RegistrationFieldError,
 } from "./validateRegistration";
+import { applySignupAttribution } from "@/modules/promo/attribution";
+import { normalizePromoCode, normalizeTeacherRef } from "@/modules/promo/values";
 
 export type LoginErrorCode =
   | "requiredFields"
@@ -129,8 +132,16 @@ export async function loginAction(
     console.error("login: cancel scheduled deletion failed", error);
   }
   await (deps.setSessionCookie ?? setSessionCookie)(user);
-  if (deps.redirectTo) return deps.redirectTo(nextPath);
-  redirect(nextPath);
+  if (user.role === "student") {
+    try {
+      await applySignupAttribution(user.id);
+    } catch (error) {
+      console.error("login: attribution failed", error);
+    }
+  }
+  const destination = user.role === "parent" ? parentAfterLoginPath(nextPath) : nextPath;
+  if (deps.redirectTo) return deps.redirectTo(destination);
+  redirect(destination);
 }
 
 /**
@@ -205,6 +216,19 @@ export async function registerAction(
 
   if (fieldError) return { status: "error", code: fieldError };
   if (userId == null) return { status: "error", code: "serverError" };
+
+  if (role === "student") {
+    try {
+      const formPromo = normalizePromoCode(formData.get("promo"));
+      const formRef = normalizeTeacherRef(formData.get("ref"));
+      await applySignupAttribution(userId, {
+        ...(formPromo ? { promo: formPromo } : {}),
+        ...(formRef ? { ref: formRef } : {}),
+      });
+    } catch (error) {
+      console.error("registerAction: attribution failed", error);
+    }
+  }
 
   if (role === "student" && formData.get("from") === "diagnostic") {
     try {

@@ -21,6 +21,7 @@ export const NAV_ICON_NAMES = [
   "pen",
   "headset",
   "flag",
+  "ticket",
 ] as const;
 
 export type NavIconName = (typeof NAV_ICON_NAMES)[number];
@@ -123,6 +124,10 @@ export function NavSprite() {
         <path d="M5 13.5v-1a7 7 0 0 1 14 0v1" stroke="#be123c" {...stroke} />
         <path d="M5 13.2h2.2A1.3 1.3 0 0 1 8.5 14.5v3A1.3 1.3 0 0 1 7.2 18.8H5.8A1.3 1.3 0 0 1 4.5 17.5v-3A1.3 1.3 0 0 1 5 13.2Z" stroke="#be123c" {...stroke} />
         <path d="M19 13.2h-2.2A1.3 1.3 0 0 0 15.5 14.5v3a1.3 1.3 0 0 0 1.3 1.3h1.4a1.3 1.3 0 0 0 1.3-1.3v-3a1.3 1.3 0 0 0-.8-1.3Z" stroke="#be123c" {...stroke} />
+      </symbol>
+      <symbol id="nav-ticket" viewBox="0 0 24 24">
+        <path d="M4.5 8.5h15v7h-15v-7Z" stroke="#0f766e" {...stroke} />
+        <path d="M8.5 8.5v7M4.5 12h15" stroke="#0f766e" {...stroke} />
       </symbol>
       <symbol id="nav-flag" viewBox="0 0 24 24">
         <path d="M6 4.5v15" stroke="#c2410c" {...stroke} />

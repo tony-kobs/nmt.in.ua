@@ -66,18 +66,18 @@ export function normalizeCtaUrl(raw: string): string | null {
 
 export { loginCandidatesFromEmail } from "@/modules/auth/loginFromEmail";
 
-export function toCsv(rows: string[][]): string {
+export function toCsv(rows: string[][], delimiter: "," | ";" = ","): string {
   const lines = rows.map((row) =>
     row
       .map((cell) => {
         let value = cell ?? "";
         if (/^[=+\-@]/.test(value)) value = `'${value}`;
-        if (/[",\n\r]/.test(value)) {
+        if (value.includes(delimiter) || /["\n\r]/.test(value)) {
           return `"${value.replaceAll('"', '""')}"`;
         }
         return value;
       })
-      .join(","),
+      .join(delimiter),
   );
   return `\uFEFF${lines.join("\r\n")}`;
 }

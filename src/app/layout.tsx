@@ -10,6 +10,7 @@ import {
   THEME_COLOR,
   absoluteUrl,
   createPageMetadata,
+  googleSiteVerification,
   siteIcons,
 } from "@/constants/seo";
 import { DeploymentSkewReload } from "@/components/status/DeploymentSkewReload";
@@ -29,6 +30,8 @@ const manrope = Manrope({
   display: "swap",
 });
 
+const googleVerification = googleSiteVerification();
+
 /**
  * Root shell only: html/body + global CSS.
  * Locale providers and DashboardShell live in (marketing) / (app) layouts so
@@ -47,10 +50,14 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  // No canonical here. Next merges layout metadata into every route, so a
+  // homepage canonical on this object becomes the canonical of 404 and of any
+  // page that does not set its own. `/` sets it in `(home)/page.tsx`.
   ...createPageMetadata({
     title: `${SITE_NAME} — ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
     path: "/",
+    omitCanonical: true,
   }),
   metadataBase: new URL(absoluteUrl("/")),
   applicationName: SITE_NAME,
@@ -72,6 +79,7 @@ export const metadata: Metadata = {
   other: {
     "mobile-web-app-capable": "yes",
   },
+  ...(googleVerification ? { verification: { google: googleVerification } } : {}),
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {

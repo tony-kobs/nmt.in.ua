@@ -1,0 +1,27 @@
+.metrics {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+  margin: 0;
+}
+
+.metrics dt {
+  color: var(--subtle);
+  font-size: var(--fs-small);
+}
+
+.metrics dd {
+  margin: var(--space-2xs) 0 0;
+  color: var(--green-dark);
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  font-weight: 700;
+}
+
+@media (min-width: 375px) {
+  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1240px) {
+  .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

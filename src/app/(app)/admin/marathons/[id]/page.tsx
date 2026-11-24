@@ -16,6 +16,7 @@ import {
 } from "@/modules/marathons/daily/store";
 import { loadIntroImagePath } from "@/modules/marathons/daily/imageStore";
 import { listBankThemes } from "@/modules/marathons/daily/taskBank";
+import { listDaySubmissionCounts } from "@/modules/marathons/daily/store";
 import { parseUtmSource } from "@/modules/marathons/daily/utm";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,7 @@ type PageProps = {
     error?: string | string[];
     saved?: string | string[];
     q?: string | string[];
+    n?: string | string[];
   }>;
 };
 
@@ -53,13 +55,15 @@ export default async function AdminMarathonEditorPage({ params, searchParams }: 
   if (!marathon) notFound();
   const query = await searchParams;
   const q = first(query.q);
-  const [riddles, days, reports, questions, themes, introImageUrl] = await Promise.all([
+  const noticeCount = Number(first(query.n));
+  const [riddles, days, reports, questions, themes, introImageUrl, submissions] = await Promise.all([
     listRiddles(marathon.id, marathon.subject),
     listDays(marathon.id),
     listParticipantReports(marathon.id),
     searchQuizTasks(q ?? ""),
-    listBankThemes(marathon.subject),
+    listBankThemes("math"),
     loadIntroImagePath(marathon.id),
+    listDaySubmissionCounts(marathon.id),
   ]);
   const detailed = await Promise.all(
     days.map(async (day) => ({
@@ -70,8 +74,11 @@ export default async function AdminMarathonEditorPage({ params, searchParams }: 
         order: task.order,
         prompt: task.prompt,
         options: task.options,
+        correct: task.correct,
         questionId: task.questionId,
+        explanation: task.explanation,
       })),
+      submissions: submissions.get(day.id) ?? 0,
     })),
   );
   const funnel = aggregateFunnel(
@@ -96,6 +103,7 @@ export default async function AdminMarathonEditorPage({ params, searchParams }: 
       themes={themes}
       questions={questions}
       error={first(query.error)}
+      noticeCount={Number.isInteger(noticeCount) ? noticeCount : 0}
       savedToken={first(query.saved)}
       introImageUrl={introImageUrl}
     />

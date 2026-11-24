@@ -12,11 +12,15 @@ import {
 } from "@/modules/auth/actions";
 import { PASSWORD_MAX_LEN, PASSWORD_MIN_LEN } from "@/modules/auth/validateRegistration";
 import { RecentResults } from "@/components/dashboard/RecentResults";
+import { ParentInvitePanel } from "@/components/dashboard/ParentInvitePanel/ParentInvitePanel";
+import { LinkedParentsPanel } from "./LinkedParentsPanel";
+import type { LinkedParent } from "@/modules/parent-students/unlinkParent";
 import { UserAvatar } from "@/components/account/UserAvatar";
 import { TeacherProfileEditor } from "@/components/account/TeacherProfileEditor";
 import { AccountPhotoPanel } from "./AccountPhotoPanel";
 import { NotificationSettings } from "./NotificationSettings";
 import { TelegramLinkControl } from "./TelegramLinkControl";
+import { PromoRedeemPanel } from "./PromoRedeemPanel";
 import type { UserChannelPreferences } from "@/modules/notifications/channels";
 import type { RecentResultItem } from "@/modules/results/getRecentResults";
 import type { TeacherProfile } from "@/modules/teachers/types";
@@ -32,6 +36,9 @@ type AccountCabinetProps = {
   telegramLinked: boolean;
   telegramUsername?: string | null;
   notificationPreferences: UserChannelPreferences;
+  linkedParents?: LinkedParent[];
+  promoAccessUntil?: string | null;
+  promoTeachers?: string[];
 };
 
 export function AccountCabinet({
@@ -41,6 +48,9 @@ export function AccountCabinet({
   telegramLinked,
   telegramUsername = null,
   notificationPreferences,
+  linkedParents = [],
+  promoAccessUntil = null,
+  promoTeachers = [],
 }: AccountCabinetProps) {
   const t = useTranslations("AccountCabinet");
   const tHeader = useTranslations("Header");
@@ -84,6 +94,10 @@ export function AccountCabinet({
       <TelegramLinkControl linked={telegramLinked} username={telegramUsername} />
       <NotificationSettings preferences={notificationPreferences} />
 
+      {user.role === "student" && (user.realRole ?? user.role) === "student" ? (
+        <PromoRedeemPanel accessUntil={promoAccessUntil} teachers={promoTeachers} />
+      ) : null}
+
       {user.role === "student" ? (
         <section className={css.panel} aria-labelledby="account-join-title">
           <h2 id="account-join-title" className={css.panelTitle}>
@@ -101,6 +115,14 @@ export function AccountCabinet({
           profile={teacherProfile}
           suggestedSlug={normalizeSlug(user.login)}
         />
+      ) : null}
+
+      {user.role === "student" && (user.realRole ?? user.role) === "student" ? (
+        <ParentInvitePanel key={user.id} user={{ id: user.id, role: user.role, realRole: user.realRole }} />
+      ) : null}
+
+      {user.role === "student" && (user.realRole ?? user.role) === "student" ? (
+        <LinkedParentsPanel parents={linkedParents} />
       ) : null}
 
       {!isPlatformStaff(user.role) ? <RecentResults items={recentResults} /> : null}

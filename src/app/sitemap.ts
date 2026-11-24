@@ -1,78 +1,108 @@
 import type { MetadataRoute } from "next";
-import { PUBLIC_PAGE_PATHS } from "@/constants/publicRoutes";
-import { absoluteUrl } from "@/constants/seo";
+import {
+  absoluteUrl,
+  isExcludedTeacherSlug,
+  SEO_CONTENT_UPDATED,
+  sitemapStaticPaths,
+} from "@/constants/seo";
 import { isDatabaseUnavailable } from "@/lib/db/unavailable";
 import { SITEMAP_DAILY_STATUSES } from "@/modules/marathons/daily/publicPage";
-import { textbookSitemapPaths } from "@/modules/textbook/topicPage";
 
 /** Themes and marathon cards live in MySQL, which the build runner does not have. */
 export const dynamic = "force-dynamic";
 
-/** `/t` is a public prefix for `/t/{slug}` cards — there is no index page.
- *  Verify/reset links are token URLs — keep them out of the sitemap.
- *  Paid `/register/teacher` is paused (redirects to `/register?role=teacher`). */
-const SITEMAP_EXCLUDED = new Set([
-  "/t",
-  "/login",
-  "/register",
-  "/verify-email",
-  "/keep-account",
-  "/forgot-password",
-  "/reset-password",
-]);
-
-const SITEMAP_PUBLIC_PATHS = [
-  ...PUBLIC_PAGE_PATHS.filter((path) => !SITEMAP_EXCLUDED.has(path)),
-];
-
 const PUBLIC_SLUG = /^\/(?:marathon|t)\/[a-z0-9]+(?:-[a-z0-9]+)*$/i;
 
-function staticEntries(now: Date): MetadataRoute.Sitemap {
-  return SITEMAP_PUBLIC_PATHS.map((path) => ({
+type DatedPath = {
+  path: string;
+  lastModified: Date;
+};
+
+function asDate(value: Date | string | null | undefined): Date {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  if (typeof value === "string" || typeof value === "number") {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  return SEO_CONTENT_UPDATED;
+}
+
+function staticEntries(): MetadataRoute.Sitemap {
+  return sitemapStaticPaths().map((path) => ({
     url: absoluteUrl(path),
-    lastModified: now,
+    lastModified: SEO_CONTENT_UPDATED,
     changeFrequency: path === "/" ? "daily" : "weekly",
-    priority: path === "/" ? 1 : path === "/welcome" ? 0.9 : 0.6,
+    priority: path === "/" ? 1 : 0.6,
   }));
 }
 
-/** Shareable daily marathons, public teacher cards, and one URL per textbook theme. */
-export async function loadSitemapDynamicPaths(): Promise<string[]> {
+/**
+ * Published teacher cards for sitemap.xml.
+ * Drops the denylist, the local seed slug, and digits-only slugs.
+ * Keeps a real card such as `/t/mikhail`.
+ */
+export function teacherSitemapPaths(slugs: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const paths: string[] = [];
+  for (const raw of slugs) {
+    const slug = raw.trim().toLowerCase();
+    if (!slug || seen.has(slug) || isExcludedTeacherSlug(slug)) continue;
+    const path = `/t/${slug}`;
+    if (!PUBLIC_SLUG.test(path)) continue;
+    seen.add(slug);
+    paths.push(path);
+  }
+  return paths;
+}
+
+/**
+ * Shareable daily marathons and published teacher cards.
+ * The textbook is behind login, so its topic URLs are not listed.
+ */
+export async function loadSitemapDynamicPaths(): Promise<DatedPath[]> {
   const { getConnection } = await import("@/lib/db/mysql");
   const connection = await getConnection();
   try {
-    const marathons = await connection.query<{ slug: string }>(
-      `SELECT slug FROM marathons
+    const marathons = await connection.query<{ slug: string; created_at: Date | string | null }>(
+      `SELECT slug, created_at FROM marathons
        WHERE kind = 'daily' AND status IN (${SITEMAP_DAILY_STATUSES.map(() => "?").join(", ")})
        ORDER BY id DESC`,
       [...SITEMAP_DAILY_STATUSES],
     );
-    const teachers = await connection.query<{ slug: string }>(
-      `SELECT slug FROM teacher_profiles WHERE is_public = 1 AND slug <> '' ORDER BY slug ASC`,
+    const teachers = await connection.query<{ slug: string; updated_at: Date | string | null }>(
+      `SELECT slug, updated_at FROM teacher_profiles
+       WHERE is_public = 1 AND slug <> '' ORDER BY slug ASC`,
     );
-    const themes = await connection.query<{ code: string | null }>(
-      `SELECT code FROM themes WHERE code <> '' ORDER BY ord ASC, id ASC`,
-    );
-    const cards = [...marathons.map((row) => `/marathon/${row.slug}`), ...teachers.map((row) => `/t/${row.slug}`)].filter(
-      (path) => PUBLIC_SLUG.test(path),
-    );
-    return [...cards, ...textbookSitemapPaths(themes.map((row) => row.code ?? ""))];
+    const teacherPaths = new Set(teacherSitemapPaths(teachers.map((row) => row.slug)));
+    const seenTeachers = new Set<string>();
+    const cards: DatedPath[] = [
+      ...marathons.map((row) => ({
+        path: `/marathon/${row.slug}`,
+        lastModified: asDate(row.created_at),
+      })),
+    ];
+    for (const row of teachers) {
+      const path = `/t/${row.slug.trim().toLowerCase()}`;
+      if (!teacherPaths.has(path) || seenTeachers.has(path)) continue;
+      seenTeachers.add(path);
+      cards.push({ path, lastModified: asDate(row.updated_at) });
+    }
+    return cards.filter((entry) => PUBLIC_SLUG.test(entry.path));
   } finally {
     connection.release();
   }
 }
 
-/** Public marketing URLs, textbook topics, live marathons, and teacher cards. Other cabinet routes stay out. */
+/** Public marketing URLs, live marathons, and published teacher cards. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date();
-  const entries = staticEntries(now);
+  const entries = staticEntries();
   try {
-    for (const path of await loadSitemapDynamicPaths()) {
+    for (const entry of await loadSitemapDynamicPaths()) {
       entries.push({
-        url: absoluteUrl(path),
-        lastModified: now,
-        changeFrequency: path.startsWith("/materials/textbook") ? "weekly" : "daily",
-        priority: path.startsWith("/materials/textbook") ? 0.5 : 0.7,
+        url: absoluteUrl(entry.path),
+        lastModified: entry.lastModified,
+        changeFrequency: "daily",
+        priority: 0.7,
       });
     }
   } catch (error) {

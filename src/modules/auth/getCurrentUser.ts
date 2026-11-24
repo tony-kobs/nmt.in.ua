@@ -174,6 +174,22 @@ export async function requireSessionUserId(): Promise<number> {
   return payload.userId;
 }
 
+/**
+ * Same session as {@link requireSessionUserId}, but a parent cannot start a
+ * test, save an answer, or open practice. The redirect is the refusal.
+ */
+export async function requireTrainingUserId(): Promise<number> {
+  const userId = await requireSessionUserId();
+  const account = await readLiveAccount(userId);
+  if (!account) {
+    redirect("/api/auth/clear-session");
+  }
+  if (account.role === "parent") {
+    redirect("/parent");
+  }
+  return userId;
+}
+
 export async function requireRole(roles: readonly UserRole[]): Promise<AuthUser> {
   const user = await requireUser();
   if (!roles.includes(user.role)) {

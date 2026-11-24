@@ -44,7 +44,7 @@ export async function Features() {
                 alt={t("imageAlt")}
                 width={578}
                 height={578}
-                sizes="(min-width: 1440px) 18rem, (min-width: 1240px) 16rem, 14rem"
+                sizes="(min-width: 1240px) 14.25rem, (min-width: 768px) 15rem, 13rem"
               />
             </div>
 

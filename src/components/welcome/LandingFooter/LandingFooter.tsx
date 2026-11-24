@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { FeedbackEntry } from "@/components/feedback/FeedbackDialog";
 import { SITE_NAME } from "@/constants/seo";
+import { readDeployRevision } from "@/lib/readDeployRevision";
 import { BrandMark } from "@/components/brand/BrandMark";
 import { BrandWord } from "@/components/brand/BrandWord";
 import css from "../landing.module.css";
@@ -22,6 +23,7 @@ export async function LandingFooter({
   const t = await getTranslations("WelcomeLanding");
   const nav = await getTranslations("WelcomeLanding.nav");
   const cabinet = variant === "cabinet";
+  const { version } = await readDeployRevision();
 
   return (
     <footer className={css.footer}>
@@ -79,6 +81,11 @@ export async function LandingFooter({
           </p>
           <p>{t("footer.practice")}</p>
           <p>{t("footer.rights")}</p>
+          {version ? (
+            <p className={css.footerVersion} translate="no">
+              {version}
+            </p>
+          ) : null}
         </div>
       </div>
     </footer>

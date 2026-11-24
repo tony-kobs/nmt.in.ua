@@ -12,11 +12,14 @@ import {
   type UserRole,
 } from "@/modules/auth/types";
 
+export type SidebarGroup = "tests";
+
 export type SidebarLink = {
   href: string;
   labelKey: string;
   status: NavItemStatus;
   icon: NavIconName;
+  group?: SidebarGroup;
 };
 
 const ADMIN_NAV_SET = new Set<string>(ADMIN_NAV_HREFS);
@@ -39,6 +42,9 @@ const NAV_ICONS: Record<string, NavIconName> = {
   "/leaderboard": "trophy",
   "/admin/marathons": "flame",
   "/admin/support": "headset",
+  "/promo": "ticket",
+  "/admin/promos": "ticket",
+  "/practice": "spark",
 };
 
 const NAV_KEYS: Record<string, string> = {
@@ -59,6 +65,15 @@ const NAV_KEYS: Record<string, string> = {
   "/leaderboard": "leaderboard",
   "/admin/marathons": "marathons",
   "/admin/support": "support",
+  "/promo": "promo",
+  "/admin/promos": "promo",
+  "/practice": "practice",
+};
+
+const NAV_GROUPS: Partial<Record<string, SidebarGroup>> = {
+  "/topic": "tests",
+  "/simulator": "tests",
+  "/practice": "tests",
 };
 
 const MARATHON_ICON: NavIconName = "flag";
@@ -127,10 +142,18 @@ export function visibleSidebar(input: {
   void input.marathonHref;
   void input.cabinetScope;
 
+  if (input.role === "parent") {
+    return [
+      { href: "/parent", labelKey: "parent", status: "ready", icon: "chart" },
+      { href: "/account", labelKey: "account", status: "ready", icon: "id" },
+    ];
+  }
+
   const items: SidebarLink[] = DASHBOARD_NAV.filter((item) => {
     if (isPlatformStaff(input.role)) return ADMIN_NAV_SET.has(item.href);
     if (input.role === "teacher" && item.href === "/") return false;
     if (item.href === "/topic") return input.role === "student";
+    if (item.href === "/practice") return input.role === "student";
     if (item.href === "/assign") return canAssignMentorSessions(input.role);
     if (item.href === "/settings") return canImportContent(input.role);
     if (item.href === "/feedback") return canImportContent(input.role);
@@ -139,6 +162,8 @@ export function visibleSidebar(input: {
     if (item.href === "/admin/marathons" || item.href === "/admin/support") {
       return hasPermission(input.role, "marathon:manage");
     }
+    if (item.href === "/admin/promos") return false;
+    if (item.href === "/promo") return input.role === "teacher";
     if (item.href === "/admin/textbook") return false;
     if (item.href === "/leaderboard") return input.role !== "student";
     return true;
@@ -147,6 +172,7 @@ export function visibleSidebar(input: {
     labelKey: NAV_KEYS[item.href] ?? "home",
     status: item.status,
     icon: NAV_ICONS[item.href] ?? "spark",
+    group: NAV_GROUPS[item.href],
   }));
 
   if (input.role === "student") {

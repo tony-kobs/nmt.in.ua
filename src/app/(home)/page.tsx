@@ -28,7 +28,7 @@ export async function generateMetadata() {
   } catch (error) {
     rethrowNavigation(error);
     if (!isDatabaseUnavailable(error)) throw error;
-    const t = await getTranslations("Metadata.home");
+    const t = await getTranslations("Metadata.welcome");
     return createPageMetadata({
       title: t("title"),
       description: t("description"),

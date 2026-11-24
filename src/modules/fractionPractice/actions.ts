@@ -17,7 +17,8 @@ import {
   type FractionAdditionDifficulty,
   type FractionAdditionValidationReason,
 } from "@/modules/problemGenerators";
-import { requireSessionUserId, type requireUserId } from "@/modules/auth/getCurrentUser";
+import { rethrowNavigation } from "@/lib/db/unavailable";
+import { requireTrainingUserId, type requireUserId } from "@/modules/auth/getCurrentUser";
 import {
   buildFractionPracticeQuestion,
   fractionQuestionSignature,
@@ -48,7 +49,7 @@ type AuthDeps = {
   requireUserId: typeof requireUserId;
 };
 
-const defaultAuthDeps: AuthDeps = { requireUserId: requireSessionUserId };
+const defaultAuthDeps: AuthDeps = { requireUserId: requireTrainingUserId };
 
 export type FractionPracticeErrorCode = "invalidLevel" | "generic";
 
@@ -92,6 +93,7 @@ export async function startFractionPracticeTaskAction(
       seed,
     };
   } catch (error) {
+    rethrowNavigation(error);
     console.error("startFractionPracticeTaskAction: unexpected error", error);
     return { status: "error", code: "generic" };
   }
@@ -132,6 +134,7 @@ export async function nextFractionPracticeTaskAction(
 
     return { status: "success", question, level: input.level, seed };
   } catch (error) {
+    rethrowNavigation(error);
     console.error("nextFractionPracticeTaskAction: unexpected error", error);
     return { status: "error", code: "generic" };
   }
@@ -190,6 +193,7 @@ export async function checkFractionPracticeAnswerAction(
       reason: result.reason,
     };
   } catch (error) {
+    rethrowNavigation(error);
     console.error("checkFractionPracticeAnswerAction: unexpected error", error);
     return { status: "error", code: "generic" };
   }

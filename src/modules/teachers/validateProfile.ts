@@ -8,11 +8,16 @@ import {
   TEACHER_PROFILE_COUNTRY_MAX,
   TEACHER_PROFILE_EXPERIENCE_MAX,
   TEACHER_PROFILE_HEADLINE_MAX,
+  TEACHER_PROFILE_ABOUT_MAX,
+  TEACHER_PROFILE_APPROACH_MAX,
   TEACHER_PROFILE_JOIN_MOTIVATION_MAX,
   TEACHER_PROFILE_LESSON_DURATION_MAX,
   TEACHER_PROFILE_LESSON_PRICE_MAX,
   TEACHER_PROFILE_PHONE_MAX,
+  TEACHER_PROFILE_PROGRAM_MAX,
   TEACHER_PROFILE_PUBLICATIONS_MAX,
+  TEACHER_REVIEW_NAME_MAX,
+  TEACHER_REVIEW_TEXT_MAX,
   TEACHER_PROFILE_SLUG_MAX,
   TEACHER_PROFILE_SLUG_MIN,
   TEACHER_PROFILE_SUBJECTS_MAX,
@@ -23,8 +28,10 @@ import {
   type TeacherLevel,
   type TeacherProfileFieldError,
   type TeacherProfileInput,
+  type TeacherReview,
   type TeachingLanguage,
 } from "./types";
+import { isTeacherMediaUrl } from "./landingUrl";
 
 const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9_-]{1,46}[a-z0-9])$/;
 const PHONE_PATTERN = /^\+?[0-9][0-9\s().-]*$/;
@@ -89,6 +96,12 @@ export type ValidatedTeacherProfile = {
   teachingLevels: TeacherLevel[];
   teachingLanguages: TeachingLanguage[];
   contactUrl: string;
+  externalUrl: string;
+  photoUrl: string;
+  about: string;
+  approach: string;
+  program: string;
+  reviews: TeacherReview[];
   phone: string;
   lessonPrice: number | null;
   lessonCurrency: LessonCurrency | "";
@@ -130,6 +143,26 @@ export function parseSubjects(raw: string): string[] {
   }
 
   return subjects;
+}
+
+function collectReviews(input: TeacherProfileInput): TeacherReview[] | null {
+  const pairs = [
+    [input.reviewName1, input.reviewText1],
+    [input.reviewName2, input.reviewText2],
+    [input.reviewName3, input.reviewText3],
+  ];
+  const reviews: TeacherReview[] = [];
+  for (const [rawName, rawText] of pairs) {
+    const name = normalizeProfileText(rawName ?? "");
+    const text = (rawText ?? "").trim().replace(/\r\n/g, "\n");
+    if (!name && !text) continue;
+    if (!name || !text) return null;
+    if (name.length > TEACHER_REVIEW_NAME_MAX || text.length > TEACHER_REVIEW_TEXT_MAX) {
+      return null;
+    }
+    reviews.push({ name, text });
+  }
+  return reviews;
 }
 
 function isHttpUrl(value: string): boolean {
@@ -178,6 +211,12 @@ export function validateTeacherProfileInput(
   const teachingLevels = uniqueStrings(input.teachingLevels);
   const teachingLanguages = uniqueStrings(input.teachingLanguages);
   const contactUrl = input.contactUrl.trim();
+  const externalUrl = (input.externalUrl ?? "").trim();
+  const photoUrl = (input.photoUrl ?? "").trim();
+  const about = (input.about ?? "").trim().replace(/\r\n/g, "\n");
+  const approach = (input.approach ?? "").trim().replace(/\r\n/g, "\n");
+  const program = (input.program ?? "").trim().replace(/\r\n/g, "\n");
+  const reviews = collectReviews(input);
   const phone = normalizeProfileText(input.phone);
   const lessonPrice = parseOptionalNumber(input.lessonPrice);
   const lessonCurrency = input.lessonCurrency.trim().toUpperCase();
@@ -257,6 +296,30 @@ export function validateTeacherProfileInput(
     }
   }
 
+  if (externalUrl && !isTeacherMediaUrl(externalUrl)) {
+    return { ok: false, code: "invalidExternalUrl" };
+  }
+
+  if (photoUrl && !isTeacherMediaUrl(photoUrl)) {
+    return { ok: false, code: "invalidPhotoUrl" };
+  }
+
+  if (about.length > TEACHER_PROFILE_ABOUT_MAX) {
+    return { ok: false, code: "aboutTooLong" };
+  }
+
+  if (approach.length > TEACHER_PROFILE_APPROACH_MAX) {
+    return { ok: false, code: "approachTooLong" };
+  }
+
+  if (program.length > TEACHER_PROFILE_PROGRAM_MAX) {
+    return { ok: false, code: "programTooLong" };
+  }
+
+  if (reviews === null) {
+    return { ok: false, code: "invalidReviews" };
+  }
+
   if (
     phone.length > TEACHER_PROFILE_PHONE_MAX ||
     (phone && !PHONE_PATTERN.test(phone))
@@ -315,6 +378,12 @@ export function validateTeacherProfileInput(
       teachingLevels: teachingLevels as TeacherLevel[],
       teachingLanguages: teachingLanguages as TeachingLanguage[],
       contactUrl,
+      externalUrl,
+      photoUrl,
+      about,
+      approach,
+      program,
+      reviews,
       phone,
       lessonPrice,
       lessonCurrency: lessonCurrency as LessonCurrency | "",

@@ -23,7 +23,7 @@ export function parseReleaseNotes(body, title) {
   const text = typeof body === "string" ? body : "";
   const team = plainSection(text, "Для команди") || String(title || "").trim();
   const people = plainSection(text, "Для учня і викладача");
-  const screen = rawSection(text, "Скрінкаст");
+  const screen = screencastSection(text);
   const needed = /^\s*-\s*\[[xX]\]\s*потрібен/m.test(screen);
   const approved = /^\s*-\s*\[[xX]\]\s*схвалено показувати/m.test(screen);
   const linkMatch = screen.match(/^\s*-\s*Посилання:\s*(.*)$/m);
@@ -91,6 +91,19 @@ function plainSection(body, heading) {
       return true;
     })
     .join(" ");
+}
+
+/** Перший блок «Скрінкаст», якщо пізніший не ставить «потрібен» латинською x. */
+function screencastSection(body) {
+  const chunks = [];
+  const re = /^##\s+Скрінкаст\s*$/gim;
+  for (const match of body.matchAll(re)) {
+    const rest = body.slice(match.index + match[0].length);
+    const next = rest.search(/^##\s+/m);
+    chunks.push((next === -1 ? rest : rest.slice(0, next)).trim());
+  }
+  const checked = chunks.find((chunk) => /^\s*-\s*\[[xX]\]\s*потрібен/m.test(chunk));
+  return checked || chunks[0] || "";
 }
 
 function rawSection(body, heading) {

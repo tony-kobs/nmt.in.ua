@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { StudentGroupsPanel } from "@/components/dashboard/StudentGroupsPanel";
 import { TeacherStudentsPanel } from "@/components/dashboard/TeacherStudentsPanel";
+import { ParentInvitePanel } from "@/components/dashboard/ParentInvitePanel/ParentInvitePanel";
 import { PageFrame } from "@/components/dashboard/PageFrame";
 import { getNavItem } from "@/constants/navigation";
 import { createPageMetadata } from "@/constants/seo";
@@ -75,6 +76,10 @@ export default async function StudentsPage() {
           groupName: row.groupName,
         }))}
       />
+      {user.role === "teacher" && (user.realRole ?? user.role) === "teacher" ? (
+        <ParentInvitePanel key={user.id} user={{ id: user.id, role: user.role, realRole: user.realRole }}
+          students={students.map(({ studentUserId, displayName, login }) => ({ studentUserId, displayName, login }))} />
+      ) : null}
     </PageFrame>
   );
 }

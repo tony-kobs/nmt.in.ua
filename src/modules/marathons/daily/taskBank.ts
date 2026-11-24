@@ -3,15 +3,24 @@ import "server-only";
 import type { SqlConnection } from "@/lib/db/mysql";
 import { publishedQuizTaskSql } from "@/lib/publishedQuizTask";
 import { sampleRandomIds } from "@/lib/sampleRandomIds";
+import { deriveTaskName } from "@/modules/admin-content/validate";
+import {
+  BANK_PAGE_SIZE,
+  bankSearchPages,
+  matchesBankQuery,
+} from "./bankSearchText";
+import { DAY_BLOCK_MAX, DAY_HAS_ANSWERS_SQL } from "./dayRemoval";
 
 /**
  * The topic bank is `themes` + `quiz_tasks`. Those tables have no subject
- * column: they are the mathematics catalog. A marathon shows the picker only
- * when its subject is `math`. Manual tasks stay available for every subject.
+ * column: they are the mathematics catalog. The day editor searches that
+ * catalog and saves the exact ids the admin picked, in that order.
+ * `pickBankIds` remains for older callers; the admin UI does not use it.
  * No new table and no migration.
  */
 export const QUIZ_BANK_SUBJECT = "math";
 export const BANK_SAMPLE_MAX = 20;
+export const BANK_SEARCH_LIMIT = BANK_PAGE_SIZE;
 const EXCLUDE_CAP = 200;
 
 export function quizBankMatchesSubject(subject: string): boolean {
@@ -33,6 +42,31 @@ export function sanitizeIds(ids: readonly number[]): number[] {
     if (clean.length >= EXCLUDE_CAP) break;
   }
   return clean;
+}
+
+/** Same ids, ignoring order. Duplicates are not a match. */
+export function sameQuestionSet(left: readonly number[], right: readonly number[]): boolean {
+  if (left.length !== right.length) return false;
+  const seen = new Set<number>();
+  for (const id of left) {
+    if (!Number.isInteger(id) || seen.has(id)) return false;
+    seen.add(id);
+  }
+  return right.every((id) => seen.has(id));
+}
+
+export function cleanBlockIds(
+  ids: readonly number[],
+): { ok: true; ids: number[] } | { ok: false; reason: "invalid" | "too_many" } {
+  if (ids.length > DAY_BLOCK_MAX) return { ok: false, reason: "too_many" };
+  const seen = new Set<number>();
+  const clean: number[] = [];
+  for (const id of ids) {
+    if (!Number.isInteger(id) || id <= 0 || seen.has(id)) return { ok: false, reason: "invalid" };
+    seen.add(id);
+    clean.push(id);
+  }
+  return { ok: true, ids: clean };
 }
 
 /** Random distinct ids from the topic, skipping ones already chosen. */
@@ -98,6 +132,53 @@ export function toBankPreview(row: PreviewRow): BankPreview {
     .filter((item) => item.length > 0);
   return { id: Number(row.id), prompt, options };
 }
+
+/**
+ * Filters only. The words, apostrophes and formulas are matched in JS
+ * (`matchesBankQuery`), so this statement stays valid on MySQL 8 and MariaDB.
+ * No nested REPLACE and no REGEXP.
+ */
+const BANK_SEARCH_WHERE = `
+  WHERE ${publishedQuizTaskSql("q")}
+    AND (? = 0 OR q.theme_id = ?)
+    AND (? = 0 OR q.difficulty = ?)
+    AND (
+      ? = 0
+      OR (? = 2 AND (q.answer_3 IS NULL OR q.answer_3 = '') AND (q.answer_4 IS NULL OR q.answer_4 = ''))
+      OR (? = 4 AND q.answer_3 <> '' AND q.answer_4 <> '')
+    )
+`;
+
+export const BANK_SEARCH_SCAN_MAX = 5000;
+
+export const BANK_SEARCH_SQL = `
+  SELECT q.id, q.name, q.task_text, q.answer_1, q.answer_2, q.answer_3, q.answer_4,
+         q.difficulty, t.name AS theme_name,
+         (
+           SELECT GROUP_CONCAT(d.day_number ORDER BY d.day_number SEPARATOR ',')
+           FROM marathon_day_tasks ot
+           INNER JOIN marathon_days d ON d.id = ot.day_id
+           WHERE ot.question_id = q.id AND d.marathon_id = ? AND ot.day_id <> ?
+         ) AS other_days
+  FROM quiz_tasks q
+  INNER JOIN themes t ON t.id = q.theme_id
+  ${BANK_SEARCH_WHERE}
+  ORDER BY t.ord ASC, q.id ASC
+  LIMIT ${BANK_SEARCH_SCAN_MAX}
+`;
+
+export type BankHit = BankPreview & {
+  themeName: string;
+  difficulty: number;
+  otherDays: number[];
+};
+
+export type BankSearchPage = {
+  tasks: BankHit[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
 
 type Conn = () => Promise<SqlConnection>;
 
@@ -326,5 +407,521 @@ export async function reshuffleDayTaskOrder(
       await connection.rollback();
       throw error;
     }
+  }, getConnection);
+}
+
+export type SaveBlockResult =
+  | { ok: true; count: number }
+  | { ok: false; reason: "locked" | "missing" | "too_many" | "invalid" };
+
+type TaskOrderRow = { id: number; sort_order: number; question_id: number | null };
+
+/**
+ * The day's bank tasks become exactly `questionIds`, in that order.
+ * Handwritten tasks stay after the block. If students already answered,
+ * only a reorder of the same ids is allowed: row ids stay, so saved answers
+ * still point at the same task.
+ */
+export async function replaceDayTaskBlock(
+  dayId: number,
+  questionIds: readonly number[],
+  getConnection: Conn = loadDefaultConnection,
+): Promise<SaveBlockResult> {
+  const cleaned = cleanBlockIds(questionIds);
+  if (!cleaned.ok) return cleaned;
+  const ids = cleaned.ids;
+  await ensureDays(getConnection);
+  return withSql(async (connection) => {
+    await connection.beginTransaction();
+    try {
+      const existing = await connection.query<TaskOrderRow>(
+        `SELECT id, sort_order, question_id
+         FROM marathon_day_tasks WHERE day_id = ? ORDER BY sort_order ASC, id ASC`,
+        [dayId],
+      );
+      const answered = await connection.query<{ n: number | string }>(
+        `SELECT COUNT(*) AS n FROM marathon_day_progress
+         WHERE day_id = ? AND ${DAY_HAS_ANSWERS_SQL}`,
+        [dayId],
+      );
+      const answers = Number(answered[0]?.n ?? 0);
+      const bank = existing.filter((row) => row.question_id != null);
+      const currentIds = bank.map((row) => Number(row.question_id));
+      if (answers > 0 && !sameQuestionSet(currentIds, ids)) {
+        await connection.rollback();
+        return { ok: false, reason: "locked" };
+      }
+      if (ids.length > 0) {
+        const found = await connection.query<{ id: number }>(
+          `SELECT id FROM quiz_tasks
+           WHERE id IN (${ids.map(() => "?").join(", ")}) AND ${publishedQuizTaskSql()}`,
+          ids,
+        );
+        if (found.length !== ids.length) {
+          await connection.rollback();
+          return { ok: false, reason: "missing" };
+        }
+      }
+      await connection.execute(
+        `UPDATE marathon_day_tasks SET sort_order = -id WHERE day_id = ?`,
+        [dayId],
+      );
+      if (answers > 0) {
+        const byQuestion = new Map(bank.map((row) => [Number(row.question_id), Number(row.id)]));
+        for (let index = 0; index < ids.length; index += 1) {
+          await connection.execute(
+            `UPDATE marathon_day_tasks SET sort_order = ? WHERE id = ? AND day_id = ?`,
+            [index + 1, byQuestion.get(ids[index] ?? 0), dayId],
+          );
+        }
+      } else if (bank.length > 0 || ids.length > 0) {
+        await connection.execute(
+          `DELETE FROM marathon_day_tasks WHERE day_id = ? AND question_id IS NOT NULL`,
+          [dayId],
+        );
+        for (let index = 0; index < ids.length; index += 1) {
+          await connection.execute(
+            `INSERT INTO marathon_day_tasks
+              (day_id, sort_order, question_id, inline_prompt, inline_options, inline_correct, inline_explanation)
+             VALUES (?, ?, ?, NULL, NULL, NULL, NULL)`,
+            [dayId, index + 1, ids[index]],
+          );
+        }
+      }
+      const inline = existing.filter((row) => row.question_id == null);
+      for (let index = 0; index < inline.length; index += 1) {
+        await connection.execute(
+          `UPDATE marathon_day_tasks SET sort_order = ? WHERE id = ? AND day_id = ?`,
+          [ids.length + index + 1, inline[index]?.id, dayId],
+        );
+      }
+      await connection.commit();
+      return { ok: true, count: ids.length };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    }
+  }, getConnection);
+}
+
+export const COPY_DAY_TASK_SQL = `
+  UPDATE marathon_day_tasks
+  SET question_id = NULL,
+      inline_prompt = ?,
+      inline_options = ?,
+      inline_correct = ?,
+      inline_explanation = ?
+  WHERE id = ? AND day_id = ?
+`;
+
+/** What adding these bank ids would do. The bank row itself is never updated. */
+export function planBankAdd(
+  onThisDay: readonly number[],
+  incoming: readonly number[],
+  otherDays: ReadonlyMap<number, readonly number[]>,
+): { add: number[]; duplicateHere: number[]; elsewhere: Array<{ id: number; days: number[] }> } {
+  const here = new Set(onThisDay);
+  const add: number[] = [];
+  const duplicateHere: number[] = [];
+  const elsewhere: Array<{ id: number; days: number[] }> = [];
+  const seen = new Set<number>();
+  for (const id of incoming) {
+    if (!Number.isInteger(id) || id <= 0 || seen.has(id)) continue;
+    seen.add(id);
+    if (here.has(id)) {
+      duplicateHere.push(id);
+      continue;
+    }
+    add.push(id);
+    const days = otherDays.get(id) ?? [];
+    if (days.length > 0) elsewhere.push({ id, days: [...days] });
+  }
+  return { add, duplicateHere, elsewhere };
+}
+
+export function validateInlineEdit(input: {
+  prompt: string;
+  options: readonly string[];
+  correct: number;
+  explanation: string;
+}): { ok: true; prompt: string; options: string[]; correct: number; explanation: string | null } | { ok: false; message: string } {
+  const prompt = input.prompt.trim();
+  const options = input.options.map((item) => item.trim()).filter((item) => item.length > 0);
+  if (prompt.length < 2) return { ok: false, message: "Своє формулювання закоротке." };
+  if (options.length < 2 || options.length > 4) {
+    return { ok: false, message: "Свої варіанти — від 2 до 4." };
+  }
+  if (new Set(options).size !== options.length) {
+    return { ok: false, message: "Варіанти відповіді не мають повторюватися." };
+  }
+  if (!Number.isInteger(input.correct) || input.correct < 1 || input.correct > options.length) {
+    return { ok: false, message: "Номер правильної відповіді не входить у список варіантів." };
+  }
+  const explanation = input.explanation.trim();
+  if (explanation.length > 4000) return { ok: false, message: "Пояснення довше за 4000 символів." };
+  return { ok: true, prompt, options, correct: input.correct, explanation: explanation || null };
+}
+
+export function planDayTaskCreate(input: {
+  prompt: string;
+  options: readonly string[];
+  correct: number;
+  explanation: string;
+  saveToBank: boolean;
+  themeId: number | null;
+  difficulty: number | null;
+}):
+  | { ok: false; reason: "invalid" | "bank_fields" }
+  | {
+      ok: true;
+      mode: "day";
+      prompt: string;
+      options: string[];
+      correct: number;
+      explanation: string | null;
+    }
+  | {
+      ok: true;
+      mode: "bank";
+      prompt: string;
+      options: [string, string, string, string];
+      correct: number;
+      explanation: string | null;
+      themeId: number;
+      difficulty: number;
+    } {
+  const edited = validateInlineEdit(input);
+  if (!edited.ok) return { ok: false, reason: "invalid" };
+  if (!input.saveToBank) return { ...edited, mode: "day" };
+  if (edited.options.length !== 4 || edited.options.some((item) => item.length > 255)) {
+    return { ok: false, reason: "bank_fields" };
+  }
+  if (input.themeId == null || !Number.isInteger(input.themeId) || input.themeId <= 0) {
+    return { ok: false, reason: "bank_fields" };
+  }
+  if (input.difficulty == null || !Number.isInteger(input.difficulty) || input.difficulty < 1) {
+    return { ok: false, reason: "bank_fields" };
+  }
+  return {
+    ok: true,
+    mode: "bank",
+    prompt: edited.prompt,
+    options: [edited.options[0]!, edited.options[1]!, edited.options[2]!, edited.options[3]!],
+    correct: edited.correct,
+    explanation: edited.explanation,
+    themeId: input.themeId,
+    difficulty: input.difficulty,
+  };
+}
+
+export async function createDayTask(
+  input: {
+    dayId: number;
+    prompt: string;
+    options: readonly string[];
+    correct: number;
+    explanation: string;
+    saveToBank: boolean;
+    themeId: number | null;
+    difficulty: number | null;
+  },
+  getConnection: Conn = loadDefaultConnection,
+): Promise<{ ok: true; mode: "day" | "bank"; questionId: number | null } | { ok: false; reason: "invalid" | "bank_fields" | "locked" | "duplicate" }> {
+  const plan = planDayTaskCreate(input);
+  if (!plan.ok) return plan;
+  await ensureDays(getConnection);
+  return withSql(async (connection) => {
+    await connection.beginTransaction();
+    try {
+      const answered = await connection.query<{ n: number | string }>(
+        `SELECT COUNT(*) AS n FROM marathon_day_progress
+         WHERE day_id = ? AND ${DAY_HAS_ANSWERS_SQL}`,
+        [input.dayId],
+      );
+      if (Number(answered[0]?.n ?? 0) > 0) {
+        await connection.rollback();
+        return { ok: false, reason: "locked" };
+      }
+      const same = await connection.query<{ id: number }>(
+        `SELECT t.id
+         FROM marathon_day_tasks t
+         LEFT JOIN quiz_tasks q ON q.id = t.question_id
+         WHERE t.day_id = ? AND (t.inline_prompt = ? OR q.task_text = ?)
+         LIMIT 1`,
+        [input.dayId, plan.prompt, plan.prompt],
+      );
+      if (same[0]) {
+        await connection.rollback();
+        return { ok: false, reason: "duplicate" };
+      }
+      const maxRows = await connection.query<{ max_order: number | null }>(
+        `SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM marathon_day_tasks WHERE day_id = ?`,
+        [input.dayId],
+      );
+      const order = Number(maxRows[0]?.max_order ?? 0) + 1;
+      if (plan.mode === "day") {
+        await connection.execute(
+          `INSERT INTO marathon_day_tasks
+            (day_id, sort_order, question_id, inline_prompt, inline_options, inline_correct, inline_explanation)
+           VALUES (?, ?, NULL, ?, ?, ?, ?)`,
+          [input.dayId, order, plan.prompt, JSON.stringify(plan.options), plan.correct, plan.explanation],
+        );
+        await connection.commit();
+        return { ok: true, mode: "day", questionId: null };
+      }
+      const nextRows = await connection.query<{ next_id: number | string }>(
+        `SELECT COALESCE(MAX(id), 0) + 1 AS next_id FROM quiz_tasks`,
+      );
+      const questionId = Number(nextRows[0]?.next_id);
+      if (!Number.isInteger(questionId) || questionId <= 0) {
+        await connection.rollback();
+        return { ok: false, reason: "invalid" };
+      }
+      const theme = await connection.query<{ id: number }>(
+        `SELECT id FROM themes WHERE id = ? LIMIT 1`,
+        [plan.themeId],
+      );
+      if (!theme[0]) {
+        await connection.rollback();
+        return { ok: false, reason: "bank_fields" };
+      }
+      await connection.execute(
+        `INSERT INTO quiz_tasks
+          (id, name, task_text, theme_id, answer_1, answer_2, answer_3, answer_4,
+           right_answer_n, comments, difficulty, hint_short, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 'published')`,
+        [
+          questionId,
+          deriveTaskName(plan.prompt),
+          plan.prompt,
+          plan.themeId,
+          plan.options[0],
+          plan.options[1],
+          plan.options[2],
+          plan.options[3],
+          plan.correct,
+          plan.explanation ?? "",
+          plan.difficulty,
+        ],
+      );
+      await connection.execute(
+        `INSERT INTO marathon_day_tasks
+          (day_id, sort_order, question_id, inline_prompt, inline_options, inline_correct, inline_explanation)
+         VALUES (?, ?, ?, NULL, NULL, NULL, NULL)`,
+        [input.dayId, order, questionId],
+      );
+      await connection.commit();
+      return { ok: true, mode: "bank", questionId };
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    }
+  }, getConnection);
+}
+
+export async function addPublishedTasks(
+  input: { marathonId: number; dayId: number; questionIds: readonly number[] },
+  getConnection: Conn = loadDefaultConnection,
+): Promise<
+  | { ok: true; added: number; duplicateHere: number[]; elsewhere: Array<{ id: number; days: number[] }> }
+  | { ok: false; reason: "locked" | "missing" }
+> {
+  const incoming = sanitizeIds(input.questionIds);
+  await ensureDays(getConnection);
+  return withSql(async (connection) => {
+    const answered = await connection.query<{ n: number | string }>(
+      `SELECT COUNT(*) AS n FROM marathon_day_progress
+       WHERE day_id = ? AND ${DAY_HAS_ANSWERS_SQL}`,
+      [input.dayId],
+    );
+    if (Number(answered[0]?.n ?? 0) > 0) return { ok: false, reason: "locked" };
+    const hereRows = await connection.query<{ question_id: number }>(
+      `SELECT question_id FROM marathon_day_tasks
+       WHERE day_id = ? AND question_id IS NOT NULL`,
+      [input.dayId],
+    );
+    const otherRows = incoming.length === 0
+      ? []
+      : await connection.query<{ question_id: number; day_number: number }>(
+        `SELECT ot.question_id, d.day_number
+         FROM marathon_day_tasks ot
+         INNER JOIN marathon_days d ON d.id = ot.day_id
+         WHERE d.marathon_id = ? AND ot.day_id <> ? AND ot.question_id IN (${incoming.map(() => "?").join(", ")})`,
+        [input.marathonId, input.dayId, ...incoming],
+      );
+    const otherDays = new Map<number, number[]>();
+    for (const row of otherRows) {
+      const id = Number(row.question_id);
+      const days = otherDays.get(id) ?? [];
+      days.push(Number(row.day_number));
+      otherDays.set(id, days);
+    }
+    const plan = planBankAdd(
+      hereRows.map((row) => Number(row.question_id)),
+      incoming,
+      otherDays,
+    );
+    if (plan.add.length === 0) return { ok: true, added: 0, ...plan };
+    const found = await connection.query<{ id: number }>(
+      `SELECT id FROM quiz_tasks
+       WHERE id IN (${plan.add.map(() => "?").join(", ")}) AND ${publishedQuizTaskSql()}`,
+      plan.add,
+    );
+    if (found.length !== plan.add.length) return { ok: false, reason: "missing" };
+    const maxRows = await connection.query<{ max_order: number | null }>(
+      `SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM marathon_day_tasks WHERE day_id = ?`,
+      [input.dayId],
+    );
+    let order = Number(maxRows[0]?.max_order ?? 0);
+    for (const questionId of plan.add) {
+      order += 1;
+      await connection.execute(
+        `INSERT INTO marathon_day_tasks
+          (day_id, sort_order, question_id, inline_prompt, inline_options, inline_correct, inline_explanation)
+         VALUES (?, ?, ?, NULL, NULL, NULL, NULL)`,
+        [input.dayId, order, questionId],
+      );
+    }
+    return { ok: true, added: plan.add.length, duplicateHere: plan.duplicateHere, elsewhere: plan.elsewhere };
+  }, getConnection);
+}
+
+export async function moveDayTask(
+  dayId: number,
+  taskId: number,
+  direction: -1 | 1,
+  getConnection: Conn = loadDefaultConnection,
+): Promise<boolean> {
+  await ensureDays(getConnection);
+  return withSql(async (connection) => {
+    const rows = await connection.query<{ id: number; sort_order: number }>(
+      `SELECT id, sort_order FROM marathon_day_tasks
+       WHERE day_id = ? ORDER BY sort_order ASC, id ASC`,
+      [dayId],
+    );
+    const index = rows.findIndex((row) => Number(row.id) === taskId);
+    const target = index + direction;
+    const current = rows[index];
+    const neighbor = rows[target];
+    if (!current || !neighbor) return false;
+    await connection.execute(
+      `UPDATE marathon_day_tasks SET sort_order = ? WHERE id = ? AND day_id = ?`,
+      [-1, current.id, dayId],
+    );
+    await connection.execute(
+      `UPDATE marathon_day_tasks SET sort_order = ? WHERE id = ? AND day_id = ?`,
+      [current.sort_order, neighbor.id, dayId],
+    );
+    await connection.execute(
+      `UPDATE marathon_day_tasks SET sort_order = ? WHERE id = ? AND day_id = ?`,
+      [neighbor.sort_order, current.id, dayId],
+    );
+    return true;
+  }, getConnection);
+}
+
+export async function saveTaskCopy(
+  dayId: number,
+  taskId: number,
+  fields: { prompt: string; options: string[]; correct: number; explanation: string | null },
+  getConnection: Conn = loadDefaultConnection,
+): Promise<"saved" | "missing" | "locked"> {
+  await ensureDays(getConnection);
+  return withSql(async (connection) => {
+    const answered = await connection.query<{ n: number | string }>(
+      `SELECT COUNT(*) AS n FROM marathon_day_progress
+       WHERE day_id = ? AND ${DAY_HAS_ANSWERS_SQL}`,
+      [dayId],
+    );
+    if (Number(answered[0]?.n ?? 0) > 0) return "locked";
+    const found = await connection.query<{ id: number }>(
+      `SELECT id FROM marathon_day_tasks WHERE id = ? AND day_id = ? LIMIT 1`,
+      [taskId, dayId],
+    );
+    if (!found[0]) return "missing";
+    await connection.execute(COPY_DAY_TASK_SQL, [
+      fields.prompt,
+      JSON.stringify(fields.options),
+      fields.correct,
+      fields.explanation,
+      taskId,
+      dayId,
+    ]);
+    return "saved";
+  }, getConnection);
+}
+function bankWhereParams(input: {
+  themeId: number;
+  difficulty: number;
+  optionCount: number;
+}): unknown[] {
+  return [
+    input.themeId,
+    input.themeId,
+    input.difficulty,
+    input.difficulty,
+    input.optionCount,
+    input.optionCount,
+    input.optionCount,
+  ];
+}
+
+export async function searchBankTasks(
+  input: {
+    subject: string;
+    themeId: number | null;
+    query: string;
+    difficulty?: number | null;
+    optionCount?: 0 | 2 | 4;
+    marathonId?: number;
+    dayId?: number;
+    page?: number;
+  },
+  getConnection?: Conn,
+): Promise<BankSearchPage> {
+  const empty = { tasks: [], total: 0, page: 1, pageSize: BANK_PAGE_SIZE };
+  if (!quizBankMatchesSubject(input.subject)) return empty;
+  const themeId = input.themeId != null && Number.isInteger(input.themeId) && input.themeId > 0
+    ? input.themeId
+    : 0;
+  const difficulty = input.difficulty != null && Number.isInteger(input.difficulty) && input.difficulty > 0
+    ? input.difficulty
+    : 0;
+  const optionCount = input.optionCount === 2 || input.optionCount === 4 ? input.optionCount : 0;
+  const where = bankWhereParams({ themeId, difficulty, optionCount });
+  const marathonId = input.marathonId != null && Number.isInteger(input.marathonId) ? input.marathonId : 0;
+  const dayId = input.dayId != null && Number.isInteger(input.dayId) ? input.dayId : 0;
+  const requested = Number.isInteger(input.page) && (input.page ?? 0) > 0 ? Number(input.page) : 1;
+  return withSql(async (connection) => {
+    const rows = await connection.query<
+      PreviewRow & { name: string | null; theme_name: string | null; difficulty: number | null; other_days: string | null }
+    >(BANK_SEARCH_SQL, [marathonId, dayId, ...where]);
+    const matched = rows.flatMap((row) => {
+      const preview = toBankPreview(row);
+      if (!matchesBankQuery({
+        id: preview.id,
+        name: row.name ?? "",
+        prompt: preview.prompt,
+        query: input.query,
+      })) return [];
+      return [{
+        ...preview,
+        themeName: (row.theme_name ?? "").trim(),
+        difficulty: Number(row.difficulty ?? 0),
+        otherDays: (row.other_days ?? "")
+          .split(",")
+          .map((item) => Number(item))
+          .filter((item) => Number.isInteger(item) && item > 0),
+      }];
+    });
+    const pages = bankSearchPages(matched.length);
+    const page = Math.min(requested, pages);
+    const start = (page - 1) * BANK_PAGE_SIZE;
+    return {
+      total: matched.length,
+      page,
+      pageSize: BANK_PAGE_SIZE,
+      tasks: matched.slice(start, start + BANK_PAGE_SIZE),
+    };
   }, getConnection);
 }
