@@ -2414,6 +2414,10 @@
       "title": "Oleksandra Dubrovina",
       "description": "Oleksandra Dubrovina's page: a multiplication calculator, the code and a live demo."
     },
+    "internBut39": {
+      "title": "Dmytro But: division calculator",
+      "description": "Dmytro But's page: a division calculator for two numbers, the code and a live demo."
+    },
     "home": {
       "title": "Today",
       "description": "A short plan for the day: a test, the simulator, a marathon, a teacher, or the textbook."
@@ -3284,6 +3288,12 @@
     "bankProblem": "Workbook",
     "taskTitle": "Task",
     "taskImageAlt": "Picture for the task"
+  },
+  "MyCard": {
+    "name": "Dmytro But",
+    "task1": "Division calculator: division of two numbers has been implemented",
+    "codeLink": "Repository",
+    "liveLink": "Live demo"
   },
   "PracticeMultiplication": {
     "kicker": "Practice exercises",

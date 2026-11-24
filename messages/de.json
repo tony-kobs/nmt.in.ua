@@ -2414,6 +2414,10 @@
       "title": "Oleksandra Dubrovina",
       "description": "Seite von Oleksandra Dubrovina: ein Multiplikationsrechner, der Code und eine Live-Demo."
     },
+    "internBut39": {
+      "title": "Dmytro But: Divisionsrechner",
+      "description": "Seite von Dmytro But: ein Divisionsrechner für zwei Zahlen, der Code und eine Live-Demo."
+    },
     "home": {
       "title": "Heute",
       "description": "Ein kurzer Plan für den Tag: Test, Simulator, Marathon, Lehrkraft oder Lehrbuch."
@@ -3284,6 +3288,12 @@
     "bankProblem": "Aufgabenheft",
     "taskTitle": "Aufgabe",
     "taskImageAlt": "Bild zur Aufgabe"
+  },
+  "MyCard": {
+    "name": "Dmytro But",
+    "task1": "Divisionsrechner: Division zweier Zahlen implementiert",
+    "codeLink": "Repository",
+    "liveLink": "Live-Demo"
   },
   "PracticeMultiplication": {
     "kicker": "Übungen",

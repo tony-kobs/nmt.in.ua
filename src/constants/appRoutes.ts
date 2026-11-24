@@ -20,6 +20,7 @@ const EXACT_PAGES = new Set<string>([
   "/reset-password",
   "/diagnostic",
   "/nmt/temy",
+  "/interns/BUT39",
   "/account",
   "/parent",
   "/parent/accept",

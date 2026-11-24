@@ -78,6 +78,7 @@ export const RESERVED_TEACHER_SLUGS = new Set([
   "icons",
   "landing",
   "nmt",
+  "interns",
   "verify-email",
   "keep-account",
   "forgot-password",

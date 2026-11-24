@@ -1,0 +1,57 @@
+import styles from "./MyCard.module.css";
+
+type MyCardProps = {
+  name: string;
+  taskDescription: string;
+  codeLabel: string;
+  liveLabel: string;
+  codeUrl: string;
+  liveUrl: string;
+};
+
+export default function MyCard({
+  name,
+  taskDescription,
+  codeLabel,
+  liveLabel,
+  codeUrl,
+  liveUrl,
+}: MyCardProps) {
+  return (
+    <article className={styles.card} aria-labelledby="intern-card-title">
+      <header className={styles.header}>
+        <div className={styles.avatar} aria-hidden="true">
+          🎓
+        </div>
+
+        <h1 id="intern-card-title" className={styles.name}>
+          {name}
+        </h1>
+      </header>
+
+      <div className={styles.content}>
+        <p className={styles.description}>{taskDescription}</p>
+
+        <div className={styles.links}>
+          <a
+            href={codeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.codeLink}
+          >
+            {codeLabel}
+          </a>
+
+          <a
+            href={liveUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.liveLink}
+          >
+            {liveLabel}
+          </a>
+        </div>
+      </div>
+    </article>
+  );
+}

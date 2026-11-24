@@ -278,7 +278,12 @@ test("private routes are noindex even when the caller forgets the flag", () => {
   assert.equal(isExcludedTeacherSlug("32132132112312"), true);
   assert.equal(isExcludedTeacherSlug("mikhail"), false);
   assert.equal(isExcludedTeacherSlug("demo"), false);
-  assert.deepEqual(sitemapStaticPaths(), ["/", "/diagnostic", "/nmt/temy"]);
+  assert.deepEqual(sitemapStaticPaths(), [
+    "/",
+    "/diagnostic",
+    "/nmt/temy",
+    "/interns/BUT39",
+  ]);
   assert.equal(isNoIndexPath("/welcome"), false);
   for (const path of sitemapStaticPaths()) {
     const meta = createPageMetadata({

@@ -118,6 +118,8 @@ function isMarketingPath(pathname: string): boolean {
     pathname.startsWith("/diagnostic/") ||
     pathname === "/nmt/temy" ||
     pathname.startsWith("/nmt/temy/") ||
+    pathname === "/interns" ||
+    pathname.startsWith("/interns/") ||
     pathname === "/t" ||
     pathname.startsWith("/t/") ||
     /^\/marathon\/[^/]+$/.test(pathname) ||
