@@ -21,7 +21,10 @@ test("sitemap lists public pages and only live marathon or teacher cards beyond 
     assert.ok(entry.lastModified instanceof Date);
     assert.equal(Number.isNaN(entry.lastModified.getTime()), false);
     const path = new URL(entry.url).pathname;
-    const dynamic = path.startsWith("/marathon/") || path.startsWith("/t/");
+    const dynamic =
+      path.startsWith("/marathon/") ||
+      path.startsWith("/t/") ||
+      path.startsWith("/nmt/temy/");
     assert.equal(expected.has(path) || dynamic, true, `unexpected sitemap path ${path}`);
     assert.equal(path.includes("?"), false, `query url ${path}`);
     assert.equal(isNoIndexPath(path), false, `private path ${path}`);

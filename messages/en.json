@@ -140,7 +140,7 @@
       "account": "Account",
       "promo": "Promo codes",
       "practice": "Practice exercises"
-    },
+     },
     "groups": {
       "tests": "Tests"
     }
@@ -1855,11 +1855,10 @@
       "steps": "How it works",
       "teachers": "Teacher",
       "faq": "FAQ",
+      "topics": "NMT topics",
       "login": "Log in",
       "register": "Create account",
-      "cabinet": "Workspace",
-      "internMy": "Oleksandra's page",
-      "MyCard": "Dmytro's Page"
+      "cabinet": "Workspace"
     },
     "hero": {
       "titleStart": "Prepare for the NMT in maths",
@@ -2377,7 +2376,24 @@
     "breadcrumb": "Breadcrumb",
     "home": "Home",
     "diagnostic": "Diagnostic test",
-    "marathon": "Marathon"
+    "marathon": "Marathon",
+    "topics": "NMT topics"
+  },
+  "NmtTopics": {
+    "indexKicker": "Syllabus",
+    "indexTitle": "NMT math topics",
+    "indexLead": "Pick a topic, see what the NMT asks, and practice the tasks in your workspace.",
+    "topicKicker": "NMT topic",
+    "samplesTitle": "Examples from official papers",
+    "samplesEmpty": "Official examples for this topic are not linked yet.",
+    "source": "Source: {label}",
+    "cta": "Practice in your workspace",
+    "openNote": "You type the short answer in your workspace.",
+    "taskCount": "{count, plural, one {# task} other {# tasks}}",
+    "taskTitle": "Task {n}",
+    "countLead": "The topic “{name}” has {count, plural, one {# task} other {# tasks}} in the bank.",
+    "countLeadUnknown": "A short description of “{name}” is still being prepared.",
+    "levels": "Levels: {levels}."
   },
   "Metadata": {
     "welcome": {
@@ -2388,9 +2404,19 @@
       "title": "Welcome page",
       "description": "The LevelUP welcome: how you prepare for the NMT in maths, with tests, a simulator and a textbook."
     },
+    "nmtTopics": {
+      "indexTitle": "NMT math topics",
+      "indexDescription": "NMT math syllabus topics: a short description and examples from official UCEQA papers.",
+      "topicTitle": "{name} — NMT",
+      "topicDescription": "{name}: what this NMT math topic covers and how to practice it in your workspace."
+    },
     "intern": {
       "title": "Oleksandra Dubrovina",
       "description": "Oleksandra Dubrovina's page: a multiplication calculator, the code and a live demo."
+    },
+    "internBut39": {
+      "title": "Dmytro But: division calculator",
+      "description": "Dmytro But's page: a division calculator for two numbers, the code and a live demo."
     },
     "home": {
       "title": "Today",
@@ -3263,14 +3289,8 @@
     "taskTitle": "Task",
     "taskImageAlt": "Picture for the task"
   },
-  "InternMyPage": {
-    "name": "Oleksandra Dubrovina",
-    "task1": "Multiplication calculator: implemented multiplication of two numbers",
-    "codeLink": "Repository",
-    "liveLink": "Live demo"
-  },
   "MyCard": {
-    "name": "Dmitriy But",
+    "name": "Dmytro But",
     "task1": "Division calculator: division of two numbers has been implemented",
     "codeLink": "Repository",
     "liveLink": "Live demo"

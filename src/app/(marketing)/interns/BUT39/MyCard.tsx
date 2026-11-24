@@ -18,13 +18,15 @@ export default function MyCard({
   liveUrl,
 }: MyCardProps) {
   return (
-    <article className={styles.card}>
+    <article className={styles.card} aria-labelledby="intern-card-title">
       <header className={styles.header}>
         <div className={styles.avatar} aria-hidden="true">
           🎓
         </div>
 
-        <h1 className={styles.name}>{name}</h1>
+        <h1 id="intern-card-title" className={styles.name}>
+          {name}
+        </h1>
       </header>
 
       <div className={styles.content}>

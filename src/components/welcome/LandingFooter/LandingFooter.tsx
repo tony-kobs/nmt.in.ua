@@ -12,7 +12,13 @@ const FOOTER_LINKS = [
   { key: "steps", href: "#steps" },
   { key: "teachers", href: "#teachers" },
   { key: "faq", href: "#faq" },
+  { key: "topics", href: "/nmt/temy" },
 ] as const;
+
+function footerHref(href: string, cabinet: boolean): string {
+  if (href.startsWith("/")) return href;
+  return cabinet ? `/welcome${href}` : href;
+}
 
 export async function LandingFooter({
   variant = "landing",
@@ -42,21 +48,18 @@ export async function LandingFooter({
           </div>
 
           <nav className={css.footerNav} aria-label={nav("sectionsAria")}>
-            {FOOTER_LINKS.map((item) => (
-              <a
-                key={item.key}
-                href={cabinet ? `/welcome${item.href}` : item.href}
-                className={css.footerLink}
-              >
-                {nav(item.key)}
-              </a>
-            ))}
-            <Link href="/interns/BUT39" className={css.footerLink}>
-              {nav("MyCard")}
-            </Link>
-            <Link href="/interns/sasha-dubrovina28" className={css.footerLink}>
-              {nav("internMy")}
-            </Link>
+            {FOOTER_LINKS.map((item) => {
+              const href = footerHref(item.href, cabinet);
+              return item.href.startsWith("/") ? (
+                <Link key={item.key} href={href} className={css.footerLink}>
+                  {nav(item.key)}
+                </Link>
+              ) : (
+                <a key={item.key} href={href} className={css.footerLink}>
+                  {nav(item.key)}
+                </a>
+              );
+            })}
             {cabinet ? null : (
               <>
                 <Link href="/login" className={css.footerLink}>
