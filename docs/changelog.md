@@ -12,7 +12,7 @@
 - Схвалено: так
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/371
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-22 — feat: розігрів dima-dev1 (#375)
 
@@ -23,7 +23,7 @@
 - Схвалено: ні
 - Автор: Dima-dev1
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/375
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-22 — Адмін: експорт і імпорт завдань теми (#373)
 
@@ -1085,6 +1085,10 @@
 ## Новини для сайту
 
 <!-- changelog:news -->
+### 2026-11-24 — [реліз #377](https://github.com/tony-kobs/nmt.in.ua/pull/377)
+
+- [Публічні сторінки тем НМТ для пошуку](https://github.com/tony-kobs/nmt.in.ua/pull/371) — На вітальній внизу зʼявилось «Теми НМТ». Можна відкрити тему, прочитати короткий опис і, коли в базі є офіційні завдання, подивитись два-три приклади без відповіді. Кнопка веде в кабінет на тест за цією темою.
+
 ### 2026-11-22 — [реліз #374](https://github.com/tony-kobs/nmt.in.ua/pull/374)
 
 - [SEO: 404 без canonical, /welcome поза sitemap, 301 з www](https://github.com/tony-kobs/nmt.in.ua/pull/369) — Адреса з `www` відкриває той самий сайт без `www`. Неіснуюча сторінка лишається «Сторінку не знайдено».
