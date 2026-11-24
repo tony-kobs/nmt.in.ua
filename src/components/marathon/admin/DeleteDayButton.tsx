@@ -24,12 +24,12 @@ export function DeleteDayButton({
     return (
       <button
         type="button"
-        className={css.buttonQuiet}
+        className={css.buttonDanger}
         onClick={() => {
           void askConfirm(t("deleteDayBlocked", { n: dayNumber, count: submissions }));
         }}
       >
-        {t("delete")}
+        {t("deleteDay")}
       </button>
     );
   }
@@ -41,9 +41,9 @@ export function DeleteDayButton({
       <ConfirmSubmit
         message={t("deleteDayConfirm", { n: dayNumber })}
         pendingLabel={t("deleting")}
-        className={css.buttonQuiet}
+        className={css.buttonDanger}
       >
-        {t("delete")}
+        {t("deleteDay")}
       </ConfirmSubmit>
     </form>
   );

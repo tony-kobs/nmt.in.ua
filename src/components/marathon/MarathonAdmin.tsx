@@ -47,6 +47,7 @@ import {
 } from "./admin/MarathonAdminForms";
 import { CopyEditor } from "./admin/CopyEditor";
 import { DayTaskBank } from "./admin/DayTaskBank";
+import { CreateDayTask } from "./admin/CreateDayTask";
 import { DeleteDayButton } from "./admin/DeleteDayButton";
 import { MarathonFormatsPanel } from "./admin/MarathonFormatsPanel";
 import { MarathonFunnelStrip } from "./admin/MarathonFunnelStrip";
@@ -802,18 +803,23 @@ export async function MarathonAdminEditor({
                   </li>
                 ))}
               </ul>
-              <DayTaskBank
-                marathonId={marathon.id}
-                dayId={day.id}
-                subject={marathon.subject}
-                themes={themes}
-                submissions={day.submissions}
-                saved={day.tasks.flatMap((task) =>
-                  task.questionId
-                    ? [{ id: task.questionId, prompt: task.prompt, options: task.options }]
-                    : [],
+              <div className={css.actions}>
+                <DayTaskBank
+                  marathonId={marathon.id}
+                  dayId={day.id}
+                  subject={marathon.subject}
+                  themes={themes}
+                  submissions={day.submissions}
+                  saved={day.tasks.flatMap((task) =>
+                    task.questionId
+                      ? [{ id: task.questionId, prompt: task.prompt, options: task.options }]
+                      : [],
+                  )}
+                />
+                {day.submissions > 0 ? null : (
+                  <CreateDayTask marathonId={marathon.id} dayId={day.id} themes={themes} />
                 )}
-              />
+              </div>
               <details className={css.manualTask} {...(questions.length > 0 ? { open: true } : {})}>
                 <summary className={css.manualSummary}>{t("manualTask")}</summary>
                 <form className={css.actions} method="get">

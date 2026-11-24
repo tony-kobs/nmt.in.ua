@@ -86,6 +86,7 @@ import {
 import { answerRiddle, type AttemptResult } from "./riddleQuiz";
 import {
   addPublishedTasks,
+  createDayTask,
   dayBelongsToMarathon,
   moveDayTask,
   quizBankMatchesSubject,
@@ -675,6 +676,36 @@ export async function saveDayTaskEditAction(formData: FormData): Promise<void> {
   if (saved === "missing") redirect(`${adminPath(id)}?error=invalid`);
   revalidatePath(adminPath(id));
   redirect(`${savedPath(id)}&taskCopy=1`);
+}
+
+export async function createDayTaskAction(formData: FormData): Promise<void> {
+  await requireManager();
+  const id = readInt(formData.get("marathonId"));
+  const dayId = readInt(formData.get("dayId"));
+  if (!id || !dayId) redirect(`${adminPath(id ?? undefined)}?error=invalid`);
+  if (!(await dayBelongsToMarathon(id, dayId))) redirect(`${adminPath(id)}?error=invalid`);
+  const marathon = await getDailyById(id);
+  if (!marathon) redirect(`${adminPath(id)}?error=invalid`);
+  try {
+    const saved = await createDayTask({
+      dayId,
+      prompt: String(formData.get("prompt") ?? ""),
+      options: [1, 2, 3, 4].map((index) => String(formData.get(`option${index}`) ?? "")),
+      correct: Number(formData.get("correct")),
+      explanation: String(formData.get("explanation") ?? ""),
+      saveToBank: formData.get("saveToBank") === "1",
+      themeId: readInt(formData.get("themeId")),
+      difficulty: readInt(formData.get("difficulty")),
+    });
+    if (!saved.ok) redirect(`${adminPath(id)}?error=${saved.reason === "locked" ? "tasks_locked" : saved.reason}`);
+    revalidatePath(adminPath(id));
+    revalidatePath(`/marathon/${marathon.slug}`);
+    redirect(savedPath(id));
+  } catch (error) {
+    if (String((error as { digest?: unknown }).digest).startsWith("NEXT_REDIRECT")) throw error;
+    console.error("createDayTaskAction", error);
+    redirect(`${adminPath(id)}?error=server`);
+  }
 }
 
 export async function previewMarathonCsvAction(

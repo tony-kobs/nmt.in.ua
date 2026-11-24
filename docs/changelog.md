@@ -14,6 +14,39 @@
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/371
 <!-- released: no -->
 
+### 2026-11-22 — feat: розігрів dima-dev1 (#375)
+
+- Для команди: Розігрів стажера dima-dev1 за `docs/onboarding.md` §6: додано обʼєкт `Warmup` з ключем `dima-dev1` у `messages/uk.json`, `en.json` і `de.json` та тест `src/i18n/warmup-dima-dev1.test.ts`, який перевіряє рядок у всіх трьох мовах. На сторінки рядок не виводиться.
+- Для людей: —
+- Скрінкаст: потрібен
+- Запис: https://drive.google.com/file/d/1MKbXZGsS3tsaNQVSf4wdNx75Rp-Z6b49/view?usp=sharing
+- Схвалено: ні
+- Автор: Dima-dev1
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/375
+<!-- released: no -->
+
+### 2026-11-22 — Адмін: експорт і імпорт завдань теми (#373)
+
+- Для команди: Адмін: експорт і імпорт завдань теми
+- Для людей: —
+- Скрінкаст: не потрібен
+- Запис: —
+- Схвалено: ні
+- Автор: groteskzp
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/373
+<!-- released: yes -->
+
+### 2026-11-22 — День марафону: створити завдання і за бажанням зберегти в банк (#372)
+
+- Для команди: День марафону: створити завдання і за бажанням зберегти в банк
+- Для людей: —
+- Скрінкаст: не потрібен
+- Запис: —
+- Схвалено: ні
+- Автор: groteskzp
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/372
+<!-- released: yes -->
+
 ### 2026-11-22 — Панель банку марафону: пошук і межі вікна (#370)
 
 - Для команди: Панель банку марафону: пошук і межі вікна
@@ -23,7 +56,7 @@
 - Схвалено: ні
 - Автор: groteskzp
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/370
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-22 — SEO: 404 без canonical, /welcome поза sitemap, 301 з www (#369)
 
@@ -34,7 +67,7 @@
 - Схвалено: ні
 - Автор: tony-kobs
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/369
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-20 — Марафон: ручний вибір завдань і копія для дня (#366)
 
@@ -1052,6 +1085,10 @@
 ## Новини для сайту
 
 <!-- changelog:news -->
+### 2026-11-22 — [реліз #374](https://github.com/tony-kobs/nmt.in.ua/pull/374)
+
+- [SEO: 404 без canonical, /welcome поза sitemap, 301 з www](https://github.com/tony-kobs/nmt.in.ua/pull/369) — Адреса з `www` відкриває той самий сайт без `www`. Неіснуюча сторінка лишається «Сторінку не знайдено».
+
 ### 2026-11-19 — [реліз #362](https://github.com/tony-kobs/nmt.in.ua/pull/362)
 
 - [feat: integrate multiplication into cabinet](https://github.com/tony-kobs/nmt.in.ua/pull/356) — Новий розділ "Тренувальні вправи", де зберігаються "Додавання дробів", "Інтерактивні формати" і нова вправа "Множення".

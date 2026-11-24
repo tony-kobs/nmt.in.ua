@@ -1135,6 +1135,7 @@
     "seed": "Add the sample: 5 days of math",
     "create": "New marathon",
     "delete": "Delete",
+    "deleteDay": "Delete day",
     "deleteConfirm": "Delete permanently?",
     "settings": "Settings",
     "activate": "Activate",
@@ -1231,6 +1232,10 @@
     "bankTypeFour": "4 options",
     "bankOtherDay": "This task is already on day {days}. You can still add it.",
     "bankEdit": "Edit",
+    "createTask": "Create a task",
+    "createTaskLead": "The task is stored only on this day, unless you also save it to the bank.",
+    "saveToBank": "Also save to the question bank",
+    "bankFieldsNote": "The bank needs a topic, a difficulty and four different options.",
     "bankCopyNote": "Saving makes a copy for this day only: prompt, options, key and explanation. The question bank is not changed. Difficulty stays in the bank.",
     "bankHint": "Enter text or choose a filter.",
     "bankSearching": "Searching…",
@@ -1613,6 +1618,7 @@
       "server": "Could not save. Try again.",
       "seed_exists": "The sample marathon already exists.",
       "question": "No question with that ID is in the bank.",
+      "bank_fields": "Saving to the bank needs a topic, difficulty from 1, and four different options of at most 255 characters.",
       "no_alternate": "This topic has no other question that is not already on the day.",
       "day_submissions": "Deletion is blocked: this day already has student answers ({count}). Nothing was changed.",
       "tasks_locked": "The task set was not changed: students have already answered this day. You can save only the same tasks in a new order.",
@@ -2678,6 +2684,21 @@
     "search": "Search",
     "searchEmpty": "This topic has no tasks with these words.",
     "create": "New task",
+    "exportCsv": "Export CSV",
+    "exportJson": "Export JSON",
+    "exportExcel": "Export Excel",
+    "importFile": "Task file",
+    "deleteMissing": "Delete tasks that are not in the file",
+    "previewImport": "Check",
+    "applyImport": "Apply",
+    "checking": "Checking…",
+    "importApplied": "The file was saved.",
+    "importCreate": "Create: {count}",
+    "importUpdate": "Update: {count}",
+    "importSame": "Unchanged: {count}",
+    "importDelete": "Delete: {count}",
+    "importSkipped": "#{id} was kept. {reason}",
+    "importError": "Row {row}: {message}",
     "empty": "This topic has no tasks yet.",
     "pagerAria": "Task list pages",
     "prevPage": "Previous",
@@ -3340,5 +3361,8 @@
       "title": "Multiplication",
       "description": "Multiplication tables against the clock: 10 questions and a score."
     }
+  },
+  "Warmup": {
+    "dima-dev1": "First warm-up line"
   }
 }
