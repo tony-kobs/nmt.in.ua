@@ -12,6 +12,8 @@ export const PUBLIC_PAGE_PATHS = [
   "/forgot-password",
   "/reset-password",
   "/diagnostic",
+  "/nmt/temy",
+  "/interns/BUT39",
   "/t",
   "/interns/BUT39",
 ] as const;

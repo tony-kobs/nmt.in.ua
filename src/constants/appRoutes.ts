@@ -19,6 +19,8 @@ const EXACT_PAGES = new Set<string>([
   "/forgot-password",
   "/reset-password",
   "/diagnostic",
+  "/nmt/temy",
+  "/interns/BUT39",
   "/account",
   "/parent",
   "/parent/accept",
@@ -55,6 +57,7 @@ const EXACT_PAGES = new Set<string>([
 
 const DYNAMIC_PAGES: readonly RegExp[] = [
   /^\/diagnostic\/session\/[^/]+$/,
+  /^\/nmt\/temy\/[^/]+$/,
   /^\/t\/[^/]+$/,
   /^\/marathon\/[^/]+$/,
   /^\/marathon\/[^/]+\/join$/,

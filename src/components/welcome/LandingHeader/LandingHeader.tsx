@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { key: "steps", href: "#steps" },
   { key: "teachers", href: "#teachers" },
   { key: "faq", href: "#faq" },
+  { key: "topics", href: "/nmt/temy" },
 ] as const;
 
 export async function LandingHeader() {
@@ -40,11 +41,17 @@ export async function LandingHeader() {
         </Link>
 
         <nav className={css.headerNav} aria-label={t("sectionsAria")}>
-          {NAV_ITEMS.map((item) => (
-            <a key={item.key} href={item.href} className={css.headerLink}>
-              {t(item.key)}
-            </a>
-          ))}
+          {NAV_ITEMS.map((item) =>
+            item.href.startsWith("/") ? (
+              <Link key={item.key} href={item.href} className={css.headerLink}>
+                {t(item.key)}
+              </Link>
+            ) : (
+              <a key={item.key} href={item.href} className={css.headerLink}>
+                {t(item.key)}
+              </a>
+            ),
+          )}
         </nav>
 
         <div className={css.headerActions}>
