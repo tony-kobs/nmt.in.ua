@@ -1,9 +1,19 @@
+import { createPageMetadata } from "@/constants/seo";
 import { getTranslations } from "next-intl/server";
 import { LandingHeader } from "@/components/welcome/LandingHeader/LandingHeader";
 import { LandingFooter } from "@/components/welcome/LandingFooter/LandingFooter";
 import landing from "@/components/welcome/landing.module.css";
 import MyCard from "./MyCard";
 import styles from "./page.module.css";
+
+export async function generateMetadata() {
+  const t = await getTranslations("MyCard");
+  return createPageMetadata({
+    title: t("name"),
+    description: t("task1"),
+    path: "/interns/BUT39",
+  });
+}
 
 export default async function InternPage() {
   const t = await getTranslations("MyCard");
