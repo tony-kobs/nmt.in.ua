@@ -333,6 +333,7 @@ test("private routes are noindex even when the caller forgets the flag", () => {
   assert.deepEqual(sitemapStaticPaths(), [
     "/",
     "/diagnostic",
+    "/nmt/temy",
     "/interns/BUT39",
   ]);
   assert.equal(isNoIndexPath("/welcome"), false);
