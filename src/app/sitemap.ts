@@ -5,6 +5,7 @@ import {
   SEO_CONTENT_UPDATED,
   sitemapStaticPaths,
 } from "@/constants/seo";
+import { NMT_TOPICS_PATH, publicNmtTopicPaths } from "@/modules/nmtTopics/catalog";
 import { isDatabaseUnavailable } from "@/lib/db/unavailable";
 import { SITEMAP_DAILY_STATUSES } from "@/modules/marathons/daily/publicPage";
 
@@ -96,6 +97,15 @@ export async function loadSitemapDynamicPaths(): Promise<DatedPath[]> {
 /** Public marketing URLs, live marathons, and published teacher cards. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries = staticEntries();
+  for (const path of publicNmtTopicPaths()) {
+    if (path === NMT_TOPICS_PATH) continue;
+    entries.push({
+      url: absoluteUrl(path),
+      lastModified: SEO_CONTENT_UPDATED,
+      changeFrequency: "weekly",
+      priority: 0.6,
+    });
+  }
   try {
     for (const entry of await loadSitemapDynamicPaths()) {
       entries.push({

@@ -113,6 +113,14 @@ test("cabinet ships TeacherProfile and TeacherPublicCard; /t stays on the public
   assert.ok("TeacherProfile" in account);
   assert.ok("TeacherPublicCard" in account);
 
+  const topics = pickClientMessages(uk, "/nmt/temy/droby");
+  assert.ok(PUBLIC_CLIENT_NAMESPACES.every((key) => key in topics));
+  assert.equal("Header" in topics, false);
+
+  const intern = pickClientMessages(uk, "/interns/BUT39");
+  assert.ok(PUBLIC_CLIENT_NAMESPACES.every((key) => key in intern));
+  assert.equal("Header" in intern, false);
+
   const publicCard = pickClientMessages(uk, "/t/igor-petrenko");
   assert.ok(PUBLIC_CLIENT_NAMESPACES.every((key) => key in publicCard));
   assert.ok("TeacherPublicCard" in publicCard);

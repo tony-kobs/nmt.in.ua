@@ -65,6 +65,7 @@ Cursor і інші моделі дозволені. Перед здачею ти
 | `src/app/(marketing)/(flow)/register/parent/page.tsx` | Реєстрація батьків за запрошенням. Якщо батьківський акаунт уже є, сторінка веде на `/parent/accept` |
 | `src/app/(app)/parent/` | Кабінет батьків: лише перегляд прогресу дитини. Поза `(cabinet)`, бо сторінка кличе `notFound()` |
 | `src/constants/seo.ts` | Title, description, canonical, robots, sitemap і JSON-LD |
+| `src/app/(marketing)/nmt/temy/` | Публічні сторінки тем НМТ. Кабінет (`/topic`, `/practice`, `/materials`, `/simulator`) лишається за входом |
 | `src/components/welcome/` | Секції лендінгу |
 | `src/components/dashboard/` | Шапка, меню, старт тесту |
 | `src/components/testing/` | TopicTrainer, NmtTrainer, підсумок |

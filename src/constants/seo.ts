@@ -281,9 +281,6 @@ export function ogImagePathFor(path: string): string {
   if (pathname === "/diagnostic") {
     return groupedOg("/(marketing)/diagnostic", pathname);
   }
-  if (pathname.startsWith("/interns/")) {
-    return groupedOg(`/(marketing)${pathname}`, pathname);
-  }
   const teacher = pathname.match(/^\/t\/([^/]+)$/);
   if (teacher) return groupedOg("/(marketing)/t/[slug]", pathname);
   const marathon = pathname.match(/^\/marathon\/([^/]+)$/);

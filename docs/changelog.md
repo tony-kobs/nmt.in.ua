@@ -14,6 +14,28 @@
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/376
 <!-- released: no -->
 
+### 2026-11-24 — Сторінка стажера /interns/BUT39 (#368)
+
+- Для команди: Сторінка стажера /interns/BUT39
+- Для людей: —
+- Скрінкаст: не потрібен
+- Запис: —
+- Схвалено: ні
+- Автор: BUT39
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/368
+<!-- released: no -->
+
+### 2026-11-24 — Публічні сторінки тем НМТ для пошуку (#371)
+
+- Для команди: Публічні сторінки тем НМТ, щоб у Google був індексований текст. Кабінет не відкривав: `/practice`, `/materials`, `/topic`, `/simulator` лишаються в `robots.txt` Disallow і за auth-guard. Гість на `/practice` як і раніше потрапляє на вхід. Список тем — живі коди з `THEME_CODE_ORDER` без знятої `MATH-05-ELEM-OPS`. Назви з карти задачника (`siteName`), для трьох кодів без рядка в карті — підписи, які вже є в конспекті або в назві коду: «Ступені та корені», «Квадратні рівняння», «Статистика». Якщо база відповідає, на картці стоїть живе `themes.name`. Опис теми: перший абзац статичного конспекту, інакше довгий `themes.description`, інакше рядок з кількості завдань і рівнів. Математичний текст не вигадував. Приклади — до 3 завдань з `nmt_quiz_tasks`, які входять в опублікований варіант. Ключ і `comments` на сторінку не йдуть. Поруч підпис джерела (рік, назва варіанта, `source_note`) і https-посилання, якщо воно є. Кнопка «Тренуйся в кабінеті»: гість іде на `/register?next=/topic?theme=<id>`, увійшлий — одразу на `/topic?theme=<id>`. Canonical свій через `createPageMetadata`, robots `index, follow`, JSON-LD `BreadcrumbList` у крихтах. Усі URL в sitemap і в `PUBLIC_PAGE_PATHS`. Посилання «Теми НМТ» у футері вітальної і в шапці з 1240. Кеш каталогу — година (`unstable_cache`, тег `catalog`). На сторінках `revalidate = 86400` і `generateStaticParams` по всіх slug. HTML усе одно динамічний: мова читається з cookie в спільному i18n, а кнопка залежить від сесії. Без бази сторінка не падає: лишається назва, конспект якщо він у репозиторії, і рядок що опис або приклади ще готуються. Локально без MySQL приклади порожні — це очікувано. На проді з привʼязаними `theme_id` зʼявляться 2–3 картки. `npm run lint`, `npm test` (2022 pass), `tsc --noEmit`, `next build` зелені. ### URL - https://nmt.in.ua/nmt/temy - https://nmt.in.ua/nmt/temy/aryfmetychni-dii - https://nmt.in.ua/nmt/temy/elementarna-planimetriia - https://nmt.in.ua/nmt/temy/rivnosti-ta-nerivnosti - https://nmt.in.ua/nmt/temy/droby - https://nmt.in.ua/nmt/temy/matematychni-vyrazy - https://nmt.in.ua/nmt/temy/obrakhunkova-heometriia - https://nmt.in.ua/nmt/temy/rivniannia - https://nmt.in.ua/nmt/temy/dokazova-heometriia - https://nmt.in.ua/nmt/temy/stupeni-ta-koreni - https://nmt.in.ua/nmt/temy/kvadratni-rivniannia - https://nmt.in.ua/nmt/temy/tekstovi-zadachi - https://nmt.in.ua/nmt/temy/koordynatna-ploshchyna - https://nmt.in.ua/nmt/temy/funktsii - https://nmt.in.ua/nmt/temy/loharyfmy - https://nmt.in.ua/nmt/temy/tryhonometriia - https://nmt.in.ua/nmt/temy/hranytsi - https://nmt.in.ua/nmt/temy/pokhidna - https://nmt.in.ua/nmt/temy/intehral - https://nmt.in.ua/nmt/temy/stereometriia - https://nmt.in.ua/nmt/temy/kombinatoryka-prohresii - https://nmt.in.ua/nmt/temy/teoriia-ymovirnostey - https://nmt.in.ua/nmt/temy/statystyka ### Скріни Список, 375 / 768 / 1240: [Список тем, 375](https://cursor.com/agents/bc-f5de8d03-22b4-577f-99bd-287e0582f1b4/artifacts?path=%2Fopt%2Fcursor%2Fartifacts%2Fnmt-temy-375.png) [Список тем, 768](https://cursor.com/agents/bc-f5de8d03-22b4-577f-99bd-287e0582f1b4/artifacts?path=%2Fopt%2Fcursor%2Fartifacts%2Fnmt-temy-768.png) [Список тем, 1240](https://cursor.com/agents/bc-f5de8d03-22b4-577f-99bd-287e0582f1b4/artifacts?path=%2Fopt%2Fcursor%2Fartifacts%2Fnmt-temy-1240.png) Тема «Дроби», 375 / 768 / 1240 (без бази прикладів ще немає, опис з конспекту є): [Дроби, 375](https://cursor.com/agents/bc-f5de8d03-22b4-577f-99bd-287e0582f1b4/artifacts?path=%2Fopt%2Fcursor%2Fartifacts%2Fnmt-temy-droby-375.png) [Дроби, 768](https://cursor.com/agents/bc-f5de8d03-22b4-577f-99bd-287e0582f1b4/artifacts?path=%2Fopt%2Fcursor%2Fartifacts%2Fnmt-temy-droby-768.png) [Дроби, 1240](https://cursor.com/agents/bc-f5de8d03-22b4-577f-99bd-287e0582f1b4/artifacts?path=%2Fopt%2Fcursor%2Fartifacts%2Fnmt-temy-droby-1240.png)
+- Для людей: На вітальній внизу зʼявилось «Теми НМТ». Можна відкрити тему, прочитати короткий опис і, коли в базі є офіційні завдання, подивитись два-три приклади без відповіді. Кнопка веде в кабінет на тест за цією темою.
+- Скрінкаст: не потрібен
+- Запис: скріни в описі вище
+- Схвалено: так
+- Автор: tony-kobs
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/371
+<!-- released: yes -->
+
 ### 2026-11-22 — feat: розігрів dima-dev1 (#375)
 
 - Для команди: Розігрів стажера dima-dev1 за `docs/onboarding.md` §6: додано обʼєкт `Warmup` з ключем `dima-dev1` у `messages/uk.json`, `en.json` і `de.json` та тест `src/i18n/warmup-dima-dev1.test.ts`, який перевіряє рядок у всіх трьох мовах. На сторінки рядок не виводиться.
@@ -23,7 +45,7 @@
 - Схвалено: ні
 - Автор: Dima-dev1
 - Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/375
-<!-- released: no -->
+<!-- released: yes -->
 
 ### 2026-11-22 — Адмін: експорт і імпорт завдань теми (#373)
 
@@ -1085,6 +1107,10 @@
 ## Новини для сайту
 
 <!-- changelog:news -->
+### 2026-11-24 — [реліз #377](https://github.com/tony-kobs/nmt.in.ua/pull/377)
+
+- [Публічні сторінки тем НМТ для пошуку](https://github.com/tony-kobs/nmt.in.ua/pull/371) — На вітальній внизу зʼявилось «Теми НМТ». Можна відкрити тему, прочитати короткий опис і, коли в базі є офіційні завдання, подивитись два-три приклади без відповіді. Кнопка веде в кабінет на тест за цією темою.
+
 ### 2026-11-22 — [реліз #374](https://github.com/tony-kobs/nmt.in.ua/pull/374)
 
 - [SEO: 404 без canonical, /welcome поза sitemap, 301 з www](https://github.com/tony-kobs/nmt.in.ua/pull/369) — Адреса з `www` відкриває той самий сайт без `www`. Неіснуюча сторінка лишається «Сторінку не знайдено».

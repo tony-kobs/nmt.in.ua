@@ -1855,6 +1855,7 @@
       "steps": "So funktioniert es",
       "teachers": "Lehrkraft",
       "faq": "Fragen",
+      "topics": "NMT-Themen",
       "login": "Anmelden",
       "register": "Konto erstellen",
       "cabinet": "Arbeitsbereich"
@@ -2375,7 +2376,24 @@
     "breadcrumb": "Brotkrumen",
     "home": "Start",
     "diagnostic": "Einstufungstest",
-    "marathon": "Marathon"
+    "marathon": "Marathon",
+    "topics": "NMT-Themen"
+  },
+  "NmtTopics": {
+    "indexKicker": "Programm",
+    "indexTitle": "NMT-Themen in Mathematik",
+    "indexLead": "Wähle ein Thema, sieh, was der NMT dazu fragt, und übe die Aufgaben im Arbeitsbereich.",
+    "topicKicker": "NMT-Thema",
+    "samplesTitle": "Beispiele aus offiziellen Varianten",
+    "samplesEmpty": "Offizielle Beispiele zu diesem Thema sind noch nicht verknüpft.",
+    "source": "Quelle: {label}",
+    "cta": "Übe im Arbeitsbereich",
+    "openNote": "Die kurze Antwort gibst du im Arbeitsbereich ein.",
+    "taskCount": "{count, plural, one {# Aufgabe} other {# Aufgaben}}",
+    "taskTitle": "Aufgabe {n}",
+    "countLead": "Zum Thema „{name}“ liegen {count, plural, one {# Aufgabe} other {# Aufgaben}} in der Sammlung.",
+    "countLeadUnknown": "Eine kurze Beschreibung von „{name}“ wird noch vorbereitet.",
+    "levels": "Stufen: {levels}."
   },
   "Metadata": {
     "welcome": {
@@ -2386,9 +2404,19 @@
       "title": "Willkommensseite",
       "description": "Die LevelUP-Willkommensseite: so bereitest du dich auf den NMT in Mathematik vor."
     },
+    "nmtTopics": {
+      "indexTitle": "NMT-Themen in Mathematik",
+      "indexDescription": "Themen des NMT in Mathematik: kurze Beschreibung und Beispiele aus offiziellen UCEQA-Varianten.",
+      "topicTitle": "{name} — NMT",
+      "topicDescription": "{name}: was zu diesem NMT-Thema gehört und wie du es im Arbeitsbereich übst."
+    },
     "intern": {
       "title": "Oleksandra Dubrovina",
       "description": "Seite von Oleksandra Dubrovina: ein Multiplikationsrechner, der Code und eine Live-Demo."
+    },
+    "internBut39": {
+      "title": "Dmytro But: Divisionsrechner",
+      "description": "Seite von Dmytro But: ein Divisionsrechner für zwei Zahlen, der Code und eine Live-Demo."
     },
     "home": {
       "title": "Heute",
@@ -3260,6 +3288,12 @@
     "bankProblem": "Aufgabenheft",
     "taskTitle": "Aufgabe",
     "taskImageAlt": "Bild zur Aufgabe"
+  },
+  "MyCard": {
+    "name": "Dmytro But",
+    "task1": "Divisionsrechner: Division zweier Zahlen implementiert",
+    "codeLink": "Repository",
+    "liveLink": "Live-Demo"
   },
   "PracticeMultiplication": {
     "kicker": "Übungen",
