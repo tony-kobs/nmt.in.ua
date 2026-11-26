@@ -140,7 +140,7 @@
       "account": "Account",
       "promo": "Promo codes",
       "practice": "Practice exercises"
-     },
+    },
     "groups": {
       "tests": "Tests"
     }
@@ -1858,7 +1858,9 @@
       "topics": "NMT topics",
       "login": "Log in",
       "register": "Create account",
-      "cabinet": "Workspace"
+      "cabinet": "Workspace",
+      "internMy": "Oleksandra's page",
+      "MyCard": "Dmytro's Page"
     },
     "hero": {
       "titleStart": "Prepare for the NMT in maths",
@@ -3288,6 +3290,12 @@
     "bankProblem": "Workbook",
     "taskTitle": "Task",
     "taskImageAlt": "Picture for the task"
+  },
+  "InternMyPage": {
+    "name": "Oleksandra Dubrovina",
+    "task1": "Multiplication calculator: implemented multiplication of two numbers",
+    "codeLink": "Repository",
+    "liveLink": "Live demo"
   },
   "MyCard": {
     "name": "Dmytro But",

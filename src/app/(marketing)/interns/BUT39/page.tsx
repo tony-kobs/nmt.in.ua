@@ -1,30 +1,27 @@
-import { getTranslations } from "next-intl/server";
-import { LandingFooter } from "@/components/welcome/LandingFooter/LandingFooter";
-import { LandingHeader } from "@/components/welcome/LandingHeader/LandingHeader";
-import landing from "@/components/welcome/landing.module.css";
-import { SkipLink } from "@/components/ui/SkipLink";
 import { createPageMetadata } from "@/constants/seo";
+import { getTranslations } from "next-intl/server";
+import { LandingHeader } from "@/components/welcome/LandingHeader/LandingHeader";
+import { LandingFooter } from "@/components/welcome/LandingFooter/LandingFooter";
+import landing from "@/components/welcome/landing.module.css";
 import MyCard from "./MyCard";
 import styles from "./page.module.css";
 
 export async function generateMetadata() {
-  const t = await getTranslations("Metadata.internBut39");
+  const t = await getTranslations("MyCard");
   return createPageMetadata({
-    title: t("title"),
-    description: t("description"),
+    title: t("name"),
+    description: t("task1"),
     path: "/interns/BUT39",
   });
 }
 
 export default async function InternPage() {
   const t = await getTranslations("MyCard");
-  const common = await getTranslations("Common");
 
   return (
     <div className={`${landing.page} ${styles.page}`}>
-      <SkipLink label={common("skipToContent")} />
       <LandingHeader />
-      <main id="main-content" className={styles.main} tabIndex={-1}>
+      <main className={styles.main}>
         <MyCard
           name={t("name")}
           taskDescription={t("task1")}

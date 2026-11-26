@@ -1858,7 +1858,9 @@
       "topics": "NMT-Themen",
       "login": "Anmelden",
       "register": "Konto erstellen",
-      "cabinet": "Arbeitsbereich"
+      "cabinet": "Arbeitsbereich",
+      "internMy": "Oleksandras Seite",
+      "MyCard": "Dmytros Seite"
     },
     "hero": {
       "titleStart": "Bereite dich auf die NMT in Mathematik",
@@ -3288,6 +3290,12 @@
     "bankProblem": "Aufgabenheft",
     "taskTitle": "Aufgabe",
     "taskImageAlt": "Bild zur Aufgabe"
+  },
+  "InternMyPage": {
+    "name": "Oleksandra Dubrovina",
+    "task1": "Multiplikationsrechner: Multiplikation zweier Zahlen implementiert",
+    "codeLink": "Repository",
+    "liveLink": "Live-Demo"
   },
   "MyCard": {
     "name": "Dmytro But",

@@ -51,6 +51,8 @@ const EXACT_PAGES = new Set<string>([
   "/students",
   "/tasks/new",
   "/topic",
+  "/interns/sasha-dubrovina28",
+  "/interns/BUT39",
 ]);
 
 const DYNAMIC_PAGES: readonly RegExp[] = [

@@ -81,8 +81,16 @@ test("createPageMetadata includes canonical, OG image, and twitter card", () => 
   });
   assert.equal(missing.alternates?.canonical, null);
   const missingRobots = missing.robots;
-  assert.ok(missingRobots && typeof missingRobots === "object" && !Array.isArray(missingRobots));
-  if (missingRobots && typeof missingRobots === "object" && !Array.isArray(missingRobots)) {
+  assert.ok(
+    missingRobots &&
+      typeof missingRobots === "object" &&
+      !Array.isArray(missingRobots),
+  );
+  if (
+    missingRobots &&
+    typeof missingRobots === "object" &&
+    !Array.isArray(missingRobots)
+  ) {
     assert.equal(missingRobots.index, false);
     assert.equal(missingRobots.follow, false);
   }
@@ -104,7 +112,9 @@ test("createPageMetadata includes canonical, OG image, and twitter card", () => 
     assert.ok(Array.isArray(images) && images.length > 0);
     const first = images[0];
     assert.equal(
-      typeof first === "object" && first !== null && "url" in first ? first.url : first,
+      typeof first === "object" && first !== null && "url" in first
+        ? first.url
+        : first,
       "/opengraph-image",
     );
   }
@@ -118,12 +128,17 @@ test("createPageMetadata includes canonical, OG image, and twitter card", () => 
     const images = teacherOg.images;
     const first = Array.isArray(images) ? images[0] : images;
     assert.equal(
-      typeof first === "object" && first !== null && "url" in first ? first.url : first,
+      typeof first === "object" && first !== null && "url" in first
+        ? first.url
+        : first,
       "/t/mykhailo/opengraph-image-1hqqxu",
     );
   }
   assert.equal(metadataGroupSuffix("/(marketing)/diagnostic"), "2o0ybf");
-  assert.equal(existsSync(path.join(root, "src/app/opengraph-image.tsx")), true);
+  assert.equal(
+    existsSync(path.join(root, "src/app/opengraph-image.tsx")),
+    true,
+  );
   assert.equal(existsSync(path.join(root, "src/app/twitter-image.tsx")), true);
   assert.equal(existsSync(path.join(root, "public/og/og-default.png")), true);
 
@@ -141,8 +156,19 @@ test("site icons list sized brand files and skip the app favicon route", () => {
   assert.equal(existsSync(path.join(root, "src/app/favicon.ico")), false);
 
   const icons = siteIcons();
-  assert.ok(icons && typeof icons === "object" && !Array.isArray(icons) && !(icons instanceof URL));
-  if (!icons || typeof icons !== "object" || Array.isArray(icons) || icons instanceof URL) return;
+  assert.ok(
+    icons &&
+      typeof icons === "object" &&
+      !Array.isArray(icons) &&
+      !(icons instanceof URL),
+  );
+  if (
+    !icons ||
+    typeof icons !== "object" ||
+    Array.isArray(icons) ||
+    icons instanceof URL
+  )
+    return;
 
   const icon = icons.icon;
   assert.ok(Array.isArray(icon));
@@ -160,27 +186,53 @@ test("site icons list sized brand files and skip the app favicon route", () => {
 
   const apple = icons.apple;
   assert.ok(Array.isArray(apple));
-  const touch = (apple as Array<{ url: string; sizes?: string; type?: string }>)[0];
+  const touch = (
+    apple as Array<{ url: string; sizes?: string; type?: string }>
+  )[0];
   assert.equal(touch?.url, ICON_PATHS.appleTouch);
   assert.equal(touch?.sizes, "180x180");
   assert.equal(touch?.type, "image/png");
 });
 
 test("favicon files match the sizes declared to browsers", () => {
-  assert.deepEqual(icoEntries("public/favicon.ico"), ["48x48", "32x32", "16x16"]);
-  assert.deepEqual(pngSize("public/icons/icon-32.png"), { width: 32, height: 32 });
-  assert.deepEqual(pngSize("public/icons/icon-192.png"), { width: 192, height: 192 });
+  assert.deepEqual(icoEntries("public/favicon.ico"), [
+    "48x48",
+    "32x32",
+    "16x16",
+  ]);
+  assert.deepEqual(pngSize("public/icons/icon-32.png"), {
+    width: 32,
+    height: 32,
+  });
+  assert.deepEqual(pngSize("public/icons/icon-192.png"), {
+    width: 192,
+    height: 192,
+  });
   assert.deepEqual(pngSize("public/favicon.png"), { width: 192, height: 192 });
-  assert.deepEqual(pngSize("public/icons/icon-512.png"), { width: 512, height: 512 });
-  assert.deepEqual(pngSize("public/icons/apple-touch-icon.png"), { width: 180, height: 180 });
-  assert.deepEqual(pngSize("public/icons/maskable-192.png"), { width: 192, height: 192 });
-  assert.deepEqual(pngSize("public/icons/maskable-512.png"), { width: 512, height: 512 });
+  assert.deepEqual(pngSize("public/icons/icon-512.png"), {
+    width: 512,
+    height: 512,
+  });
+  assert.deepEqual(pngSize("public/icons/apple-touch-icon.png"), {
+    width: 180,
+    height: 180,
+  });
+  assert.deepEqual(pngSize("public/icons/maskable-192.png"), {
+    width: 192,
+    height: 192,
+  });
+  assert.deepEqual(pngSize("public/icons/maskable-512.png"), {
+    width: 512,
+    height: 512,
+  });
 });
 
 test("web manifest icons are png with explicit sizes", () => {
   const icons = manifest().icons ?? [];
   assert.deepEqual(
-    icons.map((icon) => `${icon.src} ${icon.sizes} ${icon.type} ${icon.purpose}`),
+    icons.map(
+      (icon) => `${icon.src} ${icon.sizes} ${icon.type} ${icon.purpose}`,
+    ),
     [
       `${ICON_PATHS.icon192} 192x192 image/png any`,
       `${ICON_PATHS.icon512} 512x512 image/png any`,
@@ -322,7 +374,11 @@ test("structured data is valid JSON-LD", () => {
   for (const sample of samples) {
     const json = JSON.stringify(sample);
     assert.equal(json.includes("undefined"), false);
-    const parsed = JSON.parse(json) as { "@context"?: string; "@type"?: string; "@graph"?: unknown[] };
+    const parsed = JSON.parse(json) as {
+      "@context"?: string;
+      "@type"?: string;
+      "@graph"?: unknown[];
+    };
     assert.equal(parsed["@context"], "https://schema.org");
     assert.ok(parsed["@type"] || Array.isArray(parsed["@graph"]));
   }
@@ -353,14 +409,19 @@ test("google site verification renders only when the env is set", () => {
 });
 
 test("open graph font file is a TrueType face", () => {
-  const font = readFileSync(path.join(root, "src/lib/seo/fonts/Manrope-SemiBold.ttf"));
+  const font = readFileSync(
+    path.join(root, "src/lib/seo/fonts/Manrope-SemiBold.ttf"),
+  );
   assert.equal(font.readUInt32BE(0), 0x00010000);
   assert.ok(font.length > 1000);
 });
 
 test("404 and the root layout clear canonical instead of pointing at home", () => {
   const layout = readFileSync(path.join(root, "src/app/layout.tsx"), "utf8");
-  const notFound = readFileSync(path.join(root, "src/app/not-found.tsx"), "utf8");
+  const notFound = readFileSync(
+    path.join(root, "src/app/not-found.tsx"),
+    "utf8",
+  );
   const welcome = readFileSync(
     path.join(root, "src/app/(marketing)/(flow)/welcome/page.tsx"),
     "utf8",
