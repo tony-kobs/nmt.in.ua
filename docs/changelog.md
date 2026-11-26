@@ -3,6 +3,17 @@
 Опис pull request — єдине місце, де це пишуть. Після мерджу в `dev` запис з’являється тут. Рядки для учня і викладача збираються в новини, коли реліз потрапляє в `main`. Посилання на скрінкаст з’являється лише після галочки «схвалено показувати». Гід для новачка — [онбординг](./onboarding.md) і [як робити задачу](./contributing.md); цей журнал туди не копіюється.
 
 <!-- changelog:entries -->
+### 2026-11-25 — fix: metadata, public route, css cleanup and name for /interns/BUT39 (#378)
+
+- Для команди: fix: metadata, public route, css cleanup and name for /interns/BUT39
+- Для людей: —
+- Скрінкаст: не потрібен
+- Запис: —
+- Схвалено: ні
+- Автор: BUT39
+- Посилання на PR: https://github.com/tony-kobs/nmt.in.ua/pull/378
+<!-- released: no -->
+
 ### 2026-11-24 — Сторінка стажера /interns/BUT39 (#368)
 
 - Для команди: Сторінка стажера /interns/BUT39
