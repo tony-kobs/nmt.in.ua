@@ -99,7 +99,13 @@
     "empty": "No notifications",
     "markAll": "Mark all as read",
     "accept": "Accept",
-    "decline": "Decline"
+    "decline": "Decline",
+    "assignedTitle": "Test scheduled",
+    "assignedBodyNoStart": "Your teacher assigned a test on “{themeName}” ({tasksNumber} tasks). Due: {dueAt}.",
+    "assignedBodyWithStart": "Your teacher assigned a test on “{themeName}” ({tasksNumber} tasks). Starts: {startAt}. Due: {dueAt}.",
+    "reminderTitle": "Topic test",
+    "reminderBody": "Finish the test on “{themeName}”.",
+    "unknownTheme": "the selected topic"
   },
   "LanguageSwitcher": {
     "aria": "Site language",

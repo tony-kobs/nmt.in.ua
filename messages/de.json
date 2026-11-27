@@ -99,7 +99,13 @@
     "empty": "Keine Hinweise",
     "markAll": "Alle als gelesen markieren",
     "accept": "Annehmen",
-    "decline": "Ablehnen"
+    "decline": "Ablehnen",
+    "assignedTitle": "Test geplant",
+    "assignedBodyNoStart": "Deine Lehrkraft hat einen Test zum Thema „{themeName}“ zugewiesen ({tasksNumber} Aufgaben). Fällig: {dueAt}.",
+    "assignedBodyWithStart": "Deine Lehrkraft hat einen Test zum Thema „{themeName}“ zugewiesen ({tasksNumber} Aufgaben). Start: {startAt}. Fällig: {dueAt}.",
+    "reminderTitle": "Test zum Thema",
+    "reminderBody": "Schließe den Test zum Thema „{themeName}“ ab.",
+    "unknownTheme": "dem ausgewählten Thema"
   },
   "LanguageSwitcher": {
     "aria": "Sprache der Website",
