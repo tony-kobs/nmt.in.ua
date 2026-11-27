@@ -13,11 +13,13 @@ import {
   markNotificationReadAction,
 } from "@/modules/notifications/actions";
 import type { NotificationSnapshot as UserNotification } from "@/modules/notifications/logic";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { noteMessageValues, readNoteMessage } from "@/modules/notifications/studentNotes";
 import css from "./NotificationBell.module.css";
 
 export function NotificationBell() {
   const t = useTranslations("Notifications");
+  const locale = useLocale();
   const router = useRouter();
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -151,11 +153,17 @@ export function NotificationBell() {
             <p className={css.empty}>{t("empty")}</p>
           ) : (
             <ul className={css.list}>
-              {items.map((item) => (
+              {items.map((item) => {
+                const message = readNoteMessage(item.body);
+                const title = message ? t(message.title) : item.title;
+                const body = message
+                  ? t(message.body, noteMessageValues(message, locale, t("unknownTheme")))
+                  : item.body;
+                return (
                 <li key={item.id} className={item.readAt ? css.item : css.itemUnread}>
                   <button type="button" className={css.itemButton} onClick={() => void openItem(item)}>
-                    <span className={css.itemTitle}>{item.title}</span>
-                    <span className={css.itemBody}>{item.body}</span>
+                    <span className={css.itemTitle}>{title}</span>
+                    <span className={css.itemBody}>{body}</span>
                   </button>
                   {item.kind === "marathon.invite" && item.link ? (
                     <div className={css.itemActions}>
@@ -170,7 +178,8 @@ export function NotificationBell() {
                     </div>
                   ) : null}
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </div>,

@@ -152,12 +152,14 @@ export function sessionCreatedByLabel(sessionType: number): string {
   }
 }
 
-export function formatSessionStartTime(startTime: number): string {
+const DATE_LOCALES: Record<string, string> = { uk: "uk-UA", en: "en-GB", de: "de-DE" };
+
+export function formatSessionStartTime(startTime: number, locale = "uk"): string {
   if (!Number.isFinite(startTime) || startTime <= 0) {
     return "—";
   }
   const ms = startTime > 1_000_000_000_000 ? startTime : startTime * 1000;
-  return new Intl.DateTimeFormat("uk-UA", {
+  return new Intl.DateTimeFormat(DATE_LOCALES[locale] ?? "uk-UA", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

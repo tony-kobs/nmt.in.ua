@@ -99,7 +99,13 @@
     "empty": "Немає сповіщень",
     "markAll": "Позначити всі прочитаними",
     "accept": "Прийняти",
-    "decline": "Відмовитись"
+    "decline": "Відмовитись",
+    "assignedTitle": "Заплановано тест",
+    "assignedBodyNoStart": "Викладач призначив тест за темою «{themeName}» ({tasksNumber} завдань). Термін: {dueAt}.",
+    "assignedBodyWithStart": "Викладач призначив тест за темою «{themeName}» ({tasksNumber} завдань). Старт: {startAt}. Термін: {dueAt}.",
+    "reminderTitle": "Тест за темою",
+    "reminderBody": "Завершіть тест за темою «{themeName}».",
+    "unknownTheme": "обраною темою"
   },
   "LanguageSwitcher": {
     "aria": "Мова сайту",
